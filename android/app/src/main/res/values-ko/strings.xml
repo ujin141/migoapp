@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Migo - 여행 동행 매칭앱</string>
+    <string name="title_activity_main">Migo - 여행 동행 매칭앱</string>
+    <string name="package_name">com.migo.app</string>
+    <string name="custom_url_scheme">com.migo.app</string>
+</resources>

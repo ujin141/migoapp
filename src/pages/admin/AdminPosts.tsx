@@ -1,0 +1,151 @@
+import i18n from "@/i18n";
+import { useTranslation } from "react-i18next";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Trash2, Search, Eye, EyeOff, Pin, RefreshCw } from "lucide-react";
+import { fetchAdminPosts, deletePost, updatePostHidden, updatePostPinned } from "@/lib/adminService";
+export const AdminPosts = () => {
+  const {
+    t
+  } = useTranslation();
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "hidden" | "pinned">("all");
+  const load = async () => {
+    setLoading(true);
+    const data = await fetchAdminPosts();
+    setPosts(data);
+    setLoading(false);
+  };
+  useEffect(() => {
+    load();
+  }, []);
+  const filtered = posts.filter(p => {
+    const q = search.toLowerCase();
+    const match = (p.title || "").toLowerCase().includes(q) || (p.authorName || "").toLowerCase().includes(q) || (p.content || "").toLowerCase().includes(q);
+    if (!match) return false;
+    if (filter === "hidden") return p.hidden;
+    if (filter === "pinned") return p.pinned;
+    return true;
+  });
+  const handleDelete = async (id: string) => {
+    if (!confirm(i18n.t("auto.z_autoz\uC815\uB9D0\uB85C\uC774\uAC8C_1032"))) return;
+    const success = await deletePost(id);
+    if (success) setPosts(prev => prev.filter(p => p.id !== id));else alert("auto.z_autoz\uAC8C\uC2DC\uAE00\uC0AD\uC81C_1033");
+  };
+  const handleToggleHidden = async (id: string, currentHidden: boolean) => {
+    const success = await updatePostHidden(id, !currentHidden);
+    if (success) setPosts(prev => prev.map(p => p.id === id ? {
+      ...p,
+      hidden: !currentHidden
+    } : p));
+  };
+  const handleTogglePin = async (id: string, currentPinned: boolean) => {
+    const success = await updatePostPinned(id, !currentPinned);
+    if (success) setPosts(prev => prev.map(p => p.id === id ? {
+      ...p,
+      pinned: !currentPinned
+    } : p));
+  };
+  const filterBtns = [{
+    key: "all" as const,
+    label: t("auto.z_tmpl_678", {
+      defaultValue: t("auto.z_tmpl_1034", {
+        defaultValue: t("auto.t5004", { v0: posts.length })
+      })
+    })
+  }, {
+    key: "pinned" as const,
+    label: t("auto.z_tmpl_679", {
+      defaultValue: t("auto.z_tmpl_1035", {
+        defaultValue: t("auto.p4", { count: posts.filter(p => p.pinned).length })
+      })
+    })
+  }, {
+    key: "hidden" as const,
+    label: t("auto.z_tmpl_680", {
+      defaultValue: t("auto.z_tmpl_1036", {
+        defaultValue: t("auto.p5", { count: posts.filter(p => p.hidden).length })
+      })
+    })
+  }];
+  return <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-extrabold text-foreground">{t("auto.z_autoz\uCEE4\uBBA4\uB2C8\uD2F0\uAE00_1037")}</h1>
+          <p className="text-sm text-muted-foreground">{t("auto.z_autoz\uCD1D682_1038")}{posts.length}{t("auto.z_autoz\uAC1C\uC2E4\uC2DC\uAC04D_1039")}</p>
+        </div>
+        <motion.button whileTap={{
+        scale: 0.95
+      }} onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-sm">
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{t("auto.z_autoz\uC0C8\uB85C\uACE0\uCE686_1040")}</motion.button>
+      </div>
+
+      <div className="flex gap-3 mb-5">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("auto.z_autoz\uC81C\uBAA9\uB0B4\uC6A9\uC791_1041")} className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors" />
+        </div>
+        <div className="flex gap-1.5">
+          {filterBtns.map(b => <button key={b.key} onClick={() => setFilter(b.key)} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${filter === b.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+              {b.label}
+            </button>)}
+        </div>
+      </div>
+
+      {loading ? <div className="py-16 flex items-center justify-center gap-3 text-muted-foreground">
+          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm">{t("auto.z_autoz\uBD88\uB7EC\uC624\uB294\uC911_1042")}</span>
+        </div> : <div className="space-y-3">
+          <AnimatePresence>
+            {filtered.map(p => <motion.div key={p.id} layout exit={{
+          opacity: 0,
+          scale: 0.95
+        }} className={`bg-card rounded-2xl p-5 border transition-all
+                  ${p.hidden ? "border-red-500/20 opacity-60" : p.pinned ? "border-primary/30" : "border-border"}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {p.pinned && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[9px] font-bold text-primary">{i18n.t("auto.z_autoz\uACE0\uC815687_1043")}</span>}
+                      {p.hidden && <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-[9px] font-bold text-red-400">{i18n.t("auto.z_autoz\uC228\uAE40688_1044")}</span>}
+                      {p.authorPhoto ? <img src={p.authorPhoto} className="w-5 h-5 rounded-lg object-cover" /> : <div className="w-5 h-5 rounded-lg bg-muted" />}
+                      <span className="text-xs text-muted-foreground">{p.authorName}</span>
+                      <span className="text-xs text-muted-foreground">·</span>
+                      <span className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString("ko-KR")}</span>
+                      <div className="flex gap-1 ml-1">
+                        {p.tags?.map((t: string) => <span key={t} className="px-1.5 py-0.5 rounded-full bg-primary/10 text-[10px] text-primary font-bold">#{t}</span>)}
+                      </div>
+                    </div>
+                    <p className="font-bold text-foreground mb-1">{p.title}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{p.content}</p>
+                    {p.image_url && <img src={p.image_url} className="mt-2 h-20 rounded-xl object-cover" />}
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      {p.likes_count != null && <span>❤️ {p.likes_count}</span>}
+                      {p.comments_count != null && <span>💬 {p.comments_count}</span>}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <motion.button whileTap={{
+                scale: 0.9
+              }} onClick={() => handleTogglePin(p.id, p.pinned)} className={`p-2 rounded-xl transition-colors ${p.pinned ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={p.pinned ? i18n.t("auto.z_autoz\uD540\uD574\uC81C68_1045") : i18n.t("auto.z_autoz\uAE00\uACE0\uC81569_1046")}>
+                      <Pin size={14} />
+                    </motion.button>
+                    <motion.button whileTap={{
+                scale: 0.9
+              }} onClick={() => handleToggleHidden(p.id, p.hidden)} className={`p-2 rounded-xl transition-colors ${p.hidden ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"}`} title={p.hidden ? i18n.t("auto.z_autoz\uC228\uAE40\uD574\uC81C6_1047") : i18n.t("auto.z_autoz\uAE00\uC228\uAE4069_1048")}>
+                      {p.hidden ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </motion.button>
+                    <motion.button whileTap={{
+                scale: 0.9
+              }} onClick={() => handleDelete(p.id)} className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title={i18n.t("auto.z_autoz\uAC8C\uC2DC\uAE00\uC0AD\uC81C_1049")}>
+                      <Trash2 size={14} />
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>)}
+          </AnimatePresence>
+          {filtered.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground">{t("auto.z_autoz\uAC8C\uC2DC\uAE00\uC774\uC5C6_1050")}</div>}
+        </div>}
+    </div>;
+};

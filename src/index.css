@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 26% 9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 26% 9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 26% 9%;
+
+    --primary: 160 51% 49%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 91% 60%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 14% 46%;
+
+    --accent: 45 97% 54%;
+    --accent-foreground: 220 26% 9%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 160 51% 49%;
+
+    --radius: 1rem;
+
+    /* Migo custom tokens */
+    --gradient-primary: linear-gradient(135deg, #34D399, #3B82F6);
+    --gradient-primary-horizontal: linear-gradient(90deg, #34D399, #3B82F6);
+    --gradient-warm: linear-gradient(135deg, #34D399, #FACC15);
+    --shadow-card: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+    --shadow-card-hover: 0 8px 32px -4px rgba(0, 0, 0, 0.12);
+    --shadow-float: 0 12px 40px -8px rgba(0, 0, 0, 0.15);
+    --nav-height: 5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    /* 모든 요소 박스 기준 통일 */
+    box-sizing: border-box;
+  }
+
+  /* ── 300ms 탭 딜레이 완전 제거 ─────────────────────────── */
+  html {
+    touch-action: manipulation;
+    /* iOS Safari scroll 부드럽게 */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Manrope', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    /* 탭 하이라이트 제거 */
+    -webkit-tap-highlight-color: transparent;
+    /* 탭 딜레이 제거 */
+    touch-action: manipulation;
+    /* 텍스트 선택 방지 (버튼/카드 tap 시 텍스트 선택 현상 제거) */
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior-y: contain;
+  }
+
+  /* 텍스트 입력창은 선택 허용 */
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* ── 버튼/인터랙티브 요소 즉시 반응 ───────────────────── */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    /* GPU 합성 레이어로 올려 클릭 반응 즉각화 */
+    will-change: transform;
+    cursor: pointer;
+  }
+
+  /* will-change cleanup: 애니메이션 끝나면 해제 */
+  button:not(:hover):not(:active),
+  a:not(:hover):not(:active) {
+    will-change: auto;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-primary-horizontal {
+    background: var(--gradient-primary-horizontal);
+  }
+
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-card-hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .shadow-float {
+    box-shadow: var(--shadow-float);
+  }
+
+  .safe-bottom {
+    padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+  }
+}

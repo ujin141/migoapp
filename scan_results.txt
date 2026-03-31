@@ -1,0 +1,77 @@
+TOTAL: 61 in 7 files
+
+
+=== src/components/MatchModal.tsx (15) ===
+  [tFallback] L25: [i18n.t("interest.photo", "사진")]: [i18n.t("auto.z_tmpl_1505", {
+  [tFallback] L30: [i18n.t("interest.food", "맛집")]: [i18n.t("auto.z_tmpl_1507", {
+  [tFallback] L35: [i18n.t("interest.photoTrip", "📸 사진여행")]: [i18n.t("auto.z_tmpl_1509", {
+  [tFallback] L40: [i18n.t("interest.foodTour", "🍜 맛집투어")]: [i18n.t("auto.z_autoz\uC624\uB298\uBB50\uB4DC\uC168_1394")],
+  [tFallback] L41: [i18n.t("interest.activity", "🏄 액티비티")]: [i18n.t("auto.z_autoz\uD639\uC2DC\uC11C\uD551\uC2A4_1395"), i18n.t("auto.z_tmpl_1512", {
+  [tFallback] L46: [i18n.t("interest.nature", "🏕️ 자연/캠핑")]: [i18n.t("auto.z_tmpl_1513", {
+  [tFallback] L51: [i18n.t("interest.luxury", "럭셔리")]: [i18n.t("auto.z_autoz\uC5B4\uB514\uBA38\uBB3C\uACE0_1398")],
+  [tFallback] L52: [i18n.t("interest.local", "로컬")]: [i18n.t("auto.z_autoz\uD604\uC9C0\uC778\uCC98\uB7FC_1399")],
+  [tFallback] L53: [i18n.t("interest.longTerm", "한달살기")]: [i18n.t("auto.z_autoz\uC7A5\uAE30\uC5EC\uD589\uC774_1400")]
+  [tFallback] L94: [i18n.t("dest.tokyo", "도쿄")]: i18n.t("auto.z_autoz\uC2DC\uBD80\uC57C\uC2A4\uD0C0_1406"),
+  [tFallback] L95: [i18n.t("dest.kyoto", "교토")]: i18n.t("auto.z_autoz\uAE30\uC628\uCE74\uD398\uAC70_1407"),
+  [tFallback] L96: [i18n.t("dest.osaka", "오사카")]: i18n.t("auto.z_autoz\uB3C4\uD1B0\uBCF4\uB9AC\uAE00_1408"),
+  [tFallback] L97: [i18n.t("dest.bali", "발리")]: i18n.t("auto.z_Seminyak해변_1525"),
+  [tFallback] L98: [i18n.t("dest.paris", "파리")]: i18n.t("auto.z_autoz\uC5D0\uD3A0\uD0D1\uADFC\uCC98_1410"),
+  [tFallback] L99: [i18n.t("dest.danang", "다낭")]: i18n.t("auto.z_autoz\uBBF8\uCF00\uBE44\uCE58\uADFC_1411")
+
+=== src/components/SwipeCard.tsx (8) ===
+  [tFallback] L31: [i18n.t("nat.nz", "뉴질랜드")]: "🇳🇿",
+  [tFallback] L32: [i18n.t("nat.ch", "스위스")]: "🇨🇭",
+  [tFallback] L33: [i18n.t("nat.nl", "네덜란드")]: "🇳🇱",
+  [tFallback] L34: [i18n.t("nat.ru", "러시아")]: "🇷🇺",
+  [tFallback] L35: [i18n.t("nat.br", "브라질")]: "🇧🇷",
+  [tFallback] L36: [i18n.t("nat.mx", "멕시코")]: "🇲🇽",
+  [tFallback] L37: [i18n.t("nat.tr", "튀르키예")]: "🇹🇷",
+  [tFallback] L38: [i18n.t("nat.ae", "아랍에미리트")]: "🇦🇪"
+
+=== src/hooks/useGeoDistance.ts (4) ===
+  [constArray] L38: defaultValue: `도보 ${Math.round(km / 0.08)}분 🚶`
+  [constArray] L44: defaultValue: `자전거 ${Math.round(km / 0.25)}분 🚴`
+  [constArray] L50: defaultValue: `지하철 ${Math.round(km / 0.5)}분 🚇`
+  [constArray] L55: defaultValue: `차로 ${Math.round(km / 0.7)}분 🚗`
+
+=== src/lib/adminService.ts (8) ===
+  [constArray] L383: defaultValue: `${i + 1}일전`
+  [tFallback] L406: i18n.t("auto.z_autoz일8_14", "일"),
+  [tFallback] L407: i18n.t("auto.z_autoz월9_15", "월"),
+  [tFallback] L408: i18n.t("auto.z_autoz화10_16", "화"),
+  [tFallback] L409: i18n.t("auto.z_autoz수11_17", "수"),
+  [tFallback] L410: i18n.t("auto.z_autoz목12_18", "목"),
+  [tFallback] L411: i18n.t("auto.z_autoz금13_19", "금"),
+  [tFallback] L412: i18n.t("auto.z_autoz토14_20", "토")
+
+=== src/pages/admin/AdminAnalytics.tsx (3) ===
+  [tFallback] L109: <Area type="monotone" dataKey="users" stroke="#8b5cf6" fill="url(#au)" strokeWidth={2} name={t("admin.newUser", "신규 유저")} />
+  [tFallback] L110: <Area type="monotone" dataKey="matches" stroke="#ec4899" fill="url(#am)" strokeWidth={2} name={t("admin.newGroup", "그룹 생성")} />
+  [tFallback] L135: <Bar dataKey="users" fill="#8b5cf6" radius={[6, 6, 0, 0]} name={t("admin.newSignup", "신규 가입")} />
+
+=== src/pages/admin/AdminChat.tsx (20) ===
+  [tFallback] L34: if (!confirm(t("admin.deactivateRoomConfirm", "이 채팅방을 비활성화하시겠습니까?"))) return;
+  [tFallback] L59: <MessageSquare size={22} className="text-blue-400" /> {t("admin.chatMonitor", "채팅방 모니터링")}
+  [tFallback] L61: <p className="text-sm text-muted-foreground mt-1">{t("admin.chatMonitorDesc", "활성 여행 그룹 채팅방을 관리합니다")}</p>
+  [tFallback] L64: <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> {t("admin.refresh", "새로고침")}
+  [tFallback] L71: { label: t("admin.allRooms", "전체 채팅방"), value: rooms.length, icon: MessageSquare, color: "from-violet-500 to-purple-600" },
+  [tFallback] L72: { label: t("admin.activeRooms", "활성 채팅방"), value: activeCount, icon: Power, color: "from-emerald-500 to-green-500" },
+  [tFallback] L73: { label: t("admin.totalMembers", "전체 참여자"), value: totalMembers, icon: Users, color: "from-blue-500 to-cyan-500" },
+  [tFallback] L89: {[{ id: "all" as const, label: t("admin.all", "전체") }, { id: "active" as const, label: t("admin.active", "활성") }, { id: "inactive"
+  [tFallback] L104: const creatorName = createdBy?.name || t("admin.unknown", "알 수 없음");
+  [tFallback] L118: <p className="font-bold text-foreground text-sm truncate">{room.title || t("admin.noTitle", "제목 없음")}</p>
+  [tFallback] L120: {isActive ? t("admin.active", "활성") : t("admin.inactive", "비활성")}
+  [tFallback] L124: <span className="flex items-center gap-1"><Users size={10} />{room.member_count || 0}/{room.max_members || "∞"}{t("admin.persons",
+  [tFallback] L125: <span>{t("admin.creator", "개설자:")} {creatorName}</span>
+  [tFallback] L126: <span className="flex items-center gap-1"><Clock size={10} />{daysAgo === 0 ? t("admin.today", "오늘") : t("admin.daysAgoFormat", { 
+  [tFallback] L131: className="p-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors" title={t("admin.viewMsg", "메시지 보기")
+  [tFallback] L136: className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title={t("admin.deactivateRoom", "채팅방 
+  [tFallback] L146: <div className="py-20 text-center text-sm text-muted-foreground">{t("admin.noRooms", "채팅방이 없습니다")}</div>
+  [tFallback] L161: <p className="text-xs text-muted-foreground">{selectedRoom.member_count || 0}{t("admin.memberJoined", "명 참여")}</p>
+  [tFallback] L174: <div className="h-full flex items-center justify-center text-sm text-muted-foreground">{t("admin.noMsg", "메시지가 없습니다")}</div>
+  [tFallback] L188: <p className="text-[10px] text-muted-foreground mb-0.5">{sender?.name || t("admin.unknown", "알 수 없음")}</p>
+
+=== src/pages/ChatPage.tsx (3) ===
+  [jsxText] L561: </div> : msg.text.startsWith(i18n.t("auto.z_autoz만남제안4_894")) ? <div className="flex gap-3 items-center">
+  [jsxText] L570: </div> : msg.text.startsWith(i18n.t("auto.z_autoz여행일정공_898")) ? <div className="flex gap-3 items-start">
+  [constArray] L604: defaultValue: `번역 (${LANG_NAMES[targetLang]})`
