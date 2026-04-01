@@ -2,7 +2,7 @@ import i18n from "@/i18n";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, MapPin, Calendar, Users, Plus, ChevronRight, X, Check, ArrowLeft, Share2, Heart, MessageCircle, Clock, Star, Compass, Pencil, ThumbsUp, Bell, Image as ImageIcon, Send, Trash2, Crown, Ticket, Megaphone, ExternalLink, Languages, ChevronDown, Zap } from "lucide-react";
+import { Search, MapPin, Calendar, Users, Plus, ChevronRight, X, Check, ArrowLeft, Share2, Heart, MessageCircle, Clock, Star, Compass, Pencil, ThumbsUp, Bell, Image as ImageIcon, Send, Trash2, Crown, Ticket, Megaphone, ExternalLink, Languages, ChevronDown, Zap, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/context/SubscriptionContext";
@@ -12,7 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 import { translateText } from "@/lib/translateService";
 import ProfileDetailSheet from "@/components/ProfileDetailSheet";
 import useGeoDistance, { distanceLabel, travelTimeLabel, distanceColor } from "@/hooks/useGeoDistance";
-import { getLocalizedPrice } from "@/lib/pricing";
+import { getLocalizedPrice, inferGroupTier, GROUP_TIER_CONFIGS } from "@/lib/pricing";
+import GlobalFilter from "@/components/GlobalFilter";
+import { useGlobalFilter } from "@/context/GlobalFilterContext";
+import { getChosung } from "@/lib/chosungUtils";
+import GroupDetailFilter, { GroupDetailFilterState, DEFAULT_GROUP_DETAIL_FILTER, countGroupDetailFilters } from "@/components/GroupDetailFilter";
+import { getMyCheckIn } from "@/lib/checkInService";
+import PaymentModal from "@/components/PaymentModal";
 
 // ──────────────────────────────────────────────
 // Types
@@ -105,6 +111,30 @@ const DiscoverPage = () => {
   const [distanceFilter, setDistanceFilter] = useState<number | null>(null); // null = 전체, 숫자 = 반경 km
   const [activeCommunityFilter, setActiveCommunityFilter] = useState<"latest" | "popular">("latest");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Global filter
+  const [showGlobalFilter, setShowGlobalFilter] = useState(false);
+  const {
+    filters: globalFilters,
+    activeCount: globalFilterCount,
+    setDestination: clearGlobalDest,
+    setDateRange: clearGlobalDate,
+    setGroupSize: clearGlobalGroup
+  } = useGlobalFilter();
+
+  // Group detail filter
+  const [showGroupDetailFilter, setShowGroupDetailFilter] = useState(false);
+  const [groupDetailFilter, setGroupDetailFilter] = useState<GroupDetailFilterState>(DEFAULT_GROUP_DETAIL_FILTER);
+  const groupDetailFilterCount = countGroupDetailFilters(groupDetailFilter);
+
+  // Check-in city for group filtering
+  const [checkInCity, setCheckInCity] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    getMyCheckIn(user.id).then(ci => {
+      if (ci) setCheckInCity(ci.city);
+    });
+  }, [user]);
   const {
     myPos,
     distanceTo
@@ -495,22 +525,34 @@ const DiscoverPage = () => {
     fetchPosts();
   }, []);
 
-  // ── Fetch groups ───────────────────────────────
+  // ── Fetch groups — reacts to GlobalFilter ─────
   useEffect(() => {
     const fetchGroups = async () => {
       setLoadingGroups(true);
       try {
-        const {
-          data,
-          error
-        } = await supabase.from("trip_groups").select(`
+        let query = supabase.from("trip_groups").select(`
             id, title, destination, dates, max_members, tags, description,
             entry_fee, is_premium, host_id,
             profiles!trip_groups_host_id_fkey(name, photo_url, bio),
             trip_group_members(user_id, profiles(name, photo_url))
           `).order("created_at", {
           ascending: false
-        }).limit(30);
+        }).limit(50);
+
+        // ── GlobalFilter 조건 적용 ───────────────────
+        if (globalFilters.destination) {
+          const dest = globalFilters.destination;
+          const cho = getChosung(dest);
+          query = query.or(`destination.ilike.%${dest}%,title.ilike.%${dest}%,destination_chosung.ilike.%${cho}%,title_chosung.ilike.%${cho}%`);
+        }
+        if (globalFilters.groupSize !== null) {
+          // max_members >= 선택된 groupSize (해당 인원 이상 수용 가능)
+          query = query.gte("max_members", globalFilters.groupSize);
+        }
+        const {
+          data,
+          error
+        } = await query;
         if (error) throw error;
         const mapped: TripGroup[] = (data || []).map((g: any) => {
           const members = g.trip_group_members || [];
@@ -1019,7 +1061,7 @@ const DiscoverPage = () => {
       }
     };
     fetchGroups();
-  }, [user]);
+  }, [user, globalFilters]);
 
   // ── File select ────────────────────────────────
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1414,11 +1456,24 @@ const DiscoverPage = () => {
     }
     return null;
   };
+  // ── Activity keyword mapping for tag-based filtering ──────────
+  const ACTIVITY_KEYWORDS: Record<string, string[]> = {
+    "투어": ["투어", "tour", "관광", "명소", "사원", "문화"],
+    "맛집": ["맛집", "음식", "food", "레스토랑", "restaurant", "미식", "먹방"],
+    "카페": ["카페", "cafe", "coffee", "커피", "브런치", "디저트"],
+    "클럽": ["클럽", "club", "나이트", "night", "파티", "bar", "바"]
+  };
+  const VIBE_KEYWORDS: Record<string, string[]> = {
+    "편한": ["편한", "캐주얼", "자유", "힐링", "relaxed"],
+    "파티": ["파티", "party", "클럽", "신나", "fun", "신남"],
+    "진지": ["진지", "목적", "계획", "배움", "스터디", "serious"]
+  };
   const filtered = tripGroups.filter(g => {
     const matchesFilter = activeFilter === "all" ? true : activeFilter === "recruiting" ? g.currentMembers < g.maxMembers : activeFilter === "almostFull" ? g.daysLeft <= 3 : activeFilter === "hot" ? g.daysLeft <= 5 && g.currentMembers < g.maxMembers : true;
     const q = searchQuery.toLowerCase();
-    const matchesSearch = q === "" || g.title.toLowerCase().includes(q) || g.destination.toLowerCase().includes(q) || g.tags.some(tag => tag.toLowerCase().includes(q));
-    // 거리 필터: 목적지 좌표 lookup → 없으면 통과
+    const choQ = getChosung(q);
+    const matchesSearch = q === "" || g.title.toLowerCase().includes(q) || g.destination.toLowerCase().includes(q) || g.tags.some(tag => tag.toLowerCase().includes(q)) || getChosung(g.title).includes(choQ) || getChosung(g.destination).includes(choQ) || g.tags.some(tag => getChosung(tag).includes(choQ));
+    // 거리 필터
     let matchesDistance = true;
     if (distanceFilter !== null && myPos) {
       const coords = getDestCoords(g.destination);
@@ -1426,10 +1481,67 @@ const DiscoverPage = () => {
         const dist = distanceTo(coords) ?? null;
         matchesDistance = dist === null || dist <= distanceFilter;
       }
-      // coords 없으면 통과 (알 수 없는 목적지)
     }
-    return matchesFilter && matchesSearch && matchesDistance;
+
+    // ── Group detail filters ──────────────────────────────────
+    // 체크인 도시 필터
+    let matchesCheckIn = true;
+    if (groupDetailFilter.checkInOnly && checkInCity) {
+      matchesCheckIn = g.destination.toLowerCase().includes(checkInCity.toLowerCase());
+    }
+
+    // 활동 종류 필터 (tags 기반 키워드 매칭)
+    let matchesActivity = true;
+    if (groupDetailFilter.activity) {
+      const keywords = ACTIVITY_KEYWORDS[groupDetailFilter.activity] || [];
+      const allText = [...g.tags, g.title, g.description || ""].join(" ").toLowerCase();
+      matchesActivity = keywords.some(kw => allText.includes(kw));
+    }
+
+    // 분위기 필터 (tags + title 키워드 매칭)
+    let matchesVibe = true;
+    if (groupDetailFilter.vibe !== "any") {
+      const keywords = VIBE_KEYWORDS[groupDetailFilter.vibe] || [];
+      const allText = [...g.tags, g.title, g.description || ""].join(" ").toLowerCase();
+      matchesVibe = keywords.some(kw => allText.includes(kw));
+      // 키워드가 없으면 vibe 필터는 통과 (태그 없는 그룹 배제 방지)
+      if (!matchesVibe && g.tags.length === 0) matchesVibe = true;
+    }
+
+    // 언어 / 국적 필터 (호스트 이름 + 태그 기반 간단 추정)
+    let matchesLanguage = true;
+    if (groupDetailFilter.language !== "any") {
+      const koreanPattern = /[가-힣]/;
+      const hostIsKorean = koreanPattern.test(g.hostName);
+      const tagsHaveKorean = g.tags.some(t => koreanPattern.test(t));
+      const isKorean = hostIsKorean || tagsHaveKorean;
+      if (groupDetailFilter.language === "korean") matchesLanguage = isKorean;else if (groupDetailFilter.language === "foreign") matchesLanguage = !isKorean;else if (groupDetailFilter.language === "mixed") matchesLanguage = true; // 혼합은 전체 통과
+    }
+
+    // 성비 필터 (태그/제목 기반 키워드 — 실제 데이터 없으므로 best-effort)
+    let matchesGender = true;
+    if (groupDetailFilter.genderRatio !== "any") {
+      const allText = [...g.tags, g.title].join(" ").toLowerCase();
+      const gMap: Record<string, string[]> = {
+        "all-male": ["남성만", "남자만", "all-male", "남성"],
+        "all-female": ["여성만", "여자만", "all-female", "여성"],
+        "2남2여": ["2남2여", "혼성", "남녀"],
+        "3남1여": ["3남1여"],
+        "1남3여": ["1남3여"]
+      };
+      const kws = gMap[groupDetailFilter.genderRatio] || [];
+      // 매칭 안 되면 통과 (필드 없는 그룹 제외 방지)
+      const hasKeyword = kws.some(kw => allText.includes(kw));
+      matchesGender = kws.length === 0 || hasKeyword || true; // 데이터 부족으로 통과 처리
+    }
+    return matchesFilter && matchesSearch && matchesDistance && matchesCheckIn && matchesActivity && matchesVibe && matchesLanguage && matchesGender;
   }).sort((a, b) => {
+    // 체크인 도시 그룹 최상단 우선 배치
+    if (checkInCity) {
+      const aInCity = a.destination.toLowerCase().includes(checkInCity.toLowerCase()) ? 0 : 1;
+      const bInCity = b.destination.toLowerCase().includes(checkInCity.toLowerCase()) ? 0 : 1;
+      if (aInCity !== bInCity) return aInCity - bInCity;
+    }
     if (distanceFilter !== null && myPos) {
       const ca = getDestCoords(a.destination);
       const cb = getDestCoords(b.destination);
@@ -1463,6 +1575,17 @@ const DiscoverPage = () => {
               {notifCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full gradient-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center">
                   {notifCount}
                 </span>}
+            </button>
+            {/* Global filter button */}
+            <button onClick={() => setShowGlobalFilter(true)} className="relative w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-all active:scale-90">
+              <SlidersHorizontal size={18} className={globalFilterCount > 0 ? "text-primary" : "text-foreground"} />
+              {globalFilterCount > 0 && <motion.span initial={{
+              scale: 0
+            }} animate={{
+              scale: 1
+            }} className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full gradient-primary flex items-center justify-center text-[9px] font-extrabold text-white shadow-sm">
+                  {globalFilterCount}
+                </motion.span>}
             </button>
           </div>
         </div>
@@ -1522,15 +1645,188 @@ const DiscoverPage = () => {
         </div>
       </div>
 
+      {/* Global filter active chips */}
+      <AnimatePresence>
+        {globalFilterCount > 0 && <motion.div initial={{
+        height: 0,
+        opacity: 0
+      }} animate={{
+        height: "auto",
+        opacity: 1
+      }} exit={{
+        height: 0,
+        opacity: 0
+      }} transition={{
+        duration: 0.2
+      }} className="overflow-hidden">
+            <div className="flex gap-2 px-5 py-2 overflow-x-auto scrollbar-hide">
+              {globalFilters.destination && <motion.button initial={{
+            scale: 0.8,
+            opacity: 0
+          }} animate={{
+            scale: 1,
+            opacity: 1
+          }} onClick={() => clearGlobalDest(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-xs font-semibold text-primary whitespace-nowrap shrink-0">
+                  🌍 {globalFilters.destination === "tokyo" ? "도쿄" : globalFilters.destination === "seoul" ? "서울" : "방콕"}
+                  <X size={10} strokeWidth={3} />
+                </motion.button>}
+              {(globalFilters.dateRange.start || globalFilters.dateRange.end) && <motion.button initial={{
+            scale: 0.8,
+            opacity: 0
+          }} animate={{
+            scale: 1,
+            opacity: 1
+          }} onClick={() => clearGlobalDate({
+            start: null,
+            end: null
+          })} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-xs font-semibold text-blue-600 whitespace-nowrap shrink-0">
+                  📅 {globalFilters.dateRange.start ? `${parseInt(globalFilters.dateRange.start.split("-")[1])}월 ${parseInt(globalFilters.dateRange.start.split("-")[2])}일` : ""}{globalFilters.dateRange.end ? ` ~ ${parseInt(globalFilters.dateRange.end.split("-")[1])}월 ${parseInt(globalFilters.dateRange.end.split("-")[2])}일` : ""}
+                  <X size={10} strokeWidth={3} />
+                </motion.button>}
+              {globalFilters.groupSize !== null && <motion.button initial={{
+            scale: 0.8,
+            opacity: 0
+          }} animate={{
+            scale: 1,
+            opacity: 1
+          }} onClick={() => clearGlobalGroup(null)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-xs font-semibold text-purple-600 whitespace-nowrap shrink-0">
+                  👥 {globalFilters.groupSize === 6 ? "6명 이상" : `${globalFilters.groupSize}명`}
+                  <X size={10} strokeWidth={3} />
+                </motion.button>}
+            </div>
+          </motion.div>}
+      </AnimatePresence>
+
       {/* Filters (Groups only) */}
       {activeTab === "groups" && <div className="flex gap-2 px-5 py-3 overflow-x-auto scrollbar-hide">
           {FILTER_LIST.map(f => <button key={f} onClick={() => setActiveFilter(f)} className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeFilter === f ? "gradient-primary text-primary-foreground shadow-card" : "bg-muted text-muted-foreground"}`}>
               {t(`discover.${f}`)}
             </button>)}
+          {/* 세부 필터 버튼 */}
+          <button onClick={() => setShowGroupDetailFilter(true)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${groupDetailFilterCount > 0 ? "bg-primary/15 border-primary/40 text-primary" : "bg-muted border-transparent text-muted-foreground"}`}>
+            <SlidersHorizontal size={11} />{i18n.t("auto.z_\uC138\uBD80\uD544\uD130_f50ba2")}{groupDetailFilterCount > 0 && <span className="w-4 h-4 rounded-full bg-primary text-white text-[9px] font-extrabold flex items-center justify-center ml-0.5">
+                {groupDetailFilterCount}
+              </span>}
+          </button>
         </div>}
+
+      {/* Group detail active chips */}
+      <AnimatePresence>
+        {activeTab === "groups" && groupDetailFilterCount > 0 && <motion.div initial={{
+        height: 0,
+        opacity: 0
+      }} animate={{
+        height: "auto",
+        opacity: 1
+      }} exit={{
+        height: 0,
+        opacity: 0
+      }} className="overflow-hidden">
+            <div className="flex gap-2 px-5 pb-2 overflow-x-auto scrollbar-hide">
+              {groupDetailFilter.checkInOnly && checkInCity && <motion.button initial={{
+            scale: 0.8
+          }} animate={{
+            scale: 1
+          }} onClick={() => setGroupDetailFilter(p => ({
+            ...p,
+            checkInOnly: false
+          }))} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs font-semibold text-emerald-600 shrink-0">
+                  📍 {checkInCity} <X size={10} strokeWidth={3} />
+                </motion.button>}
+              {groupDetailFilter.activity && <motion.button initial={{
+            scale: 0.8
+          }} animate={{
+            scale: 1
+          }} onClick={() => setGroupDetailFilter(p => ({
+            ...p,
+            activity: null
+          }))} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-orange-500/15 border border-orange-500/30 text-xs font-semibold text-orange-600 shrink-0">
+                  {groupDetailFilter.activity === "투어" ? "🗺️" : groupDetailFilter.activity === "맛집" ? "🍜" : groupDetailFilter.activity === "카페" ? "☕" : "🎶"} {groupDetailFilter.activity} <X size={10} strokeWidth={3} />
+                </motion.button>}
+              {groupDetailFilter.language !== "any" && <motion.button initial={{
+            scale: 0.8
+          }} animate={{
+            scale: 1
+          }} onClick={() => setGroupDetailFilter(p => ({
+            ...p,
+            language: "any"
+          }))} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-xs font-semibold text-blue-600 shrink-0">
+                  🌐 {groupDetailFilter.language === "korean" ? "한국인" : groupDetailFilter.language === "foreign" ? "외국인" : "혼합"} <X size={10} strokeWidth={3} />
+                </motion.button>}
+              {groupDetailFilter.vibe !== "any" && <motion.button initial={{
+            scale: 0.8
+          }} animate={{
+            scale: 1
+          }} onClick={() => setGroupDetailFilter(p => ({
+            ...p,
+            vibe: "any"
+          }))} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-xs font-semibold text-violet-600 shrink-0">
+                  {groupDetailFilter.vibe === "편한" ? "😊" : groupDetailFilter.vibe === "파티" ? "🎉" : "🎯"} {groupDetailFilter.vibe} <X size={10} strokeWidth={3} />
+                </motion.button>}
+              {groupDetailFilter.genderRatio !== "any" && <motion.button initial={{
+            scale: 0.8
+          }} animate={{
+            scale: 1
+          }} onClick={() => setGroupDetailFilter(p => ({
+            ...p,
+            genderRatio: "any"
+          }))} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-pink-500/15 border border-pink-500/30 text-xs font-semibold text-pink-600 shrink-0">
+                  👥 {groupDetailFilter.genderRatio === "all-male" ? "남성만" : groupDetailFilter.genderRatio === "all-female" ? "여성만" : groupDetailFilter.genderRatio} <X size={10} strokeWidth={3} />
+                </motion.button>}
+            </div>
+          </motion.div>}
+      </AnimatePresence>
+
+      {/* GlobalFilter bottom sheet */}
+      <GlobalFilter open={showGlobalFilter} onClose={() => setShowGlobalFilter(false)} />
+
+      {/* GroupDetailFilter bottom sheet */}
+      <GroupDetailFilter open={showGroupDetailFilter} onClose={() => setShowGroupDetailFilter(false)} value={groupDetailFilter} onChange={setGroupDetailFilter} checkInCity={checkInCity} />
+
+      {/* Join Payment Modal */}
+      {paymentGroup && <PaymentModal isOpen={!!paymentGroup} onClose={() => setPaymentGroup(null)} groupTitle={paymentGroup.title} groupId={paymentGroup.id} groupTags={paymentGroup.tags} isPremiumGroup={paymentGroup.isPremiumGroup} onPaymentSuccess={() => {
+      setAppliedGroups(prev => new Set([...prev, paymentGroup.id]));
+      setPaymentGroup(null);
+    }} />}
 
       {/* ── Groups Tab ── */}
       {activeTab === "groups" && <div className="px-5 space-y-3 pb-24">
+          {/* 스마트 매칭 진입 배너 */}
+          <motion.button initial={{
+        opacity: 0,
+        y: 8
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} onClick={() => navigate("/trip-match")} className="w-full relative overflow-hidden rounded-2xl p-4 text-left" style={{
+        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)"
+      }}>
+            <motion.div className="absolute inset-0 bg-white/10" animate={{
+          x: ["-100%", "100%"]
+        }} transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "linear"
+        }} style={{
+          skewX: -20
+        }} />
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-white font-extrabold text-sm">{i18n.t("auto.z_\uC2A4\uB9C8\uD2B8\uADF8_e879f7")}</span>
+                  <span className="text-[10px] bg-white/20 text-white font-bold px-2 py-0.5 rounded-full">NEW</span>
+                </div>
+                <p className="text-white/80 text-[11px]">{i18n.t("auto.z_\uC131\uBE44\uD6C4\uAE30_669abf")}</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[10px] bg-white/15 text-white rounded-full px-2 py-0.5">{i18n.t("auto.z_\uC778\uC99D\uC720\uC800_a303f4")}</span>
+                  <span className="text-[10px] bg-white/15 text-white rounded-full px-2 py-0.5">{i18n.t("auto.z_\uC131\uBE44\uC870\uC808_5a1e1d")}</span>
+                  <span className="text-[10px] bg-white/15 text-white rounded-full px-2 py-0.5">{i18n.t("auto.z_\uC5EC\uC131\uBB34\uB8CC_8c89f9")}</span>
+                </div>
+              </div>
+              <div className="text-2xl">→</div>
+            </div>
+          </motion.button>
+
           {loadingGroups ? <div className="flex items-center justify-center py-16">
               <motion.div className="w-8 h-8 rounded-full gradient-primary" animate={{
           scale: [1, 1.2, 1]
@@ -1641,11 +1937,22 @@ const DiscoverPage = () => {
             })()}
               </div>
 
-              {/* Tags */}
-              <div className="flex flex-wrap gap-1 mb-3">
-                {group.tags.map(tag => <span key={tag} className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full">
-                    #{tag}
-                  </span>)}
+              {/* Tags + Price tier badge */}
+              <div className="flex flex-wrap gap-1 mb-3 items-center">
+                {group.tags.map(tag => <span key={tag} className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full">#{tag}</span>)}
+                {/* Tier badge */}
+                {(() => {
+              const tier = inferGroupTier(group.tags, group.title, group.isPremiumGroup);
+              const cfg = GROUP_TIER_CONFIGS.find(c => c.tier === tier)!;
+              const tierColors = {
+                travel: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+                party: "bg-pink-500/15 text-pink-600 border-pink-500/30",
+                premium: "bg-amber-500/15 text-amber-600 border-amber-500/30"
+              };
+              return <span className={`ml-auto flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${tierColors[tier]}`}>
+                      {cfg.emoji} {getLocalizedPrice(cfg.krw, i18n.language)}
+                    </span>;
+            })()}
               </div>
 
               {/* [Feature 2] 그룹 채팅 미리보기 */}
@@ -1711,8 +2018,8 @@ const DiscoverPage = () => {
                       });
                       return;
                     }
-                    setApplyGroup(group);
-                    setApplyMessage('');
+                    // Show payment modal instead of direct apply
+                    setPaymentGroup(group);
                   }} className="text-xs font-bold px-3 py-1.5 rounded-lg gradient-primary text-primary-foreground shadow-card">{i18n.t("auto.z_autoz\uB3D9\uD589\uC9C0\uC6D0\uD558_666")}</button>}
                   <button onClick={e => handleInterest(group.id, e)} className={`text-[11px] font-bold px-2 py-1 rounded-lg border transition-all ${interestedGroups.has(group.id) ? 'bg-amber-400/15 text-amber-400 border-amber-400/30' : 'bg-muted text-muted-foreground border-border hover:border-amber-400/30 hover:text-amber-400'}`}>
                     {interestedGroups.has(group.id) ? i18n.t("auto.z_autoz\uAD00\uC2EC\uC91175_667") : i18n.t("auto.z_autoz\uAD00\uC2EC\uC788\uC5B4\uC694_668")}
@@ -1817,15 +2124,41 @@ const DiscoverPage = () => {
                   {currentDetail.hostPhoto ? <img src={currentDetail.hostPhoto} alt="" className="w-12 h-12 rounded-xl object-cover" loading="lazy" onError={e => {
                 (e.target as HTMLImageElement).style.display = "none";
               }} /> : <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-bold">{currentDetail.hostName?.[0] || "M"}</div>}
-                  <div>
-                    <p className="text-sm font-extrabold text-foreground">{currentDetail.title}</p>
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-sm font-extrabold text-foreground break-words whitespace-pre-wrap">{translateMap[`groupTitle_${currentDetail.id}`] || currentDetail.title}</p>
                     <p className="text-xs text-muted-foreground">{currentDetail.hostName}</p>
                   </div>
-                  <button onClick={() => handleShare(currentDetail)} className="ml-auto w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+                  <button onClick={() => handleShare(currentDetail)} className="ml-auto w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
                     <Share2 size={14} className="text-foreground" />
                   </button>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">{currentDetail.description}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-wrap">{translateMap[`groupDesc_${currentDetail.id}`] || currentDetail.description}</p>
+                
+                {/* Translate Toggle */}
+                {currentDetail.description && (
+                  <div className="mt-3 pt-3 border-t border-border/40">
+                    <button 
+                      onClick={() => {
+                        handleTranslate(currentDetail.title, `groupTitle_${currentDetail.id}`);
+                        handleTranslate(currentDetail.description || "", `groupDesc_${currentDetail.id}`);
+                        handleTranslate(currentDetail.destination || "", `groupDest_${currentDetail.id}`);
+                      }} 
+                      className={`text-[11px] font-bold flex items-center gap-1.5 transition-colors px-2 py-1 -ml-2 rounded-lg ${
+                        translateMap[`groupDesc_${currentDetail.id}`] 
+                          ? "text-primary bg-primary/10" 
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Languages size={12} className={loadingMap[`groupDesc_${currentDetail.id}`] ? "animate-pulse" : ""} />
+                      {loadingMap[`groupDesc_${currentDetail.id}`] 
+                        ? i18n.t("auto.z_번역중_000", { defaultValue: "번역 중..." }) 
+                        : translateMap[`groupDesc_${currentDetail.id}`] 
+                          ? i18n.t("auto.z_원문보기_001", { defaultValue: "원문 보기" }) 
+                          : i18n.t("auto.z_번역보기_002", { defaultValue: "번역 보기" })
+                      }
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Meta */}
@@ -1833,7 +2166,7 @@ const DiscoverPage = () => {
                 <div className="grid grid-cols-2 gap-3">
                   {[{
                 label: t("auto.z_autoz목적지38_767"),
-                value: currentDetail.destination,
+                value: translateMap[`groupDest_${currentDetail.id}`] || currentDetail.destination,
                 icon: MapPin
               }, {
                 label: t("auto.z_autoz날짜384_768"),
@@ -2112,14 +2445,14 @@ const DiscoverPage = () => {
         opacity: 1
       }} exit={{
         opacity: 0
-      }} className="fixed inset-0 z-50 bg-black/60 flex items-end" onClick={() => setShowPlusModal(false)}>
+      }} className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center px-safe pb-safe pt-safe" onClick={() => setShowPlusModal(false)}>
             <motion.div initial={{
           y: "100%"
         }} animate={{
           y: 0
         }} exit={{
           y: "100%"
-        }} onClick={e => e.stopPropagation()} className="w-full bg-card rounded-t-3xl px-5 pt-6 pb-12">
+        }} onClick={e => e.stopPropagation()} className="w-full bg-card rounded-3xl mb-4 sm:mb-8 px-5 pt-6 pb-12">
               <div className="text-center mb-6">
                 <Crown size={40} className="text-yellow-400 mx-auto mb-3" />
                 <h2 className="text-xl font-black text-foreground mb-2">Migo Plus</h2>
@@ -2141,14 +2474,14 @@ const DiscoverPage = () => {
         opacity: 1
       }} exit={{
         opacity: 0
-      }} className="fixed inset-0 z-50 bg-black/60 flex items-end" onClick={() => setPaymentGroup(null)}>
+      }} className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center px-safe pb-safe pt-safe" onClick={() => setPaymentGroup(null)}>
             <motion.div initial={{
           y: "100%"
         }} animate={{
           y: 0
         }} exit={{
           y: "100%"
-        }} onClick={e => e.stopPropagation()} className="w-full bg-card rounded-t-3xl px-5 pt-6 pb-12">
+        }} onClick={e => e.stopPropagation()} className="w-full bg-card rounded-3xl mb-4 sm:mb-8 px-5 pt-6 pb-12">
               <div className="text-center mb-6">
                 <Ticket size={36} className="text-primary mx-auto mb-3" />
                 <h2 className="text-lg font-black text-foreground mb-2">{t("auto.z_autoz참가비결제_797")}</h2>
@@ -2176,7 +2509,7 @@ const DiscoverPage = () => {
         y: 0
       }} exit={{
         y: "100%"
-      }} className="fixed inset-x-0 bottom-0 z-[70] bg-card rounded-t-3xl shadow-float p-6 pb-12 max-h-[70vh] flex flex-col">
+      }} className="fixed inset-x-0 bottom-0 z-[70] bg-card rounded-3xl mb-4 sm:mb-8 shadow-float p-6 pb-12 max-h-[70vh] flex flex-col">
              <div className="flex justify-between items-center mb-4">
                <h3 className="text-lg font-black text-foreground">{t("auto.z_autoz좋아요한사_803")}</h3>
                <button onClick={() => setLikesPostId(null)} className="p-2 bg-muted rounded-full text-foreground"><X size={16} /></button>
@@ -2191,9 +2524,9 @@ const DiscoverPage = () => {
       </AnimatePresence>
     
       {/* ── [Feature 2] 동행 크루 지원서 모달 ── */}
-      {applyGroup && <div className="fixed inset-0 z-50 flex items-end" onClick={() => setApplyGroup(null)}>
+      {applyGroup && <div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" onClick={() => setApplyGroup(null)}>
           <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" />
-          <div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-12 shadow-float" onClick={e => e.stopPropagation()}>
+          <div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-12 shadow-float" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
             <div className="flex items-center gap-3 mb-4">
               {applyGroup.hostPhoto ? <img src={applyGroup.hostPhoto} alt="" className="w-12 h-12 rounded-2xl object-cover" /> : <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold">
@@ -2226,9 +2559,9 @@ const DiscoverPage = () => {
         </div>}
 
       {/* ── [Feature 2] 지원자 심사 모달 (호스트용) ── */}
-      {showApplicants && <div className="fixed inset-0 z-50 flex items-end" onClick={() => setShowApplicants(null)}>
+      {showApplicants && <div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" onClick={() => setShowApplicants(null)}>
           <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" />
-          <div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-12 max-h-[80vh] overflow-y-auto shadow-float" onClick={e => e.stopPropagation()}>
+          <div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-12 max-h-[80vh] overflow-y-auto shadow-float" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
             <h3 className="font-extrabold text-foreground mb-1">{t("auto.z_autoz\uB3D9\uD589\uC9C0\uC6D0\uC790_716")}</h3>
             <p className="text-xs text-muted-foreground mb-4">{t("auto.z_autoz\uC9C0\uC6D0\uC790\uD504\uB85C_717")}</p>

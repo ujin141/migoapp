@@ -16,11 +16,26 @@ declare global {
 if (window.__SUPABASE_CLIENT__) {
   delete window.__SUPABASE_CLIENT__;
 }
+import { Preferences } from "@capacitor/preferences";
+
+// 안드로이드/iOS WebView 환경에서 localStorage 휘발성 이슈를 해결하기 위한 영구 저장소 어댑터
+const capacitorStorageAdapter = {
+  getItem: async (key: string) => {
+    const { value } = await Preferences.get({ key });
+    return value ?? null;
+  },
+  setItem: async (key: string, value: string) => {
+    await Preferences.set({ key, value });
+  },
+  removeItem: async (key: string) => {
+    await Preferences.remove({ key });
+  }
+};
+
 let _supabase: SupabaseClient | null = null;
+
 if (!_supabase && isSupabaseConfigured) {
   try {
-    // 🚨 브라우저 탭 크래시 등으로 인해 남겨진 데드락(Deadlock) 상태의 Supabase Auth 잠금을 강제로 해제합니다.
-    // 이 처리를 통해 "Timeout acquiring lock" 또는 8초 무한 로딩 오류를 영구적으로 방지합니다.
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.includes('supabase') && key.includes('lock')) {
@@ -28,7 +43,7 @@ if (!_supabase && isSupabaseConfigured) {
       }
     }
   } catch (e) {
-    console.warn(i18n.t("auto.z_\uB85C\uCEEC\uC2A4\uD1A0\uB9AC\uC9C0lock_1067"), e);
+    console.warn(i18n.t("auto.z_로컬스토리지lock_1067"), e);
   }
   try {
     _supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -36,9 +51,10 @@ if (!_supabase && isSupabaseConfigured) {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        // 안드로이드 WebView/Capacitor 등 Web Locks API 비정상 동작(데드락)을 무력화하기 위해
-        // 브라우저 락(navigator.locks) 대신 무조건 즉시 통과되는 인메모리 싱글탭 Custom Lock을 강제 주입!
-        // (주의: GoTrue 내부적으로 expired token 갱신 시 재귀 락(recursive lock)을 호출하므로 Queue Mutex를 쓰면 무한 데드락에 빠집니다)
+        // 디바이스 플랫폼 확인: WebView/네이티브 앱이면 Preferences 사용, 일반 웹 브라우저면 localStorage 사용
+        storage: typeof window !== 'undefined' && 'Capacitor' in window 
+          ? capacitorStorageAdapter 
+          : window.localStorage,
         lock: async (name: string, acquireTimeout: number, fn: () => Promise<any>) => {
           return await fn();
         }

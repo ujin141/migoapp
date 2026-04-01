@@ -106,7 +106,7 @@ const AddTripModal = ({
     });
     onClose();
   };
-  return <motion.div className="fixed inset-0 z-[70] flex items-end" initial={{
+  return <motion.div className="fixed inset-0 z-[70] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
     opacity: 0
   }} animate={{
     opacity: 1
@@ -114,7 +114,7 @@ const AddTripModal = ({
     opacity: 0
   }}>
       <div className="absolute inset-0 bg-foreground/60 backdrop-blur-md" onClick={onClose} />
-      <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-12 shadow-float" initial={{
+      <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-12 shadow-float" initial={{
       y: "100%"
     }} animate={{
       y: 0

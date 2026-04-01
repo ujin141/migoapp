@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LayoutDashboard, Users, FileText, Plane, Flag, Lock, Eye, EyeOff, Shield, Megaphone, Store, MessageSquare } from "lucide-react";
 import siteLogo from "@/assets/site-logo.png";
 import { supabase } from "@/lib/supabaseClient";
-const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || "migo2024";
+// ⚠️ VITE_ADMIN_PIN이 설정되지 않으면 빈 문자열로 fallback — 기본 PIN 없음
+const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || "";
 import { AdminDashboard } from "./admin/AdminDashboard";
 import { AdminUsers } from "./admin/AdminUsers";
 import { AdminPosts } from "./admin/AdminPosts";
@@ -107,6 +108,11 @@ const AdminPage = () => {
     const isLocked = !!lockedUntil && Date.now() < lockedUntil;
     const tryLogin = () => {
       if (isLocked) return;
+      if (!ADMIN_PIN) {
+        setPinError(true);
+        setPin("");
+        return;
+      }
       if (pin === ADMIN_PIN) {
         setAuthed(true);
         setPinError(false);

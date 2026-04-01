@@ -68,7 +68,7 @@ const TermsPage = () => {
         </section>
 
         <div className="border-t border-border pt-4">
-          <p className="text-xs">{t("auto.z_\uBB38\uC758_50")} <a href="mailto:support@migo-go.com" className="text-primary underline">support@migo-go.com</a></p>
+          <p className="text-xs">{t("auto.z_\uBB38\uC758_50")} <a href="mailto:support@lunaticsgroup.com" className="text-primary underline">support@lunaticsgroup.com</a></p>
         </div>
       </div>
     </div>;

@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -567,6 +567,13 @@ const LoginPage = () => {
   };
   const totalSteps = 5;
   const isSignup = mode === "signup";
+
+  // OTP 타이머 cleanup — 페이지 언마운트 시 메모리 누수 방지
+  useEffect(() => {
+    return () => {
+      if (otpTimer) clearInterval(otpTimer);
+    };
+  }, [otpTimer]);
   return <div className="min-h-screen flex flex-col bg-background">
       {/* Background blobs (fixed so they don't scroll) */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -714,7 +721,7 @@ const LoginPage = () => {
                 <label className="text-xs font-bold text-foreground mb-1.5 block">{t("auto.z_autoz이메일29_425")}</label>
                 <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3">
                   <Mail size={16} className="text-muted-foreground shrink-0" />
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="hello@migo-go.com" className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="hello@lunaticsgroup.com" className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1025,7 +1032,12 @@ const LoginPage = () => {
                   <button onClick={() => setShowPass(!showPass)}>{showPass ? <EyeOff size={16} className="text-muted-foreground" /> : <Eye size={16} className="text-muted-foreground" />}</button>
                 </div>
               </div>
-              <button className="text-xs text-primary font-semibold text-right w-full">{t('login.forgotPass')}</button>
+              <button 
+                onClick={() => navigate("/find-account", { state: { tab: "password" } })}
+                className="text-xs text-primary font-semibold text-right w-full"
+              >
+                {t('login.forgotPass')}
+              </button>
               <div className="space-y-2 pt-2">
                 <p className="text-[10px] text-center text-muted-foreground">{t('login.orSocial')}</p>
 
@@ -1099,20 +1111,24 @@ const LoginPage = () => {
             </motion.div> : mode === "login" ? t("login.loginBtn") : signupStep < 4 ? t("login.nextStep") : t("login.signupDone")}
         </motion.button>
 
-        {mode === "login" ? <p className="text-xs text-center text-muted-foreground">
+        {mode === "login" ? (
+          <p className="text-xs text-center text-muted-foreground">
             {t('login.noAccount')}{" "}
             <button onClick={() => {
-          setMode("signup");
-          setSignupStep(0);
-        }} className="text-primary font-bold">
+              setMode("signup");
+              setSignupStep(0);
+            }} className="text-primary font-bold">
               {t('login.signupLink')}
             </button>
-          </p> : <p className="text-xs text-center text-muted-foreground">
+          </p>
+        ) : (
+          <p className="text-xs text-center text-muted-foreground">
             {t('login.hasAccount')}{" "}
             <button onClick={() => setMode("login")} className="text-primary font-bold">
               {t('login.login')}
             </button>
-          </p>}
+          </p>
+        )}
       </div>
 
       {/* 이용약관 / 개인정보 링크 (Store Crawler 호환용 a 태그) */}

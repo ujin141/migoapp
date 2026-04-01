@@ -11,7 +11,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-y-auto">
       {/* Navbar */}
-      <nav className="flex items-center justify-between px-6 py-4 sticky top-0 bg-background/80 backdrop-blur-md border-b border-border/40 z-50">
+      <nav className="flex items-center justify-between px-6 py-4 sticky top-0 bg-background/80 backdrop-blur-md border-b border-border/40 z-40">
         <div className="flex items-center gap-2">
           <img src={siteLogo} alt="MIGO Logo" className="h-8 object-contain" />
           <span className="font-extrabold text-xl tracking-tight">MIGO</span>

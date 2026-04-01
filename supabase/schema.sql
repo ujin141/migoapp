@@ -301,6 +301,31 @@ CREATE POLICY "comments_insert"     ON comments FOR INSERT WITH CHECK (auth.uid(
 CREATE POLICY "comments_delete_own" ON comments FOR DELETE USING (auth.uid() = author_id);
 
 -- ============================================================
+-- FUNCTION: get_chosung (한글 초성 추출 함수)
+-- ============================================================
+CREATE OR REPLACE FUNCTION get_chosung(word TEXT) RETURNS TEXT AS $$
+DECLARE
+    chosung TEXT := 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+    result TEXT := '';
+    i INT;
+    char_code INT;
+    cho_idx INT;
+BEGIN
+    IF word IS NULL THEN RETURN NULL; END IF;
+    FOR i IN 1..LENGTH(word) LOOP
+        char_code := ascii(SUBSTRING(word FROM i FOR 1));
+        IF char_code >= 44032 AND char_code <= 55203 THEN
+            cho_idx := (char_code - 44032) / 588;
+            result := result || SUBSTRING(chosung FROM cho_idx + 1 FOR 1);
+        ELSE
+            result := result || SUBSTRING(word FROM i FOR 1);
+        END IF;
+    END LOOP;
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- ============================================================
 -- TABLE: trip_groups
 -- ============================================================
 CREATE TABLE IF NOT EXISTS trip_groups (
@@ -323,7 +348,10 @@ CREATE TABLE IF NOT EXISTS trip_groups (
   -- 어드민 대시보드 확장 컬럼
   is_active             BOOLEAN DEFAULT true,
   member_count          INTEGER DEFAULT 0,
-  created_by            UUID REFERENCES profiles(id) ON DELETE SET NULL
+  created_by            UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  -- 초성 검색용 자동 생성 컬럼
+  title_chosung         TEXT GENERATED ALWAYS AS (get_chosung(title)) STORED,
+  destination_chosung   TEXT GENERATED ALWAYS AS (get_chosung(destination)) STORED
 );
 ALTER TABLE trip_groups ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "groups_select"     ON trip_groups;
@@ -1253,8 +1281,16 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lng FLOAT8;
 -- [2] posts (게시글 상단 고정, 숨김 상태 어드민 관리용)
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS pinned BOOLEAN DEFAULT false;
 
--- [3] trip_groups (유저의 여행 그룹 모집/활성화/종료 등 상태 확인용)
+-- [3] trip_groups (유저의 여행 그룹 모집/활성화/종료 등 상태 확인 및 상세 필터링용)
 ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS start_date DATE;
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS end_date DATE;
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS activity TEXT;
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS vibe TEXT;
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS language_preference TEXT DEFAULT 'any';
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS gender_ratio TEXT DEFAULT 'any';
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS title_chosung TEXT GENERATED ALWAYS AS (get_chosung(title)) STORED;
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS destination_chosung TEXT GENERATED ALWAYS AS (get_chosung(destination)) STORED;
 
 -- [4] 프로필 사진 저장을 위한 avatars 버킷 생성 및 RLS 정책 오픈
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
@@ -1697,3 +1733,50 @@ LEFT JOIN LATERAL (
 -- ============================================================
 -- 최종 통합 완성 (어드민 대시보드 포함)
 -- ============================================================
+-- ==============================================================================
+-- FIND EMAIL BY PHONE (FOR "FIND ID" FEATURE)
+-- ==============================================================================
+
+CREATE OR REPLACE FUNCTION public.find_email_by_phone(p_name TEXT, p_phone TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_email TEXT;
+  v_masked TEXT;
+  v_at_pos INT;
+  v_local_part TEXT;
+  v_domain_part TEXT;
+BEGIN
+  -- Attempt to find the user's email matching the provided name and exact phone
+  SELECT email INTO v_email
+  FROM public.profiles
+  WHERE name = p_name AND phone = p_phone
+  LIMIT 1;
+
+  -- If no user is found, return null
+  IF v_email IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  -- Masking the email for security (e.g. s***@gmail.com)
+  v_at_pos := position('@' IN v_email);
+  IF v_at_pos > 0 THEN
+    v_local_part := substring(v_email from 1 for v_at_pos - 1);
+    v_domain_part := substring(v_email from v_at_pos);
+    
+    IF length(v_local_part) <= 2 THEN
+      v_masked := substring(v_local_part, 1, 1) || '***' || v_domain_part;
+    ELSE
+      v_masked := substring(v_local_part, 1, 2) || repeat('*', length(v_local_part) - 2) || v_domain_part;
+    END IF;
+    
+    RETURN v_masked;
+  END IF;
+
+  RETURN v_email; -- Just in case it's not a standard email format
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.find_email_by_phone(TEXT, TEXT) TO authenticated, anon;

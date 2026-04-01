@@ -141,7 +141,7 @@ const TutorialOverlay = ({
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onComplete} />
 
       {/* Card */}
-      <motion.div className="relative w-full max-w-lg bg-card rounded-t-3xl shadow-2xl overflow-hidden pb-safe" initial={{
+      <motion.div className="relative w-full max-w-lg bg-card rounded-3xl mb-4 sm:mb-8 shadow-2xl overflow-hidden pb-safe" initial={{
       y: "100%"
     }} animate={{
       y: 0

@@ -294,7 +294,7 @@ const IdUploadModal = ({
       setUploading(false);
     }
   };
-  return <motion.div className="fixed inset-0 z-[80] flex items-end" initial={{
+  return <motion.div className="fixed inset-0 z-[80] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
     opacity: 0
   }} animate={{
     opacity: 1
@@ -302,7 +302,7 @@ const IdUploadModal = ({
     opacity: 0
   }}>
       <div className="absolute inset-0 bg-foreground/60 backdrop-blur-md" onClick={onClose} />
-      <motion.div className="relative z-10 w-full bg-card rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto" initial={{
+      <motion.div className="relative z-10 w-full bg-card rounded-3xl mb-4 sm:mb-8 p-6 max-h-[85vh] overflow-y-auto" initial={{
       y: "100%"
     }} animate={{
       y: 0
@@ -416,6 +416,7 @@ const VerificationPage = () => {
     review: "none"
   });
   const [dbTrustScore, setDbTrustScore] = useState(0);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   // DB에서 실제 인증 현황 로드
   React.useEffect(() => {
@@ -423,9 +424,12 @@ const VerificationPage = () => {
       if (!user) return;
       const {
         data
-      } = await supabase.from('profiles').select('phone_verified, email_verified, id_verified, sns_connected, review_verified, trust_score').eq('id', user.id).single();
+      } = await supabase.from('profiles').select('phone_verified, email_verified, id_verified, sns_connected, review_verified, trust_score, photo_url, photo_urls').eq('id', user.id).single();
       if (data) {
         setDbTrustScore(data.trust_score ?? 0);
+        const bestPhoto = (data.photo_urls && data.photo_urls.length > 0) ? data.photo_urls[0] : data.photo_url;
+        if (bestPhoto) setProfilePhoto(bestPhoto);
+        
         const newStatuses: Record<string, VerifStatus> = {
           phone: data.phone_verified ? 'done' : supaUser?.phone ? 'done' : 'none',
           email: data.email_verified ? 'done' : supaUser?.email_confirmed_at ? 'done' : 'none',
@@ -795,7 +799,7 @@ const VerificationPage = () => {
           <div className="flex items-center gap-4 mb-4">
             {/* Profile */}
             <div className="relative">
-              <img src={user?.photoUrl || traveler1} alt="" className="w-16 h-16 rounded-2xl object-cover" />
+              <img src={profilePhoto || user?.photoUrl || traveler1} alt="" className="w-16 h-16 rounded-2xl object-cover" />
               {trustScore >= 40 && <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full gradient-primary flex items-center justify-center border-2 border-card">
                   <Shield size={12} className="text-primary-foreground" />
                 </div>}

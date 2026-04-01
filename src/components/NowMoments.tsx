@@ -203,7 +203,7 @@ const NowDetailSheet = ({
     lng: card.lng
   }) : null;
   const naverUrl = midpoint ? naverMidpointUrl(midpoint) : null;
-  return <motion.div className="fixed inset-0 z-[90] flex items-end" initial={{
+  return <motion.div className="fixed inset-0 z-[90] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
     opacity: 0
   }} animate={{
     opacity: 1
@@ -211,7 +211,7 @@ const NowDetailSheet = ({
     opacity: 0
   }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <motion.div className="relative z-10 w-full max-w-sm mx-auto bg-card rounded-t-3xl p-5" initial={{
+      <motion.div className="relative z-10 w-full max-w-sm mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-5" initial={{
       y: "100%"
     }} animate={{
       y: 0
@@ -317,7 +317,7 @@ const PostNowSheet = ({
   const [activity, setActivity] = useState("");
   const EMOJIS = ["🍜", "☕", "📸", "🌅", "🍺", "🛍️", "🏖️", "🍣", "🥂", "🎵", "🎮", "🏔️"];
   const [emoji, setEmoji] = useState("☕");
-  return <motion.div className="fixed inset-0 z-[90] flex items-end" initial={{
+  return <motion.div className="fixed inset-0 z-[90] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
     opacity: 0
   }} animate={{
     opacity: 1
@@ -325,7 +325,7 @@ const PostNowSheet = ({
     opacity: 0
   }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <motion.div className="relative z-10 w-full max-w-sm mx-auto bg-card rounded-t-3xl p-5" initial={{
+      <motion.div className="relative z-10 w-full max-w-sm mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-5" initial={{
       y: "100%"
     }} animate={{
       y: 0

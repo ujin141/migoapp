@@ -107,7 +107,7 @@ const PrivacyPage = () => {
           <h2 className="text-sm font-bold text-foreground">{t("privacy.h8")}</h2>
           <div className="bg-muted rounded-2xl p-4 text-xs space-y-1">
             <p><span className="font-semibold text-foreground">{t("privacy.managerLabel")}</span> {t("privacy.managerName")}</p>
-            <p><span className="font-semibold text-foreground">{t("privacy.emailLabel")}</span> <a href="mailto:privacy@migo-go.com" className="text-primary underline">privacy@migo-go.com</a></p>
+            <p><span className="font-semibold text-foreground">{t("privacy.emailLabel")}</span> <a href="mailto:privacy@lunaticsgroup.com" className="text-primary underline">privacy@lunaticsgroup.com</a></p>
           </div>
         </section>
       </div>

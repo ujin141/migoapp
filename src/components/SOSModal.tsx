@@ -54,7 +54,7 @@ const SOSModal = ({
         lng: pos.coords.longitude
       });
       setAddress(`Lat ${pos.coords.latitude.toFixed(4)} / Lon ${pos.coords.longitude.toFixed(4)}`);
-    }, () => setAddress(i18n.t("auto.z_autoz위치접근거_1382")));
+    }, () => setAddress(i18n.t("auto.z_autoz위치접근거_1382")), { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
   }, [isOpen]);
 
   // Countdown + DB 저장

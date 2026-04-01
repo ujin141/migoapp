@@ -15,10 +15,11 @@ async function enrichWithProfilePhoto(user: AuthUser): Promise<AuthUser> {
   try {
     const {
       data
-    } = await supabase.from("profiles").select("photo_url, name, verified").eq("id", user.id).single();
+    } = await supabase.from("profiles").select("photo_url, photo_urls, name, verified").eq("id", user.id).single();
     if (data) {
+      const bestPhoto = (data.photo_urls && data.photo_urls.length > 0) ? data.photo_urls[0] : data.photo_url;
       // 표시용으로만 캐시 버스팅 추가 (DB에는 클린 URL 저장)
-      const cleanUrl = data.photo_url?.replace(/[?&]t=\d+/, "") || "";
+      const cleanUrl = bestPhoto?.replace(/[?&]t=\d+/, "") || "";
       const bustedUrl = cleanUrl ? `${cleanUrl}?t=${Date.now()}` : "";
       return {
         ...user,
@@ -41,7 +42,7 @@ if (!isSupabaseConfigured) {
   // Mock user for development without Supabase
   globalUser = {
     id: "mock-user-1",
-    email: "demo@migo.app",
+    email: "demo@lunaticsgroup.com",
     name: i18n.t("auto.z_autoz데모유저9_1294"),
     verified: false
   };
@@ -130,7 +131,11 @@ export const useAuth = () => {
       notifyAuthListeners();
       return;
     }
+    globalUser = null;
+    notifyAuthListeners();
     await supabase.auth.signOut();
+    localStorage.removeItem('migo_my_lat');
+    localStorage.removeItem('migo_my_lng');
   };
   const updateProfile = async (updates: Partial<AuthUser>) => {
     if (!isSupabaseConfigured || !globalUser) return {

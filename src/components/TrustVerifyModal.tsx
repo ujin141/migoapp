@@ -143,7 +143,7 @@ const TrustVerifyModal = ({
   };
   const currentOrder = levelOrder[currentLevel];
   return <AnimatePresence>
-      {isOpen && <motion.div className="fixed inset-0 z-[80] flex items-end" initial={{
+      {isOpen && <motion.div className="fixed inset-0 z-[80] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
       opacity: 0
     }} animate={{
       opacity: 1
@@ -151,7 +151,7 @@ const TrustVerifyModal = ({
       opacity: 0
     }}>
           <div className="absolute inset-0 bg-foreground/60 backdrop-blur-md" onClick={onClose} />
-          <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float max-h-[88vh] flex flex-col" initial={{
+          <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 shadow-float max-h-[88vh] flex flex-col" initial={{
         y: "100%"
       }} animate={{
         y: 0

@@ -58,7 +58,7 @@ export default function ProfileViewsModal({
   }, [isOpen, user]);
   if (!isOpen) return null;
   return <AnimatePresence>
-      <motion.div className="fixed inset-0 z-[60] flex items-end" initial={{
+      <motion.div className="fixed inset-0 z-[60] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
       opacity: 0
     }} animate={{
       opacity: 1
@@ -66,7 +66,7 @@ export default function ProfileViewsModal({
       opacity: 0
     }}>
         <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={onClose} />
-        <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float max-h-[80vh] overflow-y-auto" initial={{
+        <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 shadow-float max-h-[80vh] overflow-y-auto" initial={{
         y: "100%"
       }} animate={{
         y: 0

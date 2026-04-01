@@ -48,7 +48,8 @@ const PurchaseModal = ({
   } = useTranslation();
   if (!item) return null;
   const name = item.name;
-  const price = getLocalizedPrice(item.price, i18n.language);
+  const isPlan = 'period' in item;
+  const formattedPrice = item.price === 0 ? getLocalizedPrice(0, i18n.language) : (isPlan ? getMigoPlusPricing().format(item.price) : getShopItemPricing().format(item.price));
   return <motion.div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" initial={{
     opacity: 0
   }} animate={{
@@ -56,7 +57,7 @@ const PurchaseModal = ({
   }} exit={{
     opacity: 0
   }} onClick={onClose}>
-      <motion.div className="w-full max-w-lg bg-card rounded-t-3xl p-6 pb-safe-bottom" initial={{
+      <motion.div className="w-full max-w-lg bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-safe-bottom" initial={{
       y: "100%"
     }} animate={{
       y: 0
@@ -68,7 +69,7 @@ const PurchaseModal = ({
     }} onClick={e => e.stopPropagation()}>
         <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-5" />
         <h3 className="text-xl font-extrabold text-center mb-1">{name}</h3>
-        <p className="text-3xl font-black text-primary text-center mb-6">{price}</p>
+        <p className="text-3xl font-black text-primary text-center mb-6">{formattedPrice}</p>
         <p className="text-sm text-muted-foreground text-center mb-8">{t("auto.z_\uC774\uAD6C\uB9E4\uB294\uD14C\uC2A4\uD2B8\uC6A9\uC774\uBA70_77")}<br />{t("auto.z_\uC2E4\uC11C\uBE44\uC2A4\uCD9C\uC2DC\uC2DC\uACB0\uC81C\uC5F0_78")}</p>
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 py-4 rounded-2xl border border-border text-muted-foreground font-bold text-sm">{t("auto.z_\uCDE8\uC18C_79")}</button>
@@ -102,7 +103,7 @@ const ShopPage = () => {
     id: "free",
     name: "Free",
     price: 0,
-    period: i18n.t("auto.z_\u9152\uAD6C\uBB34\uB8CC_33"),
+    period: i18n.language.startsWith('ko') ? "영구 무료" : "Free Forever",
     icon: <Heart size={22} className="text-muted-foreground" />,
     color: "border-border",
     gradient: "from-muted/40 to-muted/20",
@@ -111,7 +112,7 @@ const ShopPage = () => {
     id: "plus",
     name: "MIGO Plus",
     price: subPricing.month1,
-    period: i18n.t("auto.z_\uC6D4_38"),
+    period: i18n.language.startsWith('ko') ? "1개월" : "1 month",
     badge: i18n.t("auto.z_\uC778\uAE30_39"),
     badgeColor: "bg-primary text-primary-foreground",
     icon: <Star size={22} className="text-yellow-400 fill-yellow-400" />,
@@ -122,7 +123,7 @@ const ShopPage = () => {
     id: "premium",
     name: "MIGO Premium",
     price: subPricing.month12,
-    period: i18n.t("auto.z_\uC6D4_46"),
+    period: i18n.language.startsWith('ko') ? "12개월" : "12 months",
     badge: i18n.t("auto.z_\uCD5C\uACE0\uD61C\uD0DD_47"),
     badgeColor: "bg-gradient-to-r from-amber-500 to-orange-500 text-white",
     icon: <Crown size={22} className="text-amber-400 fill-amber-400" />,
@@ -285,7 +286,7 @@ const ShopPage = () => {
                       <p className="text-xs text-muted-foreground">{plan.period}</p>
                     </div>
                     <div className="ml-auto text-right">
-                      <p className="text-2xl font-black text-foreground">{getLocalizedPrice(plan.price, i18n.language)}</p>
+                      <p className="text-2xl font-black text-foreground">{plan.price === 0 ? getLocalizedPrice(0, i18n.language) : subPricing.format(plan.price)}</p>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 relative z-10">
@@ -322,7 +323,7 @@ const ShopPage = () => {
                   <p className="font-extrabold text-foreground text-sm leading-tight">{item.name}</p>
                   {item.quantity && <span className="text-[10px] text-muted-foreground font-bold">{item.quantity}</span>}
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{item.desc}</p>
-                  <p className="text-base font-black text-primary mt-auto">{getLocalizedPrice(item.price, i18n.language)}</p>
+                  <p className="text-base font-black text-primary mt-auto">{itemPricing.format(item.price)}</p>
                 </motion.div>)}
             </motion.div>}
         </AnimatePresence>

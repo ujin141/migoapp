@@ -7,6 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { translateText } from "@/lib/translateService";
 import { GoogleMap, useLoadScript, OverlayView } from "@react-google-maps/api";
 const MAP_LIBRARIES: ("places")[] = ["places"];
 const mapStyles = [{
@@ -91,6 +92,27 @@ const MapPage = () => {
   const [locationSharing, setLocationSharing] = useState(true);
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [myProfilePhoto, setMyProfilePhoto] = useState<string>("");
+
+  const [translatedBio, setTranslatedBio] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const targetLang = (i18n.language.split("-")[0] || "en") as any;
+
+  const handleTranslateBio = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (translatedBio) {
+      setTranslatedBio(null);
+      return;
+    }
+    if (!profileDetail?.bio) return;
+
+    setIsTranslating(true);
+    try {
+      const res = await translateText({ text: profileDetail.bio, targetLang });
+      setTranslatedBio(res);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
   useEffect(() => {
     const fetchTravelers = async () => {
       if (!user) return;
@@ -155,13 +177,14 @@ const MapPage = () => {
           lng
         });
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`);
+          const lang = i18n.language.split("-")[0] || "en";
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${lang}`);
           const data = await res.json();
           const city = data.address?.city || data.address?.town || data.address?.borough || data.address?.suburb || data.address?.village || data.address?.county || "";
           const country = data.address?.country || "";
           const locationName = city ? `${city}, ${country}` : country || i18n.t("auto.z_autoz위치알수없_323");
           setCurrentLocationName(locationName);
-          supabase.from("profiles").update({
+          await supabase.from("profiles").update({
             lat,
             lng,
             location: locationName
@@ -172,12 +195,12 @@ const MapPage = () => {
         }
       }, () => {
         setCurrentLocationName(i18n.t("auto.z_autoz위치권한없_325"));
-      });
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     };
     saveLocation();
     const interval = setInterval(saveLocation, 30_000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, locationSharing]);
   const tagOptions = [t("auto.z_autoz카페192_326"), t("auto.z_autoz트레킹19_327"), t("auto.z_autoz서핑194_328"), t("auto.z_autoz야시장19_329"), t("auto.z_autoz사진196_330"), t("auto.z_autoz음식197_331"), t("auto.z_autoz건축198_332"), t("auto.z_autoz자연199_333")];
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
@@ -420,15 +443,18 @@ const MapPage = () => {
 
       {/* ─── Profile Detail Bottom Sheet ─── */}
       <AnimatePresence>
-        {profileDetail && <motion.div className="fixed inset-0 z-[60] flex items-end" initial={{
+        {profileDetail && <motion.div className="fixed inset-0 z-[60] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
       }} exit={{
         opacity: 0
       }}>
-            <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setProfileDetail(null)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float overflow-hidden" initial={{
+            <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => {
+              setTranslatedBio(null);
+              setProfileDetail(null);
+            }} />
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 shadow-float overflow-hidden" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -447,7 +473,10 @@ const MapPage = () => {
                   <span className="text-white text-5xl font-black">{profileDetail.name?.[0] ?? "?"}</span>
                 </div>}
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent" />
-                <button onClick={() => setProfileDetail(null)} className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-card/80 backdrop-blur-sm flex items-center justify-center shadow-card">
+                <button onClick={() => {
+                  setTranslatedBio(null);
+                  setProfileDetail(null);
+                }} className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-card/80 backdrop-blur-sm flex items-center justify-center shadow-card">
                   <X size={16} className="text-foreground" />
                 </button>
                 {/* Name overlay */}
@@ -466,7 +495,20 @@ const MapPage = () => {
               {/* Content */}
               <div className="px-5 pt-4 pb-8 space-y-4">
                 {/* Bio */}
-                <p className="text-sm text-muted-foreground leading-relaxed">{profileDetail.bio}</p>
+                <div className="bg-muted/30 p-4 rounded-2xl border border-border/50">
+                  <p className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-wrap">{translatedBio || profileDetail.bio}</p>
+                  
+                  {profileDetail.bio && (
+                    <button 
+                      onClick={handleTranslateBio}
+                      className={`mt-2 flex items-center gap-1.5 text-xs font-bold transition-colors ${translatedBio ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      <span className={isTranslating ? "animate-pulse" : ""}>
+                         🌍 {isTranslating ? i18n.t("auto.z_번역중_000", { defaultValue: "번역 중..." }) : translatedBio ? i18n.t("auto.z_원문보기_001", { defaultValue: "원문 보기" }) : i18n.t("auto.z_번역보기_002", { defaultValue: "번역 보기" })}
+                      </span>
+                    </button>
+                  )}
+                </div>
 
                 {/* Travel info */}
                 <div className="grid grid-cols-2 gap-3">
@@ -510,7 +552,7 @@ const MapPage = () => {
 
       {/* Filter Drawer */}
       <AnimatePresence>
-        {showFilter && <motion.div className="fixed inset-0 z-50 flex items-end" initial={{
+        {showFilter && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -518,7 +560,7 @@ const MapPage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowFilter(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-20 shadow-float" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -583,7 +625,7 @@ const MapPage = () => {
 
       {/* My Profile Sheet */}
       <AnimatePresence>
-        {showMyProfile && <motion.div className="fixed inset-0 z-[60] flex items-end" initial={{
+        {showMyProfile && <motion.div className="fixed inset-0 z-[60] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -591,7 +633,7 @@ const MapPage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowMyProfile(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float overflow-hidden" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 shadow-float overflow-hidden" initial={{
           y: "100%"
         }} animate={{
           y: 0

@@ -285,7 +285,7 @@ const CreateTripPage = () => {
             <div className="space-y-2">
               <label className="text-sm font-bold text-foreground">{t("auto.z_autoz상세일정4_858")}<span className="text-muted-foreground font-normal text-xs">{t("auto.z_autoz선택최대1_859")}</span></label>
               <div className="space-y-3">
-                {schedule.map((item, index) => <div key={index} className="flex items-center gap-2 group">
+                {schedule.map((item, index) => <div key={`schedule-${index}-${item.substring(0, 8)}`} className="flex items-center gap-2 group">
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                       <span className="text-xs font-bold text-muted-foreground">{index + 1}</span>
                     </div>

@@ -1000,7 +1000,7 @@ const MatchPage = () => {
       {/* ⭐  SUPER LIKE MODAL — deep blue star energy, bottom sheet  */}
       {/* ──────────────────────────────────────────────────────────── */}
       <AnimatePresence>
-        {showSuperLikeModal && pendingSuperProfile && <motion.div className="fixed inset-0 z-[60] flex items-end" initial={{
+        {showSuperLikeModal && pendingSuperProfile && <motion.div className="fixed inset-0 z-[60] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -1029,7 +1029,7 @@ const MatchPage = () => {
                 <Star size={i % 3 === 0 ? 10 : 6} className="text-blue-300" fill="currentColor" />
               </motion.div>)}
 
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto rounded-t-[32px] overflow-hidden pb-12 shadow-float" style={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto rounded-[32px] mb-4 sm:mb-8 overflow-hidden pb-12 shadow-float" style={{
           background: "linear-gradient(180deg, #0f1729 0%, #111827 100%)",
           border: "1px solid rgba(99,102,241,0.3)",
           borderBottom: "none"
@@ -1179,7 +1179,7 @@ const MatchPage = () => {
 
       {/* Filter Drawer */}
       <AnimatePresence>
-        {showFilter && <motion.div className="fixed inset-0 z-50 flex items-end" initial={{
+        {showFilter && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -1187,7 +1187,7 @@ const MatchPage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowFilter(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-20 shadow-float" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -1267,7 +1267,7 @@ const MatchPage = () => {
 
       {/* ─── Login Gate Modal ─── */}
       <AnimatePresence>
-        {showLoginGate && <motion.div className="fixed inset-0 z-[80] flex items-end" initial={{
+        {showLoginGate && <motion.div className="fixed inset-0 z-[80] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -1275,7 +1275,7 @@ const MatchPage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={() => setShowLoginGate(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-10 shadow-float" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-10 shadow-float" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -1327,7 +1327,7 @@ const MatchPage = () => {
 
       {/* ─── 필터 모달 ─── */}
       <AnimatePresence>
-        {showFilterModal && <motion.div className="fixed inset-0 z-[80] flex items-end" initial={{
+        {showFilterModal && <motion.div className="fixed inset-0 z-[80] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -1335,7 +1335,7 @@ const MatchPage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={() => setShowFilterModal(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float max-h-[85vh] overflow-y-auto" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 shadow-float max-h-[85vh] overflow-y-auto" initial={{
           y: "100%"
         }} animate={{
           y: 0

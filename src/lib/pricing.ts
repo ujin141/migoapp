@@ -27,9 +27,30 @@ const COUNTRY_CURRENCIES: Record<string, string> = {
 const getCountryCode = (): string => {
   // Try to extract from currently selected language (e.g. ko-KR -> KR, en-US -> US)
   // Or fallback to checking browser timezone or navigator language
-  const navLang = navigator.language || i18n.language || "en-US";
+  const navLang = i18n.language || navigator.language || "en-US";
   const parts = navLang.split('-');
-  return parts.length > 1 ? parts[1].toUpperCase() : "US"; // Default to US
+  if (parts.length > 1) {
+    return parts[1].toUpperCase();
+  }
+
+  // Map 2-letter language codes to default country codes for pricing tier mapping
+  const langToCountry: Record<string, string> = {
+    ko: "KR",
+    ja: "JP",
+    zh: "TW",
+    en: "US",
+    fr: "FR",
+    de: "DE",
+    es: "ES",
+    it: "IT",
+    pt: "BR",
+    id: "ID",
+    th: "TH",
+    vi: "VN",
+    ru: "RU",
+    tr: "TR"
+  };
+  return langToCountry[navLang] || "US";
 };
 
 const getTier = (countryCode: string): CountryTier => {
@@ -96,32 +117,106 @@ export const getMigoPlusPricing = () => {
   };
 };
 
-// Group Creation Fee
-export const getGroupCreationFeeOptions = () => {
-  const country = getCountryCode();
-  const tier = getTier(country);
-  const currency = COUNTRY_CURRENCIES[country] || "USD";
+// ──────────────────────────────────────────────────────────────────
+// Group Join Fee (참여 비용 티어 시스템)
+// 만드는 비용 없음 → 참여 시 비용 부과
+// ──────────────────────────────────────────────────────────────────
 
-  if (currency === "KRW") {
-    return {
-      options: [3000, 5000, 10000],
-      currency: "₩",
-      format: (val: number) => `₩${val.toLocaleString()}`
-    };
-  }
+export type GroupPriceTier = "travel" | "party" | "premium";
 
-  const optionsUSD = {
-    1: [2.99, 4.99, 9.99],
-    2: [1.99, 3.99, 7.99],
-    3: [0.99, 1.99, 4.99]
-  };
+export interface GroupTierConfig {
+  tier: GroupPriceTier;
+  krw: number;           // KRW 기준 가격
+  emoji: string;
+  label: string;
+  sublabel: string;
+  tagline: string;       // 심리적 앵커 문구
+  color: string;         // tailwind color
+  gradient: string;
+  tags: string[];        // 자동 태그 키워드
+}
 
+export const GROUP_TIER_CONFIGS: GroupTierConfig[] = [
+  {
+    tier: "travel",
+    krw: 9900,
+    emoji: "✈️",
+    label: "여행",
+    sublabel: "기본 참여",
+    tagline: "\"한 번 해볼까?\" 하는 가격",
+    color: "emerald",
+    gradient: "from-emerald-500 to-teal-500",
+    tags: ["투어", "관광", "카페", "맛집"],
+  },
+  {
+    tier: "party",
+    krw: 19900,
+    emoji: "🎉",
+    label: "파티 / 클럽",
+    sublabel: "놀러 가는 비용",
+    tagline: "진짜 놀 사람만 들어와요",
+    color: "pink",
+    gradient: "from-pink-500 to-rose-500",
+    tags: ["클럽", "파티", "나이트", "bar"],
+  },
+  {
+    tier: "premium",
+    krw: 29900,
+    emoji: "👑",
+    label: "프리미엄",
+    sublabel: "외국인 / 인기 그룹",
+    tagline: "가치 있는 자리",
+    color: "amber",
+    gradient: "from-amber-500 to-orange-500",
+    tags: ["외국인", "인기", "검증", "프리미엄"],
+  },
+];
+
+/** 구독 할인 적용 가격 (isPlus=true → 50% 할인) */
+export function getJoinFeeAfterDiscount(krw: number, isPlus: boolean): number {
+  return isPlus ? Math.round(krw * 0.5 / 100) * 100 : krw;
+}
+
+/** tier 코드 → config 가져오기 */
+export function getTierConfig(tier: GroupPriceTier): GroupTierConfig {
+  const base = GROUP_TIER_CONFIGS.find(c => c.tier === tier) ?? GROUP_TIER_CONFIGS[0];
   return {
-    options: optionsUSD[tier],
-    currency: "$",
-    format: (val: number) => `$${val.toFixed(2)}`
+    ...base,
+    label: i18n.t(`tier.${tier}.label`, { defaultValue: base.label }),
+    sublabel: i18n.t(`tier.${tier}.sublabel`, { defaultValue: base.sublabel }),
+    tagline: i18n.t(`tier.${tier}.tagline`, { defaultValue: base.tagline }),
   };
-};
+}
+
+/** 그룹 태그/제목/분위기 → 가장 맞는 tier 자동 추천 */
+export function inferGroupTier(tags: string[], title: string, isPremium: boolean): GroupPriceTier {
+  if (isPremium) return "premium";
+  const all = [...tags, title].join(" ").toLowerCase();
+  const partyKws = ["클럽", "party", "파티", "나이트", "night", "bar", "바", "club"];
+  if (partyKws.some(k => all.includes(k))) return "party";
+  return "travel";
+}
+
+/** KRW → 다국어 가격 포맷 (getLocalizedPrice 위임) */
+export function formatJoinFee(krw: number, lang: string): string {
+  return getLocalizedPrice(krw, lang);
+}
+
+/**
+ * 성별 기반 참여 비용
+ *  - 여성: 무료 (성비 밸런스 인센티브)
+ *  - 남성/기타: 티어 정가, Plus 구독 시 50% 할인
+ */
+export function getJoinFeeByGender(
+  krw: number,
+  gender: "male" | "female" | "other",
+  isPlus: boolean
+): number {
+  if (gender === "female") return 0;
+  return getJoinFeeAfterDiscount(krw, isPlus);
+}
+
+
 
 /**
  * Item Shop Pricing (full net profit formula applied)
@@ -231,31 +326,31 @@ export function getLocalizedPrice(krwAmount: number, lang: string = 'ko'): strin
   const baseLang = lang.split('-')[0];
 
   if (lang === 'ko') {
-    currency = 'KRW'; rate = 1; fractionDigits = 0;
+    currency = 'KRW'; rate = 1;
   } else if (lang === 'ja') {
-    currency = 'JPY'; rate = RATES.JPY; fractionDigits = 0;
+    currency = 'JPY'; rate = RATES.JPY;
   } else if (lang === 'zh') {
-    currency = 'CNY'; rate = RATES.CNY; fractionDigits = 1;
+    currency = 'CNY'; rate = RATES.CNY;
   } else if (lang === 'hi' || baseLang === 'hi' || lang === 'bn' || lang === 'gu' || lang === 'mr') {
-    currency = 'INR'; rate = RATES.INR; fractionDigits = 0;
+    currency = 'INR'; rate = RATES.INR;
   } else if (lang === 'id') {
-    currency = 'IDR'; rate = RATES.IDR; fractionDigits = 0;
+    currency = 'IDR'; rate = RATES.IDR;
   } else if (lang === 'th') {
-    currency = 'THB'; rate = RATES.THB; fractionDigits = 0;
+    currency = 'THB'; rate = RATES.THB;
   } else if (lang === 'vi') {
-    currency = 'VND'; rate = RATES.VND; fractionDigits = 0;
+    currency = 'VND'; rate = RATES.VND;
   } else if (lang === 'tr') {
-    currency = 'TRY'; rate = RATES.TRY; fractionDigits = 2;
+    currency = 'TRY'; rate = RATES.TRY;
   } else if (lang === 'pt-BR' || lang === 'pt') {
-    currency = 'BRL'; rate = RATES.BRL; fractionDigits = 2;
+    currency = 'BRL'; rate = RATES.BRL;
   } else if (lang === 'en-AU' || lang === 'en-NZ') {
-    currency = 'AUD'; rate = RATES.AUD; fractionDigits = 2;
+    currency = 'AUD'; rate = RATES.AUD;
   } else if (lang === 'en-CA' || lang === 'fr-CA') {
-    currency = 'CAD'; rate = RATES.CAD; fractionDigits = 2;
+    currency = 'CAD'; rate = RATES.CAD;
   } else if (lang === 'en-SG' || lang === 'ms') {
-    currency = 'SGD'; rate = RATES.SGD; fractionDigits = 2;
+    currency = 'SGD'; rate = RATES.SGD;
   } else if (lang === 'de-CH' || lang === 'fr-CH') {
-    currency = 'CHF'; rate = RATES.CHF; fractionDigits = 2;
+    currency = 'CHF'; rate = RATES.CHF;
   } else if (GBP_LANGS.includes(lang)) {
     currency = 'GBP'; rate = RATES.GBP;
   } else if (EUR_LANGS.includes(baseLang) || EUR_LANGS.includes(lang)) {
@@ -266,16 +361,15 @@ export function getLocalizedPrice(krwAmount: number, lang: string = 'ko'): strin
 
   if (currency === 'KRW' || currency === 'JPY' || currency === 'IDR' || currency === 'VND') {
     raw = Math.round(raw / 100) * 100 || Math.round(raw);
-  } else if (currency === 'CNY' || currency === 'THB' || currency === 'INR') {
-    raw = Math.floor(raw) + 0.9;
   } else {
-    raw = Math.floor(raw) + 0.99;
+    // 모든 통화의 소수점을 없애고 깔끔하게 정수로 반올림
+    raw = Math.round(raw);
   }
 
   return new Intl.NumberFormat(lang, {
     style: 'currency',
     currency,
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(raw);
 }

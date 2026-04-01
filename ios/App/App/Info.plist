@@ -45,5 +45,15 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photo for your profile or verify your ID directly within the app.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Select an image from your library to update your profile photo.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show relevant travelers and moments nearby.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is needed for recording voice messages or calls.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This allows us to provide personalized recommendations and optimize your experience.</string>
 </dict>
 </plist>

@@ -127,7 +127,7 @@ const MatchModal = ({
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/70 backdrop-blur-md" onClick={onClose} />
-            <motion.div className={`relative z-10 w-full max-w-sm bg-card rounded-t-3xl sm:rounded-3xl shadow-float overflow-hidden`} initial={{
+            <motion.div className={`relative z-10 w-full max-w-sm bg-card rounded-3xl mb-4 sm:mb-8 shadow-float overflow-hidden`} initial={{
           y: 100,
           opacity: 0
         }} animate={{

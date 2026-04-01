@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.migo.app',
+  appId: 'com.lunaticsgroup.migo',
   appName: 'Migo',
   webDir: 'dist'
 };

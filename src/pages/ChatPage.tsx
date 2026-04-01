@@ -70,7 +70,7 @@ const ChatPage = () => {
       if (!error && data) {
         setMessages(data.map(m => ({
           id: m.id,
-          text: m.text,
+          text: m.content,
           sender: m.sender_id === user.id ? "me" : "other",
           time: new Intl.DateTimeFormat('ko-KR', {
             hour: 'numeric',
@@ -89,7 +89,7 @@ const ChatPage = () => {
       const newMsg = payload.new;
       setMessages(prev => [...prev, {
         id: newMsg.id,
-        text: newMsg.text,
+        text: newMsg.content,
         sender: newMsg.sender_id === user?.id ? "me" : "other",
         time: new Intl.DateTimeFormat('ko-KR', {
           hour: 'numeric',
@@ -214,7 +214,7 @@ const ChatPage = () => {
     await supabase.from('messages').insert({
       thread_id: selectedChat,
       sender_id: user.id,
-      text: textToSend
+      content: textToSend
     });
   };
   const handleShareLocation = async () => {
@@ -247,7 +247,7 @@ const ChatPage = () => {
         await supabase.from('messages').insert({
           thread_id: selectedChat,
           sender_id: user.id,
-          text
+          content: text
         });
         toast({
           title: t("alert.t22Title")
@@ -256,12 +256,12 @@ const ChatPage = () => {
         await supabase.from('messages').insert({
           thread_id: selectedChat,
           sender_id: user.id,
-          text: i18n.t("auto.z_autoz현재위치공_874")
+          content: i18n.t("auto.z_autoz현재위치공_874")
         });
         toast({
           title: t("chat.locationPermErr")
         });
-      });
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     } else {
       toast({
         title: t("alert.t23Title"),
@@ -289,7 +289,7 @@ const ChatPage = () => {
     await supabase.from('messages').insert({
       thread_id: selectedChat,
       sender_id: user.id,
-      text
+      content: text
     });
     setShowScheduleModal(false);
     setScheduleDate("");
@@ -318,7 +318,7 @@ const ChatPage = () => {
     await supabase.from('messages').insert({
       thread_id: selectedChat,
       sender_id: user.id,
-      text
+      content: text
     });
     setShowMeetProposal(false);
     setMeetDate("");
@@ -686,7 +686,7 @@ const ChatPage = () => {
 
         {/* Meet Proposal Modal */}
         <AnimatePresence>
-          {showMeetProposal && <motion.div className="fixed inset-0 z-50 flex items-end" initial={{
+          {showMeetProposal && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
           opacity: 0
         }} animate={{
           opacity: 1
@@ -694,7 +694,7 @@ const ChatPage = () => {
           opacity: 0
         }}>
               <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowMeetProposal(false)} />
-              <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-20 shadow-float" initial={{
+              <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float" initial={{
             y: "100%"
           }} animate={{
             y: 0
@@ -728,7 +728,7 @@ const ChatPage = () => {
 
         {/* Schedule Share Modal */}
         <AnimatePresence>
-          {showScheduleModal && <motion.div className="fixed inset-0 z-50 flex items-end" initial={{
+          {showScheduleModal && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
           opacity: 0
         }} animate={{
           opacity: 1
@@ -736,7 +736,7 @@ const ChatPage = () => {
           opacity: 0
         }}>
               <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowScheduleModal(false)} />
-              <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-20 shadow-float" initial={{
+              <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float" initial={{
             y: "100%"
           }} animate={{
             y: 0

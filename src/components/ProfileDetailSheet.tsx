@@ -86,7 +86,7 @@ const ProfileDetailSheet = ({
   const prevPhoto = () => setPhotoIdx(i => Math.max(0, i - 1));
   const nextPhoto = () => setPhotoIdx(i => Math.min(photos.length - 1, i + 1));
   return <AnimatePresence>
-      {profile && <motion.div className="fixed inset-0 z-[70] flex items-end" initial={{
+      {profile && <motion.div className="fixed inset-0 z-[70] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
       opacity: 0
     }} animate={{
       opacity: 1
@@ -96,7 +96,7 @@ const ProfileDetailSheet = ({
           {/* Backdrop */}
           <div className="absolute inset-0 bg-foreground/70 backdrop-blur-md" onClick={onClose} />
 
-          <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl overflow-hidden shadow-float max-h-[92vh] flex flex-col" initial={{
+          <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 overflow-hidden shadow-float max-h-[92vh] flex flex-col" initial={{
         y: "100%"
       }} animate={{
         y: 0

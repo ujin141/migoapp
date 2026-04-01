@@ -55,7 +55,7 @@ export const useRealtimeChat = ({ threadId, onMessage }: UseRealtimeChatOptions)
     const { error } = await supabase.from("messages").insert({
       thread_id: threadId,
       sender_id: senderId,
-      text,
+      content: text,
     });
     return { error };
   }, [threadId]);

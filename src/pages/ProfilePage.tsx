@@ -273,8 +273,9 @@ const ProfilePage = () => {
             }
           } catch {/* 네트워크 오류 시 조용히 무시 */}
         }, () => {/* 권한 거부 시 무시 */}, {
-          timeout: 5000,
-          maximumAge: 60000
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         });
       }
 
@@ -544,7 +545,9 @@ const ProfilePage = () => {
                   }
                 } catch {/* ignore */}
               }, () => {}, {
-                timeout: 5000
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
               });
             }} className="ml-0.5 text-primary/50 hover:text-primary transition-colors" title={t("auto.z_\uD604\uC7AC\uC704\uCE58\uB85C\uC5C5\uB370\uC774\uD2B8_127")}>
                 <Navigation size={10} />
@@ -750,7 +753,7 @@ const ProfilePage = () => {
 
       {/* ─── Edit Profile Modal ─── */}
       <AnimatePresence>
-        {showEditModal && <motion.div className="fixed inset-0 z-50 flex items-end" initial={{
+        {showEditModal && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -758,7 +761,7 @@ const ProfilePage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-20 shadow-float max-h-[85vh] overflow-y-auto" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float max-h-[85vh] overflow-y-auto" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -881,7 +884,7 @@ const ProfilePage = () => {
 
       {/* ─── Settings Modal ─── */}
       <AnimatePresence>
-        {showSettingsModal && <motion.div className="fixed inset-0 z-50 flex items-end" initial={{
+        {showSettingsModal && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -889,7 +892,7 @@ const ProfilePage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowSettingsModal(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-20 shadow-float" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -991,7 +994,7 @@ const ProfilePage = () => {
 
       {/* ─── Notification Modal ─── */}
       <AnimatePresence>
-        {showNotifModal && <motion.div className="fixed inset-0 z-50 flex items-end" initial={{
+        {showNotifModal && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -999,7 +1002,7 @@ const ProfilePage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowNotifModal(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-20 shadow-float" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -1067,7 +1070,7 @@ const ProfilePage = () => {
 
       {/* ─── Privacy Modal ─── */}
       <AnimatePresence>
-        {showPrivacyModal && <motion.div className="fixed inset-0 z-50 flex items-end" initial={{
+        {showPrivacyModal && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -1075,7 +1078,7 @@ const ProfilePage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowPrivacyModal(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-20 shadow-float" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -1145,7 +1148,7 @@ const ProfilePage = () => {
 
       {/* ─── Help Modal ─── */}
       <AnimatePresence>
-        {showHelpModal && <motion.div className="fixed inset-0 z-50 flex items-end" initial={{
+        {showHelpModal && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -1153,7 +1156,7 @@ const ProfilePage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowHelpModal(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl p-6 pb-20 shadow-float max-h-[80vh] overflow-y-auto" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float max-h-[80vh] overflow-y-auto" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -1231,7 +1234,11 @@ const ProfilePage = () => {
               // 데드락 방지를 위해 await 없이 백그라운드로 던지고 바로 다음 로컬 초기화를 수행
               supabase.auth.signOut().catch(() => { /* ignore */ });
               
-              // 완전한 로컬 스토리지 클리어 (데드락 방지)
+              // 완전한 로컬 스토리지 및 캐패시터 프로퍼런스 클리어 (데드락 방지)
+              import('@capacitor/preferences').then(({ Preferences }) => {
+                Preferences.clear();
+              }).catch(() => {});
+
               for (let i = localStorage.length - 1; i >= 0; i--) {
                 const key = localStorage.key(i);
                 if (key && (key.includes('migo') || key.includes('supabase'))) {
@@ -1240,7 +1247,7 @@ const ProfilePage = () => {
               }
               setShowLogoutConfirm(false);
               // 앱 메모리 상태(캐시 포함)를 완벽하게 날리기 위해 강제 리로드 이동
-              window.location.href = "/splash";
+              window.location.href = "/";
             }} className="flex-1 py-3 rounded-2xl bg-destructive text-white font-semibold text-sm">
                   {t("auto.j532")}
                 </button>
@@ -1251,7 +1258,7 @@ const ProfilePage = () => {
       {/* ─── Stat Helper: Bottom Sheet Wrapper ─── */}
       {/* ─── Match Detail Modal ─── */}
       <AnimatePresence>
-        {showMatchDetail && <motion.div className="fixed inset-0 z-[60] flex items-end" initial={{
+        {showMatchDetail && <motion.div className="fixed inset-0 z-[60] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -1259,7 +1266,7 @@ const ProfilePage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowMatchDetail(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float max-h-[80vh] overflow-y-auto" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 shadow-float max-h-[80vh] overflow-y-auto" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -1322,7 +1329,7 @@ const ProfilePage = () => {
 
       {/* ─── Trip Detail Modal ─── */}
       <AnimatePresence>
-        {showTripDetail && <motion.div className="fixed inset-0 z-[60] flex items-end" initial={{
+        {showTripDetail && <motion.div className="fixed inset-0 z-[60] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -1330,7 +1337,7 @@ const ProfilePage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowTripDetail(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float max-h-[80vh] overflow-y-auto" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 shadow-float max-h-[80vh] overflow-y-auto" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -1386,7 +1393,7 @@ const ProfilePage = () => {
 
       {/* ─── Meeting Detail Modal ─── */}
       <AnimatePresence>
-        {showMeetingDetail && <motion.div className="fixed inset-0 z-[60] flex items-end" initial={{
+        {showMeetingDetail && <motion.div className="fixed inset-0 z-[60] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
         opacity: 0
       }} animate={{
         opacity: 1
@@ -1394,7 +1401,7 @@ const ProfilePage = () => {
         opacity: 0
       }}>
             <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowMeetingDetail(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float max-h-[80vh] overflow-y-auto" initial={{
+            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 shadow-float max-h-[80vh] overflow-y-auto" initial={{
           y: "100%"
         }} animate={{
           y: 0
@@ -1564,7 +1571,7 @@ const ProfilePage = () => {
                 </div>)}
 
               <div className="mt-6 p-4 bg-muted rounded-2xl">
-                <p className="text-xs text-muted-foreground"><span className="font-bold text-foreground">{t("profile.companyInfo")}</span><br />{t("profile.companyName")}: Lunatics Group Inc<br />{t("profile.ceo")}: {t("profile.managerName")}<br />{t("profile.email")}: support@lunaticsgroup.co.kr</p>
+                <p className="text-xs text-muted-foreground"><span className="font-bold text-foreground">{t("profile.companyInfo")}</span><br />{t("profile.companyName")}: Lunatics Group Inc<br />{t("profile.ceo")}: {t("profile.managerName")}<br />{t("profile.email")}: support@lunaticsgroup.com</p>
               </div>
             </div>
           </motion.div>}
@@ -1621,7 +1628,7 @@ const ProfilePage = () => {
                 </div>)}
 
               <div className="mt-6 p-4 bg-muted rounded-2xl">
-                <p className="text-xs text-muted-foreground"><span className="font-bold text-foreground">{t("profile.privacyManager")}</span><br />Lunatics Group Inc · {t("profile.managerName")}<br />privacy@lunaticsgroup.co.kr</p>
+                <p className="text-xs text-muted-foreground"><span className="font-bold text-foreground">{t("profile.privacyManager")}</span><br />Lunatics Group Inc · {t("profile.managerName")}<br />privacy@lunaticsgroup.com</p>
               </div>
             </div>
           </motion.div>}

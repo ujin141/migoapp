@@ -71,7 +71,7 @@ export const ChatProvider = ({
     }
 
     // [2] N+1 제거: 모든 멤버+프로필 + 마지막 메시지를 병렬 배치 처리
-    const [membersRes, msgsRes] = await Promise.all([supabase.from('chat_members').select('thread_id, user_id, profiles ( name, photo_url )').in('thread_id', threadIds), supabase.from('messages').select('thread_id, text, created_at').in('thread_id', threadIds).order('created_at', {
+    const [membersRes, msgsRes] = await Promise.all([supabase.from('chat_members').select('thread_id, user_id, profiles ( name, photo_url )').in('thread_id', threadIds), supabase.from('messages').select('thread_id, content, created_at').in('thread_id', threadIds).order('created_at', {
       ascending: false
     })]);
 
@@ -108,7 +108,7 @@ export const ChatProvider = ({
         id: t.id,
         name,
         photo,
-        lastMessage: lastMsg?.text ?? "New conversation",
+        lastMessage: lastMsg?.content ?? "New conversation",
         time: lastMsg ? new Intl.DateTimeFormat('ko-KR', {
           hour: 'numeric',
           minute: 'numeric'
@@ -137,7 +137,7 @@ export const ChatProvider = ({
         if (t.id !== newMsg.thread_id) return t;
         return {
           ...t,
-          lastMessage: newMsg.text,
+          lastMessage: newMsg.content,
           time: new Intl.DateTimeFormat('ko-KR', {
             hour: 'numeric',
             minute: 'numeric'
