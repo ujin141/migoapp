@@ -155,7 +155,7 @@ const ProfilePage = () => {
           } = supabase.storage.from("avatars").getPublicUrl(path);
           uploadedUrls.push(`${data.publicUrl}?t=${Date.now()}`);
         } else {
-          console.error(i18n.t("auto.z_autoz사진업로드_105"), upErr);
+          console.error("사진업로드", upErr);
         }
       }
       const mainPhoto = uploadedUrls[0] || photoUrl;
@@ -176,7 +176,7 @@ const ProfilePage = () => {
         data: saved
       } = await supabase.from("profiles").update(updatePayload).eq("id", user.id).select().single();
       if (error) {
-        console.error(i18n.t("auto.z_autoz프로필저장_106"), error);
+        console.error("프로필저장", error);
         throw error;
       }
 
@@ -565,7 +565,7 @@ const ProfilePage = () => {
             <div className="flex items-start gap-2">
               <span className="text-xl shrink-0">🎯</span>
               <div>
-                <p className="text-[10px] font-extrabold text-primary uppercase tracking-wider mb-0.5">{i18n.t(t("auto.z_autoz\uC9C0\uAE08\uD558\uACE0\uC2F6_128"), {
+                <p className="text-[10px] font-extrabold text-primary uppercase tracking-wider mb-0.5">{i18n.t("지금하고싶", {
                 defaultValue: t("auto.x4092")
               })}</p>
                 <p className="text-sm font-extrabold text-foreground leading-snug">{travelMission}</p>
@@ -717,8 +717,8 @@ const ProfilePage = () => {
             <div className="text-left">
               <p className="text-sm font-extrabold" style={{
               color: '#10b981'
-            }}>{t("auto.z_autoz\uB3D9\uD589\uC548\uC804\uC2DC_129")}</p>
-              <p className="text-[11px] text-muted-foreground">{t("auto.z_autoz\uB9CC\uB0A8\uC804\uCCB4\uD06C_130")}</p>
+            }}>{"동행안전시"}</p>
+              <p className="text-[11px] text-muted-foreground">{"만남전체크"}</p>
             </div>
           </div>
           <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{
@@ -823,17 +823,17 @@ const ProfilePage = () => {
                 </div>
                 <div>
                   <label className="text-sm font-bold text-foreground mb-2 flex items-center gap-1">
-                    🎯 {i18n.t(t("auto.z_autoz\uC5EC\uD589\uBBF8\uC1581_131"), {
+                    🎯 {i18n.t("여행미션1", {
                   defaultValue: t("auto.x4093")
                 })}
                   </label>
-                  <input value={travelMission} onChange={e => setTravelMission(e.target.value)} placeholder={i18n.t(t("auto.z_autoz\uBBF8\uC158\uD50C\uB808\uC774_132"), {
+                  <input value={travelMission} onChange={e => setTravelMission(e.target.value)} placeholder={i18n.t("미션플레이", {
                 defaultValue: t("auto.x4094")
               })} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
                 <div>
                   <label className="text-sm font-bold text-foreground mb-2 flex items-center gap-1">
-                    🛂 {i18n.t(t("auto.z_autoz\uC5EC\uAD8C120_133"), {
+                    🛂 {i18n.t("여권120", {
                   defaultValue: t("auto.x4095")
                 })}
                   </label>
@@ -849,7 +849,7 @@ const ProfilePage = () => {
                   setVisitedCountries([...visitedCountries, flag]);
                 }
               }} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30">
-                      <option value="">+ {i18n.t(t("auto.z_autoz\uAD6D\uAC00\uC120\uD0DD1_134"), {
+                      <option value="">+ {i18n.t("국가선택1", {
                     defaultValue: t("auto.x4096")
                   })}</option>
                       {['🇰🇷', '🇯🇵', '🇺🇸', '🇨🇳', '🇹🇼', '🇹🇭', '🇻🇳', '🇫🇷', '🇬🇧', '🇮🇹', '🇪🇸', '🇩🇪', '🇦🇺', '🇨🇦', '🇵🇭', '🇲🇾', '🇮🇩', '🇸🇬', '🇨🇭', '🇳🇿', '🇮🇳', '🇷🇺', '🇧🇷', '🇲🇽', '🇹🇷'].map(f => <option key={f} value={f}>{f}</option>)}

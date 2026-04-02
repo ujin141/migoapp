@@ -30,7 +30,8 @@ const TripMatchPage: React.FC = () => {
     user
   } = useAuth();
   const {
-    isPlus
+    isPlus,
+    isPremium
   } = useSubscription();
   const {
     i18n
@@ -150,7 +151,7 @@ const TripMatchPage: React.FC = () => {
       data
     }) => {
       if (data) {
-        setInstantMeetsCount(0); // DB columns removed to fix 400 Bad Request
+        setInstantMeetsCount(parseInt(localStorage.getItem(`migo_instant_${user.id}`) || '0')); // LocalStorage fallback
         setNoShowCount(0);
         if (data.gender) {
            const g = data.gender.toLowerCase();
@@ -249,7 +250,7 @@ const TripMatchPage: React.FC = () => {
       });
       return;
     }
-    if (mode === "premium" && !isPlus) {
+    if (mode === "premium" && !isPremium) {
       setShowPlusModal(true);
       return;
     }
@@ -404,9 +405,11 @@ const TripMatchPage: React.FC = () => {
       
       // Update instant_meets_count (if free user, it will lock next time)
       if (!isPlus) {
-        // DB column removed, so just update local state
-        // await supabase.from('profiles').update({ instant_meets_count: instantMeetsCount + 1 }).eq('id', user.id);
-        setInstantMeetsCount(prev => prev + 1);
+        setInstantMeetsCount(prev => {
+          const next = prev + 1;
+          localStorage.setItem(`migo_instant_${user.id}`, next.toString());
+          return next;
+        });
       }
 
       setCreatedThreadId(tid);
@@ -509,7 +512,7 @@ const TripMatchPage: React.FC = () => {
 
         {/* ── Premium locked banner (sticky) ── */}
         <AnimatePresence>
-          {mode === "premium" && !isPlus && <motion.div initial={{
+          {mode === "premium" && !isPremium && <motion.div initial={{
           height: 0,
           opacity: 0
         }} animate={{
@@ -953,7 +956,7 @@ const TripMatchPage: React.FC = () => {
                     <Check size={12} strokeWidth={3} /> {accepted.size}{i18n.t("auto.z_\uAC1C\uCC38\uC5EC\uC644_f9c3ae")}</span>}
               </div>
 
-              <div className="relative w-full max-w-[420px] mx-auto mt-4" style={{ height: "360px" }}>
+              <div className="relative w-full max-w-[420px] mx-auto mt-4" style={{ height: mode === "premium" ? "420px" : "360px" }}>
                 <AnimatePresence>
                   {results.slice(0, 3).reverse().map((result, i, arr) => (
                     <MatchCard 
@@ -994,7 +997,7 @@ const TripMatchPage: React.FC = () => {
                 onClick={() => setDetailGroup(null)}
                 className="flex items-center gap-2 text-sm text-muted-foreground mb-6 font-bold"
               >
-                <ArrowLeft size={16} />{i18n.t("auto.z_autoz목록으로3_766", {defaultValue: "Go Back"})}
+                <ArrowLeft size={16} />{"목록으로3"}
               </button>
 
               <div className="bg-card rounded-2xl p-4 shadow-card mb-4 border border-border/40">

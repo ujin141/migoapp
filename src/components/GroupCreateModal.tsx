@@ -108,7 +108,7 @@ const GroupCreateModal = ({
         setShowPayForCreation(true);
       } else {
         toast({
-          title: i18n.t("auto.z_autoz그룹이개설_1539"),
+          title: "그룹이개설",
           description: i18n.t("auto.z_tmpl_1048", {
             defaultValue: i18n.t("auto.z_tmpl_1540", {
               defaultValue: i18n.t("auto.z_tmpl_1424", {
@@ -135,7 +135,7 @@ const GroupCreateModal = ({
       status: "active"
     }).eq("id", pendingGroupData.id);
     toast({
-      title: i18n.t("auto.z_autoz그룹이공개_1541"),
+      title: "그룹이공개",
       description: i18n.t("auto.z_tmpl_1050", {
         defaultValue: i18n.t("auto.z_tmpl_1542", {
           defaultValue: i18n.t("auto.z_tmpl_1426", {
@@ -177,8 +177,8 @@ const GroupCreateModal = ({
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-border/30 shrink-0">
                 <div>
-                  <h2 className="text-base font-extrabold text-foreground">{t("auto.z_autoz새여행그룹_1543")}</h2>
-                  <p className="text-xs text-muted-foreground">{t("auto.z_autoz함께여행할_1544")}</p>
+                  <h2 className="text-base font-extrabold text-foreground">{"새여행그룹"}</h2>
+                  <p className="text-xs text-muted-foreground">{"함께여행할"}</p>
                 </div>
                 <button onClick={handleClose} className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center">
                   <X size={16} className="text-muted-foreground" />
@@ -190,24 +190,24 @@ const GroupCreateModal = ({
 
                 {/* 기본 정보 */}
                 <div className="space-y-3">
-                  <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">{t("auto.z_autoz기본정보1_1545")}</p>
-                  <input value={title} onChange={e => setTitle(e.target.value)} placeholder={t("auto.z_autoz그룹명예방_1546")} className="w-full px-4 py-3 rounded-2xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/50" />
+                  <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">{"기본정보1"}</p>
+                  <input value={title} onChange={e => setTitle(e.target.value)} placeholder={"그룹명예방"} className="w-full px-4 py-3 rounded-2xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/50" />
                   <div className="flex gap-2">
                     <div className="flex items-center gap-2 flex-1 px-4 py-3 rounded-2xl bg-muted border border-border">
                       <MapPin size={14} className="text-muted-foreground shrink-0" />
-                      <input value={destination} onChange={e => setDestination(e.target.value)} placeholder={t("auto.z_autoz목적지10_1547")} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                      <input value={destination} onChange={e => setDestination(e.target.value)} placeholder={"목적지10"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                     </div>
                     <div className="flex items-center gap-2 flex-1 px-4 py-3 rounded-2xl bg-muted border border-border">
                       <Calendar size={14} className="text-muted-foreground shrink-0" />
-                      <input value={dates} onChange={e => setDates(e.target.value)} placeholder={t("auto.z_autoz날짜예41_1548")} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                      <input value={dates} onChange={e => setDates(e.target.value)} placeholder={"날짜예41"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                     </div>
                   </div>
-                  <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t("auto.z_autoz그룹소개및_1549")} rows={3} className="w-full px-4 py-3 rounded-2xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/50 resize-none" />
+                  <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={"그룹소개및"} rows={3} className="w-full px-4 py-3 rounded-2xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/50 resize-none" />
                 </div>
 
                 {/* 인원 */}
                 <div>
-                  <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide mb-2">{t("auto.z_autoz최대인원1_1550")}</p>
+                  <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide mb-2">{"최대인원1"}</p>
                   <div className="flex items-center gap-3">
                     <Users size={14} className="text-muted-foreground" />
                     {[2, 4, 6, 8, 10, 20].map(n => <button key={n} onClick={() => setMaxMembers(n)} className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${maxMembers === n ? "gradient-primary text-primary-foreground shadow-card" : "bg-muted text-muted-foreground"}`}>
@@ -218,7 +218,7 @@ const GroupCreateModal = ({
 
                 {/* 태그 */}
                 <div>
-                  <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide mb-2">{t("auto.z_autoz태그최대5_1551")}</p>
+                  <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide mb-2">{"태그최대5"}</p>
                   <div className="flex gap-2 flex-wrap mb-2">
                     {tags.map(t => <span key={t} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-[11px] font-bold text-primary">
                         #{t}
@@ -231,35 +231,35 @@ const GroupCreateModal = ({
                     e.preventDefault();
                     addTag();
                   }
-                }} placeholder={t("auto.z_autoz카페트레킹_1552")} className="flex-1 px-4 py-2.5 rounded-2xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none" />
-                    <button onClick={addTag} className="px-4 py-2.5 rounded-2xl bg-primary/10 text-primary text-xs font-bold">{t("auto.z_autoz추가106_1553")}</button>
+                }} placeholder={"카페트레킹"} className="flex-1 px-4 py-2.5 rounded-2xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                    <button onClick={addTag} className="px-4 py-2.5 rounded-2xl bg-primary/10 text-primary text-xs font-bold">{"추가106"}</button>
                   </div>
                 </div>
 
                 {/* 개설비 */}
                 <div className="space-y-3">
-                  <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">{t("auto.z_autoz결제설정1_1554")}</p>
+                  <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">{"결제설정1"}</p>
                   <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
                     <div className="flex items-center gap-2 mb-2">
                       <CreditCard size={14} className="text-amber-500" />
-                      <p className="text-sm font-bold text-foreground">{t("auto.z_autoz개설비10_1555")}<span className="text-[10px] text-muted-foreground font-normal">{t("auto.z_autoz호스트결제_1556")}</span></p>
+                      <p className="text-sm font-bold text-foreground">{"개설비10"}<span className="text-[10px] text-muted-foreground font-normal">{"호스트결제"}</span></p>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mb-3">{t("auto.z_autoz스팸방지및_1557")}</p>
+                    <p className="text-[10px] text-muted-foreground mb-3">{"스팸방지및"}</p>
                     <div className="flex gap-2 flex-wrap">
                       {pricingOptions.options.map(opt => <button key={opt} onClick={() => setCreationFee(opt)} className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${creationFee === opt ? "bg-amber-500 text-white shadow-card" : "bg-muted text-muted-foreground"}`}>
                           {pricingOptions.format(opt)}
                         </button>)}
                     </div>
                     {creationFee > 0 && <p className="text-[10px] text-amber-600/80 mt-2 flex items-center gap-1">
-                        <AlertCircle size={10} />{t("auto.z_autoz그룹저장후_1558")}{pricingOptions.format(creationFee)}{t("auto.z_autoz결제가진행_1559")}</p>}
+                        <AlertCircle size={10} />{"그룹저장후"}{pricingOptions.format(creationFee)}{"결제가진행"}</p>}
                   </div>
                 </div>
 
                 {/* 개설비 요약 */}
                 {creationFee > 0 && <div className="p-3 rounded-2xl bg-muted space-y-1">
-                    <p className="text-[10px] font-extrabold text-muted-foreground mb-1">{t("auto.z_autoz결제요약1_1564")}</p>
+                    <p className="text-[10px] font-extrabold text-muted-foreground mb-1">{"결제요약1"}</p>
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{t("auto.z_autoz호스트개설_1565")}</span>
+                      <span className="text-muted-foreground">{"호스트개설"}</span>
                       <span className="font-bold text-amber-500">{pricingOptions.format(creationFee)}</span>
                     </div>
                   </div>}
@@ -270,7 +270,7 @@ const GroupCreateModal = ({
                 <motion.button whileTap={{
               scale: 0.97
             }} disabled={saving} onClick={handleSubmit} className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-extrabold flex items-center justify-center gap-2 shadow-float disabled:opacity-60">
-                  {saving ? t("auto.z_autoz저장중10_1568") : creationFee > 0 ? <><Lock size={14} /> {pricingOptions.format(creationFee)}{t("auto.z_autoz결제후공개_1569")}</> : <><Check size={14} />{t("auto.z_autoz무료로그룹_1570")}</>}
+                  {saving ? "저장중10" : creationFee > 0 ? <><Lock size={14} /> {pricingOptions.format(creationFee)}{"결제후공개"}</> : <><Check size={14} />{"무료로그룹"}</>}
                 </motion.button>
               </div>
             </motion.div>

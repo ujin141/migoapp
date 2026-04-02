@@ -28,8 +28,8 @@ const PAYMENT_METHODS = [
 
 // ── 플랜 기능 정의 ──────────────────────────────────────────
 const PLUS_FEATURES = [
-  { icon: Heart,          label: "일일 좋아요",        free: "10개/일",    plus: "무제한" },
-  { icon: Star,           label: "슈퍼라이크",          free: "3개/일",     plus: "무제한" },
+  { icon: Heart,          label: "일일 좋아요",        free: "10개/일",    plus: "50개/일" },
+  { icon: Star,           label: "슈퍼라이크",          free: "1개/일",     plus: "5개/일" },
   { icon: Eye,            label: "나를 좋아한 사람",    free: "숨김",       plus: "전체 공개" },
   { icon: Zap,            label: "프로필 부스트",       free: "❌",         plus: "월 1회 무료" },
   { icon: Filter,         label: "고급 필터",           free: "기본만",     plus: "MBTI·언어·나이" },
@@ -37,18 +37,17 @@ const PLUS_FEATURES = [
   { icon: Dna,            label: "여행 DNA 리포트",     free: "❌",         plus: "전체 공개" },
   { icon: Clock,          label: "지금여기있어요",       free: "일반",       plus: "최상단 고정" },
   { icon: MessageCircle,  label: "읽음 확인",           free: "❌",         plus: "✅" },
-  { icon: MapPin,         label: "위치 숨기기",         free: "❌",         plus: "대략 위치만" },
   { icon: Shield,         label: "안전 기능",           free: "기본",       plus: "긴급 연락 우선" },
   { icon: Sparkles,       label: "광고 제거",           free: "광고 있음",  plus: "광고 없음" },
 ];
 
 const PREMIUM_ONLY_FEATURES = [
-  { icon: Users,        label: "프리미엄 그룹 참여",    desc: "검증된 고급 그룹 무제한 입장" },
-  { icon: Bot,          label: "AI 여행 일정 생성",     desc: "GPT 기반 맞춤 일정 무제한" },
-  { icon: Award,        label: "동행 완료 리뷰 뱃지",   desc: "프로필 강조 표시 + 신뢰도 UP" },
-  { icon: Palette,      label: "프리미엄 프로필 테마",  desc: "독점 테마·아이콘 제공" },
-  { icon: Headphones,   label: "전담 고객 지원",        desc: "24h 전용 채널 우선 응대" },
-  { icon: InfinityIcon, label: "슈퍼라이크 무제한",     desc: "상한 없이 무제한 사용" },
+  { icon: InfinityIcon, label: "좋아요/슈퍼라이크 무제한", desc: "매칭 제한 해제 및 상한 없이 무제한 사용" },
+  { icon: Crown,        label: "프리미엄 그룹 무제한",    desc: "검증된 고급 프리미엄 럭셔리 모임 무제한 입장" },
+  { icon: Users,        label: "프리미엄 전용 모임 개설", desc: "엄선된 프리미엄 회원을 위한 프라이빗 모임 개설권" },
+  { icon: Award,        label: "동행 완료 리뷰 뱃지",     desc: "프로필 강조 왕관 뱃지 표시 + 신뢰도 극대화" },
+  { icon: Palette,      label: "프리미엄 전용 프로필",    desc: "VIP만을 위한 독점 테마·아이콘 자동 적용" },
+  { icon: Bot,          label: "AI 맞춤 일정 생성",       desc: "GPT를 활용한 AI 여행 일정 큐레이션 제공" },
 ];
 
 // ── 메인 컴포넌트 ───────────────────────────────────────────

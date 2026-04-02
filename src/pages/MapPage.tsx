@@ -198,21 +198,21 @@ const MapPage = () => {
           const distKm = me?.lat && me?.lng && p.lat && p.lng ? haversine(me.lat, me.lng, p.lat, p.lng) : null;
           return {
             id: p.id,
-            name: p.name || i18n.t("auto.z_autoz유저182_316"),
+            name: p.name || "유저182",
             age: p.age || 25,
             photo: p.photo_url || "",
             lat: p.lat ?? null,
             lng: p.lng ?? null,
             distanceKm: distKm,
             distance: distKm != null ? `${distKm.toFixed(1)}km` : t("mapPage.noDistance"),
-            bio: p.bio || i18n.t("auto.z_autoz자기소개가_317"),
-            destination: p.location || i18n.t("auto.z_autoz여행지18_318"),
-            dates: i18n.t("auto.z_autoz일정미정1_319"),
+            bio: p.bio || "자기소개가",
+            destination: p.location || "여행지18",
+            dates: "일정미정1",
             tags: p.interests?.slice(0, 3) || [],
             travelStyle: p.interests || [],
-            languages: p.languages || [i18n.t("auto.z_autoz한국어18_320")],
-            gender: p.gender || i18n.t("auto.z_autoz알수없음1_321"),
-            location: p.location || i18n.t("auto.z_autoz서울188_322"),
+            languages: p.languages || ["한국어18"],
+            gender: p.gender || "알수없음1",
+            location: p.location || "서울188",
             verified: p.verified || false,
             verifyLevel: p.verified ? 'gold' : 'none',
             matchScore: 80 + Math.floor(Math.random() * 20)
@@ -259,7 +259,7 @@ const MapPage = () => {
       const pos = await getCurrentLocation(false);
       if (!isMounted) return;
       if (!pos) {
-        setCurrentLocationName(i18n.t("auto.z_autoz위치권한없_325", { defaultValue: "위치 정보를 가져올 수 없습니다." }));
+        setCurrentLocationName("위치권한없");
         return;
       }
       const { lat, lng } = pos;
@@ -272,12 +272,12 @@ const MapPage = () => {
         const data = await res.json();
         const city = data.address?.city || data.address?.town || data.address?.borough || data.address?.suburb || data.address?.village || data.address?.county || "";
         const country = data.address?.country || "";
-        const locationName = city ? `${city}, ${country}` : country || i18n.t("auto.z_autoz위치알수없_323");
+        const locationName = city ? `${city}, ${country}` : country || "위치알수없";
         setCurrentLocationName(locationName);
         await supabase.from("profiles").update({ lat, lng, location: locationName }).eq("id", user.id);
       } catch (e) {
         console.error("Geocoding error", e);
-        setCurrentLocationName(i18n.t("auto.z_autoz위치알수없_324"));
+        setCurrentLocationName("위치알수없");
       }
     };
     saveLocationToDB();
@@ -288,7 +288,7 @@ const MapPage = () => {
       supabase.removeChannel(channel);
     };
   }, [user, locationSharing, t]);
-  const tagOptions = [t("auto.z_autoz카페192_326"), t("auto.z_autoz트레킹19_327"), t("auto.z_autoz서핑194_328"), t("auto.z_autoz야시장19_329"), t("auto.z_autoz사진196_330"), t("auto.z_autoz음식197_331"), t("auto.z_autoz건축198_332"), t("auto.z_autoz자연199_333")];
+  const tagOptions = ["카페192", "트레킹19", "서핑194", "야시장19", "사진196", "음식197", "건축198", "자연199"];
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
@@ -330,7 +330,7 @@ const MapPage = () => {
               })
             })
           }),
-          description: i18n.t("auto.z_autoz채팅탭에서_335")
+          description: "채팅탭에서"
         });
 
         // 매칭 성사 시 채팅방(trip_groups) 생성
@@ -359,7 +359,7 @@ const MapPage = () => {
         await supabase.from('in_app_notifications').insert({
           user_id: id,
           type: 'match',
-          title: i18n.t("auto.z_autoz매칭성공2_337"),
+          title: "매칭성공2",
           content: i18n.t("auto.z_tmpl_204", {
             defaultValue: i18n.t("auto.z_tmpl_338", {
               defaultValue: t("auto.t5019", {
@@ -384,7 +384,7 @@ const MapPage = () => {
         await supabase.from('in_app_notifications').insert({
           user_id: id,
           type: 'like',
-          title: i18n.t("auto.z_autoz새로운반가_340"),
+          title: "새로운반가",
           content: i18n.t("auto.z_tmpl_207", {
             defaultValue: i18n.t("auto.z_tmpl_341", {
               defaultValue: t("auto.t5021")
@@ -432,7 +432,7 @@ const MapPage = () => {
                   <div className="absolute w-12 h-12 rounded-full bg-primary/30 animate-pulse" />
                   <div className="relative">
                     {myProfilePhoto || user?.photoUrl ? <img src={myProfilePhoto || user?.photoUrl} alt={t("auto.x4028")} className="w-11 h-11 rounded-full object-cover border-2 border-primary shadow-lg scale-110" /> : <div className="w-11 h-11 rounded-full border-2 border-primary shadow-lg flex items-center justify-center gradient-primary scale-110">
-                        <span className="text-white font-extrabold text-sm">{user?.name?.[0] ?? t("auto.z_autoz나208_342")}</span>
+                        <span className="text-white font-extrabold text-sm">{user?.name?.[0] ?? "나208"}</span>
                       </div>}
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border-2 border-white" />
                   </div>
@@ -450,7 +450,7 @@ const MapPage = () => {
             <button onClick={() => {
             const next = !locationSharing;
             setLocationSharing(next);
-            if (!next) setCurrentLocationName(i18n.t("auto.z_autoz위치공유꺼_343"));
+            if (!next) setCurrentLocationName("위치공유꺼");
           }} className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl shadow-card backdrop-blur-sm text-xs font-bold transition-all active:scale-90 ${locationSharing ? 'bg-primary text-primary-foreground' : 'bg-card/90 text-muted-foreground'}`}>
               <MapPin size={14} />
               {locationSharing ? 'GPS ON' : 'GPS OFF'}
@@ -491,7 +491,7 @@ const MapPage = () => {
                   <p className="text-xs text-muted-foreground truncate">{selectedTraveler.bio}</p>
                   <p className="text-[10px] text-primary font-medium mt-0.5">📍 {selectedTraveler.distance}</p>
                 </div>
-                <button onClick={() => setProfileDetail(selectedTraveler)} className="px-3 py-1.5 rounded-xl gradient-primary text-primary-foreground text-xs font-semibold shadow-card transition-transform active:scale-95">{t("auto.z_autoz프로필21_344")}</button>
+                <button onClick={() => setProfileDetail(selectedTraveler)} className="px-3 py-1.5 rounded-xl gradient-primary text-primary-foreground text-xs font-semibold shadow-card transition-transform active:scale-95">{"프로필21"}</button>
               </div>
             </motion.div>}
         </AnimatePresence>
@@ -508,7 +508,7 @@ const MapPage = () => {
                 <h4 className="font-bold text-sm text-foreground">{travelers[0].name}</h4>
                 <p className="text-xs text-muted-foreground truncate">{travelers[0].bio}</p>
               </div>
-              <button onClick={() => setProfileDetail(travelers[0])} className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-xs font-semibold shadow-card transition-transform active:scale-95">{t("auto.z_autoz프로필21_345")}</button>
+              <button onClick={() => setProfileDetail(travelers[0])} className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-xs font-semibold shadow-card transition-transform active:scale-95">{"프로필21"}</button>
             </div>
           </div>}
 
@@ -592,14 +592,14 @@ const MapPage = () => {
                   <div className="bg-muted rounded-2xl p-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <MapPin size={13} className="text-primary" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{t("auto.z_autoz여행지21_346")}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{"여행지21"}</span>
                     </div>
                     <p className="text-sm font-bold text-foreground">{profileDetail.destination}</p>
                   </div>
                   <div className="bg-muted rounded-2xl p-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Calendar size={13} className="text-primary" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{t("auto.z_autoz일정213_347")}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{"일정213"}</span>
                     </div>
                     <p className="text-sm font-bold text-foreground">{profileDetail.dates}</p>
                   </div>
@@ -607,7 +607,7 @@ const MapPage = () => {
 
                 {/* Tags */}
                 <div>
-                  <p className="text-xs font-bold text-muted-foreground mb-2">{t("auto.z_autoz여행스타일_348")}</p>
+                  <p className="text-xs font-bold text-muted-foreground mb-2">{"여행스타일"}</p>
                   <div className="flex flex-wrap gap-2">
                     {profileDetail.tags.map(tag => <span key={tag} className="px-3 py-1.5 rounded-full bg-muted text-xs font-semibold text-muted-foreground">
                         {tag}
@@ -619,7 +619,7 @@ const MapPage = () => {
                 <div className="flex gap-3 pt-1">
                   <button onClick={() => handleLike(profileDetail.id, profileDetail.name)} className={`flex-1 py-3.5 rounded-2xl border-2 flex items-center justify-center gap-2 text-sm font-bold shadow-card transition-all ${liked.includes(profileDetail.id) ? "gradient-primary text-primary-foreground border-transparent" : "bg-card border-border text-foreground hover:border-primary/50"}`}>
                     <Heart size={18} fill={liked.includes(profileDetail.id) ? "currentColor" : "none"} className={liked.includes(profileDetail.id) ? "text-white" : "text-primary"} />
-                    {liked.includes(profileDetail.id) ? t("auto.z_autoz반가워요보_349") : t("auto.z_autoz반가워요2_350")}
+                    {liked.includes(profileDetail.id) ? "반가워요보" : "반가워요2"}
                   </button>
                 </div>
               </div>
@@ -650,14 +650,14 @@ const MapPage = () => {
         }}>
               <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-extrabold text-foreground">{t("auto.z_autoz지도필터2_351")}</h3>
+                <h3 className="text-lg font-extrabold text-foreground">{"지도필터2"}</h3>
                 <button onClick={() => setShowFilter(false)}><X size={20} className="text-muted-foreground" /></button>
               </div>
 
               {/* Distance */}
               <div className="mb-6">
                 <div className="flex justify-between mb-2">
-                  <label className="text-sm font-bold text-foreground">{t("auto.z_autoz거리반경2_352")}</label>
+                  <label className="text-sm font-bold text-foreground">{"거리반경2"}</label>
                   <span className="text-sm font-bold text-primary">{maxDistance}km</span>
                 </div>
                 <input type="range" min={1} max={50} value={maxDistance} onChange={e => setMaxDistance(Number(e.target.value))} className="w-full accent-primary" />
@@ -668,7 +668,7 @@ const MapPage = () => {
 
               {/* Travel Style Tags */}
               <div className="mb-6">
-                <label className="text-sm font-bold text-foreground mb-3 block">{t("auto.z_autoz여행스타일_353")}</label>
+                <label className="text-sm font-bold text-foreground mb-3 block">{"여행스타일"}</label>
                 <div className="flex flex-wrap gap-2">
                   {tagOptions.map(tag => <button key={tag} onClick={() => toggleTag(tag)} className={`px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${selectedTags.includes(tag) ? "gradient-primary text-primary-foreground shadow-card" : "bg-muted text-muted-foreground"}`}>
                       {tag}
@@ -680,11 +680,11 @@ const MapPage = () => {
                 <button onClick={() => {
               setSelectedTags([]);
               setMaxDistance(10);
-            }} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm">{t("auto.z_autoz초기화22_354")}</button>
+            }} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm">{"초기화22"}</button>
                 <button onClick={() => {
               setShowFilter(false);
               toast({
-                title: i18n.t("auto.z_autoz필터가적용_355"),
+                title: "필터가적용",
                 description: i18n.t("auto.z_tmpl_222", {
                   defaultValue: i18n.t("auto.z_tmpl_356", {
                     defaultValue: t("auto.t5022", {
@@ -694,7 +694,7 @@ const MapPage = () => {
                 })
               });
             }} className="flex-1 py-3 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-card flex items-center justify-center gap-2">
-                  <Check size={16} />{t("auto.z_autoz적용하기2_357")}</button>
+                  <Check size={16} />{"적용하기2"}</button>
               </div>
             </motion.div>
           </motion.div>}
@@ -726,10 +726,10 @@ const MapPage = () => {
               </div>
               <div className="flex items-center gap-4 px-5 py-4">
                 {myProfilePhoto || user?.photoUrl ? <img src={myProfilePhoto || user?.photoUrl} alt={t("auto.x4029")} className="w-16 h-16 rounded-2xl object-cover border-2 border-primary shadow-card" /> : <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center text-white font-extrabold text-2xl">
-                    {user?.name?.[0] ?? t("auto.z_autoz나224_358")}
+                    {user?.name?.[0] ?? "나224"}
                   </div>}
                 <div className="flex-1">
-                  <p className="font-extrabold text-foreground text-base">{user?.name ?? t("auto.z_autoz나225_359")}</p>
+                  <p className="font-extrabold text-foreground text-base">{user?.name ?? "나225"}</p>
                   <p className="text-xs text-muted-foreground">{currentLocationName}</p>
                 </div>
               </div>
@@ -737,7 +737,7 @@ const MapPage = () => {
                 <button onClick={() => {
               setShowMyProfile(false);
               navigate("/profile");
-            }} className="flex-1 py-3 rounded-2xl gradient-primary text-primary-foreground font-bold text-sm shadow-card transition-transform active:scale-95">{t("auto.z_autoz프로필보기_360")}</button>
+            }} className="flex-1 py-3 rounded-2xl gradient-primary text-primary-foreground font-bold text-sm shadow-card transition-transform active:scale-95">{"프로필보기"}</button>
                 <button onClick={() => setShowMyProfile(false)} className="w-12 py-3 rounded-2xl bg-muted flex items-center justify-center">
                   <X size={18} className="text-muted-foreground" />
                 </button>

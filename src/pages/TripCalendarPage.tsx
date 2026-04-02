@@ -201,8 +201,8 @@ const TripCalendarPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const DAYS = getArr("trip.days", [t("auto.z_autoz일8_14"), t("auto.z_autoz월9_15"), t("auto.z_autoz화10_16"), t("auto.z_autoz수11_17"), t("auto.z_autoz목12_18"), t("auto.z_autoz금13_19"), t("auto.z_autoz토14_20")]);
-  const MONTHS = getArr("trip.months", [t("auto.z_autoz1월15_21"), t("auto.z_autoz2월16_22"), t("auto.z_autoz3월17_23"), t("auto.z_autoz4월18_24"), t("auto.z_autoz5월19_25"), t("auto.z_autoz6월20_26"), t("auto.z_autoz7월21_27"), t("auto.z_autoz8월22_28"), t("auto.z_autoz9월23_29"), t("auto.z_autoz10월24_30"), t("auto.z_autoz11월25_31"), t("auto.z_autoz12월26_32")]);
+  const DAYS = getArr("trip.days", ["일8", "월9", "화10", "수11", "목12", "금13", "토14"]);
+  const MONTHS = getArr("trip.months", ["1월15", "2월16", "3월17", "4월18", "5월19", "6월20", "7월21", "8월22", "9월23", "10월24", "11월25", "12월26"]);
   const navigate = useNavigate();
   const {
     user

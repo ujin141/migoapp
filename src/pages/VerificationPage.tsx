@@ -202,8 +202,8 @@ const IdUploadModal = ({
   } = useSubscription();
   const [step, setStep] = useState<"guide" | "upload" | "pending">("guide");
   const [idType, setIdType] = useState("");
-  const idTypes = [t('verif.id.type1', t("auto.z_autoz\uC8FC\uBBFC\uB4F1\uB85D\uC99D_1")), t('verif.id.type2', t("auto.z_autoz\uC6B4\uC804\uBA74\uD5C8\uC99D_2")), t('verif.id.type3', t("auto.z_autoz\uC5EC\uAD8C3_3"))];
-  const idTips = [t('verif.id.tip1', t("auto.z_autoz\uBE5B\uBC18\uC0AC\uAC00\uC5C6_4")), t('verif.id.tip2', t("auto.z_autoz\uC5B4\uB450\uC6B4\uBC30\uACBD_5")), t('verif.id.tip3', t("auto.z_autoz\uC8FC\uBBFC\uB4F1\uB85D\uBC88_6"))];
+  const idTypes = [t('verif.id.type1', "주민등록증"), t('verif.id.type2', "운전면허증"), t('verif.id.type3', "여권3")];
+  const idTips = [t('verif.id.tip1', "빛반사가없"), t('verif.id.tip2', "어두운배경"), t('verif.id.tip3', "주민등록번")];
   const [frontFile, setFrontFile] = useState<File | null>(null);
   const [backFile, setBackFile] = useState<File | null>(null);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
@@ -404,8 +404,8 @@ const VerificationPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const idTypes = getArr('verif.id.idTypes', [t("auto.z_autoz주민등록증_7"), t("auto.z_autoz운전면허증_8"), t("auto.z_autoz여권3_9")]);
-  const idTips = getArr('verif.id.tips', [t("auto.z_autoz만료되지않_10"), t("auto.z_autoz사진이선명_11"), t("auto.z_autoz개인정보는_12"), t("auto.z_autoz인증후원본_13")]);
+  const idTypes = getArr('verif.id.idTypes', ["주민등록증", "운전면허증", "여권3"]);
+  const idTips = getArr('verif.id.tips', ["만료되지않", "사진이선명", "개인정보는", "인증후원본"]);
   const {
     user,
     session

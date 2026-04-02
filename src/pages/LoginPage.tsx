@@ -11,7 +11,7 @@ import { compressImage } from "@/lib/imageCompression";
 
 // ─── Constants ───
 const TRAVEL_STYLES: string[] = []; // loaded inside component
-const LANGUAGES = [i18n.t("auto.z_autoz한국어22_361"), "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
+const LANGUAGES = ["한국어22", "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
 const REGIONS: string[] = []; // loaded inside component
 const MAX_PHOTOS = 6;
 const NATIONALITIES: string[] = []; // loaded inside component via t()
@@ -22,24 +22,24 @@ const PURPOSE_OPTIONS_STATIC = [{
   emoji: "✈️",
   titleKey: "login.purpose.companion",
   descKey: "login.purpose.companionDesc",
-  fbTitle: i18n.t("auto.z_autoz여행동행찾_362"),
-  fbDesc: i18n.t("auto.z_autoz같이다닐여_363"),
+  fbTitle: "여행동행찾",
+  fbDesc: "같이다닐여",
   gradient: "from-violet-500 to-indigo-500"
 }, {
   id: "post",
   emoji: "📝",
   titleKey: "login.purpose.post",
   descKey: "login.purpose.postDesc",
-  fbTitle: i18n.t("auto.z_autoz게시글공유_364"),
-  fbDesc: i18n.t("auto.z_autoz여행꿀팁이_365"),
+  fbTitle: "게시글공유",
+  fbDesc: "여행꿀팁이",
   gradient: "from-rose-500 to-orange-400"
 }, {
   id: "both",
   emoji: "🌍",
   titleKey: "login.purpose.both",
   descKey: "login.purpose.bothDesc",
-  fbTitle: i18n.t("auto.z_autoz둘다할래요_366"),
-  fbDesc: i18n.t("auto.z_autoz동행도찾고_367"),
+  fbTitle: "둘다할래요",
+  fbDesc: "동행도찾고",
   gradient: "from-emerald-500 to-teal-400"
 }];
 const getPasswordStrength = (pw: string): {
@@ -93,10 +93,10 @@ const LoginPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const TRAVEL_STYLES = getArr("travelStyles", [t("auto.z_autoz배낭여행2_368"), t("auto.z_autoz럭셔리23_369"), t("auto.z_autoz자연트레킹_370"), t("auto.z_autoz맛집탐방2_371"), t("auto.z_autoz문화역사2_372"), t("auto.z_autoz휴양호캉스_373"), t("auto.z_autoz사진촬영2_374"), t("auto.z_autoz나이트라이_375"), t("auto.z_autoz쇼핑242_376"), t("auto.z_autoz요가힐링2_377"), t("auto.z_autoz현지체험2_378"), t("auto.z_autoz로드트립2_379")]);
-  const REGIONS = getArr("regions", [t("auto.z_autoz동남아24_380"), t("auto.z_autoz유럽247_381"), t("auto.z_autoz일본248_382"), t("auto.z_autoz미주캐나다_383"), t("auto.z_autoz중남미25_384"), t("auto.z_autoz중동아프리_385"), t("auto.z_autoz대양주25_386"), t("auto.z_autoz국내253_387"), t("auto.z_autoz중화권25_388"), t("auto.z_autoz인도권25_389")]);
-  const STEP_LABELS_I18N = getArr("login.stepLabels", [t("auto.z_autoz가입정보2_390"), t("auto.z_autoz계정257_391"), t("auto.z_autoz프로필설정_392"), t("auto.z_autoz휴대폰인증_393"), t("auto.z_autoz약관동의2_394"), t("auto.z_autoz완료261_395")]);
-  const NATIONALITIES = getArr("login.nationalities", [t("auto.z_autoz대한민국2_396"), t("auto.z_autoz미국263_397"), t("auto.z_autoz일본264_398"), t("auto.z_autoz중국265_399"), t("auto.z_autoz영국266_400"), t("auto.z_autoz호주267_401"), t("auto.z_autoz캐나다26_402")]);
+  const TRAVEL_STYLES = getArr("travelStyles", ["배낭여행2", "럭셔리23", "자연트레킹", "맛집탐방2", "문화역사2", "휴양호캉스", "사진촬영2", "나이트라이", "쇼핑242", "요가힐링2", "현지체험2", "로드트립2"]);
+  const REGIONS = getArr("regions", ["동남아24", "유럽247", "일본248", "미주캐나다", "중남미25", "중동아프리", "대양주25", "국내253", "중화권25", "인도권25"]);
+  const STEP_LABELS_I18N = getArr("login.stepLabels", ["가입정보2", "계정257", "프로필설정", "휴대폰인증", "약관동의2", "완료261"]);
+  const NATIONALITIES = getArr("login.nationalities", ["대한민국2", "미국263", "일본264", "중국265", "영국266", "호주267", "캐나다26"]);
   const PURPOSE_OPTIONS = PURPOSE_OPTIONS_STATIC.map(p => {
     const title = t(p.titleKey);
     const desc = t(p.descKey);
@@ -145,7 +145,7 @@ const LoginPage = () => {
   }>>([]);
   const [bio, setBio] = useState("");
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
-  const [selectedLangs, setSelectedLangs] = useState<string[]>([t("lang.ko") || t("auto.z_autoz한국어26_403")]);
+  const [selectedLangs, setSelectedLangs] = useState<string[]>([t("lang.ko") || "한국어26"]);
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -238,7 +238,7 @@ const LoginPage = () => {
       setOtpSent(true);
       setOtpTimeout(180);
       toast({
-        title: i18n.t("auto.z_autoz인증번호를_404"),
+        title: "인증번호를",
         description: i18n.t("auto.z_tmpl_271", {
           defaultValue: i18n.t("auto.z_tmpl_405", {
             defaultValue: t("auto.t5016", {
@@ -260,8 +260,8 @@ const LoginPage = () => {
       setOtpTimer(timerId);
     } catch (e: unknown) {
       let msg = e instanceof Error ? e.message : "SMS sending error";
-      if (msg.includes("Max check attempts reached")) msg = i18n.t("auto.z_autoz인증시도횟_406");
-      if (msg.includes("Too many requests") || msg.includes("rate limit")) msg = i18n.t("auto.z_autoz잠시후다시_407");
+      if (msg.includes("Max check attempts reached")) msg = "인증시도횟";
+      if (msg.includes("Too many requests") || msg.includes("rate limit")) msg = "잠시후다시";
       toast({
         title: t('login.otpFail'),
         description: msg,
@@ -302,7 +302,7 @@ const LoginPage = () => {
       });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Verification code is incorrect";
-      if (msg.includes("expired") || msg.includes("invalid") || msg.includes(i18n.t("auto.z_autoz올바르지않_408"))) {
+      if (msg.includes("expired") || msg.includes("invalid") || msg.includes("올바르지않")) {
         toast({
           title: t('login.otpError'),
           description: t('login.otpErrorDesc'),
@@ -479,7 +479,7 @@ const LoginPage = () => {
             userId = signUpData.session.user.id;
           }
         }
-        if (!userId) throw new Error(i18n.t("auto.z_autoz계정을생성_409"));
+        if (!userId) throw new Error("계정을생성");
 
         // 프로필 사진 업로드 (최대 6장)
         const photoUrls: string[] = [];
@@ -537,7 +537,7 @@ const LoginPage = () => {
         setTimeout(() => navigate("/"), 800);
       }
     } catch (e: unknown) {
-      let msg = e instanceof Error ? e.message : i18n.t("auto.z_autoz오류가발생_410");
+      let msg = e instanceof Error ? e.message : "오류가발생";
       if (msg.includes("Invalid login credentials")) msg = "Email or password is incorrect.";
       if (msg.includes("Email not confirmed")) msg = "Email not confirmed. Please verify your email.";
 
@@ -661,10 +661,10 @@ const LoginPage = () => {
           duration: 0.2
         }}>
             <p className="text-xl font-bold text-foreground">
-              {mode === "login" ? t("auto.z_autoz다시만나서_411") : signupStep === 0 ? t("auto.z_autozMigo에_412") : signupStep === 1 ? t("auto.z_autoz계정정보입_413") : signupStep === 2 ? t("auto.z_autoz전화번호인_414") : signupStep === 3 ? t("auto.z_autoz안전약관동_415") : t("auto.z_autoz여행프로필_416")}
+              {mode === "login" ? "다시만나서" : signupStep === 0 ? "Migo에" : signupStep === 1 ? "계정정보입" : signupStep === 2 ? "전화번호인" : signupStep === 3 ? "안전약관동" : "여행프로필"}
             </p>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {mode === "login" ? t("auto.z_autoz로그인하고_417") : signupStep === 0 ? t("auto.z_autoz어떤걸주로_418") : signupStep === 1 ? t("auto.z_autoz강력한비밀_419") : signupStep === 2 ? t("auto.z_autoz실명인증으_420") : signupStep === 3 ? t("auto.z_autoz약관에동의_421") : t("auto.z_autoz나만의여행_422")}
+              {mode === "login" ? "로그인하고" : signupStep === 0 ? "어떤걸주로" : signupStep === 1 ? "강력한비밀" : signupStep === 2 ? "실명인증으" : signupStep === 3 ? "약관에동의" : "나만의여행"}
             </p>
           </motion.div>
         </AnimatePresence>
@@ -713,14 +713,14 @@ const LoginPage = () => {
           duration: 0.25
         }}>
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("auto.z_autoz이름실명2_423")}</label>
+                <label className="text-xs font-bold text-foreground mb-1.5 block">{"이름실명2"}</label>
                 <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3">
                   <User size={16} className="text-muted-foreground shrink-0" />
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t("auto.z_autoz홍길동29_424")} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={"홍길동29"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("auto.z_autoz이메일29_425")}</label>
+                <label className="text-xs font-bold text-foreground mb-1.5 block">{"이메일29"}</label>
                 <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3">
                   <Mail size={16} className="text-muted-foreground shrink-0" />
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="hello@lunaticsgroup.com" className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
@@ -728,27 +728,27 @@ const LoginPage = () => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-foreground mb-1.5 block">{t("auto.z_autoz나이292_426")}</label>
+                  <label className="text-xs font-bold text-foreground mb-1.5 block">{"나이292"}</label>
                   <input type="number" value={age} onChange={e => setAge(e.target.value)} min={18} max={99} placeholder="25" className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-foreground mb-1.5 block">{t("auto.z_autoz성별293_427")}</label>
+                  <label className="text-xs font-bold text-foreground mb-1.5 block">{"성별293"}</label>
                   <div className="flex gap-1.5">
-                    {[t("auto.z_autoz남성294_428"), t("auto.z_autoz여성295_429"), t("auto.z_autoz기타296_430")].map(g => <button key={g} onClick={() => setGender(g)} className={`flex-1 py-3 rounded-2xl text-xs font-bold transition-all ${gender === g ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{g}</button>)}
+                    {["남성294", "여성295", "기타296"].map(g => <button key={g} onClick={() => setGender(g)} className={`flex-1 py-3 rounded-2xl text-xs font-bold transition-all ${gender === g ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{g}</button>)}
                   </div>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("auto.z_autoz국적표시용_431")}</label>
+                <label className="text-xs font-bold text-foreground mb-1.5 block">{"국적표시용"}</label>
                 <select value={nationality} onChange={e => setNationality(e.target.value)} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none bg-none">
                   {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("auto.z_autoz비밀번호2_432")}</label>
+                <label className="text-xs font-bold text-foreground mb-1.5 block">{"비밀번호2"}</label>
                 <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3 mb-2">
                   <Lock size={16} className="text-muted-foreground shrink-0" />
-                  <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder={t("auto.z_autoz8자이상영_433")} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                  <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder={"8자이상영"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                   <button onClick={() => setShowPass(!showPass)} className="shrink-0">{showPass ? <EyeOff size={16} className="text-muted-foreground" /> : <Eye size={16} className="text-muted-foreground" />}</button>
                 </div>
                 {password.length > 0 && <div className="space-y-1">
@@ -765,11 +765,11 @@ const LoginPage = () => {
                   <input type={showConfirmPass ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder={t("login.passwordConfirmPlaceholder")} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                   <button onClick={() => setShowConfirmPass(!showConfirmPass)} className="shrink-0">{showConfirmPass ? <EyeOff size={16} className="text-muted-foreground" /> : <Eye size={16} className="text-muted-foreground" />}</button>
                 </div>
-                {confirmPassword && password !== confirmPassword && <p className="text-[10px] text-red-500 mt-1 font-semibold">{t("auto.z_autoz비밀번호가_434")}</p>}
+                {confirmPassword && password !== confirmPassword && <p className="text-[10px] text-red-500 mt-1 font-semibold">{"비밀번호가"}</p>}
               </div>
               <div className="flex items-start gap-2 p-3 rounded-2xl bg-blue-500/5 border border-blue-500/20">
                 <AlertCircle size={14} className="text-blue-400 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-muted-foreground leading-relaxed">{t("auto.z_autoz영문대문자_435")}</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">{"영문대문자"}</p>
               </div>
             </motion.div>}
 
@@ -792,7 +792,7 @@ const LoginPage = () => {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("auto.z_autoz휴대폰번호_436")}</label>
+                <label className="text-xs font-bold text-foreground mb-1.5 block">{"휴대폰번호"}</label>
                 <div className="flex gap-2">
                   <select value={phoneCountry} onChange={e => setPhoneCountry(e.target.value)} disabled={otpVerified} className="bg-muted rounded-2xl px-3 py-3 text-sm font-bold text-foreground outline-none shrink-0">
                     {GLOBAL_DIAL_CODES.map(c => {
@@ -820,7 +820,7 @@ const LoginPage = () => {
           }} className="space-y-3">
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold text-foreground">{t("auto.z_autoz인증번호6_437")}</label>
+                      <label className="text-xs font-bold text-foreground">{"인증번호6"}</label>
                       <span className={`text-xs font-mono font-bold ${otpTimeout < 30 ? "text-red-500" : "text-muted-foreground"}`}>
                         {String(Math.floor(otpTimeout / 60)).padStart(2, "0")}:{String(otpTimeout % 60).padStart(2, "0")}
                       </span>
@@ -846,8 +846,8 @@ const LoginPage = () => {
                     <Check size={18} className="text-white" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-foreground">{t("auto.z_autoz전화번호인_438")}</p>
-                    <p className="text-xs text-muted-foreground">{phoneCountry} {phone}{t("auto.z_autoz인증됨30_439")}</p>
+                    <p className="text-sm font-bold text-foreground">{"전화번호인"}</p>
+                    <p className="text-xs text-muted-foreground">{phoneCountry} {phone}{"인증됨30"}</p>
                   </div>
                 </motion.div>}
 
@@ -881,43 +881,43 @@ const LoginPage = () => {
                 <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${allAgree ? "gradient-primary" : "border-2 border-border"}`}>
                   {allAgree && <Check size={14} className="text-primary-foreground" />}
                 </div>
-                <span className="font-extrabold text-sm text-foreground">{t("auto.z_autoz전체동의3_440")}</span>
+                <span className="font-extrabold text-sm text-foreground">{"전체동의3"}</span>
               </button>
               <div className="w-full h-px bg-border" />
               {[{
             key: "terms",
             value: agreeTerms,
             set: setAgreeTerms,
-            label: t("auto.z_autoz필수이용약_441"),
-            sub: t("auto.z_autoz서비스이용_442"),
+            label: "필수이용약",
+            sub: "서비스이용",
             required: true
           }, {
             key: "privacy",
             value: agreePrivacy,
             set: setAgreePrivacy,
-            label: t("auto.z_autoz필수개인정_443"),
-            sub: t("auto.z_autoz회원가입서_444"),
+            label: "필수개인정",
+            sub: "회원가입서",
             required: true
           }, {
             key: "age",
             value: agreeAge,
             set: setAgreeAge,
-            label: t("auto.z_autoz필수만18_445"),
-            sub: t("auto.z_autozMigo는_446"),
+            label: "필수만18",
+            sub: "Migo는",
             required: true
           }, {
             key: "safety",
             value: agreeSafety,
             set: setAgreeSafety,
-            label: t("auto.z_autoz필수안전가_447"),
-            sub: t("auto.z_autoz욕설사기허_448"),
+            label: "필수안전가",
+            sub: "욕설사기허",
             required: true
           }, {
             key: "marketing",
             value: agreeMarketing,
             set: setAgreeMarketing,
-            label: t("auto.z_autoz선택마케팅_449"),
-            sub: t("auto.z_autoz여행특가및_450"),
+            label: "선택마케팅",
+            sub: "여행특가및",
             required: false
           }].map(({
             key,
@@ -938,7 +938,7 @@ const LoginPage = () => {
                 </button>)}
               <div className="flex items-start gap-2 p-3 rounded-2xl bg-primary/5 border border-primary/20">
                 <Shield size={13} className="text-primary shrink-0 mt-0.5" />
-                <p className="text-[10px] text-muted-foreground leading-relaxed">{t("auto.z_autozMigo는_451")}<span className="font-bold text-primary">{t("auto.z_autoz신원인증된_452")}</span>{t("auto.z_autoz만이용할수_453")}</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">{"Migo는"}<span className="font-bold text-primary">{"신원인증된"}</span>{"만이용할수"}</p>
               </div>
             </motion.div>}
 
@@ -958,36 +958,36 @@ const LoginPage = () => {
 
               {/* 프로필 사진 최대 6장 */}
               <div>
-                <label className="text-xs font-bold text-foreground mb-2 block">{t("auto.z_autoz프로필사진_454")}{" "}
-                  <span className="text-red-500 font-bold text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded-full">{t("auto.z_autoz필수321_455")}</span>{" "}
-                  <span className="text-muted-foreground font-normal">({profilePhotos.length}/{MAX_PHOTOS}{t("auto.z_autoz장322_456")}</span>
+                <label className="text-xs font-bold text-foreground mb-2 block">{"프로필사진"}{" "}
+                  <span className="text-red-500 font-bold text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded-full">{"필수321"}</span>{" "}
+                  <span className="text-muted-foreground font-normal">({profilePhotos.length}/{MAX_PHOTOS}{"장322"}</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {profilePhotos.map((photo, idx) => <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-border">
                       <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                      {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">{i18n.t("auto.z_autoz대표323_457")}</div>}
+                      {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">{"대표323"}</div>}
                       <button onClick={() => removePhoto(idx)} className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center">
                         <X size={10} className="text-white" />
                       </button>
                     </div>)}
                   {profilePhotos.length < MAX_PHOTOS && <button onClick={() => fileRef.current?.click()} className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 bg-muted transition-colors hover:bg-muted/70">
                       <Plus size={20} className="text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">{t("auto.z_autoz사진추가3_458")}</span>
+                      <span className="text-[10px] text-muted-foreground">{"사진추가3"}</span>
                     </button>}
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoAdd} />
-                <p className="text-[10px] text-muted-foreground mt-2">{t("auto.z_autoz첫번째사진_459")}</p>
+                <p className="text-[10px] text-muted-foreground mt-2">{"첫번째사진"}</p>
               </div>
 
               {/* Bio */}
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("auto.z_autoz한줄소개3_460")}</label>
-                <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={100} rows={2} placeholder={t("auto.z_autoz여행에서어_461")} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30" />
+                <label className="text-xs font-bold text-foreground mb-1.5 block">{"한줄소개3"}</label>
+                <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={100} rows={2} placeholder={"여행에서어"} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30" />
               </div>
 
               {/* Travel styles */}
               <div>
-                <label className="text-xs font-bold text-foreground mb-2 block">{t("auto.z_autoz여행스타일_462")}<span className="text-muted-foreground font-normal">{t("auto.z_autoz복수선택3_463")}</span></label>
+                <label className="text-xs font-bold text-foreground mb-2 block">{"여행스타일"}<span className="text-muted-foreground font-normal">{"복수선택3"}</span></label>
                 <div className="flex flex-wrap gap-2">
                   {TRAVEL_STYLES.map(s => <button key={s} onClick={() => toggleItem(s, selectedStyles, setSelectedStyles)} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedStyles.includes(s) ? "gradient-primary text-primary-foreground shadow-card" : "bg-muted text-muted-foreground"}`}>{s}</button>)}
                 </div>
@@ -995,7 +995,7 @@ const LoginPage = () => {
 
               {/* Languages */}
               <div>
-                <label className="text-xs font-bold text-foreground mb-2 block">{t("auto.z_autoz사용언어3_464")}</label>
+                <label className="text-xs font-bold text-foreground mb-2 block">{"사용언어3"}</label>
                 <div className="flex flex-wrap gap-2">
                   {LANGUAGES.map(l => <button key={l} onClick={() => toggleItem(l, selectedLangs, setSelectedLangs)} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedLangs.includes(l) ? "gradient-primary text-primary-foreground shadow-card" : "bg-muted text-muted-foreground"}`}>{l}</button>)}
                 </div>
@@ -1003,7 +1003,7 @@ const LoginPage = () => {
 
               {/* Regions */}
               <div>
-                <label className="text-xs font-bold text-foreground mb-2 block">{t("auto.z_autoz관심여행지_465")}</label>
+                <label className="text-xs font-bold text-foreground mb-2 block">{"관심여행지"}</label>
                 <div className="flex flex-wrap gap-2">
                   {REGIONS.map(r => <button key={r} onClick={() => toggleItem(r, selectedRegions, setSelectedRegions)} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedRegions.includes(r) ? "gradient-primary text-primary-foreground shadow-card" : "bg-muted text-muted-foreground"}`}>{r}</button>)}
                 </div>
@@ -1157,40 +1157,40 @@ const LoginPage = () => {
       }}>
             <div className="flex items-center gap-3 px-5 pt-10 pb-4 border-b border-border shrink-0">
               <button onClick={() => setShowRefundPolicyModal(false)} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center"><X size={18} /></button>
-              <h2 className="text-lg font-extrabold text-foreground">{t("auto.z_autoz환불정책및_467")}</h2>
+              <h2 className="text-lg font-extrabold text-foreground">{"환불정책및"}</h2>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 text-sm text-foreground leading-relaxed pb-20">
-              <p className="text-[13px] text-muted-foreground leading-relaxed">{t("auto.z_autozMigo는_468")}</p>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">{"Migo는"}</p>
 
               <div>
-                <h3 className="font-extrabold text-foreground mb-1.5">{t("auto.z_autoz1유료상품_469")}</h3>
+                <h3 className="font-extrabold text-foreground mb-1.5">{"1유료상품"}</h3>
                 <div className="bg-muted p-4 rounded-2xl mb-2">
-                  <p className="text-sm font-bold text-foreground mb-1">{t("auto.z_autoz1개월이용_470")}</p>
-                  <p className="text-sm font-bold text-foreground mb-1">{t("auto.z_autoz3개월이용_471")}</p>
-                  <p className="text-sm font-bold text-foreground">{t("auto.z_autoz12개월이_472")}</p>
+                  <p className="text-sm font-bold text-foreground mb-1">{"1개월이용"}</p>
+                  <p className="text-sm font-bold text-foreground mb-1">{"3개월이용"}</p>
+                  <p className="text-sm font-bold text-foreground">{"12개월이"}</p>
                 </div>
-                <p className="text-[13px] text-muted-foreground leading-relaxed">{t("auto.z_autoz최초결제시_473")}<br />{t("auto.z_autoz모든가격은_474")}</p>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">{"최초결제시"}<br />{"모든가격은"}</p>
               </div>
 
               {[{
-            title: t("auto.z_autoz2청약철회_475"),
-            content: t("auto.z_autoz유료결제후_476")
+            title: "2청약철회",
+            content: "유료결제후"
           }, {
-            title: t("auto.z_autoz3청약철회_477"),
-            content: t("auto.z_autoz디지털콘텐_478")
+            title: "3청약철회",
+            content: "디지털콘텐"
           }, {
-            title: t("auto.z_autoz4자동갱신_479"),
-            content: t("auto.z_autozMigoP_480")
+            title: "4자동갱신",
+            content: "MigoP"
           }, {
-            title: t("auto.z_autoz5미성년자_481"),
-            content: t("auto.z_autoz미성년자만_482")
+            title: "5미성년자",
+            content: "미성년자만"
           }].map((s, i) => <div key={i}>
                   <h3 className="font-extrabold text-foreground mb-1.5">{s.title}</h3>
                   <p className="text-muted-foreground text-[13px] leading-relaxed whitespace-pre-line">{s.content}</p>
                 </div>)}
 
               <div className="mt-6 p-4 bg-muted rounded-2xl">
-                <p className="text-xs text-muted-foreground"><span className="font-bold text-foreground">{t("auto.z_autoz환불신청및_483")}</span><br />{t("auto.z_autoz요청양식이_484")}<br />{t("auto.z_autoz이메일su_485")}</p>
+                <p className="text-xs text-muted-foreground"><span className="font-bold text-foreground">{"환불신청및"}</span><br />{"요청양식이"}<br />{"이메일su"}</p>
               </div>
             </div>
           </motion.div>}

@@ -65,6 +65,9 @@ const TripReviewPage    = lazyWithRetry(() => import("./pages/TripReviewPage"));
 const TripMatchPage     = lazyWithRetry(() => import("./pages/TripMatchPage"));
 const FindAccountPage   = lazyWithRetry(() => import("./pages/FindAccountPage"));
 const ResetPasswordPage = lazyWithRetry(() => import("./pages/ResetPasswordPage"));
+const PrivacyPolicyPage = lazyWithRetry(() => import("./pages/PrivacyPolicyPage"));
+const CommunityGuidelinesPage = lazyWithRetry(() => import("./pages/CommunityGuidelinesPage"));
+const RefundPolicyPage  = lazyWithRetry(() => import("./pages/RefundPolicyPage"));
 const NotFound          = lazyWithRetry(() => import("./pages/NotFound"));
 
 // ── QueryClient ──────────────────────────────────────────────────
@@ -91,7 +94,7 @@ const PageLoader = () => (
   </div>
 );
 
-const hideNavRoutes = ["/create-trip", "/splash", "/onboarding", "/login", "/verification", "/profile-setup", "/trip-calendar", "/meet-review", "/marketplace", "/voice-call", "/admin", "/terms", "/privacy", "/auth/callback", "/download", "/safety", "/shop", "/nearby", "/trip-review", "/trip-match", "/find-account", "/reset-password"];
+const hideNavRoutes = ["/create-trip", "/splash", "/onboarding", "/login", "/verification", "/profile-setup", "/trip-calendar", "/meet-review", "/marketplace", "/voice-call", "/admin", "/terms", "/privacy", "/auth/callback", "/download", "/safety", "/shop", "/nearby", "/trip-review", "/trip-match", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy"];
 
 const pageVariants = {
   initial: { opacity: 0, y: 4 },
@@ -99,7 +102,7 @@ const pageVariants = {
   exit:    { opacity: 0, y: -4, transition: { duration: 0.12 } },
 };
 
-const PUBLIC_ROUTES = ["/splash", "/onboarding", "/login", "/auth/callback", "/terms", "/privacy", "/download", "/find-account", "/reset-password"];
+const PUBLIC_ROUTES = ["/splash", "/onboarding", "/login", "/auth/callback", "/terms", "/privacy", "/download", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy", "/privacy-policy"];
 
 const AppContent = () => {
   const { t } = useTranslation();
@@ -123,10 +126,13 @@ const AppContent = () => {
     if (!user && !isPublicRoute) {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
-    } else if (user) {
-      checkInStreak();
     }
   }, [user, loading, location.pathname, navigate]);
+
+  // 체크인 스트리크: user 세션 시작 시 1회만 실행
+  useEffect(() => {
+    if (user) checkInStreak();
+  }, [user?.id]);
 
   // ── GPS 권한 요청 ──────────────────────────────────────────────
   useEffect(() => {
@@ -208,6 +214,9 @@ const AppContent = () => {
               <Route path="/nearby"         element={<NearbyPage />} />
               <Route path="/trip-review"    element={<TripReviewPage />} />
               <Route path="/trip-match"     element={<TripMatchPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+              <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
+              <Route path="/refund-policy"  element={<RefundPolicyPage />} />
               <Route path="*"              element={<NotFound />} />
             </Routes>
           </Suspense>

@@ -114,11 +114,14 @@ export const ChatProvider = ({
       if (!t.is_group) {
         const p = others[0]?.profiles;
         if (p) {
-          name = p.name || "";
+          name = p.name || i18n.t("chat.unknownUser") || "알 수 없음";
           photo = p.photo_url || "";
+        } else {
+          name = i18n.t("chat.unknownUser") || "알 수 없음";
         }
       } else {
         memberPhotos = members.map((mb: any) => mb.profiles?.photo_url).filter(Boolean);
+        name = i18n.t("chat.groupChat") || "Group Chat";
       }
       return {
         id: t.id,

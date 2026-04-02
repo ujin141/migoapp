@@ -8,6 +8,9 @@ import { supabase } from "@/lib/supabaseClient";
 import ProfileDetailSheet from "@/components/ProfileDetailSheet";
 import { toast } from "@/hooks/use-toast";
 import useGeoDistance from "@/hooks/useGeoDistance";
+import { useSubscription } from "@/context/SubscriptionContext";
+import MigoPlusModal from "@/components/MigoPlusModal";
+import { Lock } from "lucide-react";
 interface NearbyProfile {
   id: string;
   name: string;
@@ -35,6 +38,8 @@ const NearbyPage = () => {
   const {
     myPos
   } = useGeoDistance();
+  const { isPlus } = useSubscription();
+  const [showPlusModal, setShowPlusModal] = useState(false);
 
   // t()가 필요하므로 컴포넌트 내부에 정의
   const PURPOSE_ICONS: Record<string, React.ReactNode> = {
@@ -43,91 +48,7 @@ const NearbyPage = () => {
     [t("auto.x4049")]: <Plane size={12} />,
     [t("auto.x4050")]: <Users size={12} />
   };
-  const MOCK_NEARBY: NearbyProfile[] = [{
-    id: "n1",
-    name: "Alex",
-    age: 28,
-    photo: "https://randomuser.me/api/portraits/men/32.jpg",
-    location: t("auto.x4051"),
-    travelPurpose: t("auto.x4052"),
-    tags: [t("auto.x4053"), t("auto.x4054"), t("auto.x4055")],
-    distance_km: 0.3,
-    bio: t("auto.x4056"),
-    nationality: "🇺🇸",
-    trust_score: 92,
-    verified: true,
-    user_type: "traveler"
-  }, {
-    id: "n2",
-    name: t("auto.x4057"),
-    age: 25,
-    photo: "https://randomuser.me/api/portraits/women/44.jpg",
-    location: t("auto.x4058"),
-    travelPurpose: t("auto.x4059"),
-    tags: [t("auto.x4060"), t("auto.x4061")],
-    distance_km: 0.8,
-    bio: t("auto.x4062"),
-    nationality: "🇰🇷",
-    trust_score: 88,
-    verified: false,
-    user_type: "traveler"
-  }, {
-    id: "n3",
-    name: "Marco",
-    age: 31,
-    photo: "https://randomuser.me/api/portraits/men/75.jpg",
-    location: t("auto.x4063"),
-    travelPurpose: t("auto.x4064"),
-    tags: ["IT", t("auto.x4065")],
-    distance_km: 1.2,
-    bio: t("auto.x4066"),
-    nationality: "🇮🇹",
-    trust_score: 95,
-    verified: true,
-    user_type: "traveler"
-  }, {
-    id: "n4",
-    name: t("auto.x4067"),
-    age: 23,
-    photo: "https://randomuser.me/api/portraits/women/68.jpg",
-    location: t("auto.x4068"),
-    travelPurpose: t("auto.x4069"),
-    tags: [t("auto.x4070"), t("auto.x4071")],
-    distance_km: 0.5,
-    bio: t("auto.x4072"),
-    nationality: "🇯🇵",
-    trust_score: 99,
-    verified: true,
-    user_type: "local"
-  }, {
-    id: "n5",
-    name: "Sofia",
-    age: 29,
-    photo: "https://randomuser.me/api/portraits/women/26.jpg",
-    location: t("auto.x4073"),
-    travelPurpose: t("auto.x4074"),
-    tags: [t("auto.x4075"), t("auto.x4076")],
-    distance_km: 1.9,
-    bio: t("auto.x4077"),
-    nationality: "🇪🇸",
-    trust_score: 85,
-    verified: false,
-    user_type: "traveler"
-  }, {
-    id: "n6",
-    name: "Jin",
-    age: 26,
-    photo: "https://randomuser.me/api/portraits/men/11.jpg",
-    location: t("auto.x4078"),
-    travelPurpose: t("auto.x4079"),
-    tags: [t("auto.x4080"), t("auto.x4081")],
-    distance_km: 2.4,
-    bio: t("auto.x4082"),
-    nationality: "🇸🇬",
-    trust_score: 78,
-    verified: false,
-    user_type: "traveler"
-  }];
+
   const [profiles, setProfiles] = useState<NearbyProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -169,7 +90,7 @@ const NearbyPage = () => {
         } = await supabase.rpc("get_nearby_travelers", {
           p_lat: myPos.lat,
           p_lng: myPos.lng,
-          p_radius_km: 50,
+          p_radius_km: 5,
           p_limit: 50
         });
         if (!error && data && data.length > 0) {
@@ -190,14 +111,16 @@ const NearbyPage = () => {
             online_at: r.last_seen
           }));
           setProfiles(mapped);
+          localStorage.setItem('migo_nearby_seen', '1');
         } else {
-          setProfiles(MOCK_NEARBY);
+          setProfiles([]);
+          localStorage.setItem('migo_nearby_seen', '1');
         }
       } else {
-        setProfiles(MOCK_NEARBY);
+        setProfiles([]);
       }
     } catch {
-      setProfiles(MOCK_NEARBY);
+      setProfiles([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -270,15 +193,24 @@ const NearbyPage = () => {
           scale: 1
         }} transition={{
           delay: i * 0.05
-        }} whileTap={{
-          scale: 0.96
-        }} onClick={() => setSelectedProfile(p)} className="relative rounded-2xl overflow-hidden bg-card border border-border shadow-sm cursor-pointer">
+        }} onClick={() => {
+              if (!isPlus) setShowPlusModal(true);
+              else setSelectedProfile(p);
+            }} className="relative rounded-2xl overflow-hidden bg-card border border-border shadow-sm cursor-pointer">
                 {/* Photo */}
                 <div className="relative h-40">
-                  {p.photo ? <img src={p.photo} alt={p.name} className="w-full h-full object-cover" /> : <div className="w-full h-full gradient-primary flex items-center justify-center">
+                  {p.photo ? <img src={p.photo} alt={p.name} className={`w-full h-full object-cover transition-all ${!isPlus ? "blur-lg scale-110 opacity-80" : ""}`} /> : <div className={`w-full h-full gradient-primary flex items-center justify-center transition-all ${!isPlus ? "blur-lg opacity-80" : ""}`}>
                       <span className="text-3xl font-black text-white">{p.name[0]}</span>
                     </div>}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+
+                  {/* Lock overlay for non-plus */}
+                  {!isPlus && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 text-white gap-2">
+                       <Lock size={24} className="opacity-80" />
+                       <span className="text-[11px] font-extrabold bg-black/40 px-2 py-1 rounded-full">{t("auto.p31", { defaultValue: "Plus 전용" })}</span>
+                    </div>
+                  )}
 
                   {/* Local badge */}
                   {p.user_type === "local" && <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">
@@ -293,10 +225,10 @@ const NearbyPage = () => {
 
                   {/* Name + distance */}
                   <div className="absolute bottom-2 left-2 right-2">
-                    <p className="text-white font-extrabold text-sm">{p.name} <span className="font-normal text-xs text-white/70">{p.nationality}</span></p>
+                    <p className="text-white font-extrabold text-sm">{!isPlus ? "알 수 없음" : p.name} <span className="font-normal text-xs text-white/70">{!isPlus ? "??" : p.nationality}</span></p>
                     <div className="flex items-center gap-1 text-white/70 text-[10px]">
                       <MapPin size={9} />
-                      <span>{formatDistance(p.distance_km)}</span>
+                      <span>{!isPlus ? "? km" : formatDistance(p.distance_km)}</span>
                     </div>
                   </div>
                 </div>
@@ -334,6 +266,8 @@ const NearbyPage = () => {
       });
       setSelectedProfile(null);
     }} />}
+      
+      <MigoPlusModal isOpen={showPlusModal} onClose={() => setShowPlusModal(false)} />
     </div>;
 };
 export default NearbyPage;

@@ -12,15 +12,15 @@ interface SOSModalProps {
   onClose: () => void;
 }
 const EMERGENCY_CONTACTS = [{
-  name: i18n.t("auto.z_autoz경찰청10_1379"),
+  name: "경찰청10",
   number: "112",
   icon: "🚔"
 }, {
-  name: i18n.t("auto.z_autoz소방서구급_1380"),
+  name: "소방서구급",
   number: "119",
   icon: "🚑"
 }, {
-  name: i18n.t("auto.z_autoz여행자보험_1381"),
+  name: "여행자보험",
   number: "1588-0099",
   icon: "🏥"
 }];
@@ -54,7 +54,7 @@ const SOSModal = ({
         setCoords(pos);
         setAddress(`Lat ${pos.lat.toFixed(4)} / Lon ${pos.lng.toFixed(4)}`);
       } else {
-        setAddress(i18n.t("auto.z_autoz위치접근거_1382", { defaultValue: "위치 정보를 가져올 수 없습니다." }));
+        setAddress("위치접근거");
       }
     });
   }, [isOpen]);
@@ -139,12 +139,12 @@ const SOSModal = ({
             }}>
                     <AlertTriangle size={36} className="text-white" />
                   </motion.div>
-                  <h2 className="text-xl font-extrabold text-white text-center mb-1">{t("auto.z_autoz긴급SOS_1383")}</h2>
-                  <p className="text-xs text-red-300/80 text-center mb-5">{t("auto.z_autoz등록된긴급_1384")}</p>
+                  <h2 className="text-xl font-extrabold text-white text-center mb-1">{"긴급SOS"}</h2>
+                  <p className="text-xs text-red-300/80 text-center mb-5">{"등록된긴급"}</p>
                   <div className="flex items-center gap-2 bg-white/5 rounded-2xl px-4 py-3 mb-4 border border-white/10">
                     <MapPin size={14} className="text-red-400 shrink-0" />
                     <div>
-                      <p className="text-xs font-bold text-white">{t("auto.z_autoz현재위치1_1385")}</p>
+                      <p className="text-xs font-bold text-white">{"현재위치1"}</p>
                       <p className="text-[10px] text-white/50">{address}</p>
                     </div>
                   </div>
@@ -164,7 +164,7 @@ const SOSModal = ({
             }} onClick={() => setPhase("sending")} className="w-full py-4 rounded-2xl text-white font-extrabold text-base flex items-center justify-center gap-2" style={{
               background: "linear-gradient(135deg, #ef4444, #b91c1c)",
               boxShadow: "0 8px 32px rgba(239,68,68,0.5)"
-            }}>{t("auto.z_autoz지금위치전_1386")}</motion.button>
+            }}>{"지금위치전"}</motion.button>
                   <button onClick={onClose} className="w-full mt-2 py-2 text-xs text-white/40 font-medium">{t("general.cancel")}</button>
                 </div>
               </div>}
@@ -180,12 +180,12 @@ const SOSModal = ({
           }}>
                   <span className="text-5xl font-extrabold text-white">{countdown}</span>
                 </motion.div>
-                <p className="text-white font-extrabold text-lg mb-1">{countdown}{t("auto.z_autoz초후전송1_1387")}</p>
-                <p className="text-white/40 text-xs mb-5">{t("auto.z_autoz취소하려면_1388")}</p>
+                <p className="text-white font-extrabold text-lg mb-1">{countdown}{"초후전송1"}</p>
+                <p className="text-white/40 text-xs mb-5">{"취소하려면"}</p>
                 <button onClick={() => {
             setPhase("warning");
             setCountdown(3);
-          }} className="px-6 py-3 rounded-2xl bg-white/10 text-white text-sm font-bold border border-white/20">{t("auto.z_autoz취소101_1389")}</button>
+          }} className="px-6 py-3 rounded-2xl bg-white/10 text-white text-sm font-bold border border-white/20">{"취소101"}</button>
               </div>}
 
             {phase === "sent" && locSent && <motion.div className="bg-[#021a0a] rounded-3xl p-8 text-center border border-emerald-500/40" initial={{
@@ -199,13 +199,13 @@ const SOSModal = ({
           }}>
                   <Check size={44} className="text-white" strokeWidth={2.5} />
                 </div>
-                <p className="text-white font-extrabold text-lg mb-1">{t("auto.z_autoz위치가전송_1390")}</p>
-                <p className="text-white/50 text-xs mb-5">{t("auto.z_autoz등록된연락_1391")}</p>
+                <p className="text-white font-extrabold text-lg mb-1">{"위치가전송"}</p>
+                <p className="text-white/50 text-xs mb-5">{"등록된연락"}</p>
                 <div className="flex items-center gap-2 bg-emerald-500/10 rounded-2xl px-4 py-3 mb-5 border border-emerald-500/20">
                   <Shield size={14} className="text-emerald-400" />
-                  <p className="text-xs text-emerald-300">{t("auto.z_autozMigo가_1392")}</p>
+                  <p className="text-xs text-emerald-300">{"Migo가"}</p>
                 </div>
-                <button onClick={onClose} className="w-full py-3.5 rounded-2xl bg-white/10 text-white text-sm font-bold border border-white/20">{t("auto.z_autoz닫기102_1393")}</button>
+                <button onClick={onClose} className="w-full py-3.5 rounded-2xl bg-white/10 text-white text-sm font-bold border border-white/20">{"닫기102"}</button>
               </motion.div>}
           </motion.div>
         </motion.div>}

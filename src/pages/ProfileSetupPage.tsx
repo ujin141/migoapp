@@ -40,9 +40,9 @@ const ProfileSetupPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const TRAVEL_STYLES = getArr("travelStyles", [t("auto.z_autoz배낭여행5_81"), t("auto.z_autoz럭셔리52_82"), t("auto.z_autoz자연트레킹_83"), t("auto.z_autoz맛집탐방5_84"), t("auto.z_autoz문화역사5_85"), t("auto.z_autoz휴양호캉스_86"), t("auto.z_autoz사진촬영5_87"), t("auto.z_autoz나이트라이_88"), t("auto.z_autoz쇼핑59_89"), t("auto.z_autoz요가힐링6_90"), t("auto.z_autoz현지체험6_91"), t("auto.z_autoz로드트립6_92")]);
-  const REGIONS = getArr("regions", [t("auto.z_autoz동남아63_93"), t("auto.z_autoz유럽64_94"), t("auto.z_autoz일본65_95"), t("auto.z_autoz미주캐나다_96"), t("auto.z_autoz중남미67_97"), t("auto.z_autoz중동아프리_98"), t("auto.z_autoz대양주69_99"), t("auto.z_autoz국내70_100"), t("auto.z_autoz중화권71_101"), t("auto.z_autoz인도권72_102")]);
-  const LANGUAGES = getArr("login.languages", [t("auto.z_autoz한국어73_103"), "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"]);
+  const TRAVEL_STYLES = getArr("travelStyles", ["배낭여행5", "럭셔리52", "자연트레킹", "맛집탐방5", "문화역사5", "휴양호캉스", "사진촬영5", "나이트라이", "쇼핑59", "요가힐링6", "현지체험6", "로드트립6"]);
+  const REGIONS = getArr("regions", ["동남아63", "유럽64", "일본65", "미주캐나다", "중남미67", "중동아프리", "대양주69", "국내70", "중화권71", "인도권72"]);
+  const LANGUAGES = getArr("login.languages", ["한국어73", "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"]);
   const PERSONALITIES = [{
     id: "planner",
     emoji: "📋",
@@ -119,7 +119,7 @@ const ProfileSetupPage = () => {
 
   // Step 2
   const [regions, setRegions] = useState<string[]>([]);
-  const [languages, setLanguages] = useState<string[]>([t("profileSetup.langDefault", t("auto.z_autoz한국어74_104"))]);
+  const [languages, setLanguages] = useState<string[]>([t("profileSetup.langDefault", "한국어74")]);
 
   // Step 3
   const [personality, setPersonality] = useState<string[]>([]);
@@ -144,6 +144,14 @@ const ProfileSetupPage = () => {
       setProfilePhotos(prev => [...prev, ...toAdd]);
     }
     e.target.value = "";
+  };
+
+  // 사진 제거 시 Object URL revoke
+  const handleRemovePhoto = (idx: number) => {
+    setProfilePhotos(prev => {
+      URL.revokeObjectURL(prev[idx].url);
+      return prev.filter((_, i) => i !== idx);
+    });
   };
   const handleNext = async () => {
     if (step === 0 && !bio.trim()) {
@@ -333,7 +341,7 @@ const ProfileSetupPage = () => {
                     <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-border shadow-sm">
                       <img src={photoItem.url} alt="" className="w-full h-full object-cover" />
                       {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full z-10">Main</div>}
-                      <button onClick={(e) => { e.stopPropagation(); setProfilePhotos(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center z-10">
+                      <button onClick={(e) => { e.stopPropagation(); handleRemovePhoto(idx); }} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center z-10">
                         <X size={10} className="text-white" />
                       </button>
                     </div>
@@ -542,7 +550,7 @@ const ProfileSetupPage = () => {
       <div className="px-6 pb-10 pt-2 z-10 shrink-0">
         {step < SETUP_STEPS.length - 1 && <p className="text-xs text-center text-muted-foreground mb-2">
             <button onClick={() => {
-          step < 3 ? setStep(step + 1) : navigate("/");
+          setStep(s => Math.min(s + 1, SETUP_STEPS.length - 1));
         }} className="text-muted-foreground underline">{t('profileSetup.skip')}</button>
           </p>}
         <motion.button whileTap={{

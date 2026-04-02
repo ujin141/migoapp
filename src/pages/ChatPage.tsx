@@ -176,7 +176,7 @@ const ChatPage = () => {
     } catch {
       toast({
         title: t("chat.translateFail"),
-        description: i18n.t("auto.z_autoz잠시후다시_872"),
+        description: "잠시후다시",
         variant: "destructive"
       });
     } finally {
@@ -258,7 +258,7 @@ const ChatPage = () => {
         await supabase.from('messages').insert({
           thread_id: selectedChat,
           sender_id: user.id,
-          text: i18n.t("auto.z_autoz현재위치공_874", { defaultValue: "위치 공유 실패" })
+          text: "현재위치공"
         });
         toast({
           title: t("chat.locationPermErr")
@@ -408,7 +408,7 @@ const ChatPage = () => {
       <div className="flex items-center gap-2">
         {dailyDmCount >= maxDailyDm ? <Lock size={13} className="text-red-500 shrink-0" /> : <Crown size={13} className="text-amber-500 shrink-0" />}
         <span className={`text-xs font-semibold ${dailyDmCount >= maxDailyDm ? "text-red-500" : "text-amber-500"}`}>
-          {dailyDmCount >= maxDailyDm ? t("auto.z_autoz오늘메시지_879") : t("auto.z_tmpl_477", {
+          {dailyDmCount >= maxDailyDm ? "오늘메시지" : t("auto.z_tmpl_477", {
           defaultValue: t("auto.z_tmpl_880", {
             defaultValue: t("auto.t5008", {
               v0: dailyDmCount,
@@ -419,7 +419,7 @@ const ChatPage = () => {
         </span>
       </div>
       <button onClick={() => setShowPlusModal(true)} className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full shrink-0 ${dailyDmCount >= maxDailyDm ? "bg-red-500 text-white" : "bg-amber-500/20 text-amber-500 border border-amber-500/30"}`}>
-        {dailyDmCount >= maxDailyDm ? t("auto.z_autoz업그레이드_881") : "Plus"}
+        {dailyDmCount >= maxDailyDm ? "업그레이드" : "Plus"}
       </button>
     </motion.div>;
 
@@ -443,9 +443,9 @@ const ChatPage = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm text-foreground">{thread?.name}</h3>
-                {isMuted && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">{t("auto.z_autoz알림끔47_882")}</span>}
+                {isMuted && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">{"알림끔47"}</span>}
               </div>
-              <span className="text-[10px] text-primary font-medium">{thread?.online ? t('chat.online') : t("auto.z_autoz오프라인4_883")}</span>
+              <span className="text-[10px] text-primary font-medium">{thread?.online ? t('chat.online') : "오프라인4"}</span>
             </div>
             <div className="flex items-center gap-1">
               <motion.button whileTap={{
@@ -457,7 +457,7 @@ const ChatPage = () => {
               scale: 0.9
             }} onClick={() => navigate("/voice-call", {
               state: {
-                contactId: "u1"
+                contactId: thread?.id ?? "u1"
               }
             })} className="w-8 h-8 flex items-center justify-center rounded-xl text-primary transition-colors hover:bg-muted">
                 <Phone size={17} />
@@ -496,15 +496,15 @@ const ChatPage = () => {
                       </button>
                       <button onClick={() => {
                     setShowMoreMenu(false);
-                    navigate("/profile");
-                  }} className="w-full text-left px-4 py-2.5 text-sm text-foreground rounded-xl hover:bg-muted transition-colors">{t("auto.z_autoz프로필보기_884")}</button>
+                    navigate("/profile", { state: { viewingThreadId: selectedChat } });
+                  }} className="w-full text-left px-4 py-2.5 text-sm text-foreground rounded-xl hover:bg-muted transition-colors">{"프로필보기"}</button>
                       <button onClick={() => handleToggleMute(selectedChat, thread?.name ?? "")} className="w-full text-left px-4 py-2.5 text-sm text-foreground rounded-xl hover:bg-muted transition-colors">
-                        {isMuted ? t("auto.z_autoz알림켜기4_885") : t("auto.z_autoz알림끄기4_886")}
+                        {isMuted ? "알림켜기4" : "알림끄기4"}
                       </button>
                       <button onClick={() => {
                     setShowMoreMenu(false);
                     setShowReportModal(true);
-                  }} className="w-full text-left px-4 py-2.5 text-sm text-red-500 rounded-xl hover:bg-red-500/10 transition-colors">{t("auto.z_autoz신고하기4_887")}</button>
+                  }} className="w-full text-left px-4 py-2.5 text-sm text-red-500 rounded-xl hover:bg-red-500/10 transition-colors">{"신고하기4"}</button>
                       <button onClick={() => {
                     setShowMoreMenu(false);
                     setShowDeleteConfirm(true);
@@ -513,7 +513,7 @@ const ChatPage = () => {
                         setShowMoreMenu(false);
                         setShowSOS(true);
                       }} className="w-full text-left px-4 py-2.5 text-sm text-orange-500 rounded-xl hover:bg-orange-500/10 transition-colors flex items-center gap-2">
-                        <AlertTriangle size={13} />{t("auto.z_autoz긴급SOS_888")}
+                        <AlertTriangle size={13} />{"긴급SOS"}
                       </button>
                       
                       {/* 프리미엄 유저 대상: 방폭 및 노쇼 제한 조치 */}
@@ -536,7 +536,7 @@ const ChatPage = () => {
             <motion.button whileTap={{
             scale: 0.93
           }} onClick={() => setAutoTranslate(v => !v)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${autoTranslate ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/40" : "bg-muted text-muted-foreground border border-transparent"}`}>
-              <Languages size={12} />{t("auto.z_autoz자동번역4_889")}{autoTranslate ? "ON" : "OFF"}
+              <Languages size={12} />{"자동번역4"}{autoTranslate ? "ON" : "OFF"}
             </motion.button>
             <div className="relative">
               <button onClick={() => setShowLangPicker(v => !v)} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-muted text-[11px] font-medium text-foreground border border-border">
@@ -582,32 +582,32 @@ const ChatPage = () => {
           return <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"} gap-1`}>
                 <div className={`max-w-[75%] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line ${isMe ? "gradient-primary text-primary-foreground rounded-2xl rounded-br-md" : "bg-muted text-foreground rounded-2xl rounded-bl-md"}`}>
                   {/* Rich Custom Renderers */}
-                  {msg.text.startsWith(i18n.t("auto.z_autoz현재위치공_890")) ? <div className="flex gap-3 items-center">
+                  {msg.text.startsWith("현재위치공") ? <div className="flex gap-3 items-center">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-blue-500/20">
                         <MapPin size={18} className="text-blue-500" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-extrabold text-blue-500 mb-0.5">{i18n.t("auto.z_autoz내현재위치_891")}</p>
-                        <p className="text-sm font-bold text-foreground mb-1 line-clamp-1">{msg.text.split('\n')[1] || i18n.t("auto.z_autoz위치알수없_892")}</p>
-                        <a href={msg.text.split('\n')[2] || "#"} target="_blank" rel="noopener noreferrer" className="text-[10px] font-medium text-blue-500 underline underline-offset-2">{i18n.t("auto.z_autoz지도열기4_893")}</a>
+                        <p className="text-[10px] font-extrabold text-blue-500 mb-0.5">{"내현재위치"}</p>
+                        <p className="text-sm font-bold text-foreground mb-1 line-clamp-1">{msg.text.split('\n')[1] || "위치알수없"}</p>
+                        <a href={msg.text.split('\n')[2] || "#"} target="_blank" rel="noopener noreferrer" className="text-[10px] font-medium text-blue-500 underline underline-offset-2">{"지도열기4"}</a>
                       </div>
-                    </div> : msg.text.startsWith(i18n.t("auto.z_autoz만남제안4_894")) ? <div className="flex gap-3 items-center">
+                    </div> : msg.text.startsWith("만남제안4") ? <div className="flex gap-3 items-center">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-orange-500/20">
                         <Calendar size={18} className="text-orange-500" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-extrabold text-orange-500 mb-0.5">{i18n.t("auto.z_autoz만남제안4_895")}</p>
-                        <p className="text-sm font-bold text-foreground mb-0.5">{msg.text.split('\n')[1]?.replace(i18n.t("auto.z_autoz날짜493_896"), '') || ""}</p>
-                        <p className="text-xs text-muted-foreground truncate">{msg.text.split('\n')[2]?.replace(i18n.t("auto.z_autoz장소494_897"), '') || ""}</p>
+                        <p className="text-[10px] font-extrabold text-orange-500 mb-0.5">{"만남제안4"}</p>
+                        <p className="text-sm font-bold text-foreground mb-0.5">{msg.text.split('\n')[1]?.replace("날짜493", '') || ""}</p>
+                        <p className="text-xs text-muted-foreground truncate">{msg.text.split('\n')[2]?.replace("장소494", '') || ""}</p>
                       </div>
-                    </div> : msg.text.startsWith(i18n.t("auto.z_autoz여행일정공_898")) ? <div className="flex gap-3 items-start">
+                    </div> : msg.text.startsWith("여행일정공") ? <div className="flex gap-3 items-start">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-green-500/20 mt-1">
                         <Map size={18} className="text-green-500" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-[10px] font-extrabold text-green-500 mb-0.5">{i18n.t("auto.z_autoz우리의일정_899")}</p>
-                        <p className="text-xs font-bold text-foreground mb-1 bg-background/50 inline-block px-2 py-0.5 rounded text-left">{msg.text.split('\n')[1]?.replace(i18n.t("auto.z_autoz일시497_900"), '')}</p>
-                        <p className="text-sm text-foreground text-left">{msg.text.split('\n').slice(2).join('\n').replace(i18n.t("auto.z_autoz내용498_901"), '')}</p>
+                        <p className="text-[10px] font-extrabold text-green-500 mb-0.5">{"우리의일정"}</p>
+                        <p className="text-xs font-bold text-foreground mb-1 bg-background/50 inline-block px-2 py-0.5 rounded text-left">{msg.text.split('\n')[1]?.replace("일시497", '')}</p>
+                        <p className="text-sm text-foreground text-left">{msg.text.split('\n').slice(2).join('\n').replace("내용498", '')}</p>
                       </div>
                     </div> : msg.text}
                   <div className={`flex items-center ${isMe ? "justify-end" : "justify-start"} gap-1 mt-1`}>
@@ -615,7 +615,7 @@ const ChatPage = () => {
                     {isMe && canReadReceipts && <span className={`text-[10px] font-bold flex items-center gap-0.5 ${isLastMine ? "text-primary-foreground/50" : "text-blue-300"}`}>
                         <Check size={9} strokeWidth={3} />
                         <Check size={9} strokeWidth={3} className="-ml-1.5" />
-                        {!isLastMine && <span className="text-[8px]">{i18n.t("auto.z_autoz읽음499_902")}</span>}
+                        {!isLastMine && <span className="text-[8px]">{"읽음499"}</span>}
                       </span>}
                   </div>
                 </div>
@@ -631,7 +631,7 @@ const ChatPage = () => {
                 repeat: Infinity,
                 ease: "linear"
               }} /> : <Languages size={10} />}
-                  {isTranslating ? i18n.t("auto.z_autoz번역중50_903") : translated ? i18n.t("auto.z_autoz원문보기5_904") : i18n.t("auto.z_tmpl_502", {
+                  {isTranslating ? "번역중50" : translated ? "원문보기5" : i18n.t("auto.z_tmpl_502", {
                 defaultValue: i18n.t("auto.z_tmpl_905", {
                   defaultValue: i18n.t("auto.z_tmpl_805", {
                     defaultValue: `번역 (${LANG_NAMES[targetLang]})`
@@ -661,7 +661,7 @@ const ChatPage = () => {
               }}>
                       <div className="flex items-center gap-1 mb-1">
                         <Languages size={9} className="text-indigo-400" />
-                        <span className="text-[9px] font-bold text-indigo-400">{i18n.t("auto.z_autoz번역됨50_906")}{LANG_NAMES[targetLang]})</span>
+                        <span className="text-[9px] font-bold text-indigo-400">{"번역됨50"}{LANG_NAMES[targetLang]})</span>
                       </div>
                       {translated}
                     </motion.div>}
@@ -683,8 +683,8 @@ const ChatPage = () => {
               <Lock size={18} className="text-amber-500" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-extrabold text-foreground">{t("auto.z_autoz오늘메시지_907")}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{t("auto.z_autozPlus로_908")}</p>
+              <p className="text-sm font-extrabold text-foreground">{"오늘메시지"}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{"Plus로"}</p>
             </div>
             <motion.button whileTap={{
           scale: 0.95
@@ -696,17 +696,17 @@ const ChatPage = () => {
         {/* Quick actions */}
         <div className="flex gap-2 px-4 pb-2 overflow-x-auto scrollbar-hide">
           <button onClick={handleShareLocation} className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground transition-colors hover:bg-border active:scale-95">
-            <MapPin size={12} />{t("auto.z_autoz위치506_909")}</button>
+            <MapPin size={12} />{"위치506"}</button>
           <button onClick={() => setShowMeetProposal(true)} className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground transition-colors hover:bg-border active:scale-95">
-            <Calendar size={12} />{t("auto.z_autoz제안507_910")}</button>
+            <Calendar size={12} />{"제안507"}</button>
           <button onClick={() => setShowScheduleModal(true)} className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground transition-colors hover:bg-border active:scale-95">
-            <Map size={12} />{t("auto.z_autoz일정공유5_911")}</button>
+            <Map size={12} />{"일정공유5"}</button>
         </div>
 
         {/* Input */}
         <div className="px-4 pb-20 pt-2">
           <div className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 transition-colors ${isLocked ? "bg-muted/50" : "bg-muted"}`}>
-            <input type="text" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) sendMessage(); }} placeholder={isLocked ? t("auto.z_autozPlus로_912") : isMuted ? t("auto.z_autoz알림이꺼진_913") : t("auto.z_autoz메시지입력_914")} disabled={isLocked} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none disabled:cursor-not-allowed" />
+            <input type="text" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) sendMessage(); }} placeholder={isLocked ? "Plus로" : isMuted ? "알림이꺼진" : "메시지입력"} disabled={isLocked} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none disabled:cursor-not-allowed" />
             {isLocked ? <motion.button whileTap={{
             scale: 0.9
           }} onClick={() => setShowPlusModal(true)} className="w-9 h-9 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
@@ -740,20 +740,20 @@ const ChatPage = () => {
           }}>
                 <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
                 <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-lg font-extrabold text-foreground">{t("auto.z_autoz만남제안5_915")}</h3>
+                  <h3 className="text-lg font-extrabold text-foreground">{"만남제안5"}</h3>
                   <button onClick={() => setShowMeetProposal(false)}><X size={20} className="text-muted-foreground" /></button>
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-bold text-foreground mb-2 block">{t("auto.z_autoz날짜513_916")}</label>
+                    <label className="text-sm font-bold text-foreground mb-2 block">{"날짜513"}</label>
                     <input type="date" value={meetDate} onChange={e => setMeetDate(e.target.value)} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-foreground mb-2 block">{t("auto.z_autoz장소514_917")}</label>
-                    <input type="text" value={meetPlace} onChange={e => setMeetPlace(e.target.value)} placeholder={t("auto.z_autoz예카오산로_918")} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+                    <label className="text-sm font-bold text-foreground mb-2 block">{"장소514"}</label>
+                    <input type="text" value={meetPlace} onChange={e => setMeetPlace(e.target.value)} placeholder={"예카오산로"} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
                   </div>
                   <button onClick={handleMeetProposal} className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-card flex items-center justify-center gap-2 mt-2">
-                    <Check size={16} />{t("auto.z_autoz제안보내기_919")}</button>
+                    <Check size={16} />{"제안보내기"}</button>
                 </div>
               </motion.div>
             </motion.div>}
@@ -782,20 +782,20 @@ const ChatPage = () => {
           }}>
                 <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
                 <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-lg font-extrabold text-foreground flex items-center gap-2"><Map size={20} className="text-green-500" />{t("auto.z_autoz일정공유하_920")}</h3>
+                  <h3 className="text-lg font-extrabold text-foreground flex items-center gap-2"><Map size={20} className="text-green-500" />{"일정공유하"}</h3>
                   <button onClick={() => setShowScheduleModal(false)}><X size={20} className="text-muted-foreground" /></button>
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-bold text-foreground mb-2 block">{t("auto.z_autoz언제할까요_921")}</label>
-                    <input type="text" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} placeholder={t("auto.z_autoz예5월12_922")} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-green-500/30" />
+                    <label className="text-sm font-bold text-foreground mb-2 block">{"언제할까요"}</label>
+                    <input type="text" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} placeholder={"예5월12"} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-green-500/30" />
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-foreground mb-2 block">{t("auto.z_autoz어떤일정인_923")}</label>
-                    <textarea value={scheduleText} onChange={e => setScheduleText(e.target.value)} placeholder={t("auto.z_autoz예n카페투_924")} className="w-full h-32 resize-none bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-green-500/30" />
+                    <label className="text-sm font-bold text-foreground mb-2 block">{"어떤일정인"}</label>
+                    <textarea value={scheduleText} onChange={e => setScheduleText(e.target.value)} placeholder={"예n카페투"} className="w-full h-32 resize-none bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-green-500/30" />
                   </div>
                   <button onClick={handleScheduleShare} className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold text-sm shadow-card flex items-center justify-center gap-2 mt-2">
-                    <Check size={16} />{t("auto.z_autoz채팅방에일_925")}</button>
+                    <Check size={16} />{"채팅방에일"}</button>
                 </div>
               </motion.div>
             </motion.div>}
@@ -824,16 +824,16 @@ const ChatPage = () => {
                 <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
                   <AlertTriangle size={24} className="text-red-500" />
                 </div>
-                <h3 className="text-lg font-extrabold text-foreground text-center mb-1">{t("auto.z_autoz신고하기5_926")}</h3>
-                <p className="text-sm text-muted-foreground text-center mb-4">{thread?.name}{t("auto.z_autoz님을신고하_927")}</p>
+                <h3 className="text-lg font-extrabold text-foreground text-center mb-1">{"신고하기5"}</h3>
+                <p className="text-sm text-muted-foreground text-center mb-4">{thread?.name}{"님을신고하"}</p>
                 <div className="space-y-2 mb-4">
-                  {[t("auto.z_autoz부적절한언_928"), t("auto.z_autoz스팸광고5_929"), t("auto.z_autoz허위프로필_930"), t("auto.z_autoz불쾌한내용_931"), t("auto.z_autoz기타529_932")].map(reason => <button key={reason} onClick={() => setReportReason(reason)} className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${reportReason === reason ? "bg-red-500/10 text-red-500 border border-red-500/30" : "bg-muted text-foreground"}`}>
+                  {["부적절한언", "스팸광고5", "허위프로필", "불쾌한내용", "기타529"].map(reason => <button key={reason} onClick={() => setReportReason(reason)} className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${reportReason === reason ? "bg-red-500/10 text-red-500 border border-red-500/30" : "bg-muted text-foreground"}`}>
                       {reason}
                     </button>)}
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setShowReportModal(false)} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm">{t('common.cancel')}</button>
-                  <button onClick={handleReport} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm">{t("auto.z_autoz신고530_933")}</button>
+                  <button onClick={handleReport} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm">{"신고530"}</button>
                 </div>
               </motion.div>
             </motion.div>}
@@ -862,11 +862,11 @@ const ChatPage = () => {
                 <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
                   <X size={24} className="text-destructive" />
                 </div>
-                <h3 className="text-lg font-extrabold text-foreground mb-2">{t("auto.z_autoz대화를삭제_934")}</h3>
-                <p className="text-sm text-muted-foreground mb-6">{t("auto.z_autoz삭제된대화_935")}</p>
+                <h3 className="text-lg font-extrabold text-foreground mb-2">{"대화를삭제"}</h3>
+                <p className="text-sm text-muted-foreground mb-6">{"삭제된대화"}</p>
                 <div className="flex gap-3">
                   <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm">{t('common.cancel')}</button>
-                  <button onClick={() => handleDeleteChat(selectedChat)} className="flex-1 py-3 rounded-2xl bg-destructive text-white font-bold text-sm">{t("auto.z_autoz삭제533_936")}</button>
+                  <button onClick={() => handleDeleteChat(selectedChat)} className="flex-1 py-3 rounded-2xl bg-destructive text-white font-bold text-sm">{"삭제533"}</button>
                 </div>
               </motion.div>
             </motion.div>}
@@ -881,7 +881,7 @@ const ChatPage = () => {
   return <div className="min-h-screen bg-background safe-bottom">
       <header className="px-5 pt-4 pb-2">
         <h1 className="text-2xl font-extrabold text-foreground">{t('chat.title')}</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{t("auto.z_autoz매칭된여행_937")}</p>
+        <p className="text-sm text-muted-foreground mt-0.5">{"매칭된여행"}</p>
       </header>
 
       {dmLimitBar}
@@ -915,13 +915,13 @@ const ChatPage = () => {
       <div className="px-5 py-3">
         <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3">
           <Search size={18} className="text-muted-foreground" />
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t("auto.z_autoz대화검색5_938")} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={"대화검색5"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
           {searchQuery && <button onClick={() => setSearchQuery("")}><X size={14} className="text-muted-foreground" /></button>}
         </div>
       </div>
 
       <div className="px-5 space-y-1 pb-24">
-        {filteredThreads.length === 0 ? <div className="text-center py-12"><p className="text-muted-foreground text-sm">{t("auto.z_autoz검색결과가_939")}</p></div> : filteredThreads.map(chat => {
+        {filteredThreads.length === 0 ? <div className="text-center py-12"><p className="text-muted-foreground text-sm">{"검색결과가"}</p></div> : filteredThreads.map(chat => {
         const groupChat = chat as GroupThread;
         return <button key={chat.id} onClick={() => setSelectedChat(chat.id)} className="w-full flex items-center gap-3 p-3 rounded-2xl transition-colors hover:bg-muted">
                 <div className="relative">
@@ -946,7 +946,7 @@ const ChatPage = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <h4 className="font-bold text-sm text-foreground truncate max-w-[150px]">{chat.name}</h4>
-                      {groupChat.isGroup && <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">{i18n.t("auto.z_autoz단톡537_940")}{groupChat.memberCount}{i18n.t("auto.z_autoz명538_941")}</span>}
+                      {groupChat.isGroup && <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">{"단톡537"}{groupChat.memberCount}{"명538"}</span>}
                     </div>
                     <span className="text-[10px] text-muted-foreground shrink-0">{chat.time}</span>
                   </div>

@@ -244,7 +244,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   actor_id    UUID REFERENCES profiles(id) ON DELETE SET NULL,
   target_id   UUID,
   target_text TEXT,
-  read        BOOLEAN DEFAULT false,
+  is_read     BOOLEAN DEFAULT false,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;

@@ -39,6 +39,14 @@ export default function CheckInModal({
           setCountry(ci.country);
           fetchCityTravelers(ci.city, user.id).then(t => setNearbyCount(t.length));
           setStep("done");
+        } else {
+          // 재오픈 시 이전 상태 초기화
+          setCurrentCheckIn(null);
+          setStep("idle");
+          setCity("");
+          setCountry("");
+          setError("");
+          setNearbyCount(0);
         }
       });
     }

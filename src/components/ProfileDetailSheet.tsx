@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, Heart, MessageCircle, Zap, ChevronLeft, ChevronRight, User, Globe, Sparkles, Crown, Star, Languages, Loader2 } from "lucide-react";
 import VerifyBadge from "./VerifyBadge";
@@ -57,15 +58,22 @@ const ProfileDetailSheet = ({
     }
   }, [profile?.id, user?.id]);
 
+  // profile이 바뀌면 번역 캐시 초기화
+  useEffect(() => {
+    setBioTranslated(null);
+    setShowTranslation(true);
+  }, [profile?.id]);
+
   // Auto-translate bio on open
   useEffect(() => {
-    if (!profile?.bio || bioTranslated) return;
+    if (!profile?.bio) return;
     const doTranslate = async () => {
       setBioTranslating(true);
       try {
+        const lang = i18n.language?.split('-')[0] || 'ko';
         const result = await translateText({
           text: profile.bio,
-          targetLang: 'ko'
+          targetLang: lang as any
         });
         if (result !== profile.bio) setBioTranslated(result);
       } catch (_) {
@@ -75,7 +83,7 @@ const ProfileDetailSheet = ({
       }
     };
     doTranslate();
-  }, [profile?.bio]);
+  }, [profile?.id, profile?.bio]);
   if (!profile) return null;
 
   // 여러 사진 지원 — photo_urls 또는 단일 photo

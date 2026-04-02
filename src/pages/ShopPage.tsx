@@ -88,7 +88,8 @@ const ShopPage = () => {
   const {
     isPlus,
     isPremium,
-    upgradePlus
+    upgradePlus,
+    addBoosts
   } = useSubscription();
   const [tab, setTab] = useState<"plans" | "items">("plans");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -204,6 +205,10 @@ const ShopPage = () => {
       upgradePlus("plus");
     } else if (selectedPlan?.id === "premium") {
       upgradePlus("premium");
+    } else if (selectedItem?.id === "boost_1") {
+      addBoosts(1);
+    } else if (selectedItem?.id === "boost_5") {
+      addBoosts(5);
     }
     setSelectedPlan(null);
     setSelectedItem(null);

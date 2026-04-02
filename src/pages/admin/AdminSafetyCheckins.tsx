@@ -46,24 +46,24 @@ export const AdminSafetyCheckins = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
             <Shield size={22} className="text-emerald-400" />
-            {t("auto.z_autoz안전체크인_1083", { defaultValue: "Safety Check-in Management" })}
+            {"안전체크인"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {t("auto.z_autoz안전체크인관리설명_1084", { defaultValue: "Monitor real-time location check-ins and SOS signals" })}
+            {"안전체크인관리설명"}
           </p>
         </div>
         <button onClick={load} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted text-muted-foreground text-sm hover:text-foreground transition-colors">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          {t("auto.z_autoz새로고침8_1229", { defaultValue: "Refresh" })}
+          {"새로고침8"}
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: t("auto.z_autoz긴급SOS_888", { defaultValue: "SOS" }), value: sosCount, color: "from-red-500 to-rose-600", icon: AlertTriangle, urgent: sosCount > 0 },
-          { label: t("auto.z_autoz활성체크인_1085", { defaultValue: "Active Check-ins" }), value: activeCount, color: "from-blue-500 to-cyan-500", icon: MapPin, urgent: false },
-          { label: t("auto.z_autoz처리완료_1086", { defaultValue: "Resolved" }), value: resolvedCount, color: "from-emerald-500 to-green-500", icon: CheckCircle, urgent: false },
+          { label: "긴급SOS", value: sosCount, color: "from-red-500 to-rose-600", icon: AlertTriangle, urgent: sosCount > 0 },
+          { label: "활성체크인", value: activeCount, color: "from-blue-500 to-cyan-500", icon: MapPin, urgent: false },
+          { label: "처리완료", value: resolvedCount, color: "from-emerald-500 to-green-500", icon: CheckCircle, urgent: false },
         ].map(s => (
           <div key={s.label} className={`bg-card rounded-2xl p-4 border flex items-center gap-4 ${s.urgent ? "border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]" : "border-border"}`}>
             <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center shrink-0`}>
@@ -73,7 +73,7 @@ export const AdminSafetyCheckins = () => {
               <p className="text-2xl font-extrabold text-foreground">{s.value}</p>
               <p className="text-xs text-muted-foreground break-keep">{s.label}</p>
             </div>
-            {s.urgent && <span className="ml-auto px-2 py-1 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold animate-pulse">⚠️ {t("auto.z_autoz긴급SOS_888", { defaultValue: "Urgent" })}</span>}
+            {s.urgent && <span className="ml-auto px-2 py-1 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold animate-pulse">⚠️ {"긴급SOS"}</span>}
           </div>
         ))}
       </div>
@@ -81,10 +81,10 @@ export const AdminSafetyCheckins = () => {
       {/* Filter */}
       <div className="flex gap-2 mb-4">
         {[
-          { id: "all" as const, label: t("auto.z_autoz전체565_969", { defaultValue: "All" }) },
+          { id: "all" as const, label: "전체565" },
           { id: "sos" as const, label: `🆘 SOS (${sosCount})` },
-          { id: "active" as const, label: t("auto.z_autoz활성828_1184", { defaultValue: "Active" }) },
-          { id: "resolved" as const, label: t("auto.z_autoz처리완료_1086", { defaultValue: "Resolved" }) },
+          { id: "active" as const, label: "활성828" },
+          { id: "resolved" as const, label: "처리완료" },
         ].map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)}
             className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${filter === f.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
@@ -100,7 +100,7 @@ export const AdminSafetyCheckins = () => {
         <div className="space-y-3">
           {filtered.map(c => {
             const profile = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
-            const userName = profile?.name || c.userName || t("auto.z_autoz알수없음8_1235", { defaultValue: "Unknown" });
+            const userName = profile?.name || c.userName || "알수없음8";
             const userPhoto = profile?.photo_url || c.userPhoto;
             const timeAgo = new Date(c.created_at || c.checked_at || Date.now());
             const minsAgo = Math.floor((Date.now() - timeAgo.getTime()) / 60000);
@@ -129,19 +129,19 @@ export const AdminSafetyCheckins = () => {
                       )}
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === "resolved" ? "bg-emerald-500/10 text-emerald-400" : "bg-blue-500/10 text-blue-400"}`}>
                         {c.status === "resolved"
-                          ? t("auto.z_autoz처리완료_1086", { defaultValue: "Resolved" })
-                          : t("auto.z_autoz활성828_1184", { defaultValue: "Active" })}
+                          ? "처리완료"
+                          : "활성828"}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><MapPin size={10} />{c.location_name || t("auto.z_autoz위치없음_1087", { defaultValue: "No location" })}</span>
+                      <span className="flex items-center gap-1"><MapPin size={10} />{c.location_name || "위치없음"}</span>
                       <span className="flex items-center gap-1"><Clock size={10} />{minsAgo < 60 ? `${minsAgo}m` : `${Math.floor(minsAgo / 60)}h`}</span>
                     </div>
                   </div>
                   {c.status !== "resolved" && (
                     <button onClick={e => { e.stopPropagation(); handleResolve(c.id); }}
                       className="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-colors">
-                      {t("auto.z_autoz처리완료_1086", { defaultValue: "Resolve" })}
+                      {"처리완료"}
                     </button>
                   )}
                 </div>
@@ -151,10 +151,10 @@ export const AdminSafetyCheckins = () => {
           {filtered.length === 0 && (
             <div className="py-20 text-center text-sm text-muted-foreground">
               {filter === "sos"
-                ? t("auto.z_autoz긴급SOS없음_1088", { defaultValue: "No active SOS alerts ✅" })
+                ? "긴급SOS없음"
                 : filter === "resolved"
-                ? t("auto.z_autoz처리완료없음_1089", { defaultValue: "No resolved check-ins" })
-                : t("auto.z_autoz체크인없음_1090", { defaultValue: "No check-in data" })}
+                ? "처리완료없음"
+                : "체크인없음"}
             </div>
           )}
         </div>
@@ -168,36 +168,36 @@ export const AdminSafetyCheckins = () => {
             <motion.div className="relative z-10 w-full max-w-md bg-card rounded-3xl shadow-float border border-border p-6" initial={{ scale: 0.95 }} animate={{ scale: 1 }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-extrabold text-foreground">
-                  {t("auto.z_autoz체크인상세_1091", { defaultValue: "Check-in Details" })}
+                  {"체크인상세"}
                 </h3>
                 <button onClick={() => setSelected(null)} className="p-2 rounded-xl hover:bg-muted"><X size={16} /></button>
               </div>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("auto.z_autoz상태594_998", { defaultValue: "Status" })}</span>
+                  <span className="text-muted-foreground">{"상태594"}</span>
                   <span className={`font-bold ${selected.status === "resolved" ? "text-emerald-400" : selected.is_sos ? "text-red-400" : "text-blue-400"}`}>
                     {selected.status === "resolved"
-                      ? t("auto.z_autoz처리완료_1086", { defaultValue: "Resolved" })
+                      ? "처리완료"
                       : selected.is_sos ? "🆘 SOS"
-                      : t("auto.z_autoz활성828_1184", { defaultValue: "Active" })}
+                      : "활성828"}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("auto.z_autoz국가위치6_1015", { defaultValue: "Location" })}</span>
-                  <span className="font-bold text-foreground">{selected.location_name || t("auto.z_autoz위치없음_1087", { defaultValue: "No location" })}</span>
+                  <span className="text-muted-foreground">{"국가위치6"}</span>
+                  <span className="font-bold text-foreground">{selected.location_name || "위치없음"}</span>
                 </div>
                 {selected.latitude && <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("auto.z_autoz좌표_1092", { defaultValue: "Coordinates" })}</span>
+                  <span className="text-muted-foreground">{"좌표"}</span>
                   <span className="font-mono text-xs">{selected.latitude?.toFixed(4)}, {selected.longitude?.toFixed(4)}</span>
                 </div>}
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("auto.z_autoz체크인시각_1093", { defaultValue: "Check-in Time" })}</span>
+                  <span className="text-muted-foreground">{"체크인시각"}</span>
                   <span>{new Date(selected.created_at || selected.checked_at).toLocaleString()}</span>
                 </div>
                 {selected.status !== "resolved" && (
                   <button onClick={() => { handleResolve(selected.id); setSelected(null); }}
                     className="w-full mt-2 py-3 rounded-2xl bg-emerald-500/10 text-emerald-400 font-bold hover:bg-emerald-500/20 transition-colors">
-                    {t("auto.z_autoz처리완료로변경_1094", { defaultValue: "Mark as Resolved" })}
+                    {"처리완료로변경"}
                   </button>
                 )}
               </div>

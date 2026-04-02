@@ -22,7 +22,7 @@ const formatColor = (f: string) => f === "card" ? "bg-violet-500/10 text-violet-
 
 // ─── Ad status badge ───────────────────────────────────────
 const statusBadge = (s: AdStatus) => s === "active" ? "bg-emerald-500/10 text-emerald-400" : s === "draft" ? "bg-muted text-muted-foreground" : s === "paused" ? "bg-amber-500/10 text-amber-400" : "bg-blue-500/10 text-blue-400";
-const statusLabel = (s: AdStatus) => s === "active" ? i18n.t("auto.z_autoz\uAC8C\uC7AC\uC91173_1088") : s === "draft" ? i18n.t("auto.z_autoz\uCD08\uC548733_1089") : s === "paused" ? i18n.t("auto.z_autoz\uC77C\uC2DC\uC815\uC9C07_1090") : i18n.t("auto.z_autoz\uC644\uB8CC735_1091");
+const statusLabel = (s: AdStatus) => s === "active" ? "게재중73" : s === "draft" ? "초안733" : s === "paused" ? "일시정지7" : "완료735";
 
 // ─── Image Upload Component ────────────────────────────────
 const ImageUpload = ({
@@ -64,7 +64,7 @@ const ImageUpload = ({
 
       {uploading ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-muted-foreground">{t("auto.z_autoz\uC5C5\uB85C\uB4DC\uC9117_1092")}</p>
+          <p className="text-xs text-muted-foreground">{"업로드중7"}</p>
         </div> : value ? <>
           <img src={value} alt="ad" className="w-full h-full object-cover" />
           <button onClick={e => {
@@ -77,11 +77,11 @@ const ImageUpload = ({
         e.stopPropagation();
         inputRef.current?.click();
       }} className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-background/80 text-xs font-semibold">
-            <Upload size={10} />{t("auto.z_autoz\uAD50\uCCB4737_1093")}</button>
+            <Upload size={10} />{"교체737"}</button>
         </> : <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
           <ImageIcon size={28} />
-          <p className="text-xs font-semibold">{t("auto.z_autoz\uC774\uBBF8\uC9C0\uB97C\uB4DC_1094")}</p>
-          <p className="text-[10px]">{t("auto.z_autozJPGPN_1095")}</p>
+          <p className="text-xs font-semibold">{"이미지를드"}</p>
+          <p className="text-[10px]">{"JPGPN"}</p>
         </div>}
     </div>;
 };
@@ -106,7 +106,7 @@ const CreateAdModal = ({
     headline: "",
     body_text: "",
     cta_url: "",
-    cta_text: t("auto.z_autoz\uC790\uC138\uD788\uBCF4\uAE30_1096"),
+    cta_text: "자세히보기",
     target_gender: "all",
     target_age_min: 18,
     target_age_max: 65,
@@ -132,7 +132,7 @@ const CreateAdModal = ({
       onClose();
     }
   };
-  const steps = [t("auto.z_autoz\uAD11\uACE0\uC2AC\uB86F\uC120_1097"), t("auto.z_autoz\uAD11\uACE0\uC18C\uC7AC7_1098"), t("auto.z_autoz\uD0C0\uAC9F\uD305\uC608\uC0B0_1099")];
+  const steps = ["광고슬롯선", "광고소재7", "타겟팅예산"];
   return <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={onClose} />
       <motion.div className="relative z-10 w-full max-w-2xl bg-card rounded-3xl shadow-float border border-border overflow-hidden" initial={{
@@ -145,7 +145,7 @@ const CreateAdModal = ({
         {/* Header */}
         <div className="px-6 pt-5 pb-4 border-b border-border flex items-center justify-between">
           <div>
-            <h2 className="font-extrabold text-foreground">{t("auto.z_autoz\uC0C8\uAD11\uACE0\uB9CC\uB4E4_1100")}</h2>
+            <h2 className="font-extrabold text-foreground">{"새광고만들"}</h2>
             <div className="flex items-center gap-2 mt-1.5">
               {steps.map((s, i) => <div key={i} className="flex items-center gap-1.5">
                   <div className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center
@@ -165,7 +165,7 @@ const CreateAdModal = ({
         <div className="p-6 max-h-[70vh] overflow-y-auto">
           {/* Step 0: Slot selection */}
           {step === 0 && <div>
-              <p className="text-sm font-bold text-foreground mb-4">{t("auto.z_autoz\uAD11\uACE0\uB97C\uC5B4\uB514_1101")}</p>
+              <p className="text-sm font-bold text-foreground mb-4">{"광고를어디"}</p>
               <div className="grid grid-cols-2 gap-3">
                 {slots.filter(s => s.enabled).map(s => <button key={s.id} onClick={() => setForm(f => ({
               ...f,
@@ -173,7 +173,7 @@ const CreateAdModal = ({
             }))} className={`text-left p-4 rounded-2xl border-2 transition-all ${form.slot_id === s.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${formatColor(s.format)}`}>
-                        {s.format === "card" ? i18n.t("auto.z_autoz\uCE74\uB4DC746_1102") : s.format === "banner" ? i18n.t("auto.z_autoz\uBC30\uB108747_1103") : s.format === "native" ? i18n.t("auto.z_autoz\uB124\uC774\uD2F0\uBE0C7_1104") : i18n.t("auto.z_autoz\uC804\uBA74749_1105")}
+                        {s.format === "card" ? "카드746" : s.format === "banner" ? "배너747" : s.format === "native" ? "네이티브7" : "전면749"}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{s.dimensions}</span>
                     </div>
@@ -188,77 +188,77 @@ const CreateAdModal = ({
           {step === 1 && <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uAD11\uACE0\uC81C\uBAA97_1106")}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"광고제목7"}</label>
                   <input value={form.title} onChange={e => setForm(f => ({
                 ...f,
                 title: e.target.value
-              }))} placeholder={t("auto.z_autoz\uC608\uC5D0\uC5B4\uC544\uC2DC_1107")} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
+              }))} placeholder={"예에어아시"} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uAD11\uACE0\uC8FC75_1108")}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"광고주75"}</label>
                   <input value={form.advertiser} onChange={e => setForm(f => ({
                 ...f,
                 advertiser: e.target.value
-              }))} placeholder={t("auto.z_autoz\uC608AirA_1109")} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
+              }))} placeholder={"예AirA"} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uAD11\uACE0\uC774\uBBF8\uC9C0_1110")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"광고이미지"}</label>
                 <ImageUpload value={imageUrl} onChange={setImageUrl} />
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uD5E4\uB4DC\uB77C\uC7787_1111")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"헤드라인7"}</label>
                 <input value={form.headline} onChange={e => setForm(f => ({
               ...f,
               headline: e.target.value
-            }))} placeholder={t("auto.z_autoz\uC608\uC11C\uC6B8\uBC29\uCF55_1112")} maxLength={60} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
+            }))} placeholder={"예서울방콕"} maxLength={60} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uAD11\uACE0\uBB38\uAD6C7_1113")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"광고문구7"}</label>
                 <textarea value={form.body_text} onChange={e => setForm(f => ({
               ...f,
               body_text: e.target.value
-            }))} rows={2} placeholder={t("auto.z_autoz\uC608\uBD04\uC2DC\uC98C\uD2B9_1114")} maxLength={120} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors resize-none" />
+            }))} rows={2} placeholder={"예봄시즌특"} maxLength={120} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors resize-none" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autozCTA\uB9C1\uD06C_1115")}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"CTA링크"}</label>
                   <input value={form.cta_url} onChange={e => setForm(f => ({
                 ...f,
                 cta_url: e.target.value
               }))} placeholder="https://..." className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uBC84\uD2BC\uD14D\uC2A4\uD2B8_1116")}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"버튼텍스트"}</label>
                   <input value={form.cta_text} onChange={e => setForm(f => ({
                 ...f,
                 cta_text: e.target.value
-              }))} placeholder={t("auto.z_autoz\uC790\uC138\uD788\uBCF4\uAE30_1117")} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
+              }))} placeholder={"자세히보기"} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
                 </div>
               </div>
 
               {/* Ad Preview */}
               {(form.headline || imageUrl) && selectedSlot && <div className="bg-muted/50 rounded-2xl p-4 border border-border">
-                  <p className="text-[10px] font-bold text-muted-foreground mb-3 uppercase tracking-wide">{t("auto.z_autoz\uBBF8\uB9AC\uBCF4\uAE307_1118")}{selectedSlot.format})</p>
+                  <p className="text-[10px] font-bold text-muted-foreground mb-3 uppercase tracking-wide">{"미리보기7"}{selectedSlot.format})</p>
                   {selectedSlot.format === "banner" ? <div className="w-full h-14 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 border border-border flex items-center px-3 gap-3 overflow-hidden">
                       {imageUrl && <img src={imageUrl} className="h-10 w-10 rounded-lg object-cover shrink-0" />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-foreground truncate">{form.headline || t("auto.z_autoz\uD5E4\uB4DC\uB77C\uC7787_1119")}</p>
+                        <p className="text-xs font-bold text-foreground truncate">{form.headline || "헤드라인7"}</p>
                         <p className="text-[10px] text-muted-foreground truncate">{form.advertiser}</p>
                       </div>
                       <span className="text-[10px] font-bold text-primary whitespace-nowrap shrink-0">{form.cta_text}</span>
                     </div> : selectedSlot.format === "card" ? <div className="w-48 mx-auto rounded-2xl overflow-hidden border border-border bg-card shadow-card">
                       {imageUrl ? <img src={imageUrl} className="w-full h-32 object-cover" /> : <div className="w-full h-32 bg-muted flex items-center justify-center"><ImageIcon size={20} className="text-muted-foreground" /></div>}
                       <div className="p-3">
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{t("auto.z_autoz\uAD11\uACE0764_1120")}</span>
-                        <p className="text-xs font-bold text-foreground mt-0.5">{form.headline || t("auto.z_autoz\uD5E4\uB4DC\uB77C\uC7787_1121")}</p>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{"광고764"}</span>
+                        <p className="text-xs font-bold text-foreground mt-0.5">{form.headline || "헤드라인7"}</p>
                         <button className="mt-2 w-full py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold">{form.cta_text}</button>
                       </div>
                     </div> : <div className="flex gap-3 items-start">
                       {imageUrl && <img src={imageUrl} className="w-20 h-16 rounded-xl object-cover shrink-0" />}
                       <div>
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{t("auto.z_autoz\uAD11\uACE0766_1122")}</span>
-                        <p className="text-sm font-bold text-foreground">{form.headline || t("auto.z_autoz\uD5E4\uB4DC\uB77C\uC7787_1123")}</p>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{"광고766"}</span>
+                        <p className="text-sm font-bold text-foreground">{form.headline || "헤드라인7"}</p>
                         <p className="text-xs text-muted-foreground">{form.body_text}</p>
                         <span className="text-xs text-primary font-bold mt-1 block">{form.cta_text} →</span>
                       </div>
@@ -269,9 +269,9 @@ const CreateAdModal = ({
           {/* Step 2: Targeting + Budget */}
           {step === 2 && <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-2 block">{t("auto.z_autoz\uD0C0\uAC9F\uC131\uBCC47_1124")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-2 block">{"타겟성별7"}</label>
                 <div className="flex gap-2">
-                  {[["all", t("auto.z_autoz\uC804\uCCB4769_1125")], ["male", t("auto.z_autoz\uB0A8\uC131770_1126")], ["female", t("auto.z_autoz\uC5EC\uC131771_1127")]].map(([val, label]) => <button key={val} onClick={() => setForm(f => ({
+                  {[["all", "전체769"], ["male", "남성770"], ["female", "여성771"]].map(([val, label]) => <button key={val} onClick={() => setForm(f => ({
                 ...f,
                 target_gender: val
               }))} className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all border ${form.target_gender === val ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>
@@ -280,17 +280,17 @@ const CreateAdModal = ({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-2 block">{t("auto.z_autoz\uD0C0\uAC9F\uC5F0\uB8397_1128")}{form.target_age_min}{t("auto.z_autoz\uC138773_1129")}{form.target_age_max}{t("auto.z_autoz\uC138774_1130")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-2 block">{"타겟연령7"}{form.target_age_min}{"세773"}{form.target_age_max}{"세774"}</label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-[10px] text-muted-foreground mb-1">{t("auto.z_autoz\uCD5C\uC18C\uC5F0\uB8397_1131")}</p>
+                    <p className="text-[10px] text-muted-foreground mb-1">{"최소연령7"}</p>
                     <input type="range" min={18} max={60} value={form.target_age_min} onChange={e => setForm(f => ({
                   ...f,
                   target_age_min: Number(e.target.value)
                 }))} className="w-full accent-violet-500" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground mb-1">{t("auto.z_autoz\uCD5C\uB300\uC5F0\uB8397_1132")}</p>
+                    <p className="text-[10px] text-muted-foreground mb-1">{"최대연령7"}</p>
                     <input type="range" min={20} max={65} value={form.target_age_max} onChange={e => setForm(f => ({
                   ...f,
                   target_age_max: Number(e.target.value)
@@ -300,14 +300,14 @@ const CreateAdModal = ({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uC2DC\uC791\uC77C77_1133")}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"시작일77"}</label>
                   <input type="date" value={form.start_date} onChange={e => setForm(f => ({
                 ...f,
                 start_date: e.target.value
               }))} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uC885\uB8CC\uC77C77_1134")}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"종료일77"}</label>
                   <input type="date" value={form.end_date} onChange={e => setForm(f => ({
                 ...f,
                 end_date: e.target.value
@@ -315,21 +315,21 @@ const CreateAdModal = ({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uCD1D\uC608\uC0B077_1135")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"총예산77"}</label>
                 <input type="number" value={form.budget} step={100000} onChange={e => setForm(f => ({
               ...f,
               budget: Number(e.target.value)
             }))} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary" />
-                <p className="text-[10px] text-muted-foreground mt-1">{t("auto.z_autoz\uC77C\uC608\uC0B078_1136")}{Math.round(form.budget / Math.max(1, Math.ceil((new Date(form.end_date).getTime() - new Date(form.start_date).getTime()) / 86400000))).toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{"일예산78"}{Math.round(form.budget / Math.max(1, Math.ceil((new Date(form.end_date).getTime() - new Date(form.start_date).getTime()) / 86400000))).toLocaleString()}</p>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uAC8C\uC7AC\uC0C1\uD0DC7_1137")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"게재상태7"}</label>
                 <select value={form.status} onChange={e => setForm(f => ({
               ...f,
               status: e.target.value as AdStatus
             }))} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary">
-                  <option value="draft">{t("auto.z_autoz\uCD08\uC548\uC73C\uB85C\uC800_1138")}</option>
-                  <option value="active">{t("auto.z_autoz\uC989\uC2DC\uAC8C\uC7AC7_1139")}</option>
+                  <option value="draft">{"초안으로저"}</option>
+                  <option value="active">{"즉시게재7"}</option>
                 </select>
               </div>
             </div>}
@@ -338,14 +338,14 @@ const CreateAdModal = ({
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border flex items-center justify-between">
           <button onClick={() => step > 0 ? setStep(s => s - 1) : onClose()} className="px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">
-            {step === 0 ? t("auto.z_autoz\uCDE8\uC18C784_1140") : t("auto.z_autoz\uC774\uC804785_1141")}
+            {step === 0 ? "취소784" : "이전785"}
           </button>
           {step < 2 ? <motion.button whileTap={{
           scale: 0.97
-        }} onClick={() => setStep(s => s + 1)} disabled={step === 1 && (!form.title || !form.advertiser)} className="px-5 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-extrabold disabled:opacity-40">{t("auto.z_autoz\uB2E4\uC74C786_1142")}</motion.button> : <motion.button whileTap={{
+        }} onClick={() => setStep(s => s + 1)} disabled={step === 1 && (!form.title || !form.advertiser)} className="px-5 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-extrabold disabled:opacity-40">{"다음786"}</motion.button> : <motion.button whileTap={{
           scale: 0.97
         }} onClick={handleCreate} disabled={saving || !form.cta_url} className="px-5 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-extrabold disabled:opacity-40 flex items-center gap-2">
-              {saving ? <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />{t("auto.z_autoz\uC800\uC7A5\uC91178_1143")}</> : t("auto.z_autoz\uAD11\uACE0\uB9CC\uB4E4\uAE30_1144")}
+              {saving ? <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />{"저장중78"}</> : "광고만들기"}
             </motion.button>}
         </div>
       </motion.div>
@@ -367,7 +367,7 @@ export const AdminMarketing = () => {
   // Push state
   const [pushTitle, setPushTitle] = useState("");
   const [pushBody, setPushBody] = useState("");
-  const [pushTarget, setPushTarget] = useState(t("auto.z_autoz\uC804\uCCB4\uC720\uC8007_1145"));
+  const [pushTarget, setPushTarget] = useState("전체유저7");
   const [pushSent, setPushSent] = useState(false);
   useEffect(() => {
     fetchAds().then(setAds);
@@ -410,7 +410,7 @@ export const AdminMarketing = () => {
     label: string;
   }[] = [{
     id: "slots",
-    label: t("auto.z_autoz\uAD11\uACE0\uAC8C\uC7AC\uC704_1146")
+    label: "광고게재위"
   }, {
     id: "ads",
     label: t("auto.z_tmpl_791", {
@@ -420,45 +420,45 @@ export const AdminMarketing = () => {
     })
   }, {
     id: "campaigns",
-    label: t("auto.z_autoz\uCEA0\uD398\uC778\uBD84\uC11D_1148")
+    label: "캠페인분석"
   }, {
     id: "promo",
-    label: t("auto.z_autoz\uD504\uB85C\uBAA8\uCF54\uB4DC_1149")
+    label: "프로모코드"
   }, {
     id: "push",
-    label: t("auto.z_autoz\uD478\uC2DC\uC54C\uB9BC7_1150")
+    label: "푸시알림7"
   }];
   return <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">{t("auto.z_autoz\uB9C8\uCF00\uD30579_1151")}</h1>
-          <p className="text-sm text-muted-foreground">{t("auto.z_autoz\uAD11\uACE0\uAC8C\uC7AC\uC704_1152")}</p>
+          <h1 className="text-2xl font-extrabold text-foreground">{"마케팅79"}</h1>
+          <p className="text-sm text-muted-foreground">{"광고게재위"}</p>
         </div>
         {tab === "ads" && <motion.button whileTap={{
         scale: 0.97
       }} onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold">
-            <Plus size={14} />{t("auto.z_autoz\uC0C8\uAD11\uACE0\uB9CC\uB4E4_1153")}</motion.button>}
+            <Plus size={14} />{"새광고만들"}</motion.button>}
       </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[{
-        label: t("auto.z_autoz\uAC8C\uC7AC\uC911\uAD11\uACE0_1154"),
+        label: "게재중광고",
         value: ads.filter(a => a.status === "active").length,
         icon: Megaphone,
         color: "from-violet-500 to-purple-600"
       }, {
-        label: t("auto.z_autoz\uCD1D\uB178\uCD9C\uC2187_1155"),
+        label: "총노출수7",
         value: ads.reduce((a, c) => a + c.impressions, 0).toLocaleString(),
         icon: Users,
         color: "from-blue-500 to-cyan-500"
       }, {
-        label: t("auto.z_autoz\uCD1D\uD074\uB9AD\uC2188_1156"),
+        label: "총클릭수8",
         value: ads.reduce((a, c) => a + c.clicks, 0).toLocaleString(),
         icon: MousePointer,
         color: "from-pink-500 to-rose-500"
       }, {
-        label: t("auto.z_autoz\uAD11\uACE0\uC218\uC7758_1157"),
+        label: "광고수익8",
         value: t("auto.z_tmpl_802", {
           defaultValue: t("auto.z_tmpl_1158", {
             defaultValue: t("auto.p2", { val: (ads.reduce((a, c) => a + c.budget_spent, 0) / 10000).toFixed(0) })
@@ -487,14 +487,14 @@ export const AdminMarketing = () => {
 
       {/* ── SLOT MAP ── */}
       {tab === "slots" && <div>
-          <p className="text-sm font-bold text-foreground mb-4">{t("auto.z_autoz\uC571\uB0B4\uAD11\uACE0\uAC8C_1159")}</p>
+          <p className="text-sm font-bold text-foreground mb-4">{"앱내광고게"}</p>
           <div className="grid grid-cols-2 gap-4">
             {slots.map(s => <motion.div key={s.id} layout className={`bg-card rounded-2xl p-5 border-2 transition-all ${s.enabled ? "border-primary/30" : "border-border opacity-60"}`}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${formatColor(s.format)}`}>
-                        {s.format === "card" ? i18n.t("auto.z_autoz\uCE74\uB4DC804_1160") : s.format === "banner" ? i18n.t("auto.z_autoz\uBC30\uB108805_1161") : s.format === "native" ? i18n.t("auto.z_autoz\uB124\uC774\uD2F0\uBE0C8_1162") : i18n.t("auto.z_autoz\uC804\uBA74\uAD11\uACE08_1163")}
+                        {s.format === "card" ? "카드804" : s.format === "banner" ? "배너805" : s.format === "native" ? "네이티브8" : "전면광고8"}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{s.dimensions}</span>
                     </div>
@@ -508,12 +508,12 @@ export const AdminMarketing = () => {
                 <div className="flex items-center gap-2 text-xs">
                   <Smartphone size={11} className="text-muted-foreground" />
                   <span className="text-muted-foreground">{s.app_screen}</span>
-                  <span className="ml-auto text-[10px] font-bold text-primary">{i18n.t("auto.z_autoz\uCD5C\uB300808_1164")}{s.max_active}{i18n.t("auto.z_autoz\uAC1C\uB3D9\uC2DC\uAC8C\uC7AC_1165")}</span>
+                  <span className="ml-auto text-[10px] font-bold text-primary">{"최대808"}{s.max_active}{"개동시게재"}</span>
                 </div>
                 {/* Visual slot preview */}
                 <div className={`mt-3 rounded-xl border border-dashed border-border/50 flex items-center justify-center text-[10px] text-muted-foreground font-semibold
                   ${s.format === "card" ? "h-24" : s.format === "interstitial" ? "h-32" : "h-10"}`}>
-                  {s.enabled ? <span className="text-primary">{i18n.t("auto.z_autoz\uAD11\uACE0\uAC8C\uC7AC\uC911_1166")}</span> : i18n.t("auto.z_autoz\uAD11\uACE0\uC5C6\uC74C8_1167")}
+                  {s.enabled ? <span className="text-primary">{"광고게재중"}</span> : "광고없음8"}
                 </div>
               </motion.div>)}
           </div>
@@ -523,7 +523,7 @@ export const AdminMarketing = () => {
       {tab === "ads" && <div>
           <div className="flex gap-2 mb-4">
             {(["all", "active", "draft", "paused", "completed"] as const).map(f => <button key={f} onClick={() => setAdFilter(f)} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${adFilter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                {f === "all" ? i18n.t("auto.z_autoz\uC804\uCCB4812_1168") : f === "active" ? i18n.t("auto.z_autoz\uAC8C\uC7AC\uC91181_1169") : f === "draft" ? i18n.t("auto.z_autoz\uCD08\uC548814_1170") : f === "paused" ? i18n.t("auto.z_autoz\uC77C\uC2DC\uC815\uC9C08_1171") : i18n.t("auto.z_autoz\uC644\uB8CC816_1172")}
+                {f === "all" ? "전체812" : f === "active" ? "게재중81" : f === "draft" ? "초안814" : f === "paused" ? "일시정지8" : "완료816"}
               </button>)}
           </div>
           <div className="space-y-3">
@@ -541,10 +541,10 @@ export const AdminMarketing = () => {
                       <p className="font-bold text-foreground">{a.title}</p>
                       <p className="text-xs text-muted-foreground">{a.advertiser} · {a.start_date} ~ {a.end_date}</p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span>{i18n.t("auto.z_autoz\uB178\uCD9C817_1173")}<b className="text-foreground">{a.impressions.toLocaleString()}</b></span>
-                        <span>{i18n.t("auto.z_autoz\uD074\uB9AD818_1174")}<b className="text-foreground">{a.clicks.toLocaleString()}</b></span>
+                        <span>{"노출817"}<b className="text-foreground">{a.impressions.toLocaleString()}</b></span>
+                        <span>{"클릭818"}<b className="text-foreground">{a.clicks.toLocaleString()}</b></span>
                         <span>CTR: <b className={parseFloat(ctr) > 5 ? "text-emerald-400" : "text-foreground"}>{ctr}%</b></span>
-                        <span>{i18n.t("auto.z_autoz\uC608\uC0B0819_1175")}<b className="text-foreground">₩{a.budget.toLocaleString()}</b></span>
+                        <span>{"예산819"}<b className="text-foreground">₩{a.budget.toLocaleString()}</b></span>
                       </div>
                       {a.impressions > 0 && <div className="mt-2 flex items-center gap-2">
                           <div className="flex-1 h-1 bg-muted rounded-full">
@@ -552,23 +552,23 @@ export const AdminMarketing = () => {
                       width: `${Math.min(a.budget_spent / a.budget * 100, 100)}%`
                     }} />
                           </div>
-                          <span className="text-[10px] text-muted-foreground">{i18n.t("auto.z_autoz\uC608\uC0B0820_1176")}{Math.round(a.budget_spent / a.budget * 100)}{i18n.t("auto.z_autoz\uC18C\uC9C4821_1177")}</span>
+                          <span className="text-[10px] text-muted-foreground">{"예산820"}{Math.round(a.budget_spent / a.budget * 100)}{"소진821"}</span>
                         </div>}
                     </div>
                     <div className="flex flex-col gap-1.5 shrink-0">
                       {a.status === "active" && <motion.button whileTap={{
                   scale: 0.9
-                }} onClick={() => handleStatusChange(a.id, "paused")} className="p-2 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors" title={i18n.t("auto.z_autoz\uC77C\uC2DC\uC815\uC9C08_1178")}>
+                }} onClick={() => handleStatusChange(a.id, "paused")} className="p-2 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors" title={"일시정지8"}>
                           <Pause size={12} />
                         </motion.button>}
                       {a.status === "paused" && <motion.button whileTap={{
                   scale: 0.9
-                }} onClick={() => handleStatusChange(a.id, "active")} className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors" title={i18n.t("auto.z_autoz\uC7AC\uAC8C\uC7AC82_1179")}>
+                }} onClick={() => handleStatusChange(a.id, "active")} className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors" title={"재게재82"}>
                           <Play size={12} />
                         </motion.button>}
                       {a.status === "draft" && <motion.button whileTap={{
                   scale: 0.9
-                }} onClick={() => handleStatusChange(a.id, "active")} className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors" title={i18n.t("auto.z_autoz\uAC8C\uC7AC\uC2DC\uC7918_1180")}>
+                }} onClick={() => handleStatusChange(a.id, "active")} className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors" title={"게재시작8"}>
                           <Play size={12} />
                         </motion.button>}
                       <motion.button whileTap={{
@@ -580,7 +580,7 @@ export const AdminMarketing = () => {
                   </div>
                 </motion.div>;
         })}
-            {filteredAds.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground">{t("auto.z_autoz\uAD11\uACE0\uAC00\uC5C6\uC2B5_1181")}<button onClick={() => setShowCreate(true)} className="text-primary font-bold">{t("auto.z_autoz\uC0C8\uAD11\uACE0\uB9CC\uB4E4_1182")}</button></div>}
+            {filteredAds.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground">{"광고가없습"}<button onClick={() => setShowCreate(true)} className="text-primary font-bold">{"새광고만들"}</button></div>}
           </div>
         </div>}
 
@@ -592,24 +592,24 @@ export const AdminMarketing = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="font-bold text-foreground">{a.title}</p>
-                    <p className="text-xs text-muted-foreground">{a.advertiser}{i18n.t("auto.z_autoz\uC2DC\uC791\uC77C82_1183")}{a.start_date}</p>
+                    <p className="text-xs text-muted-foreground">{a.advertiser}{"시작일82"}{a.start_date}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${a.status === "active" ? "bg-emerald-500/10 text-emerald-400" : a.status === "draft" ? "bg-muted text-muted-foreground" : "bg-blue-500/10 text-blue-400"}`}>
-                    {a.status === "active" ? i18n.t("auto.z_autoz\uD65C\uC131828_1184") : a.status === "draft" ? i18n.t("auto.z_autoz\uCD08\uC548829_1185") : i18n.t("auto.z_autoz\uC885\uB8CC830_1186")}
+                    {a.status === "active" ? "활성828" : a.status === "draft" ? "초안829" : "종료830"}
                   </span>
                 </div>
                 <div className="grid grid-cols-4 gap-3">
                   {[{
-              label: i18n.t("auto.z_autoz\uB3C4\uB2EC\uB178\uCD9C8_1187"),
+              label: "도달노출8",
               value: a.impressions.toLocaleString()
             }, {
-              label: i18n.t("auto.z_autoz\uD074\uB9AD832_1188"),
+              label: "클릭832",
               value: a.clicks.toLocaleString()
             }, {
               label: "CTR",
               value: `${ctr}%`
             }, {
-              label: i18n.t("auto.z_autoz\uC608\uCE21\uC804\uD658\uC728_1189"),
+              label: "예측전환율",
               value: `${convRate}%`
             }].map(m => <div key={m.label} className="text-center bg-muted/50 rounded-xl py-2.5">
                       <p className="text-base font-extrabold text-foreground">{m.value}</p>
@@ -623,7 +623,7 @@ export const AdminMarketing = () => {
                   </div>}
               </div>;
       })}
-          {ads.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground">{t("auto.z_autoz\uC9D1\uACC4\uB41C\uCEA0\uD398_1190")}</div>}
+          {ads.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground">{"집계된캠페"}</div>}
         </div>}
 
       {/* ── PROMO CODES ── */}
@@ -631,14 +631,14 @@ export const AdminMarketing = () => {
           <motion.button whileTap={{
         scale: 0.97
       }} onClick={async () => {
-        const code = prompt("auto.z_autoz\uD504\uB85C\uBAA8\uCF54\uB4DC_1191");
-        const disc = prompt("auto.z_autoz\uD560\uC778\uB0B4\uC6A9\uC744_1192");
+        const code = prompt("프로모코드");
+        const disc = prompt("할인내용을");
         if (code && disc) {
           const newCode = await createPromoCode(code, disc, 100);
           if (newCode) setPromos(p => [newCode, ...p]);
         }
       }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold mb-4">
-            <Plus size={14} />{t("auto.z_autoz\uD504\uB85C\uBAA8\uCF54\uB4DC_1193")}</motion.button>
+            <Plus size={14} />{"프로모코드"}</motion.button>
           <div className="space-y-3">
             {promos.map(p => <motion.div key={p.id} layout className={`bg-card rounded-2xl p-4 border transition-all ${p.is_active ? "border-border" : "border-border/40 opacity-60"}`}>
                 <div className="flex items-center gap-4">
@@ -646,14 +646,14 @@ export const AdminMarketing = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <code className="text-sm font-extrabold text-foreground">{p.code}</code>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-muted text-muted-foreground"}`}>{p.is_active ? i18n.t("auto.z_autoz\uD65C\uC131838_1194") : i18n.t("auto.z_autoz\uBE44\uD65C\uC13183_1195")}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-muted text-muted-foreground"}`}>{p.is_active ? "활성838" : "비활성83"}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{p.discount}{i18n.t("auto.z_autoz\uB9CC\uB8CC840_1196")}{new Date(p.expires_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{p.discount}{"만료840"}{new Date(p.expires_at).toLocaleDateString()}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex-1 h-1 bg-muted rounded-full"><div className="h-1 rounded-full bg-primary" style={{
                     width: `${(p.used_count || 0) / p.max_limit * 100}%`
                   }} /></div>
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{p.used_count || 0}/{p.max_limit}{i18n.t("auto.z_autoz\uD68C841_1197")}</span>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{p.used_count || 0}/{p.max_limit}{"회841"}</span>
                     </div>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
@@ -669,7 +669,7 @@ export const AdminMarketing = () => {
                     <motion.button whileTap={{
                 scale: 0.9
               }} onClick={async () => {
-                if (confirm(i18n.t("auto.z_autoz\uC0AD\uC81C\uD558\uACA0\uC2B5_1198"))) {
+                if (confirm("삭제하겠습")) {
                   const success = await deletePromoCode(p.id);
                   if (success) setPromos(prev => prev.filter(x => x.id !== p.id));
                 }
@@ -677,38 +677,38 @@ export const AdminMarketing = () => {
                   </div>
                 </div>
               </motion.div>)}
-            {promos.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground">{t("auto.z_autoz\uD504\uB85C\uBAA8\uCF54\uB4DC_1199")}</div>}
+            {promos.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground">{"프로모코드"}</div>}
           </div>
         </div>}
 
       {/* ── PUSH ── */}
       {tab === "push" && <div className="max-w-xl">
           <div className="bg-card rounded-2xl p-6 border border-border">
-            <p className="font-extrabold text-foreground mb-5 flex items-center gap-2"><Bell size={16} />{t("auto.z_autoz\uD478\uC2DC\uC54C\uB9BC\uBC1C_1200")}</p>
+            <p className="font-extrabold text-foreground mb-5 flex items-center gap-2"><Bell size={16} />{"푸시알림발"}</p>
             <div className="space-y-3 mb-5">
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uB300\uC0C1845_1201")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"대상845"}</label>
                 <select value={pushTarget} onChange={e => setPushTarget(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary">
-                  <option>{t("auto.z_autoz\uC804\uCCB4\uC720\uC8008_1202")}</option><option>{t("auto.z_autoz\uBB34\uB8CC\uC720\uC8008_1203")}</option><option>{t("auto.z_autozPlus\uC720_1204")}</option>
-                  <option>{t("auto.z_autoz\uBE44\uD65C\uC131\uC720\uC800_1205")}</option><option>{t("auto.z_autoz\uC2E0\uADDC\uAC00\uC7857_1206")}</option>
+                  <option>{"전체유저8"}</option><option>{"무료유저8"}</option><option>{"Plus유"}</option>
+                  <option>{"비활성유저"}</option><option>{"신규가입7"}</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uC81C\uBAA9851_1207")}</label>
-                <input value={pushTitle} onChange={e => setPushTitle(e.target.value)} placeholder={t("auto.z_autoz\uC608\uBD04\uC5EC\uD589\uC2DC_1208")} maxLength={50} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary" />
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"제목851"}</label>
+                <input value={pushTitle} onChange={e => setPushTitle(e.target.value)} placeholder={"예봄여행시"} maxLength={50} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary" />
                 <p className="text-right text-[10px] text-muted-foreground mt-1">{pushTitle.length}/50</p>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_autoz\uB0B4\uC6A9853_1209")}</label>
-                <textarea value={pushBody} onChange={e => setPushBody(e.target.value)} rows={3} placeholder={t("auto.z_autoz\uC608\uC9C0\uAE08Mi_1210")} maxLength={150} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary resize-none" />
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"내용853"}</label>
+                <textarea value={pushBody} onChange={e => setPushBody(e.target.value)} rows={3} placeholder={"예지금Mi"} maxLength={150} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary resize-none" />
                 <p className="text-right text-[10px] text-muted-foreground mt-1">{pushBody.length}/150</p>
               </div>
             </div>
             {(pushTitle || pushBody) && <div className="bg-muted/50 rounded-2xl p-4 mb-4 border border-border">
-                <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wide">{t("auto.z_autoz\uBBF8\uB9AC\uBCF4\uAE308_1211")}</p>
+                <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wide">{"미리보기8"}</p>
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0"><Bell size={14} className="text-white" /></div>
-                  <div><p className="text-sm font-bold text-foreground">{pushTitle || t("auto.z_autoz\uC81C\uBAA9856_1212")}</p><p className="text-xs text-muted-foreground mt-0.5">{pushBody || t("auto.z_autoz\uB0B4\uC6A9857_1213")}</p></div>
+                  <div><p className="text-sm font-bold text-foreground">{pushTitle || "제목856"}</p><p className="text-xs text-muted-foreground mt-0.5">{pushBody || "내용857"}</p></div>
                 </div>
               </div>}
             <AnimatePresence>
@@ -719,10 +719,10 @@ export const AdminMarketing = () => {
           }} exit={{
             opacity: 0
           }} className="w-full py-3 rounded-2xl bg-emerald-500/10 text-emerald-400 text-sm font-bold text-center flex items-center justify-center gap-2">
-                  <Check size={16} />{t("auto.z_autoz\uBC1C\uC1A1\uC644\uB8CC8_1214")}{pushTarget}{t("auto.z_autoz\uC5D0\uAC8C\uC804\uC1A1\uB428_1215")}</motion.div> : <motion.button whileTap={{
+                  <Check size={16} />{"발송완료8"}{pushTarget}{"에게전송됨"}</motion.div> : <motion.button whileTap={{
             scale: 0.97
           }} onClick={sendPush} disabled={!pushTitle || !pushBody} className="w-full py-3 rounded-2xl gradient-primary text-primary-foreground text-sm font-extrabold disabled:opacity-40 flex items-center justify-center gap-2">
-                  <Send size={14} />{t("auto.z_autoz\uD478\uC2DC\uC54C\uB9BC\uBC1C_1216")}</motion.button>}
+                  <Send size={14} />{"푸시알림발"}</motion.button>}
             </AnimatePresence>
           </div>
         </div>}

@@ -141,8 +141,8 @@ const AdminPage = () => {
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
               <Shield size={24} className="text-primary" />
             </div>
-            <h1 className="text-xl font-extrabold text-foreground">{t("auto.z_autoz어드민대시_943")}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{t("auto.z_autoz관리자PI_944")}</p>
+            <h1 className="text-xl font-extrabold text-foreground">{"어드민대시"}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{"관리자PI"}</p>
           </div>
           <div className="relative mb-4">
             <input type={showPin ? "text" : "password"} value={pin} onChange={e => {
@@ -150,18 +150,18 @@ const AdminPage = () => {
             setPinError(false);
           }} onKeyDown={e => {
             if (e.key === "Enter" && !e.nativeEvent.isComposing) tryLogin();
-          }} placeholder={t("auto.z_autozPIN입력_945")} className={`w-full px-4 py-3.5 rounded-2xl bg-muted border text-foreground text-sm outline-none transition-all
+          }} placeholder={"PIN입력"} className={`w-full px-4 py-3.5 rounded-2xl bg-muted border text-foreground text-sm outline-none transition-all
                 ${pinError ? "border-red-500" : "border-border focus:border-primary"}`} />
             <button onClick={() => setShowPin(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
               {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {pinError && !lockedUntil && <p className="text-xs text-red-400 mb-3 text-center">{t("auto.z_autozPIN이올_946")}{MAX_ATTEMPTS - attempts < 0 ? 0 : MAX_ATTEMPTS - Math.min(attempts, MAX_ATTEMPTS)}{t("auto.z_autoz회남음54_947")}</p>}
-          {lockedUntil && <p className="text-xs text-red-400 mb-3 text-center">⏳ {lockSecsLeft}{t("auto.z_autoz초후재시도_948")}</p>}
+          {pinError && !lockedUntil && <p className="text-xs text-red-400 mb-3 text-center">{"PIN이올"}{MAX_ATTEMPTS - attempts < 0 ? 0 : MAX_ATTEMPTS - Math.min(attempts, MAX_ATTEMPTS)}{"회남음54"}</p>}
+          {lockedUntil && <p className="text-xs text-red-400 mb-3 text-center">⏳ {lockSecsLeft}{"초후재시도"}</p>}
           <motion.button whileTap={{
           scale: 0.97
         }} onClick={tryLogin} disabled={!!lockedUntil} className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-            <Lock size={14} />{t("auto.z_autoz입장하기5_949")}</motion.button>
+            <Lock size={14} />{"입장하기5"}</motion.button>
 
         </motion.div>
       </div>;
@@ -181,38 +181,38 @@ const AdminPage = () => {
     badge?: number;
   }[] = [{
     id: "dashboard",
-    label: t("auto.z_autoz대시보드5_950"),
+    label: "대시보드5",
     icon: LayoutDashboard
   }, {
     id: "users",
-    label: t("auto.z_autoz유저관리5_951"),
+    label: "유저관리5",
     icon: Users,
     badge: unverified
   }, {
     id: "posts",
-    label: t("auto.z_autoz게시글관리_952"),
+    label: "게시글관리",
     icon: FileText,
     badge: flaggedPosts
   }, {
     id: "groups",
-    label: t("auto.z_autoz여행그룹5_953"),
+    label: "여행그룹5",
     icon: Plane
   }, {
     id: "reports",
-    label: t("auto.z_autoz신고센터5_954"),
+    label: "신고센터5",
     icon: Flag,
     badge: reportsPending
   }, {
     id: "marketplace",
-    label: t("auto.z_autoz마켓상품5_955"),
+    label: "마켓상품5",
     icon: Store
   }, {
     id: "marketing",
-    label: t("auto.z_autoz마케팅55_956"),
+    label: "마케팅55",
     icon: Megaphone
   }, {
     id: "verifications",
-    label: t("auto.z_autoz신분증심사_957"),
+    label: "신분증심사",
     icon: Shield,
     badge: badges.pendingVerif
   }, {
@@ -250,7 +250,7 @@ const AdminPage = () => {
         </nav>
         <div className="hidden md:flex flex-col px-3 py-4 border-t border-border mt-auto">
           <button onClick={() => setAuthed(false)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:bg-muted transition-colors">
-            <Lock size={14} />{t("auto.z_autoz로그아웃5_958")}</button>
+            <Lock size={14} />{"로그아웃5"}</button>
         </div>
       </aside>
 

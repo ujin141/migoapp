@@ -30,9 +30,9 @@ export const AdminPosts = () => {
     return true;
   });
   const handleDelete = async (id: string) => {
-    if (!confirm(i18n.t("auto.z_autoz\uC815\uB9D0\uB85C\uC774\uAC8C_1032"))) return;
+    if (!confirm("정말로이게")) return;
     const success = await deletePost(id);
-    if (success) setPosts(prev => prev.filter(p => p.id !== id));else alert("auto.z_autoz\uAC8C\uC2DC\uAE00\uC0AD\uC81C_1033");
+    if (success) setPosts(prev => prev.filter(p => p.id !== id));else alert("게시글삭제");
   };
   const handleToggleHidden = async (id: string, currentHidden: boolean) => {
     const success = await updatePostHidden(id, !currentHidden);
@@ -73,19 +73,19 @@ export const AdminPosts = () => {
   return <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">{t("auto.z_autoz\uCEE4\uBBA4\uB2C8\uD2F0\uAE00_1037")}</h1>
-          <p className="text-sm text-muted-foreground">{t("auto.z_autoz\uCD1D682_1038")}{posts.length}{t("auto.z_autoz\uAC1C\uC2E4\uC2DC\uAC04D_1039")}</p>
+          <h1 className="text-2xl font-extrabold text-foreground">{"커뮤니티글"}</h1>
+          <p className="text-sm text-muted-foreground">{"총682"}{posts.length}{"개실시간D"}</p>
         </div>
         <motion.button whileTap={{
         scale: 0.95
       }} onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-sm">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{t("auto.z_autoz\uC0C8\uB85C\uACE0\uCE686_1040")}</motion.button>
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{"새로고침6"}</motion.button>
       </div>
 
       <div className="flex gap-3 mb-5">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("auto.z_autoz\uC81C\uBAA9\uB0B4\uC6A9\uC791_1041")} className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={"제목내용작"} className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors" />
         </div>
         <div className="flex gap-1.5">
           {filterBtns.map(b => <button key={b.key} onClick={() => setFilter(b.key)} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${filter === b.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
@@ -96,7 +96,7 @@ export const AdminPosts = () => {
 
       {loading ? <div className="py-16 flex items-center justify-center gap-3 text-muted-foreground">
           <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm">{t("auto.z_autoz\uBD88\uB7EC\uC624\uB294\uC911_1042")}</span>
+          <span className="text-sm">{"불러오는중"}</span>
         </div> : <div className="space-y-3">
           <AnimatePresence>
             {filtered.map(p => <motion.div key={p.id} layout exit={{
@@ -107,8 +107,8 @@ export const AdminPosts = () => {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                      {p.pinned && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[9px] font-bold text-primary">{i18n.t("auto.z_autoz\uACE0\uC815687_1043")}</span>}
-                      {p.hidden && <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-[9px] font-bold text-red-400">{i18n.t("auto.z_autoz\uC228\uAE40688_1044")}</span>}
+                      {p.pinned && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[9px] font-bold text-primary">{"고정687"}</span>}
+                      {p.hidden && <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-[9px] font-bold text-red-400">{"숨김688"}</span>}
                       {p.authorPhoto ? <img src={p.authorPhoto} className="w-5 h-5 rounded-lg object-cover" /> : <div className="w-5 h-5 rounded-lg bg-muted" />}
                       <span className="text-xs text-muted-foreground">{p.authorName}</span>
                       <span className="text-xs text-muted-foreground">·</span>
@@ -128,24 +128,24 @@ export const AdminPosts = () => {
                   <div className="flex flex-col gap-1.5 shrink-0">
                     <motion.button whileTap={{
                 scale: 0.9
-              }} onClick={() => handleTogglePin(p.id, p.pinned)} className={`p-2 rounded-xl transition-colors ${p.pinned ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={p.pinned ? i18n.t("auto.z_autoz\uD540\uD574\uC81C68_1045") : i18n.t("auto.z_autoz\uAE00\uACE0\uC81569_1046")}>
+              }} onClick={() => handleTogglePin(p.id, p.pinned)} className={`p-2 rounded-xl transition-colors ${p.pinned ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={p.pinned ? "핀해제68" : "글고정69"}>
                       <Pin size={14} />
                     </motion.button>
                     <motion.button whileTap={{
                 scale: 0.9
-              }} onClick={() => handleToggleHidden(p.id, p.hidden)} className={`p-2 rounded-xl transition-colors ${p.hidden ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"}`} title={p.hidden ? i18n.t("auto.z_autoz\uC228\uAE40\uD574\uC81C6_1047") : i18n.t("auto.z_autoz\uAE00\uC228\uAE4069_1048")}>
+              }} onClick={() => handleToggleHidden(p.id, p.hidden)} className={`p-2 rounded-xl transition-colors ${p.hidden ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"}`} title={p.hidden ? "숨김해제6" : "글숨김69"}>
                       {p.hidden ? <Eye size={14} /> : <EyeOff size={14} />}
                     </motion.button>
                     <motion.button whileTap={{
                 scale: 0.9
-              }} onClick={() => handleDelete(p.id)} className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title={i18n.t("auto.z_autoz\uAC8C\uC2DC\uAE00\uC0AD\uC81C_1049")}>
+              }} onClick={() => handleDelete(p.id)} className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title={"게시글삭제"}>
                       <Trash2 size={14} />
                     </motion.button>
                   </div>
                 </div>
               </motion.div>)}
           </AnimatePresence>
-          {filtered.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground">{t("auto.z_autoz\uAC8C\uC2DC\uAE00\uC774\uC5C6_1050")}</div>}
+          {filtered.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground">{"게시글이없"}</div>}
         </div>}
     </div>;
 };

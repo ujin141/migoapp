@@ -325,7 +325,10 @@ const SwipeCard = ({
 
           <div className="flex items-center gap-2 text-white/90 text-sm font-semibold drop-shadow-md">
             <MapPin size={16} />
-            <span className="line-clamp-1">{profile.location}</span>
+            <span className="line-clamp-1">
+              {profile.location}
+              {profile.distance ? ` • ${profile.distance}` : ""}
+            </span>
           </div>
           
           <div className="flex items-center gap-2 text-white/80 text-sm font-medium drop-shadow-md line-clamp-2 leading-relaxed max-w-[85%]">
@@ -347,15 +350,4 @@ const SwipeCard = ({
   </>;
 };
 
-// 간단한 AnimatePresence 대체
-const AnimatePresenceLocal = ({
-  show,
-  children
-}: {
-  show: boolean;
-  children: React.ReactNode;
-}) => {
-  if (!show) return null;
-  return <div>{children}</div>;
-};
 export default SwipeCard;

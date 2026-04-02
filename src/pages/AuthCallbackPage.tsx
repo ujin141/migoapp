@@ -78,7 +78,7 @@ const AuthCallbackPage = () => {
   return <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        <p className="text-sm text-muted-foreground">{t("auto.z_autoz\uB85C\uADF8\uC778\uCC98\uB9AC_846")}</p>
+        <p className="text-sm text-muted-foreground">{"로그인처리"}</p>
       </div>
     </div>;
 };

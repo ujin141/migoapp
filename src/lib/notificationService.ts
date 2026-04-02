@@ -31,7 +31,7 @@ export function showLocalNotification(title: string, body: string, iconPath = "/
 
 /** 매치 알림 */
 export function notifyMatch(matchedName: string) {
-  showLocalNotification(i18n.t("auto.z_autoz매칭성공_1106"), i18n.t("notif.matchSuccess", {
+  showLocalNotification("매칭성공", i18n.t("notif.matchSuccess", {
     name: matchedName,
     defaultValue: `You matched with {{name}}! Start chatting now.`
   }));
@@ -44,7 +44,7 @@ export function notifyMessage(senderName: string, preview: string) {
 
 /** 그룹 새 멤버 알림 */
 export function notifyGroupJoin(groupTitle: string, memberName: string) {
-  showLocalNotification(i18n.t("auto.z_autoz새멤버왔_1108"), i18n.t("notif.groupJoin", {
+  showLocalNotification("새멤버왔", i18n.t("notif.groupJoin", {
     name: memberName,
     title: groupTitle,
     defaultValue: `{{name}} joined '{{title}}'!`

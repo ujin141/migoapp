@@ -24,23 +24,23 @@ const generateIcebreakers = (profile: any, myProfile?: any): string[] => {
   const TEMPLATE_MAP: Record<string, string[]> = {
     "photo": [i18n.t("auto.z_tmpl_1505", {
       defaultValue: `Know any great photo spots in ${destination}? Let's go! 📸`
-    }), i18n.t("auto.z_autoz\uC5B4\uB5A4\uCE74\uBA54\uB77C_1390")],
+    }), "어떤카메라"],
     "food": [i18n.t("auto.z_tmpl_1507", {
       defaultValue: `Can you recommend food spots in ${destination}? I love local food 🍜`
-    }), i18n.t("auto.z_autoz\uC624\uB298\uC800\uB141\uD63C_1392")],
+    }), "오늘저녁혼"],
     "photo trip": [i18n.t("auto.z_tmpl_1509", {
       defaultValue: `Looking for great shots in ${destination}! Want to join? 📷`
     })],
-    "food tour": [i18n.t("auto.z_autoz\uC624\uB298\uBB50\uB4DC\uC168_1394")],
-    "activity": [i18n.t("auto.z_autoz\uD639\uC2DC\uC11C\uD551\uC2A4_1395"), i18n.t("auto.z_tmpl_1512", {
+    "food tour": ["오늘뭐드셨"],
+    "activity": ["혹시서핑스", i18n.t("auto.z_tmpl_1512", {
       defaultValue: `What activities are you planning in ${destination}?`
     })],
     "nature": [i18n.t("auto.z_tmpl_1513", {
       defaultValue: `Know any nice trails near ${destination}? Let's hike! 🌿`
     })],
-    "luxury": [i18n.t("auto.z_autoz\uC5B4\uB514\uBA38\uBB3C\uACE0_1398")],
-    "local": [i18n.t("auto.z_autoz\uD604\uC9C0\uC778\uCC98\uB7FC_1399")],
-    "long term": [i18n.t("auto.z_autoz\uC7A5\uAE30\uC5EC\uD589\uC774_1400")]
+    "luxury": ["어디머물고"],
+    "local": ["현지인처럼"],
+    "long term": ["장기여행이"]
   };
   const results: string[] = [];
 
@@ -70,7 +70,7 @@ const generateIcebreakers = (profile: any, myProfile?: any): string[] => {
     defaultValue: i18n.t("auto.z_tmpl_1402", {
       defaultValue: `First time in ${destination}? I just arrived too! ✈️`
     })
-  }), i18n.t("auto.z_autoz\uC5B4\uB5BB\uAC8C\uC5EC\uAE30_1403"), i18n.t("auto.z_autoz\uC624\uB298\uBB50\uD560\uACC4_1404"), i18n.t("auto.z_autoz\uD63C\uC790\uC5EC\uD589\uC911_1405")];
+  }), "어떻게여기", "오늘뭐할계", "혼자여행중"];
   while (results.length < 3) {
     const next = defaults[results.length % defaults.length];
     if (!results.includes(next)) results.push(next);else break;
@@ -81,17 +81,17 @@ const generateIcebreakers = (profile: any, myProfile?: any): string[] => {
 // ── 즉시 만남 장소 제안 ──
 const suggestMeetingPlace = (destination: string): string => {
   const SPOTS: Record<string, string> = {
-    [i18n.t("dest.tokyo", "도쿄")]: i18n.t("auto.z_autoz\uC2DC\uBD80\uC57C\uC2A4\uD0C0_1406"),
-    [i18n.t("dest.kyoto", "교토")]: i18n.t("auto.z_autoz\uAE30\uC628\uCE74\uD398\uAC70_1407"),
-    [i18n.t("dest.osaka", "오사카")]: i18n.t("auto.z_autoz\uB3C4\uD1B0\uBCF4\uB9AC\uAE00_1408"),
+    [i18n.t("dest.tokyo", "도쿄")]: "시부야스타",
+    [i18n.t("dest.kyoto", "교토")]: "기온카페거",
+    [i18n.t("dest.osaka", "오사카")]: "도톰보리글",
     [i18n.t("dest.bali", "발리")]: i18n.t("auto.z_Seminyak해변_1525"),
-    [i18n.t("dest.paris", "파리")]: i18n.t("auto.z_autoz\uC5D0\uD3A0\uD0D1\uADFC\uCC98_1410"),
-    [i18n.t("dest.danang", "다낭")]: i18n.t("auto.z_autoz\uBBF8\uCF00\uBE44\uCE58\uADFC_1411")
+    [i18n.t("dest.paris", "파리")]: "에펠탑근처",
+    [i18n.t("dest.danang", "다낭")]: "미케비치근"
   };
   for (const [city, spot] of Object.entries(SPOTS)) {
     if (destination?.includes(city)) return spot;
   }
-  return i18n.t("auto.z_autoz\uADFC\uCC98\uCE74\uD398\uC5D0_1412");
+  return "근처카페에";
 };
 const MatchModal = ({
   isOpen,
@@ -163,7 +163,7 @@ const MatchModal = ({
                   <p className="text-xs text-muted-foreground">{profile.destination || profile.location}</p>
                 </div>
 
-                {isSuperLike ? <h2 className="text-base font-extrabold text-blue-400 mt-2">{t("auto.z_autoz\uC288\uD37C\uB77C\uC774\uD06C_1413")}</h2> : <h2 className="text-base font-extrabold gradient-text mt-2">{t("auto.z_autoz\uC11C\uB85C\uB9E4\uCE6D\uB410_1414")}</h2>}
+                {isSuperLike ? <h2 className="text-base font-extrabold text-blue-400 mt-2">{"슈퍼라이크"}</h2> : <h2 className="text-base font-extrabold gradient-text mt-2">{"서로매칭됐"}</h2>}
               </div>
 
               {/* Tinder/Meeff와 다른 핵심 차별점 영역 */}
@@ -177,7 +177,7 @@ const MatchModal = ({
               background: 'rgba(99,102,241,0.08)',
               borderColor: 'rgba(99,102,241,0.25)'
             }}>
-                    <p className="text-[9px] font-extrabold text-indigo-400 mb-1.5 uppercase tracking-wider">🎯 {profile.name}{t("auto.z_autoz\uC758\uC5EC\uD589\uBBF8\uC158_1415")}</p>
+                    <p className="text-[9px] font-extrabold text-indigo-400 mb-1.5 uppercase tracking-wider">🎯 {profile.name}{"의여행미션"}</p>
                     <p className="text-sm font-bold text-foreground">{profile.travelMission}</p>
                   </div>}
 
@@ -185,8 +185,8 @@ const MatchModal = ({
                 <div>
                   <div className="flex items-center gap-1.5 mb-2.5">
                     <Zap size={12} className="text-yellow-400 fill-yellow-400" />
-                    <p className="text-[11px] font-extrabold text-foreground">{t("auto.z_autozAI\uCD94\uCC9C\uCCAB_1416")}</p>
-                    <span className="text-[9px] text-muted-foreground">{t("auto.z_autoz\uACF5\uD1B5\uAD00\uC2EC\uC0AC_1417")}</span>
+                    <p className="text-[11px] font-extrabold text-foreground">{"AI추천첫"}</p>
+                    <span className="text-[9px] text-muted-foreground">{"공통관심사"}</span>
                   </div>
                   <div className="space-y-2">
                     {icebreakers.map((msg, i) => <motion.button key={i} onClick={() => handleCopy(msg, i)} whileTap={{
@@ -204,18 +204,18 @@ const MatchModal = ({
 
                 {/* [차별점 3] 즉시 만남 제안 */}
                 <div className="rounded-2xl p-3 border border-emerald-500/20 bg-emerald-500/5">
-                  <p className="text-[9px] font-extrabold text-emerald-400 mb-1 uppercase tracking-wider">{t("auto.z_autoz\uC989\uC2DC\uB9CC\uB0A8\uCD94_1418")}</p>
-                  <p className="text-sm text-foreground font-semibold">{meetingPlace}{t("auto.z_autoz\uC5D0\uC11C\uC9C0\uAE08\uBC14_1419")}</p>
+                  <p className="text-[9px] font-extrabold text-emerald-400 mb-1 uppercase tracking-wider">{"즉시만남추"}</p>
+                  <p className="text-sm text-foreground font-semibold">{meetingPlace}{"에서지금바"}</p>
                 </div>
 
                 {/* 버튼 */}
                 <div className="flex gap-3 pt-1">
-                  <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm hover:bg-muted transition-colors">{t("auto.z_autoz\uB098\uC911\uC5D015_1420")}</button>
+                  <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm hover:bg-muted transition-colors">{"나중에15"}</button>
                   <motion.button onClick={onChat} whileTap={{
                 scale: 0.97
               }} className={`flex-2 px-6 py-3 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 shadow-card ${isSuperLike ? "bg-gradient-to-r from-blue-500 to-indigo-600" : "gradient-primary text-primary-foreground"}`}>
                     <MessageCircle size={15} />
-                    {selectedIcebreaker ? t("auto.z_autoz\uC774\uAC78\uB85C\uCC44\uD305_1421") : t("auto.z_autoz\uCC44\uD305\uD558\uAE301_1422")}
+                    {selectedIcebreaker ? "이걸로채팅" : "채팅하기1"}
                   </motion.button>
                 </div>
               </div>

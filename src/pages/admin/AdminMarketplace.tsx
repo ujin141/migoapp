@@ -25,7 +25,7 @@ const ProductModal = ({
     destination: "",
     category: "tour",
     price: 0,
-    duration: t("auto.z_autoz1일695_1051"),
+    duration: "1일695",
     maxPeople: 10,
     currentPeople: 0,
     image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&q=80",
@@ -53,56 +53,56 @@ const ProductModal = ({
       <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={onClose} />
       <motion.div className="relative z-10 w-full max-w-lg bg-card rounded-3xl p-6 shadow-float max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-extrabold text-foreground">{pkg ? t("auto.z_autoz상품수정6_1052") : t("auto.z_autoz새상품등록_1053")}</h2>
+          <h2 className="text-xl font-extrabold text-foreground">{pkg ? "상품수정6" : "새상품등록"}</h2>
           <button onClick={onClose} className="p-2 bg-muted rounded-full"><X size={18} /></button>
         </div>
         
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz상품명69_1054")}</label>
+            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"상품명69"}</label>
             <input value={form.title} onChange={e => setForm({
             ...form,
             title: e.target.value
-          })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none" placeholder={t("auto.z_autoz예오사카먹_1055")} />
+          })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none" placeholder={"예오사카먹"} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz카테고리7_1056")}</label>
+              <label className="text-xs font-bold text-muted-foreground mb-1 block">{"카테고리7"}</label>
               <select value={form.category} onChange={e => setForm({
               ...form,
               category: e.target.value
             })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none">
-                <option value="tour">{t("auto.z_autoz투어701_1057")}</option>
-                <option value="activity">{t("auto.z_autoz액티비티7_1058")}</option>
-                <option value="stay">{t("auto.z_autoz숙소703_1059")}</option>
-                <option value="food">{t("auto.z_autoz맛집704_1060")}</option>
+                <option value="tour">{"투어701"}</option>
+                <option value="activity">{"액티비티7"}</option>
+                <option value="stay">{"숙소703"}</option>
+                <option value="food">{"맛집704"}</option>
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz가격원70_1061")}</label>
+              <label className="text-xs font-bold text-muted-foreground mb-1 block">{"가격원70"}</label>
               <input type="number" value={form.price} onChange={e => setForm({
               ...form,
               price: Number(e.target.value)
             })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none" />
             </div>
             <div>
-              <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz목적지70_1062")}</label>
+              <label className="text-xs font-bold text-muted-foreground mb-1 block">{"목적지70"}</label>
               <input value={form.destination} onChange={e => setForm({
               ...form,
               destination: e.target.value
-            })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none" placeholder={t("auto.z_autoz예오사카일_1063")} />
+            })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none" placeholder={"예오사카일"} />
             </div>
             <div>
-              <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz소요시간기_1064")}</label>
+              <label className="text-xs font-bold text-muted-foreground mb-1 block">{"소요시간기"}</label>
               <input value={form.duration} onChange={e => setForm({
               ...form,
               duration: e.target.value
-            })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none" placeholder={t("auto.z_autoz예4시간또_1065")} />
+            })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none" placeholder={"예4시간또"} />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz상세설명7_1066")}</label>
+            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"상세설명7"}</label>
             <textarea value={form.description} onChange={e => setForm({
             ...form,
             description: e.target.value
@@ -110,7 +110,7 @@ const ProductModal = ({
           </div>
 
           <div>
-            <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz대표이미지_1067")}</label>
+            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"대표이미지"}</label>
             <input value={form.image} onChange={e => setForm({
             ...form,
             image: e.target.value
@@ -123,13 +123,13 @@ const ProductModal = ({
             ...form,
             featured: e.target.checked
           })} className="w-4 h-4 accent-primary" />
-            <label htmlFor="featured" className="text-sm font-semibold text-foreground">{t("auto.z_autoz인기Fea_1068")}</label>
+            <label htmlFor="featured" className="text-sm font-semibold text-foreground">{"인기Fea"}</label>
           </div>
 
         </div>
 
         <button onClick={handleSubmit} disabled={saving} className="w-full mt-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl flex justify-center items-center gap-2">
-          {saving ? t("auto.z_autoz저장중71_1069") : <><Save size={18} />{t("auto.z_autoz저장하기7_1070")}</>}
+          {saving ? "저장중71" : <><Save size={18} />{"저장하기7"}</>}
         </button>
       </motion.div>
     </div>;
@@ -203,27 +203,27 @@ const AdminMarketplace = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
-            <Store size={24} className="text-primary" />{t("auto.z_autoz마켓상품관_1072")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t("auto.z_autoz투어액티비_1073")}</p>
+            <Store size={24} className="text-primary" />{"마켓상품관"}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{"투어액티비"}</p>
         </div>
         <button onClick={() => {
         setEditingItem(null);
         setShowModal(true);
       }} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-2">
-          <Plus size={16} />{t("auto.z_autoz새상품등록_1074")}</button>
+          <Plus size={16} />{"새상품등록"}</button>
       </div>
 
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        {loading ? <div className="p-12 text-center text-muted-foreground text-sm font-semibold">{t("auto.z_autoz상품목록을_1075")}</div> : items.length === 0 ? <div className="p-12 text-center text-muted-foreground text-sm font-semibold">{t("auto.z_autoz등록된상품_1076")}</div> : <div className="overflow-x-auto">
+        {loading ? <div className="p-12 text-center text-muted-foreground text-sm font-semibold">{"상품목록을"}</div> : items.length === 0 ? <div className="p-12 text-center text-muted-foreground text-sm font-semibold">{"등록된상품"}</div> : <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="p-4 text-xs font-bold text-muted-foreground w-16">{t("auto.z_autoz이미지72_1077")}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground">{t("auto.z_autoz상품명72_1078")}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground">{t("auto.z_autoz카테고리7_1079")}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground">{t("auto.z_autoz목적지72_1080")}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground text-right">{t("auto.z_autoz가격725_1081")}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground text-right w-24">{t("auto.z_autoz관리726_1082")}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground w-16">{"이미지72"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground">{"상품명72"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground">{"카테고리7"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground">{"목적지72"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground text-right">{"가격725"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground text-right w-24">{"관리726"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -239,13 +239,13 @@ const AdminMarketplace = () => {
                       <p className="text-[10px] text-muted-foreground">{item.description.substring(0, 50)}...</p>
                     </td>
                     <td className="p-4 text-xs font-semibold text-muted-foreground">
-                      {item.category === "tour" ? i18n.t("auto.z_autoz투어727_1083") : item.category === "stay" ? i18n.t("auto.z_autoz숙소728_1084") : item.category === "activity" ? i18n.t("auto.z_autoz액티비티7_1085") : i18n.t("auto.z_autoz맛집730_1086")}
+                      {item.category === "tour" ? "투어727" : item.category === "stay" ? "숙소728" : item.category === "activity" ? "액티비티7" : "맛집730"}
                     </td>
                     <td className="p-4 text-xs text-muted-foreground flex items-center gap-1 mt-3.5">
                       <MapPin size={12} /> {item.destination}
                     </td>
                     <td className="p-4 text-sm font-bold text-foreground text-right">
-                      {item.price.toLocaleString()}{i18n.t("auto.z_autoz원731_1087")}</td>
+                      {item.price.toLocaleString()}{"원731"}</td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => {

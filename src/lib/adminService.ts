@@ -157,13 +157,13 @@ export async function fetchAdminPosts() {
     }
     return (d2 || []).map((p: any) => ({
       ...p,
-      authorName: i18n.t("auto.z_autoz?곸벉931_1269"),
+      authorName: "?곸벉931",
       authorPhoto: null
     }));
   }
   return (data || []).map((p: any) => ({
     ...p,
-    authorName: (p.profiles as any)?.name || i18n.t("auto.z_autoz?곸벉932_1270"),
+    authorName: (p.profiles as any)?.name || "?곸벉932",
     authorPhoto: (p.profiles as any)?.photo_url || null
   }));
 }
@@ -221,13 +221,13 @@ export async function fetchAdminGroups() {
     }
     return (d2 || []).map((g: any) => ({
       ...g,
-      hostName: i18n.t("auto.z_autoz?곸벉933_1271"),
+      hostName: "?곸벉933",
       memberCount: 0
     }));
   }
   return (data || []).map((g: any) => ({
     ...g,
-    hostName: (g.profiles as any)?.name || i18n.t("auto.z_autoz?곸벉934_1272"),
+    hostName: (g.profiles as any)?.name || "?곸벉934",
     memberCount: Array.isArray(g.trip_group_members) ? g.trip_group_members.length : 0
   }));
 }
@@ -253,7 +253,7 @@ export async function fetchAdminReports() {
     const {
       data: data2,
       error: error2
-    } = await adminSupabase.from("reports").select("*, profiles(name, photo_url)").order("created_at", {
+    } = await adminSupabase.from("reports").select("*, profiles!reports_reporter_id_fkey(name, photo_url)").order("created_at", {
       ascending: false
     });
     if (error2) {
@@ -262,13 +262,13 @@ export async function fetchAdminReports() {
     }
     return (data2 || []).map((r: any) => ({
       ...r,
-      reporterName: r.profiles?.name || i18n.t("auto.z_autoz?곸벉935_1273"),
+      reporterName: r.profiles?.name || "?곸벉935",
       reporterPhoto: r.profiles?.photo_url
     }));
   }
   return (data || []).map((r: any) => ({
     ...r,
-    reporterName: r.reporter?.name || i18n.t("auto.z_autoz?곸벉936_1274"),
+    reporterName: r.reporter?.name || "?곸벉936",
     reporterPhoto: r.reporter?.photo_url
   }));
 }
@@ -403,13 +403,13 @@ export async function fetchWeeklyStats(): Promise<any[]> {
   } = await adminSupabase.from("trip_groups").select("created_at").gte("created_at", days[0]);
   const result = days.map(dayStr => {
     const dayLabel = [
-      i18n.t("auto.z_autoz일8_14", "일"),
-      i18n.t("auto.z_autoz월9_15", "월"),
-      i18n.t("auto.z_autoz화10_16", "화"),
-      i18n.t("auto.z_autoz수11_17", "수"),
-      i18n.t("auto.z_autoz목12_18", "목"),
-      i18n.t("auto.z_autoz금13_19", "금"),
-      i18n.t("auto.z_autoz토14_20", "토")
+      "일",
+      "월",
+      "화",
+      "수",
+      "목",
+      "금",
+      "토"
     ][new Date(dayStr).getDay()];
     const newUsers = (users || []).filter((u: any) => (u.created_at || "").startsWith(dayStr)).length;
     const newGroups = (groups || []).filter((g: any) => (g.created_at || "").startsWith(dayStr)).length;
@@ -728,7 +728,7 @@ export async function fetchAdminMessages(groupId: string, limit = 30) {
   if (!isSupabaseConfigured) return [];
   const { data, error } = await adminSupabase
     .from("messages")
-    .select("id, content, created_at, user_id, profiles(name, photo_url)")
+    .select("id, content, created_at, user_id, profiles!messages_user_id_fkey(name, photo_url)")
     .eq("group_id", groupId)
     .order("created_at", { ascending: false })
     .limit(limit);

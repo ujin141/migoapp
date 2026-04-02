@@ -22,13 +22,13 @@ export interface Package {
 // Helper to standardise fetched data
 const mapToPackage = (d: any): Package => ({
   id: d.id,
-  title: d.title || i18n.t("auto.z_autoz무제915_1253"),
-  host: d.profiles?.name || d.host || i18n.t("auto.z_autoz익명호스트_1254"),
+  title: d.title || "무제915",
+  host: d.profiles?.name || d.host || "익명호스트",
   hostAvatar: d.profiles?.photo_url || d.host_avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&q=80",
-  destination: d.destination || i18n.t("auto.z_autoz미등록91_1255"),
+  destination: d.destination || "미등록91",
   category: d.category || 'tour',
   price: d.price || 0,
-  duration: d.duration || i18n.t("auto.z_autoz상세보기9_1256"),
+  duration: d.duration || "상세보기9",
   maxPeople: d.max_people || 10,
   currentPeople: d.current_people || 0,
   rating: d.rating || 0,

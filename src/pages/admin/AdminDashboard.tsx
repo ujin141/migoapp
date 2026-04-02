@@ -117,27 +117,27 @@ export const AdminDashboard = () => {
     update: "🆕"
   };
   const statsCards = [{
-    label: t("auto.z_autoz총유저87_1218"),
+    label: "총유저87",
     value: stats.users.toLocaleString(),
     icon: Users,
     color: "from-violet-500 to-purple-600"
   }, {
-    label: t("auto.z_autoz활성그룹8_1219"),
+    label: "활성그룹8",
     value: stats.groups.toLocaleString(),
     icon: Plane,
     color: "from-blue-500 to-cyan-500"
   }, {
-    label: t("auto.z_autoz총게시글8_1220"),
+    label: "총게시글8",
     value: stats.posts.toLocaleString(),
     icon: FileText,
     color: "from-orange-500 to-amber-500"
   }, {
-    label: t("auto.z_autoz대기중신고_1221"),
+    label: "대기중신고",
     value: stats.reports.toLocaleString(),
     icon: Flag,
     color: "from-red-500 to-rose-600"
   }, {
-    label: t("auto.z_autoz게재중광고_1222"),
+    label: "게재중광고",
     value: t("auto.z_tmpl_884", {
       defaultValue: t("auto.z_tmpl_1223", {
         defaultValue: t("auto.t5001", {
@@ -148,7 +148,7 @@ export const AdminDashboard = () => {
     icon: TrendingUp,
     color: "from-emerald-500 to-green-500"
   }, {
-    label: t("auto.z_autoz공지사항8_1224"),
+    label: "공지사항8",
     value: t("auto.z_tmpl_886", {
       defaultValue: t("auto.z_tmpl_1225", {
         defaultValue: t("auto.t5002", {
@@ -169,14 +169,14 @@ export const AdminDashboard = () => {
       )}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">{t("auto.z_autoz대시보드8_1226")}</h1>
-          <p className="text-sm text-muted-foreground">{t("auto.z_autozMigo앱_1227")}</p>
+          <h1 className="text-2xl font-extrabold text-foreground">{"대시보드8"}</h1>
+          <p className="text-sm text-muted-foreground">{"Migo앱"}</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowAnnounce(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors">
-            <Megaphone size={14} />{t("auto.z_autoz공지발행8_1228")}</button>
+            <Megaphone size={14} />{"공지발행8"}</button>
           <button onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-sm hover:text-foreground transition-colors">
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{t("auto.z_autoz새로고침8_1229")}</button>
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{"새로고침8"}</button>
         </div>
       </div>
 
@@ -219,8 +219,8 @@ export const AdminDashboard = () => {
       {/* Charts row */}
       <div className="grid grid-cols-3 gap-5 mb-6">
         <div className="col-span-2 bg-card rounded-2xl p-5 border border-border">
-          <p className="font-extrabold text-foreground text-sm mb-1">{t("auto.z_autoz주간유저추_1230")}</p>
-          <p className="text-[10px] text-emerald-400 font-bold mb-4 flex items-center gap-1.5"><TrendingUp size={11} />{t("auto.z_autoz실시간라이_1231")}</p>
+          <p className="font-extrabold text-foreground text-sm mb-1">{"주간유저추"}</p>
+          <p className="text-[10px] text-emerald-400 font-bold mb-4 flex items-center gap-1.5"><TrendingUp size={11} />{"실시간라이"}</p>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={liveChartData}>
               <defs>
@@ -246,13 +246,13 @@ export const AdminDashboard = () => {
         {/* Recent Reports */}
         <div className="bg-card rounded-2xl p-5 border border-border overflow-y-auto">
           <p className="text-xs font-extrabold text-muted-foreground mb-3 flex items-center gap-1.5">
-            <Flag size={12} className="text-red-400" />{t("auto.z_autoz대기중신고_1232")}</p>
+            <Flag size={12} className="text-red-400" />{"대기중신고"}</p>
           <div className="space-y-2">
-            {recentReports.length === 0 ? <p className="text-xs text-muted-foreground">{t("auto.z_autoz대기신고가_1233")}</p> : recentReports.map((r: any) => <div key={r.id} className="flex items-start gap-2 p-2 bg-muted/40 rounded-xl">
+            {recentReports.length === 0 ? <p className="text-xs text-muted-foreground">{"대기신고가"}</p> : recentReports.map((r: any) => <div key={r.id} className="flex items-start gap-2 p-2 bg-muted/40 rounded-xl">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-xs text-foreground truncate font-semibold">{r.reason}</p>
-                    <p className="text-[10px] text-muted-foreground">{i18n.t("auto.z_autoz신고자89_1234")}{r.reporterName || i18n.t("auto.z_autoz알수없음8_1235")}</p>
+                    <p className="text-[10px] text-muted-foreground">{"신고자89"}{r.reporterName || "알수없음8"}</p>
                   </div>
                 </div>)}
           </div>
@@ -264,12 +264,12 @@ export const AdminDashboard = () => {
         {/* Recent Users */}
         <div className="bg-card rounded-2xl p-5 border border-border">
           <p className="text-xs font-extrabold text-muted-foreground mb-3 flex items-center gap-1.5">
-            <Users size={12} />{t("auto.z_autoz최근가입유_1236")}</p>
+            <Users size={12} />{"최근가입유"}</p>
           <div className="space-y-2">
-            {recentUsers.length === 0 ? <p className="text-xs text-muted-foreground">{t("auto.z_autoz유저가없습_1237")}</p> : recentUsers.map((u: any) => <div key={u.id} className="flex items-center gap-3 py-1.5 border-b border-border/30 last:border-0">
+            {recentUsers.length === 0 ? <p className="text-xs text-muted-foreground">{"유저가없습"}</p> : recentUsers.map((u: any) => <div key={u.id} className="flex items-center gap-3 py-1.5 border-b border-border/30 last:border-0">
                   {u.photo_url ? <img src={u.photo_url} className="w-7 h-7 rounded-lg object-cover shrink-0" /> : <div className="w-7 h-7 bg-muted rounded-lg shrink-0 flex items-center justify-center text-xs font-bold">{u.name?.[0]?.toUpperCase() || "?"}</div>}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-foreground font-semibold truncate">{u.name || i18n.t("auto.z_autoz이름없음8_1238")}</p>
+                    <p className="text-xs text-foreground font-semibold truncate">{u.name || "이름없음8"}</p>
                     <p className="text-[10px] text-muted-foreground">{new Date(u.created_at).toLocaleDateString("ko-KR")}</p>
                   </div>
                   {u.verified ? <Check size={11} className="text-emerald-400 shrink-0" /> : <Clock size={11} className="text-amber-400 shrink-0" />}
@@ -281,13 +281,13 @@ export const AdminDashboard = () => {
         <div className="bg-card rounded-2xl p-5 border border-border">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-extrabold text-muted-foreground flex items-center gap-1.5">
-              <Bell size={12} />{t("auto.z_autoz앱공지사항_1239")}</p>
+              <Bell size={12} />{"앱공지사항"}</p>
             <button onClick={() => setShowAnnounce(true)} className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <Plus size={12} />
             </button>
           </div>
           <div className="space-y-2 max-h-52 overflow-y-auto">
-            {announcements.length === 0 ? <p className="text-xs text-muted-foreground">{t("auto.z_autoz발행된공지_1240")}</p> : announcements.map((a: any) => <div key={a.id} className={`p-3 rounded-xl border text-xs transition-all ${typeColors[a.type as AnnouncementType] || "bg-muted border-border"}`}>
+            {announcements.length === 0 ? <p className="text-xs text-muted-foreground">{"발행된공지"}</p> : announcements.map((a: any) => <div key={a.id} className={`p-3 rounded-xl border text-xs transition-all ${typeColors[a.type as AnnouncementType] || "bg-muted border-border"}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-bold truncate">{typeIcons[a.type as AnnouncementType] || "📢"} {a.title}</p>
@@ -307,19 +307,19 @@ export const AdminDashboard = () => {
           <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowAnnounce(false)} />
           <div className="relative z-10 w-full max-w-lg bg-card rounded-3xl p-6 shadow-float border border-border">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-extrabold text-foreground flex items-center gap-2"><Megaphone size={16} />{t("auto.z_autoz공지사항발_1241")}</h3>
+              <h3 className="font-extrabold text-foreground flex items-center gap-2"><Megaphone size={16} />{"공지사항발"}</h3>
               <button onClick={() => setShowAnnounce(false)} className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center"><X size={14} /></button>
             </div>
             <div className="space-y-3">
               <div className="flex gap-2">
                 {(["info", "warning", "update"] as AnnouncementType[]).map(t => <button key={t} onClick={() => setAnnType(t)} className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${annType === t ? typeColors[t] : "bg-muted border-border text-muted-foreground"}`}>
-                    {typeIcons[t]} {t === "info" ? i18n.t("auto.z_autoz일반903_1242") : t === "warning" ? i18n.t("auto.z_autoz경고904_1243") : i18n.t("auto.z_autoz업데이트9_1244")}
+                    {typeIcons[t]} {t === "info" ? "일반903" : t === "warning" ? "경고904" : "업데이트9"}
                   </button>)}
               </div>
-              <input value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder={t("auto.z_autoz공지제목9_1245")} className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
-              <textarea value={annContent} onChange={e => setAnnContent(e.target.value)} rows={3} placeholder={t("auto.z_autoz공지내용9_1246")} className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors resize-none" />
+              <input value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder={"공지제목9"} className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
+              <textarea value={annContent} onChange={e => setAnnContent(e.target.value)} rows={3} placeholder={"공지내용9"} className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors resize-none" />
               <button onClick={handleCreateAnnouncement} disabled={savingAnn || !annTitle || !annContent} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-extrabold text-sm disabled:opacity-40 transition-opacity">
-                {savingAnn ? t("auto.z_autoz발행중90_1247") : t("auto.z_autoz공지발행하_1248")}
+                {savingAnn ? "발행중90" : "공지발행하"}
               </button>
             </div>
           </div>

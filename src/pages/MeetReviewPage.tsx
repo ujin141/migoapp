@@ -31,8 +31,8 @@ interface MetUser {
 
 // Mock data removed
 
-const POSITIVE_TAGS = ["Punctual", "Great conversation", i18n.t("auto.z_autoz배려깊음7_109"), i18n.t("auto.z_autoz여행정보풍_110"), i18n.t("auto.z_autoz안전한느낌_111"), "Would meet again", i18n.t("auto.z_autoz현지맛집잘_112"), i18n.t("auto.z_autoz사진잘찍어_113")];
-const CAUTION_TAGS = [i18n.t("auto.z_autoz약속시간불_114"), i18n.t("auto.z_autoz대화가불편_115"), i18n.t("auto.z_autoz배려부족8_116")];
+const POSITIVE_TAGS = ["Punctual", "Great conversation", "배려깊음7", "여행정보풍", "안전한느낌", "Would meet again", "현지맛집잘", "사진잘찍어"];
+const CAUTION_TAGS = ["약속시간불", "대화가불편", "배려부족8"];
 
 // ─── StarRating ───────────────────────────────────
 const StarRating = ({
@@ -133,7 +133,7 @@ const WriteReview = ({
         <div className="flex items-center gap-3 mb-5">
           <img src={user.photo} alt={user.name} className="w-12 h-12 rounded-2xl object-cover" />
           <div>
-            <p className="font-extrabold text-foreground">{user.name}{t("auto.z_autoz님후기작성_118")}</p>
+            <p className="font-extrabold text-foreground">{user.name}{"님후기작성"}</p>
             <p className="text-xs text-muted-foreground">{user.destination} · {user.meetDate}</p>
           </div>
         </div>
@@ -234,7 +234,7 @@ const MeetReviewPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const CAUTION_TAGS = getArr("meetReview.cautionTags", [t("auto.z_autoz연락두절8_119"), t("auto.z_autoz약속불이행_120"), t("auto.z_autoz불쾌한언행_121"), t("auto.z_autoz금전요구9_122"), t("auto.z_autoz과도한음주_123"), t("auto.z_autoz불건전목적_124"), t("auto.z_autoz프로필과다_125")]);
+  const CAUTION_TAGS = getArr("meetReview.cautionTags", ["연락두절8", "약속불이행", "불쾌한언행", "금전요구9", "과도한음주", "불건전목적", "프로필과다"]);
   const navigate = useNavigate();
   const {
     user
@@ -253,7 +253,7 @@ const MeetReviewPage = () => {
       if (revData) {
         setReviews(revData.map(r => ({
           id: r.id,
-          reviewerName: r.profiles?.name || i18n.t("auto.z_autoz익명94_126"),
+          reviewerName: r.profiles?.name || "익명94",
           reviewerPhoto: r.profiles?.photo_url || "",
           rating: r.rating,
           tags: r.tags || [],
@@ -275,9 +275,9 @@ const MeetReviewPage = () => {
         if (partnerProfiles) {
           setUsers(partnerProfiles.map((p: any) => ({
             id: p.id,
-            name: p.name || i18n.t("auto.z_autoz알수없음9_127"),
+            name: p.name || "알수없음9",
             photo: p.photo_url || "",
-            destination: p.location || i18n.t("auto.z_autoz여행지96_128"),
+            destination: p.location || "여행지96",
             meetDate: new Intl.DateTimeFormat('ko-KR').format(new Date(p.created_at)),
             reviewed: false
           })));

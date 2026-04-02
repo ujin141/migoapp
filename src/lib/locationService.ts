@@ -23,7 +23,7 @@ export const getCurrentLocation = async (showToastOnFail = false): Promise<GeoLo
         if (permStatus.location !== 'granted') {
           if (showToastOnFail) {
             toast({
-              title: i18n.t("auto.z_autoz위치권한없_325", { defaultValue: "위치 권한이 없습니다." }),
+              title: "위치권한없",
               variant: "destructive",
             });
           }
@@ -34,7 +34,7 @@ export const getCurrentLocation = async (showToastOnFail = false): Promise<GeoLo
       if (!navigator.geolocation) {
         if (showToastOnFail) {
           toast({
-            title: i18n.t("auto.z_autoz위치알수없_324", { defaultValue: "이 브라우저에서는 위치 기능을 지원하지 않습니다." }),
+            title: "위치알수없",
             variant: "destructive",
           });
         }
@@ -57,7 +57,7 @@ export const getCurrentLocation = async (showToastOnFail = false): Promise<GeoLo
     if (showToastOnFail) {
       toast({
         title: "GPS Error",
-        description: error.message || i18n.t("auto.z_autoz위치알수없_324", { defaultValue: "정확한 위치를 찾을 수 없습니다." }),
+        description: error.message || "위치알수없",
         variant: "destructive",
       });
     }

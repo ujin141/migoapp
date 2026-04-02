@@ -23,7 +23,7 @@ export const haversineKm = (a: GeoPosition, b: GeoPosition): number => {
 
 // 거리 → 사람이 읽기 쉬운 라벨
 export const distanceLabel = (km: number): string => {
-  if (km < 0.1) return i18n.t("auto.z_autoz50m\uC774\uB0B4_1108");
+  if (km < 0.1) return "50m이내";
   if (km < 0.3) return `${Math.round(km * 1000)}m`;
   if (km < 1) return `${Math.round(km * 1000)}m`;
   if (km < 10) return `${km.toFixed(1)}km`;
@@ -32,7 +32,7 @@ export const distanceLabel = (km: number): string => {
 
 // 거리 → 이동 시간 텍스트
 export const travelTimeLabel = (km: number): string => {
-  if (km < 0.3) return i18n.t("auto.z_autoz\uB3C4\uBCF43\uBD841_1109");
+  if (km < 0.3) return "도보3분1";
   if (km < 1) {
     return i18n.t("dist.walk", {
       time: Math.round(km / 0.08),
@@ -67,10 +67,10 @@ export const distanceColor = (km: number): string => {
 
 // 거리 → 만남 가능 여부 텍스트
 export const meetabilityLabel = (km: number): string => {
-  if (km < 1) return i18n.t("auto.z_autoz\uC9C0\uAE08\uB2F9\uC7A5\uB9CC_1114");
-  if (km < 5) return i18n.t("auto.z_autoz\uAC00\uAE4C\uC6B4\uAC70\uB9AC_1115");
-  if (km < 15) return i18n.t("auto.z_autoz\uC774\uB3D9\uD558\uBA74\uB9CC_1116");
-  return i18n.t("auto.z_autoz\uC880\uBA40\uC9C0\uB9CC\uB9CC_1117");
+  if (km < 1) return "지금당장만";
+  if (km < 5) return "가까운거리";
+  if (km < 15) return "이동하면만";
+  return "좀멀지만만";
 };
 
 // 중간 지점 계산
@@ -97,7 +97,7 @@ const useGeoDistance = () => {
       setMyPos(pos);
       setError(null);
     } else {
-      setError(i18n.t("auto.z_autoz이브라우저_1118", { defaultValue: "위치를 가져올 수 없습니다." }));
+      setError("이브라우저");
       // 위치 권한 거부 시 서울 중심 fallback (데모용)
       setMyPos({
         lat: 37.5665,

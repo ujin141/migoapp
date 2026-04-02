@@ -43,7 +43,7 @@ if (!isSupabaseConfigured) {
   globalUser = {
     id: "mock-user-1",
     email: "demo@lunaticsgroup.com",
-    name: i18n.t("auto.z_autoz데모유저9_1294"),
+    name: "데모유저9",
     verified: false
   };
   globalLoading = false;

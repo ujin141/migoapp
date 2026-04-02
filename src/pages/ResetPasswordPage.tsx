@@ -113,7 +113,7 @@ const ResetPasswordPage = () => {
                     type={showPass ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t("auto.z_autoz8자이상영_433")}
+                    placeholder={"8자이상영"}
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                   />
                   <button onClick={() => setShowPass(!showPass)} className="shrink-0">
@@ -150,7 +150,7 @@ const ResetPasswordPage = () => {
                   </button>
                 </div>
                 {confirmPassword && password !== confirmPassword && (
-                  <p className="text-[10px] text-red-500 mt-1 font-semibold">{t("auto.z_autoz비밀번호가_434")}</p>
+                  <p className="text-[10px] text-red-500 mt-1 font-semibold">{"비밀번호가"}</p>
                 )}
               </div>
             </div>

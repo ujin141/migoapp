@@ -40,8 +40,8 @@ export interface Ad {
 // ── Mock fallback data for when Supabase is not configured ────────────────────
 export const MOCK_AD_SLOTS: AdSlot[] = [{
   id: "swipe_between_cards",
-  name: i18n.t("auto.z_autoz스와이프카_1257"),
-  description: i18n.t("auto.z_autoz3번째카드_1258"),
+  name: "스와이프카",
+  description: "3번째카드",
   app_screen: "MatchPage",
   format: "card",
   dimensions: "360x480",
@@ -49,8 +49,8 @@ export const MOCK_AD_SLOTS: AdSlot[] = [{
   enabled: true
 }, {
   id: "chat_list_banner",
-  name: i18n.t("auto.z_autoz채팅목록상_1259"),
-  description: i18n.t("auto.z_autoz채팅리스트_1260"),
+  name: "채팅목록상",
+  description: "채팅리스트",
   app_screen: "ChatPage",
   format: "banner",
   dimensions: "360x90",
@@ -58,8 +58,8 @@ export const MOCK_AD_SLOTS: AdSlot[] = [{
   enabled: true
 }, {
   id: "community_feed_native",
-  name: i18n.t("auto.z_autoz커뮤니티피_1261"),
-  description: i18n.t("auto.z_autoz피드5번째_1262"),
+  name: "커뮤니티피",
+  description: "피드5번째",
   app_screen: "CommunityPage",
   format: "native",
   dimensions: "360x200",
@@ -67,8 +67,8 @@ export const MOCK_AD_SLOTS: AdSlot[] = [{
   enabled: true
 }, {
   id: "explore_top_banner",
-  name: i18n.t("auto.z_autoz탐색상단배_1263"),
-  description: i18n.t("auto.z_autoz탐색Dis_1264"),
+  name: "탐색상단배",
+  description: "탐색Dis",
   app_screen: "DiscoverPage",
   format: "banner",
   dimensions: "360x60",
@@ -76,8 +76,8 @@ export const MOCK_AD_SLOTS: AdSlot[] = [{
   enabled: true
 }, {
   id: "profile_bottom_banner",
-  name: i18n.t("auto.z_autoz프로필하단_1265"),
-  description: i18n.t("auto.z_autoz프로필화면_1266"),
+  name: "프로필하단",
+  description: "프로필화면",
   app_screen: "ProfilePage",
   format: "banner",
   dimensions: "360x60",
@@ -85,8 +85,8 @@ export const MOCK_AD_SLOTS: AdSlot[] = [{
   enabled: false
 }, {
   id: "splash_interstitial",
-  name: i18n.t("auto.z_autoz스플래시전_1267"),
-  description: i18n.t("auto.z_autoz앱시작시전_1268"),
+  name: "스플래시전",
+  description: "앱시작시전",
   app_screen: "SplashPage",
   format: "interstitial",
   dimensions: "360x640",

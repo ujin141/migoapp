@@ -17,6 +17,7 @@ interface SubscriptionContextType {
   canSendDm: boolean;
   upgradePlus: (plan?: 'plus' | 'premium') => void;
   startBoost: () => void;
+  addBoosts: (amount: number) => void;
   consumeSuperLike: (toUserId?: string) => Promise<boolean>;
   consumeDm: () => boolean;
   // Plus 전용 기능 게이팅
@@ -38,7 +39,7 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType>({
   isPlus: false, isPremium: false, boostActive: false, boostSecondsLeft: 0, boostsCount: 0,
   superLikesLeft: 0, maxSuperLikes: 0, dailyDmCount: 0, maxDailyDm: 10, canSendDm: true,
-  upgradePlus: () => {}, startBoost: () => {}, consumeSuperLike: async () => false, consumeDm: () => false,
+  upgradePlus: () => {}, startBoost: () => {}, addBoosts: () => {}, consumeSuperLike: async () => false, consumeDm: () => false,
   canGlobalMatch: false, canViewLikers: false, canNowFeatured: false,
   canReadReceipts: false, canHideLocation: false, canTravelDNAFull: false,
   canJoinPremiumGroups: false,
@@ -96,9 +97,6 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
             supabase.from('profiles').update({ plan: 'free', is_plus: false }).eq('id', user.id).then();
           }
         }
-        if (data?.boosts_count !== undefined) {
-          setBoostsCount(data.boosts_count);
-        }
       });
 
     // user_items에서 슈퍼라이크/부스트 잔량 로드
@@ -144,6 +142,15 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, boostsCount]);
 
+  const addBoosts = useCallback(async (amount: number) => {
+    setBoostsCount(prev => prev + amount);
+    if (user) {
+      await supabase.from("user_items").upsert({
+        user_id: user.id, boosts: boostsCount + amount
+      }, { onConflict: 'user_id' });
+    }
+  }, [user, boostsCount]);
+
   const boostIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startBoost = useCallback(async () => {
@@ -152,12 +159,16 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     // DB 업데이트
     if (user) {
       const expiresAt = new Date(Date.now() + BOOST_DURATION * 1000).toISOString();
-      await supabase.from("profiles")
-        .update({
-          boosts_count: Math.max(0, boostsCount - 1),
-          boost_expires_at: expiresAt
-        })
-        .eq("id", user.id);
+      await Promise.all([
+        supabase.from("profiles")
+          .update({
+            boost_expires_at: expiresAt
+          })
+          .eq("id", user.id),
+        supabase.from("user_items")
+          .update({ boosts: Math.max(0, boostsCount - 1) })
+          .eq("user_id", user.id)
+      ]);
     }
 
     setBoostsCount(prev => Math.max(0, prev - 1));
@@ -205,7 +216,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       isPlus, isPremium, boostActive, boostSecondsLeft, boostsCount,
       superLikesLeft, maxSuperLikes,
       dailyDmCount, maxDailyDm, canSendDm,
-      upgradePlus, startBoost, consumeSuperLike, consumeDm,
+      upgradePlus, startBoost, addBoosts, consumeSuperLike, consumeDm,
       // Plus 전용 기능 (모두 isPlus에 연동)
       canGlobalMatch: isPlus,
       canViewLikers: isPlus,

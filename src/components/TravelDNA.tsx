@@ -30,16 +30,16 @@ const inferDNA = (profile: any): Record<string, number> => {
   const mbti = profile?.mbti || "";
 
   // 즉흥vs계획 (E=즉흥, J=계획)
-  const spontaneous = mbti.includes("P") ? 75 : mbti.includes("J") ? 30 : travelStyle.some((s: string) => s.includes(i18n.t("auto.z_autoz\uC989\uD765133_1159"))) ? 80 : travelStyle.some((s: string) => s.includes(i18n.t("auto.z_autoz\uACC4\uD68D133_1160"))) ? 25 : 55;
+  const spontaneous = mbti.includes("P") ? 75 : mbti.includes("J") ? 30 : travelStyle.some((s: string) => s.includes("즉흥133")) ? 80 : travelStyle.some((s: string) => s.includes("계획133")) ? 25 : 55;
 
   // 활동vs여유 (활동적 관심사 기반)
-  const active = interests.some(i => [i18n.t("auto.z_autoz\uD558\uC774\uD0B913_1161"), i18n.t("auto.z_autoz\uC11C\uD551133_1162"), i18n.t("auto.z_autoz\uC561\uD2F0\uBE44\uD2F01_1163"), i18n.t("auto.z_autoz\uC2A4\uD3EC\uCE2013_1164"), i18n.t("auto.z_autoz\uD2B8\uB808\uD0B913_1165")].some(k => i.includes(k))) ? 80 : interests.some(i => [i18n.t("auto.z_autoz\uCE74\uD398134_1166"), i18n.t("auto.z_autoz\uC5EC\uC720134_1167"), i18n.t("auto.z_autoz\uD790\uB9C1134_1168"), "spa", i18n.t("auto.z_autoz\uD734\uC591134_1169")].some(k => i.includes(k))) ? 25 : 55;
+  const active = interests.some(i => ["하이킹13", "서핑133", "액티비티1", "스포츠13", "트레킹13"].some(k => i.includes(k))) ? 80 : interests.some(i => ["카페134", "여유134", "힐링134", "spa", "휴양134"].some(k => i.includes(k))) ? 25 : 55;
 
   // 아침vs밤 (MBTI E=조금 더 아침, I=밤)
   const earlyBird = mbti.includes("E") ? 60 : mbti.includes("I") ? 40 : 52;
 
   // 절약vs경험 (budget_range 기반)
-  const budget = profile?.budgetRange === "low" ? 25 : profile?.budgetRange === "high" ? 85 : interests.some(i => [i18n.t("auto.z_autoz\uB7ED\uC154\uB9AC13_1170"), i18n.t("auto.z_autoz\uD30C\uC778\uB2E4\uC774\uB2DD_1171"), i18n.t("auto.z_autoz\uBE44\uC988\uB2C8\uC2A41_1172")].some(k => i.includes(k))) ? 80 : interests.some(i => [i18n.t("auto.z_autoz\uAC00\uC131\uBE4413_1173"), i18n.t("auto.z_autoz\uC800\uC608\uC0B013_1174"), i18n.t("auto.z_autoz\uAC8C\uC2A4\uD2B8\uD558\uC6B0_1175")].some(k => i.includes(k))) ? 20 : 55;
+  const budget = profile?.budgetRange === "low" ? 25 : profile?.budgetRange === "high" ? 85 : interests.some(i => ["럭셔리13", "파인다이닝", "비즈니스1"].some(k => i.includes(k))) ? 80 : interests.some(i => ["가성비13", "저예산13", "게스트하우"].some(k => i.includes(k))) ? 20 : 55;
 
   // 혼자시간vs함께 (I=혼자, E=함께)
   const social = mbti.includes("E") ? 75 : mbti.includes("I") ? 35 : 55;
@@ -57,38 +57,38 @@ const getMatchPct = (a: number, b: number): number => {
 };
 const DIMENSIONS = [{
   key: "spontaneous",
-  label: i18n.t("auto.z_autoz\uC989\uD765\uC80113_1176"),
+  label: "즉흥적13",
   emoji: "⚡",
-  labelA: i18n.t("auto.z_autoz\uC989\uD765135_1177"),
-  labelB: i18n.t("auto.z_autoz\uACC4\uD68D135_1178"),
+  labelA: "즉흥135",
+  labelB: "계획135",
   color: "#f59e0b"
 }, {
   key: "active",
-  label: i18n.t("auto.z_autoz\uD65C\uB3D9\uC80113_1179"),
+  label: "활동적13",
   emoji: "🏃",
-  labelA: i18n.t("auto.z_autoz\uC561\uD2F0\uBE0C13_1180"),
-  labelB: i18n.t("auto.z_autoz\uC5EC\uC720135_1181"),
+  labelA: "액티브13",
+  labelB: "여유135",
   color: "#10b981"
 }, {
   key: "earlyBird",
-  label: i18n.t("auto.z_autoz\uC544\uCE68\uD61513_1182"),
+  label: "아침형13",
   emoji: "🌅",
-  labelA: i18n.t("auto.z_autoz\uC544\uCE68\uD61513_1183"),
-  labelB: i18n.t("auto.z_autoz\uC57C\uD589\uC13113_1184"),
+  labelA: "아침형13",
+  labelB: "야행성13",
   color: "#8b5cf6"
 }, {
   key: "budget",
-  label: i18n.t("auto.z_autoz\uACBD\uD5D8\uC911\uC2DC1_1185"),
+  label: "경험중시1",
   emoji: "💰",
-  labelA: i18n.t("auto.z_autoz\uACBD\uD5D8\uC911\uC2EC1_1186"),
-  labelB: i18n.t("auto.z_autoz\uC808\uC57D\uD61513_1187"),
+  labelA: "경험중심1",
+  labelB: "절약형13",
   color: "#3b82f6"
 }, {
   key: "social",
-  label: i18n.t("auto.z_autoz\uD65C\uBC1C\uD56813_1188"),
+  label: "활발함13",
   emoji: "👥",
-  labelA: i18n.t("auto.z_autoz\uD568\uAED8136_1189"),
-  labelB: i18n.t("auto.z_autoz\uD63C\uC790136_1190"),
+  labelA: "함께136",
+  labelB: "혼자136",
   color: "#ec4899"
 }];
 const TravelDNA = ({
@@ -114,11 +114,11 @@ const TravelDNA = ({
     return <div className="space-y-1">
         {/* 한 줄 요약 */}
         <div className="flex items-center gap-1.5 mb-1.5">
-          <span className="text-[10px] font-extrabold text-white/70 uppercase tracking-wider">{t("auto.z_autoz\uC5EC\uD589DNA_1191")}</span>
+          <span className="text-[10px] font-extrabold text-white/70 uppercase tracking-wider">{"여행DNA"}</span>
           <span className="ml-auto text-[11px] font-extrabold" style={{
           color: overallMatch >= 80 ? "#10b981" : overallMatch >= 60 ? "#f59e0b" : "#ef4444"
         }}>
-            {overallMatch}{t("auto.z_autoz\uB9E4\uCE6D136_1192")}</span>
+            {overallMatch}{"매칭136"}</span>
         </div>
         {dimensions.slice(0, 3).map((d, i) => {
         const match = myDNA ? getMatchPct(d.myScore, d.theirScore) : Math.round(d.theirScore);
@@ -152,10 +152,10 @@ const TravelDNA = ({
       <div className="flex items-center justify-between mb-3 blur-sm opacity-50 select-none">
         <div className="flex items-center gap-1.5">
           <span className="text-sm">🧬</span>
-          <span className="text-xs font-extrabold text-foreground">{t("auto.z_autoz\uC5EC\uD589DNA_1193")}</span>
+          <span className="text-xs font-extrabold text-foreground">{"여행DNA"}</span>
         </div>
         <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-500">
-          <span className="text-xs font-extrabold">--{t("auto.z_autoz\uC77C\uCE58137_1194")}</span>
+          <span className="text-xs font-extrabold">--{"일치137"}</span>
         </div>
       </div>
 
@@ -178,13 +178,13 @@ const TravelDNA = ({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <span className="text-sm">🧬</span>
-          <span className="text-xs font-extrabold text-foreground">{t("auto.z_autoz\uC5EC\uD589DNA_1197")}</span>
+          <span className="text-xs font-extrabold text-foreground">{"여행DNA"}</span>
         </div>
         <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{
         background: overallMatch >= 80 ? "rgba(16,185,129,0.15)" : overallMatch >= 60 ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)",
         color: overallMatch >= 80 ? "#10b981" : overallMatch >= 60 ? "#f59e0b" : "#ef4444"
       }}>
-          <span className="text-xs font-extrabold">{overallMatch}{t("auto.z_autoz\uC77C\uCE58137_1198")}</span>
+          <span className="text-xs font-extrabold">{overallMatch}{"일치137"}</span>
         </div>
       </div>
 
@@ -244,7 +244,7 @@ const TravelDNA = ({
       })}
       </div>
 
-      {myDNA && <p className="text-[9px] text-muted-foreground text-center mt-3">{t("auto.z_autoz\uD770\uC0C9\uC120\uB098\uCEEC_1199")}</p>}
+      {myDNA && <p className="text-[9px] text-muted-foreground text-center mt-3">{"흰색선나컬"}</p>}
     </div>;
 };
 export default TravelDNA;

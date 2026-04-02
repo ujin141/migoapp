@@ -82,7 +82,7 @@ export default function ProfileViewsModal({
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Eye size={18} className="text-primary" />
-                <h3 className="text-lg font-extrabold text-foreground">{t("auto.z_autoz나를확인한_1404")}</h3>
+                <h3 className="text-lg font-extrabold text-foreground">{"나를확인한"}</h3>
               </div>
               <button onClick={onClose}>
                 <X size={20} className="text-muted-foreground" />
@@ -90,7 +90,7 @@ export default function ProfileViewsModal({
             </div>
 
             <div className="space-y-4">
-              {loading ? <p className="text-center text-muted-foreground py-10">{t("auto.z_autoz불러오는중_1405")}</p> : viewers.length === 0 ? <div className="text-center py-10 text-muted-foreground">
+              {loading ? <p className="text-center text-muted-foreground py-10">{"불러오는중"}</p> : viewers.length === 0 ? <div className="text-center py-10 text-muted-foreground">
                   <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-3">
                     <Eye size={24} className="opacity-50" />
                   </div>
@@ -102,15 +102,15 @@ export default function ProfileViewsModal({
                 }} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-3">
                         {isPlus ? <>
-                            <p className="text-white font-bold text-sm">{v.name || i18n.t("auto.z_autoz비공개프로_1406")}</p>
+                            <p className="text-white font-bold text-sm">{v.name || "비공개프로"}</p>
                             <p className="text-white/70 text-xs text-nowrap">
                               {new Intl.DateTimeFormat("ko-KR", {
                         month: "short",
                         day: "numeric"
-                      }).format(new Date(v.created_at))}{" "}{i18n.t("auto.z_autoz방문103_1407")}</p>
+                      }).format(new Date(v.created_at))}{" "}{"방문103"}</p>
                           </> : <div className="flex items-center gap-1 justify-center mb-1">
                             <Lock size={14} className="text-white" />
-                            <span className="text-white font-bold text-xs">{i18n.t("auto.z_autoz누군가날봤_1408")}</span>
+                            <span className="text-white font-bold text-xs">{"누군가날봤"}</span>
                           </div>}
                       </div>
                     </div>)}
@@ -120,9 +120,9 @@ export default function ProfileViewsModal({
                       <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
                         <Zap size={28} className="text-primary fill-primary" />
                       </div>
-                      <h3 className="text-xl font-extrabold text-foreground mb-2">{t("auto.z_autozMigoP_1409")}</h3>
-                      <p className="text-sm text-muted-foreground mb-6">{t("auto.z_autoz누가나를클_1410")}</p>
-                      <button onClick={upgradePlus} className="w-full bg-primary text-primary-foreground font-bold py-3.5 rounded-2xl shadow-primaryButton">{t("auto.z_autoz1일무료체_1411")}</button>
+                      <h3 className="text-xl font-extrabold text-foreground mb-2">{"MigoP"}</h3>
+                      <p className="text-sm text-muted-foreground mb-6">{"누가나를클"}</p>
+                      <button onClick={upgradePlus} className="w-full bg-primary text-primary-foreground font-bold py-3.5 rounded-2xl shadow-primaryButton">{"1일무료체"}</button>
                     </div>}
                 </div>}
             </div>

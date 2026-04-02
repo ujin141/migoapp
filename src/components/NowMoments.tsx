@@ -32,8 +32,8 @@ const DEMO_NOW_CARDS: NowCard[] = [{
   name: "Sarah",
   photo: "",
   age: 26,
-  location: i18n.t("auto.z_autoz\uC2DC\uBD80\uC57C14_1280"),
-  activity: i18n.t("auto.z_autoz\uB77C\uBA58\uAC19\uC774\uBA39_1281"),
+  location: "시부야14",
+  activity: "라멘같이먹",
   expiresAt: Date.now() + 5400000,
   emoji: "🍜",
   lat: 35.6580,
@@ -41,11 +41,11 @@ const DEMO_NOW_CARDS: NowCard[] = [{
 }, {
   id: "now2",
   userId: "u2",
-  name: i18n.t("auto.z_autoz\uD604\uC900141_1282"),
+  name: "현준141",
   photo: "",
   age: 29,
-  location: i18n.t("auto.z_autoz\uB3C4\uD1A4\uBCF4\uB9AC1_1283"),
-  activity: i18n.t("auto.z_autoz\uC57C\uACBD\uC0AC\uC9C4\uAC19_1284"),
+  location: "도톤보리1",
+  activity: "야경사진같",
   expiresAt: Date.now() + 2700000,
   emoji: "📸",
   lat: 34.6687,
@@ -56,8 +56,8 @@ const DEMO_NOW_CARDS: NowCard[] = [{
   name: "Emma",
   photo: "",
   age: 24,
-  location: i18n.t("auto.z_autoz\uD64D\uB300141_1285"),
-  activity: i18n.t("auto.z_autoz\uCE74\uD398\uC544\uB294\uACF3_1286"),
+  location: "홍대141",
+  activity: "카페아는곳",
   expiresAt: Date.now() + 7200000,
   emoji: "☕",
   lat: 37.5563,
@@ -68,8 +68,8 @@ const DEMO_NOW_CARDS: NowCard[] = [{
   name: "はる",
   photo: "",
   age: 27,
-  location: i18n.t("auto.z_autoz\uAC15\uB0A8141_1287"),
-  activity: i18n.t("auto.z_autoz\uB9DB\uC9D1\uAC19\uC774\uAC00_1288"),
+  location: "강남141",
+  activity: "맛집같이가",
   expiresAt: Date.now() + 1200000,
   emoji: "🍣",
   lat: 37.4979,
@@ -80,8 +80,8 @@ const DEMO_NOW_CARDS: NowCard[] = [{
   name: "Alex",
   photo: "",
   age: 31,
-  location: i18n.t("auto.z_autoz\uC774\uD0DC\uC6D014_1289"),
-  activity: i18n.t("auto.z_autoz\uCE58\uB9E5\uAC19\uC774\uD574_1290"),
+  location: "이태원14",
+  activity: "치맥같이해",
   expiresAt: Date.now() + 10800000,
   emoji: "🍺",
   lat: 37.5344,
@@ -99,7 +99,7 @@ function useCountdown(expiresAt: number) {
   const totalMs = 7200000;
   const pct = Math.round(remaining / totalMs * 100);
   const m = Math.floor(remaining / 60000);
-  const label = remaining <= 0 ? t("auto.z_autoz\uB9CC\uB8CC142_1291") : m > 60 ? `${Math.floor(m / 60)}h` : `${m}m`;
+  const label = remaining <= 0 ? "만료142" : m > 60 ? `${Math.floor(m / 60)}h` : `${m}m`;
   return {
     label,
     pct,
@@ -162,7 +162,7 @@ const StoryAvatar = ({
       </div>
 
       {/* 이름 */}
-      <p className="text-[10px] font-bold text-foreground truncate w-full text-center">{isMe ? t("auto.z_autoz\uC62C\uB9AC\uAE3014_1292") : card.name}</p>
+      <p className="text-[10px] font-bold text-foreground truncate w-full text-center">{isMe ? "올리기14" : card.name}</p>
 
       {/* 거리 or 타이머 */}
       {!isMe && <p className="text-[9px] font-semibold truncate w-full text-center" style={{
@@ -279,20 +279,20 @@ const NowDetailSheet = ({
         {/* 지도 버튼 */}
         {(mapsUrl || naverUrl) && <div className="grid grid-cols-2 gap-2 mb-3">
             {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-muted border border-border text-xs font-bold text-foreground">
-                <ExternalLink size={12} />{t("auto.z_autoz\uAE38\uCC3E\uAE3014_1293")}</a>}
+                <ExternalLink size={12} />{"길찾기14"}</a>}
             {naverUrl && <a href={naverUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-muted border border-border text-xs font-bold text-foreground">
-                <Map size={12} />{t("auto.z_autoz\uC911\uAC04\uC9C0\uC8101_1294")}</a>}
+                <Map size={12} />{"중간지점1"}</a>}
           </div>}
 
         {/* CTA */}
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-border text-sm font-semibold text-foreground">{t("auto.z_autoz\uB2EB\uAE30142_1295")}</button>
+          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-border text-sm font-semibold text-foreground">{"닫기142"}</button>
           <motion.button whileTap={{
           scale: 0.97
         }} onClick={onMeet} className="flex-1 py-3 rounded-2xl text-white text-sm font-extrabold flex items-center justify-center gap-2" style={{
           background: `linear-gradient(135deg, ${nearColor}, #6366f1)`
         }}>
-            <Zap size={14} />{t("auto.z_autoz\uC9C0\uAE08\uB9CC\uB098\uAE30_1296")}</motion.button>
+            <Zap size={14} />{"지금만나기"}</motion.button>
         </div>
       </motion.div>
     </motion.div>;
@@ -339,8 +339,8 @@ const PostNowSheet = ({
         <div className="w-10 h-1 bg-border rounded-full mx-auto mb-4" />
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-extrabold text-foreground">{t("auto.z_autoz\uC9C0\uAE08\uC5EC\uAE30\uC788_1297")}</h3>
-            <p className="text-xs text-muted-foreground">{t("auto.z_autoz2\uC2DC\uAC04\uB3D9\uC548_1298")}</p>
+            <h3 className="text-base font-extrabold text-foreground">{"지금여기있"}</h3>
+            <p className="text-xs text-muted-foreground">{"2시간동안"}</p>
           </div>
           <button onClick={onClose}><X size={18} className="text-muted-foreground" /></button>
         </div>
@@ -350,8 +350,8 @@ const PostNowSheet = ({
             </button>)}
         </div>
         <div className="space-y-3 mb-4">
-          <input value={location} onChange={e => setLocation(e.target.value)} placeholder={t("auto.z_autoz\uD604\uC7AC\uC704\uCE58\uC608_1299")} className="w-full rounded-2xl bg-muted border border-border px-4 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/50" />
-          <input value={activity} onChange={e => setActivity(e.target.value)} placeholder={t("auto.z_autoz\uBB50\uD558\uACE0\uC2F6\uC5B4_1300")} className="w-full rounded-2xl bg-muted border border-border px-4 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/50" />
+          <input value={location} onChange={e => setLocation(e.target.value)} placeholder={"현재위치예"} className="w-full rounded-2xl bg-muted border border-border px-4 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/50" />
+          <input value={activity} onChange={e => setActivity(e.target.value)} placeholder={"뭐하고싶어"} className="w-full rounded-2xl bg-muted border border-border px-4 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/50" />
         </div>
         <motion.button onClick={() => {
         if (!location || !activity) return;
@@ -365,7 +365,7 @@ const PostNowSheet = ({
         scale: 0.97
       }} disabled={!location || !activity} className="w-full py-3.5 rounded-2xl font-extrabold text-sm text-white disabled:opacity-40" style={{
         background: "linear-gradient(135deg, #10b981, #6366f1)"
-      }}>{t("auto.z_autoz\uC9C0\uAE08\uC62C\uB9AC\uAE30_1301")}</motion.button>
+      }}>{"지금올리기"}</motion.button>
       </motion.div>
     </motion.div>;
 };
@@ -408,7 +408,7 @@ const NowMoments = ({
     setMyCard({
       id: `now_me_${Date.now()}`,
       userId: currentUserId || "me",
-      name: i18n.t("auto.z_autoz\uB0981434_1302"),
+      name: "나1434",
       photo: "",
       location: data.location,
       activity: data.activity,
@@ -423,11 +423,11 @@ const NowMoments = ({
       <div className="flex items-center justify-between px-4 pt-1 pb-1">
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[11px] font-extrabold text-foreground">{t("auto.z_autoz\uC9C0\uAE08\uC5EC\uAE30\uC788_1303")}</span>
+          <span className="text-[11px] font-extrabold text-foreground">{"지금여기있"}</span>
           <span className="text-[10px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 ml-0.5">
-            {sortedCards.length}{t("auto.z_autoz\uBA851436_1304")}</span>
+            {sortedCards.length}{"명1436"}</span>
         </div>
-        <span className="text-[9px] text-muted-foreground">{t("auto.z_autoz\uAC00\uAE4C\uC6B4\uC21C1_1305")}</span>
+        <span className="text-[9px] text-muted-foreground">{"가까운순1"}</span>
       </div>
 
       {/* Stories 아바타 스트립 */}
@@ -439,7 +439,7 @@ const NowMoments = ({
         <StoryAvatar isMe card={{
         id: "me",
         userId: "me",
-        name: t("auto.z_autoz\uC62C\uB9AC\uAE3014_1306"),
+        name: "올리기14",
         photo: "",
         location: "",
         activity: "",

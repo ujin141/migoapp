@@ -35,20 +35,20 @@ const TrustVerifyModal = ({
     return Array.isArray(v) && v.length ? v : fb;
   };
   const levelTexts = getArr("trustModal.levels", [{
-    label: t("auto.z_autozLv1베이_1298"),
-    sub: t("auto.z_autoz본인인증9_1299"),
-    desc: t("auto.z_autoz가입시휴대_1300"),
-    how: t("auto.z_autoz휴대폰번호_1301")
+    label: "Lv1베이",
+    sub: "본인인증9",
+    desc: "가입시휴대",
+    how: "휴대폰번호"
   }, {
-    label: t("auto.z_autozLv2프라_1302"),
-    sub: t("auto.z_autoz신분증인증_1303"),
-    desc: t("auto.z_autoz정부발급신_1304"),
-    how: t("auto.z_autoz앱내신분증_1305")
+    label: "Lv2프라",
+    sub: "신분증인증",
+    desc: "정부발급신",
+    how: "앱내신분증"
   }, {
-    label: t("auto.z_autozLv3골드_1306"),
-    sub: t("auto.z_autoz심층인증9_1307"),
-    desc: t("auto.z_autoz재직학위소_1308"),
-    how: t("auto.z_autoz증빙서류제_1309")
+    label: "Lv3골드",
+    sub: "심층인증9",
+    desc: "재직학위소",
+    how: "증빙서류제"
   }]);
   const LEVELS = [{
     key: "basic",
@@ -56,8 +56,8 @@ const TrustVerifyModal = ({
     bgClass: "bg-sky-500/20 border-sky-500/30",
     textClass: "text-sky-500",
     icon: <Phone size={20} className="text-sky-500" />,
-    label: levelTexts[0]?.label ?? t("auto.z_autoz기본인증9_1310"),
-    sublabel: levelTexts[0]?.sub ?? t("auto.z_autoz전화번호인_1311"),
+    label: levelTexts[0]?.label ?? "기본인증9",
+    sublabel: levelTexts[0]?.sub ?? "전화번호인",
     desc: levelTexts[0]?.desc ?? "",
     how: levelTexts[0]?.how ?? ""
   }, {
@@ -66,8 +66,8 @@ const TrustVerifyModal = ({
     bgClass: "bg-violet-500/20 border-violet-500/30",
     textClass: "text-violet-500",
     icon: <Camera size={20} className="text-violet-500" />,
-    label: levelTexts[1]?.label ?? t("auto.z_autoz본인확인9_1312"),
-    sublabel: levelTexts[1]?.sub ?? t("auto.z_autoz신분증인증_1313"),
+    label: levelTexts[1]?.label ?? "본인확인9",
+    sublabel: levelTexts[1]?.sub ?? "신분증인증",
     desc: levelTexts[1]?.desc ?? "",
     how: levelTexts[1]?.how ?? ""
   }, {
@@ -76,8 +76,8 @@ const TrustVerifyModal = ({
     bgClass: "bg-amber-500/20 border-amber-500/30",
     textClass: "text-amber-400",
     icon: <Trophy size={20} className="text-amber-400" />,
-    label: levelTexts[2]?.label ?? t("auto.z_autoz최고신뢰9_1314"),
-    sublabel: levelTexts[2]?.sub ?? t("auto.z_autoz전체인증완_1315"),
+    label: levelTexts[2]?.label ?? "최고신뢰9",
+    sublabel: levelTexts[2]?.sub ?? "전체인증완",
     desc: levelTexts[2]?.desc ?? "",
     how: levelTexts[2]?.how ?? ""
   }];
@@ -97,8 +97,8 @@ const TrustVerifyModal = ({
     // basic은 전화번호 인증으로 자동 부여
     if (levelKey === "basic") {
       toast({
-        title: i18n.t("auto.z_autoz기본인증안_1316"),
-        description: i18n.t("auto.z_autoz전화번호인_1317")
+        title: "기본인증안",
+        description: "전화번호인"
       });
       return;
     }
@@ -129,7 +129,7 @@ const TrustVerifyModal = ({
             })
           })
         }),
-        description: i18n.t("auto.z_autoz운영자가2_1320")
+        description: "운영자가2"
       });
     } catch (err: any) {
       console.error("ID Verify Request Error:", err);
@@ -170,8 +170,8 @@ const TrustVerifyModal = ({
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 shrink-0 border-b border-border/30">
               <div>
-                <h2 className="text-base font-extrabold text-foreground">{t("auto.z_autoz신뢰인증관_1321")}</h2>
-                <p className="text-xs text-muted-foreground">{t("auto.z_autoz인증단계가_1322")}</p>
+                <h2 className="text-base font-extrabold text-foreground">{"신뢰인증관"}</h2>
+                <p className="text-xs text-muted-foreground">{"인증단계가"}</p>
               </div>
               <button onClick={onClose} className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center">
                 <X size={16} className="text-muted-foreground" />
@@ -184,9 +184,9 @@ const TrustVerifyModal = ({
               <div className="flex items-center gap-2 p-3 rounded-2xl bg-muted mb-4">
                 <Shield size={15} className="text-primary shrink-0" />
                 <div>
-                  <p className="text-xs font-bold text-foreground">{t("auto.z_autoz현재인증상_1323")}</p>
+                  <p className="text-xs font-bold text-foreground">{"현재인증상"}</p>
                   <p className="text-xs text-muted-foreground">
-                    {currentLevel === "none" ? t("auto.z_autoz미인증인증_1324") : currentLevel === "basic" ? t("auto.z_autoz기본인증완_1325") : currentLevel === "id" ? t("auto.z_autoz본인확인완_1326") : t("auto.z_autoz최고신뢰완_1327")}
+                    {currentLevel === "none" ? "미인증인증" : currentLevel === "basic" ? "기본인증완" : currentLevel === "id" ? "본인확인완" : "최고신뢰완"}
                   </p>
                 </div>
               </div>
@@ -211,8 +211,8 @@ const TrustVerifyModal = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-foreground">{level.badge} {level.label}</span>
-                          {isCompleted && <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${level.bgClass} ${level.textClass}`}>{i18n.t("auto.z_autoz완료997_1328")}</span>}
-                          {isNext && <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">{i18n.t("auto.z_autoz다음단계9_1329")}</span>}
+                          {isCompleted && <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${level.bgClass} ${level.textClass}`}>{"완료997"}</span>}
+                          {isNext && <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">{"다음단계9"}</span>}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{level.sublabel}</p>
                         <p className="text-[11px] text-foreground/70 mt-1.5 leading-relaxed">{level.desc}</p>
@@ -222,12 +222,12 @@ const TrustVerifyModal = ({
                     {!isCompleted && !isLocked && <motion.button whileTap={{
                 scale: 0.97
               }} onClick={() => handleRequest(level.key)} disabled={!!submitting} className={`mt-3 w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${level.key === "basic" ? "bg-muted text-muted-foreground" : `gradient-primary text-primary-foreground shadow-card`} disabled:opacity-60`}>
-                        {submitting === level.key ? <span>{i18n.t("auto.z_autoz처리중99_1330")}</span> : level.key === "basic" ? <><Phone size={12} />{i18n.t("auto.z_autoz전화번호인_1331")}</> : level.key === "id" ? <><Camera size={12} />{i18n.t("auto.z_autoz신분증인증_1332")}<ChevronRight size={12} /></> : <><Camera size={12} />{i18n.t("auto.z_autoz얼굴인증요_1333")}<ChevronRight size={12} /></>}
+                        {submitting === level.key ? <span>{"처리중99"}</span> : level.key === "basic" ? <><Phone size={12} />{"전화번호인"}</> : level.key === "id" ? <><Camera size={12} />{"신분증인증"}<ChevronRight size={12} /></> : <><Camera size={12} />{"얼굴인증요"}<ChevronRight size={12} /></>}
                       </motion.button>}
                   </motion.div>;
           })}
 
-              <p className="text-[10px] text-center text-muted-foreground pb-4 pt-2">{t("auto.z_autoz제출된정보_1334")}</p>
+              <p className="text-[10px] text-center text-muted-foreground pb-4 pt-2">{"제출된정보"}</p>
             </div>
           </motion.div>
         </motion.div>}

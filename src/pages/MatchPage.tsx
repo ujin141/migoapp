@@ -37,6 +37,7 @@ const MatchPage = () => {
   } = useNotifications();
   const {
     isPlus,
+    isPremium,
     superLikesLeft,
     boostActive,
     boostSecondsLeft,
@@ -64,7 +65,7 @@ const MatchPage = () => {
       requestNotificationPermission();
     }
   }, [user]);
-  // ―― 필터 모달 ――
+  // ―― 필터 모달 (단일 통합 필터) ――
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filterAge, setFilterAge] = useState<[number, number]>([18, 45]);
   const [filterDistance, setFilterDistance] = useState(10); // 기본값: 10km
@@ -72,8 +73,16 @@ const MatchPage = () => {
   const [filterMbti, setFilterMbti] = useState<string[]>([]);
   const [filterLanguages, setFilterLanguages] = useState<string[]>([]);
   const [filterTravelStyle, setFilterTravelStyle] = useState<string[]>([]);
-  const travelStyleOptions = [t("auto.z_autoz\uCE74\uD398106_157"), t("auto.z_autoz\uD2B8\uB808\uD0B910_158"), t("auto.z_autoz\uC11C\uD551108_159"), t("auto.z_autoz\uC57C\uC2DC\uC7A510_160"), t("auto.z_autoz\uC0AC\uC9C4110_161"), t("auto.z_autoz\uC74C\uC2DD111_162"), t("auto.z_autoz\uAC74\uCD95112_163"), t("auto.z_autoz\uC790\uC5F0113_164"), t("auto.z_autoz\uB7ED\uC154\uB9AC11_165"), t("auto.z_autoz\uBC30\uB0AD115_166")];
-  const languageOptions = [t("auto.z_autoz\uD55C\uAD6D\uC5B497_167"), "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
+  const travelStyleOptions = ["카페106", "트레킹10", "서핑108", "야시장10", "사진110", "음식111", "건축112", "자연113", "럭셔리11", "배낭115"];
+  const languageOptions = ["한국어97", "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
+  // 활성 필터 총 개수
+  const totalActiveFilterCount =
+    (filterGender !== 'all' ? 1 : 0) +
+    (filterDistance !== 10 ? 1 : 0) +
+    filterMbti.length +
+    filterLanguages.length +
+    filterTravelStyle.length +
+    (filterAge[0] !== 18 || filterAge[1] !== 45 ? 1 : 0);
   const isLoggedIn = () => !!(user || localStorage.getItem("migo_logged_in"));
   const requireLogin = () => {
     setShowLoginGate(true);
@@ -85,8 +94,8 @@ const MatchPage = () => {
   const [ads, setAds] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [pendingLikers, setPendingLikers] = useState<any[]>([]); // 나를 라이크한 사람
-  const [dailyLikesUsed, setDailyLikesUsed] = useState(0); // 오늘 보낸 라이크 수 (free: max 10)
-  const FREE_DAILY_LIKE_LIMIT = 10;
+  const [dailyLikesUsed, setDailyLikesUsed] = useState(0); // 오늘 보낸 라이크 수
+  const DAILY_LIKE_LIMIT = isPremium ? Infinity : isPlus ? 50 : 10;
   
   const matchTimersRef = useRef<{ timeouts: any[] }>({ timeouts: [] });
   const showMatchRef = useRef(false);
@@ -185,18 +194,18 @@ const MatchPage = () => {
           const isBoosted = p.boost_expires_at && new Date(p.boost_expires_at).getTime() > Date.now();
           return {
             id: p.id,
-            name: p.name || i18n.t("auto.z_autoz\uC54C\uC218\uC5C6\uC74C9_168"),
+            name: p.name || "알수없음9",
             age: p.age || 25,
             nationality: p.nationality || '',
             gender: p.gender || '',
             location: p.location || t("match.noLocation"),
             distanceKm: distKm ?? 999,
             distance: distKm !== null ? `${distKm.toFixed(1)}km` : t("map.distanceUnknown"),
-            bio: p.bio || i18n.t("auto.z_autoz\uC548\uB155\uD558\uC138\uC694_169"),
+            bio: p.bio || "안녕하세요",
             photo: p.photo_url || "",
             photoUrls: p.photo_urls && p.photo_urls.length > 0 ? p.photo_urls : p.photo_url ? [p.photo_url] : [],
-            destination: p.location || i18n.t("auto.z_autoz\uC5B4\uB518\uAC0010_170"),
-            dates: p.travel_dates || i18n.t("auto.z_autoz\uBBF8\uC815101_171"),
+            destination: p.location || "어딘가10",
+            dates: p.travel_dates || "미정101",
             tags: p.interests || [],
             travelMission: p.travel_mission || undefined,
             userType: p.user_type || 'traveler',
@@ -216,35 +225,9 @@ const MatchPage = () => {
         });
         // matchScore 높은 순 정렬
         mapped.sort((a, b) => b.matchScore - a.matchScore);
-        // DB가 비어있으면 (로컬 환경 필드 테스트용) 목업 사용
+        // DB가 비어있으면 (로컬 환경 필드 테스트용) 빈 배열 세팅
         if (mapped.length === 0) {
-          const fallback = [{
-            id: 'mock-elena',
-            name: 'Elena',
-            photo: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1',
-            photoUrls: ['https://images.unsplash.com/photo-1524504388940-b1c1722653e1', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb'],
-            age: 24,
-            bio: t("auto.x4030"),
-            gender: 'female',
-            distanceKm: 8,
-            nationality: 'KR',
-            mbti: 'ENFP',
-            isPlus: true,
-            isPremium: true,
-            isAd: false,
-            travelMission: t("auto.x4031"),
-            visitedCountries: ['🇯🇵', '🇹🇼', '🇺🇸', '🇻🇳'],
-            budgetRange: 'mid',
-            avgRating: 4.8,
-            reviewCount: 12,
-            tags: [t("auto.x4032"), t("auto.x4033"), t("auto.x4034")],
-            matchScore: 88,
-            verified: true,
-            verifyLevel: 'gold' as const,
-            travelStyle: [t("auto.x4035"), t("auto.x4036"), t("auto.x4037")],
-            languages: [t("auto.x4038"), 'English']
-          }];
-          setProfiles(fallback);
+          setProfiles([]);
         } else {
           setProfiles(personalize(mapped));
         }
@@ -271,18 +254,18 @@ const MatchPage = () => {
 
           const mappedLikers = likerProfiles.map(p => ({
             id: p.id,
-            name: p.name || i18n.t("auto.z_autoz\uC54C\uC218\uC5C6\uC74C1_172"),
+            name: p.name || "알수없음1",
             age: p.age || 25,
             nationality: p.nationality || '',
             gender: p.gender || '',
             location: p.location || t("match.noLocation"),
             distanceKm: 999,
             distance: t("map.distanceUnknown"),
-            bio: p.bio || i18n.t("auto.z_autoz\uC548\uB155\uD558\uC138\uC694_173"),
+            bio: p.bio || "안녕하세요",
             photo: p.photo_url || '',
             photoUrls: p.photo_urls && p.photo_urls.length > 0 ? p.photo_urls : p.photo_url ? [p.photo_url] : [],
-            destination: p.location || i18n.t("auto.z_autoz\uC5B4\uB518\uAC0010_174"),
-            dates: p.travel_dates || i18n.t("auto.z_autoz\uBBF8\uC815105_175"),
+            destination: p.location || "어딘가10",
+            dates: p.travel_dates || "미정105",
             tags: p.interests || [],
             travelMission: p.travel_mission || undefined,
             userType: p.user_type || 'traveler',
@@ -339,7 +322,6 @@ const MatchPage = () => {
   const [isSuperLikeMatch, setIsSuperLikeMatch] = useState(false);
   const [matchedThreadId, setMatchedThreadId] = useState<string | null>(null);
   const [superLikeMessage, setSuperLikeMessage] = useState<string>("");
-  const [showFilter, setShowFilter] = useState(false);
   const [superLikedId, setSuperLikedId] = useState<string | null>(null);
   const [showSuperLikeModal, setShowSuperLikeModal] = useState(false);
   const [pendingSuperProfile, setPendingSuperProfile] = useState<any | null>(null);
@@ -349,38 +331,28 @@ const MatchPage = () => {
   const [showLikePopup, setShowLikePopup] = useState(false);
   const [likePopupProfile, setLikePopupProfile] = useState<any | null>(null);
 
-  // Filter states
-  const [maxDistance, setMaxDistance] = useState(10); // 기본: 10km
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [genderFilter, setGenderFilter] = useState(t('filter.genderAll'));
-  const tagOptions = [t("auto.z_autoz\uCE74\uD398106_176"), t("auto.z_autoz\uD2B8\uB808\uD0B910_177"), t("auto.z_autoz\uC11C\uD551108_178"), t("auto.z_autoz\uC57C\uC2DC\uC7A510_179"), t("auto.z_autoz\uC0AC\uC9C4110_180"), t("auto.z_autoz\uC74C\uC2DD111_181"), t("auto.z_autoz\uAC74\uCD95112_182"), t("auto.z_autoz\uC790\uC5F0113_183"), t("auto.z_autoz\uB7ED\uC154\uB9AC11_184"), t("auto.z_autoz\uBC30\uB0AD115_185")];
-
-  // Filter + keep sorted by matchScore (showFilter 모달 + showFilterModal 모달 통합 적용)
+  // 통합 필터 적용
   const filteredTravelers = profiles.filter(p => {
     // 거리: 좌표 없는 유저(distanceKm=999 or null)는 거리 필터를 항상 통과시킴
-    const distLimit = filterDistance < 9999 ? filterDistance : maxDistance < 9999 ? maxDistance : 9999;
     const hasNoCoords = p.distanceKm === null || p.distanceKm >= 999;
-    const distOk = distLimit >= 9999 ? true : hasNoCoords ? true : p.distanceKm <= distLimit;
+    const distOk = filterDistance >= 9999 ? true : hasNoCoords ? true : p.distanceKm <= filterDistance;
 
-    // 태그 필터
-    const tagOk = selectedTags.length === 0 || selectedTags.some(t => p.travelStyle.includes(t));
-
-    // 성별 필터 (두 모달 통합: genderFilter={t("auto.p523")}이면 filterGender 사용)
-    const gStr = genderFilter !== i18n.t("auto.z_autoz\uC804\uCCB4116_186") ? genderFilter : filterGender === 'male' ? i18n.t("auto.z_autoz\uB0A8\uC131117_187") : filterGender === 'female' ? i18n.t("auto.z_autoz\uC5EC\uC131118_188") : i18n.t("auto.z_autoz\uC804\uCCB4119_189");
-    const genderOk = gStr === i18n.t("auto.z_autoz\uC804\uCCB4120_190") || p.gender === gStr;
+    // 성별 필터
+    const genderOk = filterGender === 'all' || p.gender === (filterGender === 'male' ? '남성' : '여성') || p.gender === filterGender;
 
     // 나이 필터 (Migo Plus 전용)
-    const ageOk = !isPlus || !p.age || p.age >= filterAge[0] && p.age <= filterAge[1];
+    const ageOk = !isPlus || !p.age || (p.age >= filterAge[0] && p.age <= filterAge[1]);
 
     // 언어 필터 (Migo Plus 전용)
     const langOk = !isPlus || filterLanguages.length === 0 || filterLanguages.some(l => p.languages.includes(l));
 
     // MBTI 필터
-    const mbtiOk = filterMbti.length === 0 || p.mbti && filterMbti.includes(p.mbti);
+    const mbtiOk = filterMbti.length === 0 || (p.mbti && filterMbti.includes(p.mbti));
 
-    // 여행 스타일 필터 연동
-    const styleOk = filterTravelStyle.length === 0 || filterTravelStyle.some(t => p.travelStyle.includes(t));
-    return distOk && tagOk && genderOk && ageOk && langOk && mbtiOk && styleOk;
+    // 여행 스타일 필터
+    const styleOk = filterTravelStyle.length === 0 || filterTravelStyle.some(tag => p.travelStyle.includes(tag));
+
+    return distOk && genderOk && ageOk && langOk && mbtiOk && styleOk;
   });
   const withAds: any[] = [];
   let adIdx = 0;
@@ -397,7 +369,7 @@ const MatchPage = () => {
         const ad = ads[adIdx % ads.length];
         withAds.push({
           id: `ad-${ad.id}-${i}`,
-          name: ad.advertiser || t("auto.z_autoz\uC2A4\uD3F0\uC11C12_191"),
+          name: ad.advertiser || "스폰서12",
           age: 0,
           gender: "none",
           location: "Sponsored",
@@ -509,7 +481,7 @@ const MatchPage = () => {
     await supabase.from('in_app_notifications').insert({
       user_id: toUserId,
       type: kind,
-      title: kind === 'superlike' ? i18n.t("auto.z_autoz\uC0C8\uB85C\uC6B4\uC288\uD37C_192") : i18n.t("auto.z_autoz\uC0C8\uB85C\uC6B4\uBC18\uAC00_193"),
+      title: kind === 'superlike' ? "새로운슈퍼" : "새로운반가",
       content: kind === 'superlike' ? i18n.t("auto.z_tmpl_125", {
         defaultValue: t("auto.t5026", {
           v0: user.name
@@ -534,15 +506,11 @@ const MatchPage = () => {
       return;
     }
 
-    // Free 유저 일일 라이크 제한 체크 (라이커 카드는 제외)
-    if (!isPlus && !profile.isLiker && dailyLikesUsed >= FREE_DAILY_LIKE_LIMIT) {
+    // 유저 등급별 일일 좋아요 제한 체크 (라이커 카드는 제외)
+    if (!isPremium && !profile.isLiker && dailyLikesUsed >= DAILY_LIKE_LIMIT) {
       toast({
         title: t("auto.p525"),
-        description: i18n.t("auto.z_tmpl_127", {
-          defaultValue: t("auto.t5028", {
-            v0: FREE_DAILY_LIKE_LIMIT
-          })
-        }),
+        description: `오늘 무료 좋아요 ${DAILY_LIKE_LIMIT}개를 모두 사용했습니다.`,
         variant: "destructive"
       });
       setShowPlusModal(true);
@@ -661,7 +629,7 @@ const MatchPage = () => {
           v0: profile.name
         })
       }),
-      description: superMsg ? `"${superMsg}"` : i18n.t("auto.z_autoz\uC0C1\uB300\uBC29\uC5D0\uAC8C_194")
+      description: superMsg ? `"${superMsg}"` : "상대방에게"
     });
   }, [pendingSuperProfile, superMsg, addUnread, saveLikeAndCheckMatch]);
   const handleChatFromMatch = () => {
@@ -690,7 +658,7 @@ const MatchPage = () => {
     });
   };
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+    setFilterTravelStyle(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
   const remaining = withAds.slice(currentIndex, currentIndex + 2).reverse();
   const topProfile = withAds[currentIndex];
@@ -716,8 +684,13 @@ const MatchPage = () => {
             <MapPin size={16} className={activeCheckIn ? 'text-emerald-500' : 'text-muted-foreground'} />
             {activeCheckIn && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background" />}
           </button>
-          <button onClick={() => navigate("/nearby")} className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center transition-transform active:scale-90">
+          <button onClick={() => navigate("/nearby")} className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center relative transition-transform active:scale-90">
             <Navigation size={16} className="text-emerald-500" />
+            {localStorage.getItem('migo_nearby_seen') !== '1' && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] font-extrabold text-white shadow-lg animate-pulse">
+                8
+              </span>
+            )}
           </button>
           <button onClick={() => navigate("/notifications")} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center relative transition-transform active:scale-90">
             <Bell size={18} className="text-muted-foreground" />
@@ -732,10 +705,10 @@ const MatchPage = () => {
           <button onClick={() => navigate("/shop")} className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center transition-transform active:scale-90">
             <ShoppingBag size={16} className="text-primary" />
           </button>
-          <button onClick={() => setShowFilter(true)} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center relative transition-transform active:scale-90">
-            <SlidersHorizontal size={18} className="text-muted-foreground" />
-            {selectedTags.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full gradient-primary flex items-center justify-center text-[9px] font-bold text-primary-foreground">
-                {selectedTags.length}
+          <button onClick={() => setShowFilterModal(true)} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center relative transition-transform active:scale-90">
+            <SlidersHorizontal size={18} className={totalActiveFilterCount > 0 ? "text-primary" : "text-muted-foreground"} />
+            {totalActiveFilterCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full gradient-primary flex items-center justify-center text-[9px] font-bold text-primary-foreground">
+                {totalActiveFilterCount}
               </span>}
           </button>
         </div>
@@ -785,14 +758,14 @@ const MatchPage = () => {
       {topProfile && <div className="flex items-center justify-center gap-2 pb-1 relative">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
             <Zap size={12} className="text-primary" />
-            <span className="text-xs font-bold text-primary">{t("auto.z_autoz\uB9E4\uCE6D\uC810\uC2181_198")}{topProfile.matchScore}{t("auto.z_autoz\uC810131_199")}</span>
+            <span className="text-xs font-bold text-primary">{"매칭점수1"}{topProfile.matchScore}{"점131"}</span>
           </div>
           <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-muted">
             {isPlus ? <Crown size={11} className="text-amber-500" /> : Array.from({
           length: 3
         }).map((_, i) => <Star key={i} size={10} className={i < superLikesLeft ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground"} />)}
             <span className="text-[10px] font-semibold text-muted-foreground ml-0.5">
-              {isPlus ? t("auto.z_autoz\uC288\uD37C\uB77C\uC774\uD06C_200") : t("auto.z_tmpl_133", {
+              {isPlus ? "슈퍼라이크" : t("auto.z_tmpl_133", {
             defaultValue: t("auto.t5030", {
               v0: superLikesLeft
             })
@@ -805,11 +778,11 @@ const MatchPage = () => {
           </button>
         </div>}
 
-      {/* [Free] 남은 라이크 수 배지 */}
-      {!isPlus && <div className="flex justify-center mb-1 px-4">
+      {/* [비무제한] 남은 라이크 수 배지 */}
+      {!isPremium && <div className="flex justify-center mb-1 px-4">
           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm border transition-all
-            ${dailyLikesUsed >= FREE_DAILY_LIKE_LIMIT ? 'bg-destructive/15 border-destructive/30 text-destructive' : dailyLikesUsed >= FREE_DAILY_LIKE_LIMIT - 3 ? 'bg-amber-500/15 border-amber-500/30 text-amber-500' : 'bg-muted border-border text-muted-foreground'}`}>
-            {dailyLikesUsed >= FREE_DAILY_LIKE_LIMIT ? <><Lock size={11} /><span>{t("auto.j501")}</span></> : <><Heart size={11} fill="currentColor" /><span>{t("auto.z_autoz\uC624\uB298\uBC18\uAC00\uC6CC_201")}{FREE_DAILY_LIKE_LIMIT - dailyLikesUsed}{t("auto.z_autoz\uAC1C\uB0A8\uC74C13_202")}</span></>}
+            ${dailyLikesUsed >= DAILY_LIKE_LIMIT ? 'bg-destructive/15 border-destructive/30 text-destructive' : dailyLikesUsed >= DAILY_LIKE_LIMIT - 3 ? 'bg-amber-500/15 border-amber-500/30 text-amber-500' : 'bg-muted border-border text-muted-foreground'}`}>
+            {dailyLikesUsed >= DAILY_LIKE_LIMIT ? <><Lock size={11} /><span>{t("auto.j501")}</span></> : <><Heart size={11} fill="currentColor" /><span>{"오늘반가워 "}{DAILY_LIKE_LIMIT - dailyLikesUsed}{"개남음"}</span></>}
           </div>
         </div>}
 
@@ -865,7 +838,7 @@ const MatchPage = () => {
             defaultValue: t("auto.z_tmpl_204", {
               defaultValue: `Boosting ${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")}`
             })
-          }) : isPlus ? t("auto.z_autoz\uBD80\uC2A4\uD2B8\uC0AC\uC6A9_205") : t("auto.z_autoz\uBD80\uC2A4\uD2B8Pl_206")}
+          }) : isPlus ? "부스트사용" : "부스트Pl"}
              </motion.button>
           </div>
 
@@ -1024,7 +997,7 @@ const MatchPage = () => {
             }} /> : <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
                     {likePopupProfile.name?.[0] ?? "?"}
                   </div>}
-                <p className="text-base font-extrabold text-foreground">{likePopupProfile.name}{t("auto.z_autoz\uB2D8\uAED8\uC88B\uC544\uC694_207")}</p>
+                <p className="text-base font-extrabold text-foreground">{likePopupProfile.name}{"님께좋아요"}</p>
               </div>
 
               <p className="text-sm text-muted-foreground mb-3">{t("auto.j505")}</p>
@@ -1032,7 +1005,7 @@ const MatchPage = () => {
               {/* Match probability pill */}
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30">
                 <Zap size={11} className="text-rose-400" />
-                <span className="text-xs font-bold text-rose-400">{t("auto.z_autoz\uB9E4\uCE6D\uD655\uB9601_208")}{Math.round(Math.max(0.3, (likePopupProfile.matchScore ?? 50) / 100) * 100)}%
+                <span className="text-xs font-bold text-rose-400">{"매칭확률1"}{Math.round(Math.max(0.3, (likePopupProfile.matchScore ?? 50) / 100) * 100)}%
                 </span>
               </div>
 
@@ -1149,7 +1122,7 @@ const MatchPage = () => {
                     </motion.div>
                   </div>
                   <div>
-                    <h3 className="text-lg font-extrabold text-white">{pendingSuperProfile.name}{t("auto.z_autoz\uB2D8\uAED8142_209")}</h3>
+                    <h3 className="text-lg font-extrabold text-white">{pendingSuperProfile.name}{"님께142"}</h3>
                     <p className="text-sm font-bold" style={{
                   background: "linear-gradient(90deg, #60a5fa, #a78bfa)",
                   WebkitBackgroundClip: "text",
@@ -1170,7 +1143,7 @@ const MatchPage = () => {
                 }).map((_, i) => <Star key={i} size={13} className={i < superLikesLeft ? "text-blue-400 fill-blue-400" : "text-white/20 fill-white/10"} />)}
                   </div>
                   <span className="text-xs font-bold text-blue-300">
-                    {isPlus ? t("auto.z_autoz\uC288\uD37C\uB77C\uC774\uD06C_210") : t("auto.z_tmpl_144", {
+                    {isPlus ? "슈퍼라이크" : t("auto.z_tmpl_144", {
                   defaultValue: t("auto.t5031", {
                     v0: superLikesLeft
                   })
@@ -1199,7 +1172,7 @@ const MatchPage = () => {
                 defaultValue: t("auto.t5032", {
                   v0: pendingSuperProfile.destination
                 })
-              }), t("auto.z_autoz\uAC19\uC774\uC5EC\uD589\uD574_211"), t("auto.z_autoz\uAD00\uC2EC\uC0AC\uAC00\uBE44_212"), t("auto.z_autoz\uB9DB\uC9D1\uAC19\uC774\uD0D0_213")].map(q => <button key={q} onClick={() => setSuperMsg(q)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${superMsg === q ? "text-white" : "text-white/50"}`} style={{
+              }), "같이여행해", "관심사가비", "맛집같이탐"].map(q => <button key={q} onClick={() => setSuperMsg(q)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${superMsg === q ? "text-white" : "text-white/50"}`} style={{
                 background: superMsg === q ? "linear-gradient(135deg,#3b82f6,#6366f1)" : "rgba(255,255,255,0.06)",
                 border: "1px solid rgba(99,102,241,0.25)"
               }}>{q}</button>)}
@@ -1230,90 +1203,7 @@ const MatchPage = () => {
 
       <MatchModal isOpen={showMatch} profile={matchProfile} onClose={() => { setShowMatch(false); showMatchRef.current = false; }} onChat={handleChatFromMatch} isSuperLike={isSuperLikeMatch} superLikeMessage={isSuperLikeMatch ? superLikeMessage : ""} />
 
-      {/* Filter Drawer */}
-      <AnimatePresence>
-        {showFilter && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} exit={{
-        opacity: 0
-      }}>
-            <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowFilter(false)} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float" initial={{
-          y: "100%"
-        }} animate={{
-          y: 0
-        }} exit={{
-          y: "100%"
-        }} transition={{
-          type: "spring",
-          damping: 25,
-          stiffness: 300
-        }}>
-              <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
-              <h3 className="text-lg font-extrabold text-foreground mb-5">{t("auto.j511")}</h3>
 
-              {/* Distance */}
-              <div className="mb-6">
-                <div className="flex justify-between mb-2">
-                  <label className="text-sm font-bold text-foreground">{t("auto.j512")}</label>
-                  <span className="text-sm font-bold text-primary">{maxDistance}km</span>
-                </div>
-                <input type="range" min={1} max={50} value={maxDistance} onChange={e => setMaxDistance(Number(e.target.value))} className="w-full accent-primary" />
-                <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                  <span>1km</span><span>50km</span>
-                </div>
-              </div>
-
-              {/* Gender */}
-              <div className="mb-6">
-                <label className="text-sm font-bold text-foreground mb-3 block">{t("match.filterGender")}</label>
-                <div className="flex gap-2">
-                  {[t('filter.genderAll'), t('filter.genderF'), t('filter.genderM')].map(g => <button key={g} onClick={() => setGenderFilter(g)} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${genderFilter === g ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                      {g}
-                    </button>)}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <label className="text-sm font-bold text-foreground mb-3 block">{t("auto.j513")}</label>
-                <div className="flex flex-wrap gap-2">
-                  {travelStyleOptions.map(tag => <button key={tag} onClick={() => setFilterTravelStyle(prev => prev.includes(tag) ? prev.filter(x => x !== tag) : [...prev, tag])} className={`px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${filterTravelStyle.includes(tag) ? "gradient-primary text-primary-foreground shadow-card" : "bg-muted text-muted-foreground"}`}>
-                      {tag}
-                    </button>)}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button onClick={() => {
-              setSelectedTags([]);
-              setMaxDistance(10);
-              setGenderFilter(t('filter.genderAll'));
-              setFilterAge([18, 60]);
-              setFilterDistance(10);
-              setFilterGender('all');
-              setFilterMbti([]);
-            }} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm transition-colors hover:bg-muted">
-                  {t("auto.j514")}
-                </button>
-                <button onClick={() => {
-              setShowFilter(false);
-              toast({
-                title: t("auto.p527"),
-                description: i18n.t("auto.z_tmpl_150", {
-                  defaultValue: i18n.t("auto.z_tmpl_214", {
-                    defaultValue: `Within ${maxDistance}km${selectedTags.length > 0 ? ` · ${selectedTags.join(", ")}` : ""}`
-                  })
-                })
-              });
-            }} className="flex-1 py-3 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-card flex items-center justify-center gap-2">
-                  <Check size={16} /> {t("auto.j515")}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>}
-      </AnimatePresence>
 
       {/* Migo Plus Modal */}
       <MigoPlusModal isOpen={showPlusModal} onClose={() => setShowPlusModal(false)} />
@@ -1411,6 +1301,8 @@ const MatchPage = () => {
                 setFilterDistance(10);
                 setFilterGender('all');
                 setFilterMbti([]);
+                setFilterLanguages([]);
+                setFilterTravelStyle([]);
               }} className="text-xs text-primary font-bold">{t("match.filterReset")}</button>
                 </div>
 
@@ -1424,17 +1316,27 @@ const MatchPage = () => {
                   </div>
                 </div>
 
+                {/* 여행 스타일 */}
+                <div>
+                  <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide mb-2">{t("auto.j513")}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {travelStyleOptions.map(tag => <button key={tag} onClick={() => setFilterTravelStyle(prev => prev.includes(tag) ? prev.filter(x => x !== tag) : [...prev, tag])} className={`px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${filterTravelStyle.includes(tag) ? 'gradient-primary text-primary-foreground shadow-card' : 'bg-muted text-muted-foreground'}`}>
+                        {tag}
+                      </button>)}
+                  </div>
+                </div>
+
                 {/* 연령대 (Migo Plus) */}
                 <div className="relative">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
-                      {t("match.filterAge")} <span className="text-primary font-bold">{filterAge[0]}~{filterAge[1]}{t("auto.z_autoz\uC138151_215")}</span>
+                      {t("match.filterAge")} <span className="text-primary font-bold">{filterAge[0]}~{filterAge[1]}{"세151"}</span>
                     </p>
                     {!isPlus && <Crown size={14} className="text-amber-500 fill-amber-500" />}
                   </div>
                   <div className={`flex gap-2 flex-wrap ${!isPlus ? "opacity-30 blur-[1px] pointer-events-none" : ""}`}>
                     {[[18, 25], [20, 30], [25, 35], [30, 40], [35, 50], [18, 60]].map(([s, e]) => <button key={`${s}-${e}`} onClick={() => setFilterAge([s, e])} className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${filterAge[0] === s && filterAge[1] === e ? 'gradient-primary text-primary-foreground shadow-card' : 'bg-muted text-muted-foreground'}`}>
-                        {s}~{e}{i18n.t("auto.z_autoz\uC138152_216")}</button>)}
+                        {s}~{e}{"세152"}</button>)}
                   </div>
                   {!isPlus && <div className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer" onClick={() => setShowPlusModal(true)}>
                       <div className="bg-background/90 px-4 py-2 rounded-full shadow-md flex items-center gap-2 border border-border">
@@ -1471,7 +1373,7 @@ const MatchPage = () => {
                     <span>{t("match.filterDist")} <span className="text-primary font-bold">{filterDistance === 9999 ? t('general.unlimited') : `${filterDistance}km`}</span></span>
                     {!canGlobalMatch && <Crown size={14} className="text-amber-500 fill-amber-500" />}
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {[10, 30, 50, 100, 9999].map(d => <button key={d} onClick={() => {
                   if (d === 9999 && !canGlobalMatch) {
                     setShowPlusModal(true);
@@ -1503,8 +1405,14 @@ const MatchPage = () => {
             }} onClick={() => {
               setShowFilterModal(false);
               setCurrentIndex(0);
+              if (totalActiveFilterCount > 0) {
+                toast({
+                  title: t("auto.p527"),
+                  description: `${totalActiveFilterCount}개 필터 적용됨`
+                });
+              }
             }} className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm shadow-float">
-                  {t("auto.j522")}
+                  {totalActiveFilterCount > 0 ? `${t("auto.j522")} (${totalActiveFilterCount}개 적용)` : t("auto.j522")}
                 </motion.button>
               </div>
             </motion.div>

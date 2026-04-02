@@ -60,7 +60,7 @@ const HostRegistrationModal = ({
     });
     setSaving(false);
     toast({
-      title: i18n.t("auto.z_autoz호스트신청_288"),
+      title: "호스트신청",
       description: t("marketplace.hostSubmittedDesc"),
     });
     onClose();
@@ -81,7 +81,7 @@ const HostRegistrationModal = ({
       >
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-            <Award className="text-primary" size={18} />{t("auto.z_autoz호스트지원_289")}
+            <Award className="text-primary" size={18} />{"호스트지원"}
           </h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl bg-muted text-muted-foreground">
             <X size={16} />
@@ -90,7 +90,7 @@ const HostRegistrationModal = ({
 
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz운영카테고_290")}</label>
+            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"운영카테고"}</label>
             <div className="grid grid-cols-2 gap-2">
               {CATEGORIES.filter(c => c.id !== "all").map(c => (
                 <button
@@ -108,17 +108,17 @@ const HostRegistrationModal = ({
             </div>
           </div>
           <div>
-            <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz전문분야및_291")}</label>
+            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"전문분야및"}</label>
             <textarea
               value={form.intro}
               onChange={e => setForm(f => ({ ...f, intro: e.target.value }))}
               rows={3}
-              placeholder={t("auto.z_autoz어떤투어나_292")}
+              placeholder={"어떤투어나"}
               className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary resize-none"
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-muted-foreground mb-1 block">{t("auto.z_autoz연락처15_293")}</label>
+            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"연락처15"}</label>
             <input
               value={form.phone}
               onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
@@ -134,7 +134,7 @@ const HostRegistrationModal = ({
           disabled={saving || !form.intro || !form.phone}
           className="w-full mt-6 py-3.5 rounded-xl gradient-primary text-primary-foreground font-extrabold flex items-center justify-center gap-2 shadow-float disabled:opacity-50"
         >
-          {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : t("auto.z_autoz신청서제출_294")}
+          {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "신청서제출"}
         </motion.button>
       </motion.div>
     </motion.div>
@@ -203,7 +203,7 @@ const BookingModal = ({ pkg, onClose, userId }: BookingModalProps) => {
           <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
             <Check size={32} className="text-emerald-500" />
           </div>
-          <p className="text-lg font-extrabold text-foreground">{t("auto.z_autoz예약완료_305")}</p>
+          <p className="text-lg font-extrabold text-foreground">{"예약완료"}</p>
         </div>
       </motion.div>
     );
@@ -249,7 +249,7 @@ const BookingModal = ({ pkg, onClose, userId }: BookingModalProps) => {
 
           {/* People selector */}
           <div className="flex items-center justify-between bg-muted rounded-2xl px-4 py-3 mb-4">
-            <span className="text-sm font-bold text-foreground">{t("auto.z_autoz인원선택_301")}</span>
+            <span className="text-sm font-bold text-foreground">{"인원선택"}</span>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setCount(c => Math.max(1, c - 1))}
@@ -271,7 +271,7 @@ const BookingModal = ({ pkg, onClose, userId }: BookingModalProps) => {
 
           {/* Price */}
           <div className="flex items-center justify-between mb-5">
-            <span className="text-sm text-muted-foreground">{t("auto.z_autoz총금액1_302")}</span>
+            <span className="text-sm text-muted-foreground">{"총금액1"}</span>
             <span className="text-xl font-extrabold text-foreground">{getLocalizedPrice(pkg.price * count, i18n.language)}</span>
           </div>
 
@@ -280,7 +280,7 @@ const BookingModal = ({ pkg, onClose, userId }: BookingModalProps) => {
             onClick={handleBook}
             className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-base shadow-float flex items-center justify-center gap-2"
           >
-            {t("auto.z_autoz예약하기_303")}<ChevronRight size={18} />
+            {"예약하기"}<ChevronRight size={18} />
           </motion.button>
         </div>
 
@@ -325,7 +325,7 @@ function PackageCard({
         {/* Featured badge */}
         {pkg.featured && (
           <div className="absolute top-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-extrabold shadow-lg">
-            <Sparkles size={9} />{t("auto.z_autoz인기패키지_306")}
+            <Sparkles size={9} />{"인기패키지"}
           </div>
         )}
 
@@ -383,14 +383,14 @@ function PackageCard({
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-muted-foreground">
               <Users size={10} className="inline mr-0.5" />
-              {pkg.maxPeople - pkg.currentPeople}{t("auto.z_autoz자리남음1_308")}
+              {pkg.maxPeople - pkg.currentPeople}{"자리남음1"}
             </span>
             <motion.button
               whileTap={{ scale: 0.93 }}
               onClick={onBook}
               className="px-3 py-2 rounded-xl gradient-primary text-primary-foreground text-[11px] font-extrabold shadow-card flex items-center gap-1"
             >
-              {t("auto.z_autoz예약175_309")}<ChevronRight size={11} />
+              {"예약175"}<ChevronRight size={11} />
             </motion.button>
           </div>
         </div>
@@ -456,8 +456,8 @@ const MarketplacePage = () => {
           <ArrowLeft size={18} className="text-foreground" />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-extrabold text-foreground">{t("auto.z_autoz여행마켓1_310")}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{t("auto.z_autoz투어액티비_311")}</p>
+          <h1 className="text-xl font-extrabold text-foreground">{"여행마켓1"}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{"투어액티비"}</p>
         </div>
         <motion.button
           whileTap={{ scale: 0.92 }}
@@ -467,7 +467,7 @@ const MarketplacePage = () => {
           }}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-muted text-xs font-bold text-foreground"
         >
-          <Award size={13} />{t("auto.z_autoz호스트등록_312")}
+          <Award size={13} />{"호스트등록"}
         </motion.button>
       </header>
 
@@ -477,9 +477,9 @@ const MarketplacePage = () => {
         style={{ background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #f43f5e 100%)" }}
       >
         <div className="absolute inset-0 flex flex-col justify-center px-5">
-          <p className="text-white/80 text-xs font-semibold">{t("auto.z_autozMigo마_313")}</p>
-          <p className="text-white text-lg font-extrabold mt-0.5">{t("auto.z_autoz여행경험을_314")}</p>
-          <p className="text-white/70 text-[11px] mt-0.5">{t("auto.z_autoz예약시Mi_315")}</p>
+          <p className="text-white/80 text-xs font-semibold">{"Migo마"}</p>
+          <p className="text-white text-lg font-extrabold mt-0.5">{"여행경험을"}</p>
+          <p className="text-white/70 text-[11px] mt-0.5">{"예약시Mi"}</p>
         </div>
         <Sparkles size={60} className="absolute right-4 top-4 text-white/10" />
       </div>

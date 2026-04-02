@@ -12,33 +12,33 @@ const APP_VERSION = "1.0.0";
 const APP_SIZE = "32 MB";
 const steps = [{
   num: "01",
-  title: i18n.t("auto.z_autozAPK\uB2E4\uC6B4_405"),
-  desc: i18n.t("auto.z_autoz\uC544\uB798\uBC84\uD2BC\uC744_406")
+  title: "APK다운",
+  desc: "아래버튼을"
 }, {
   num: "02",
-  title: i18n.t("auto.z_autoz\uC54C\uC218\uC5C6\uB294\uC571_407"),
-  desc: i18n.t("auto.z_autoz\uC124\uC815\uBCF4\uC548\uC54C_408")
+  title: "알수없는앱",
+  desc: "설정보안알"
 }, {
   num: "03",
-  title: i18n.t("auto.z_autozAPK\uD30C\uC77C_409"),
-  desc: i18n.t("auto.z_autoz\uB2E4\uC6B4\uB85C\uB4DC\uB41C_410")
+  title: "APK파일",
+  desc: "다운로드된"
 }, {
   num: "04",
-  title: i18n.t("auto.z_autoz\uC124\uCE58\uC644\uB8CC\uC2E4_411"),
-  desc: i18n.t("auto.z_autoz\uC124\uCE58\uBC84\uD2BC\uC744_412")
+  title: "설치완료실",
+  desc: "설치버튼을"
 }];
 const faqs = [{
-  q: i18n.t("auto.z_autoz\uAD6C\uAE00\uD50C\uB808\uC774_413"),
-  a: i18n.t("auto.z_autoz\uD604\uC7AC\uB0B4\uBD80\uD14C_414")
+  q: "구글플레이",
+  a: "현재내부테"
 }, {
-  q: i18n.t("auto.z_autoz\uC54C\uC218\uC5C6\uB294\uC571_415"),
+  q: "알수없는앱",
   a: i18n.t("auto.z_PlayStore외_497")
 }, {
-  q: i18n.t("auto.z_autoz\uCD5C\uC18C\uC548\uB4DC\uB85C_417"),
+  q: "최소안드로",
   a: i18n.t("auto.z_Android80O_499")
 }, {
-  q: i18n.t("auto.z_autoz\uC5C5\uB370\uC774\uD2B8\uB294_418"),
-  a: i18n.t("auto.z_autoz\uC0C8\uBC84\uC804\uC774\uCD9C_419")
+  q: "업데이트는",
+  a: "새버전이출"
 }];
 export default function DownloadPage() {
   const {
@@ -52,7 +52,7 @@ export default function DownloadPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast({
-      title: i18n.t("auto.z_autoz\uB9C1\uD06C\uAC00\uBCF5\uC0AC_420")
+      title: "링크가복사"
     });
   };
   const handleDownload = () => {
@@ -73,10 +73,10 @@ export default function DownloadPage() {
         duration: 0.5
       }}>
           <img src={siteLogo} alt="Migo" className="w-20 h-20 rounded-2xl mx-auto mb-4 shadow-lg" />
-          <h1 className="text-3xl font-extrabold mb-1">{t("auto.z_autozMigo\uBCA0_421")}</h1>
+          <h1 className="text-3xl font-extrabold mb-1">{"Migo베"}</h1>
           <p className="text-muted-foreground text-sm mb-2">v{APP_VERSION} · Android · {APP_SIZE}</p>
           <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-6">
-            <Shield size={12} />{t("auto.z_autoz\uB0B4\uBD80\uD14C\uC2A4\uD130_422")}</div>
+            <Shield size={12} />{"내부테스터"}</div>
 
           {/* Download Button */}
           <motion.button whileTap={{
@@ -84,14 +84,14 @@ export default function DownloadPage() {
         }} onClick={handleDownload} className="w-full max-w-xs mx-auto flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-extrabold shadow-lg text-primary-foreground" style={{
           background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.8) 100%)"
         }}>
-            <Download size={20} />{t("auto.z_autozAPK\uB2E4\uC6B4_423")}</motion.button>
+            <Download size={20} />{"APK다운"}</motion.button>
 
           {/* Share link */}
           <div className="mt-4 flex items-center justify-center gap-2">
             <span className="text-xs text-muted-foreground truncate max-w-[200px]">{pageUrl}</span>
             <button onClick={handleCopy} className="flex items-center gap-1 text-xs text-primary font-semibold">
               {copied ? <Check size={13} /> : <Copy size={13} />}
-              {copied ? t("auto.z_autoz\uBCF5\uC0AC\uB42850_424") : t("auto.z_autoz\uBCF5\uC0AC509_425")}
+              {copied ? "복사됨50" : "복사509"}
             </button>
           </div>
         </motion.div>
@@ -99,7 +99,7 @@ export default function DownloadPage() {
 
       {/* Steps */}
       <div className="px-6 pb-8">
-        <h2 className="text-base font-bold mb-4">{t("auto.z_autoz\uC124\uCE58\uBC29\uBC955_426")}</h2>
+        <h2 className="text-base font-bold mb-4">{"설치방법5"}</h2>
         <div className="space-y-3">
           {steps.map((step, i) => <motion.div key={step.num} initial={{
           opacity: 0,
@@ -122,17 +122,17 @@ export default function DownloadPage() {
         <div className="mt-6 bg-primary/5 border border-primary/20 rounded-2xl p-4 flex gap-3">
           <Smartphone size={18} className="text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-bold mb-1">{t("auto.z_autoz\uC2DC\uC2A4\uD15C\uC694\uAD6C_427")}</p>
+            <p className="text-sm font-bold mb-1">{"시스템요구"}</p>
             <ul className="text-xs text-muted-foreground space-y-0.5">
               <li>{t("auto.z_Android80O_512")}</li>
-              <li>{t("auto.z_autoz\uC800\uC7A5\uACF5\uAC041_428")}</li>
-              <li>{t("auto.z_autoz\uC778\uD130\uB137\uC5F0\uACB0_429")}</li>
+              <li>{"저장공간1"}</li>
+              <li>{"인터넷연결"}</li>
             </ul>
           </div>
         </div>
 
         {/* FAQ */}
-        <h2 className="text-base font-bold mt-8 mb-4">{t("auto.z_autoz\uC790\uC8FC\uBB3B\uB294\uC9C8_430")}</h2>
+        <h2 className="text-base font-bold mt-8 mb-4">{"자주묻는질"}</h2>
         <div className="space-y-2">
           {faqs.map((faq, i) => <div key={i} className="bg-muted/60 rounded-2xl overflow-hidden">
               <button className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-semibold" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
@@ -144,7 +144,7 @@ export default function DownloadPage() {
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-xs text-muted-foreground mt-8">{t("auto.z_autoz\uC774\uD398\uC774\uC9C0\uB294_431")}<br />{t("auto.z_autoz\uD53C\uB4DC\uBC31\uC740\uC6B4_432")}</p>
+        <p className="text-center text-xs text-muted-foreground mt-8">{"이페이지는"}<br />{"피드백은운"}</p>
       </div>
     </div>;
 }

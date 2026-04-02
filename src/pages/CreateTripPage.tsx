@@ -25,7 +25,7 @@ const popularDestinations = [{
   emoji: "🇮🇩"
 }, {
   name: "Tokyo",
-  country: i18n.t("auto.z_autoz일본422_822"),
+  country: "일본422",
   emoji: "🇯🇵"
 }, {
   name: "Barcelona",
@@ -36,11 +36,11 @@ const popularDestinations = [{
   country: "Vietnam",
   emoji: "🇻🇳"
 }, {
-  name: i18n.t("auto.z_autoz치앙마이4_823"),
+  name: "치앙마이4",
   country: "Thailand",
   emoji: "🇹🇭"
 }];
-const travelStyles = [i18n.t("auto.z_autoz카페424_824"), i18n.t("auto.z_autoz야시장42_825"), i18n.t("auto.z_autoz트레킹42_826"), i18n.t("auto.z_autoz서핑427_827"), i18n.t("auto.z_autoz사진428_828"), i18n.t("auto.z_autoz음식429_829"), i18n.t("auto.z_autoz건축430_830"), i18n.t("auto.z_autoz자연431_831"), i18n.t("auto.z_autoz예술432_832"), i18n.t("auto.z_autoz쇼핑433_833"), i18n.t("auto.z_autoz역사434_834"), i18n.t("auto.z_autoz모험435_835")];
+const travelStyles = ["카페424", "야시장42", "트레킹42", "서핑427", "사진428", "음식429", "건축430", "자연431", "예술432", "쇼핑433", "역사434", "모험435"];
 const CreateTripPage = () => {
   const {
     t
@@ -51,8 +51,10 @@ const CreateTripPage = () => {
   } = useAuth();
   const {
     isPlus,
+    isPremium,
     canUnlimitedAITrip
   } = useSubscription();
+  const [isPremiumGroup, setIsPremiumGroup] = useState(false);
   const [showPlusModal, setShowPlusModal] = useState(false);
   const [title, setTitle] = useState("");
   const [destination, setDestination] = useState("");
@@ -123,7 +125,8 @@ const CreateTripPage = () => {
         tags: selectedTags.length > 0 ? selectedTags : null,
         schedule: schedule.filter(s => s.trim().length > 0),
         status: visibility === "public" ? "active" : "invite",
-        cover_image: coverImageUrl
+        cover_image: coverImageUrl,
+        is_premium: isPremiumGroup
       });
       if (error) {
         toast({
@@ -152,26 +155,16 @@ const CreateTripPage = () => {
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
             <ArrowLeft size={18} className="text-foreground" />
           </button>
-          <h1 className="text-base font-bold text-foreground">{t("auto.z_autoz여행만들기_836")}</h1>
+          <h1 className="text-base font-bold text-foreground">{"여행만들기"}</h1>
           <div className="w-10" />
         </div>
       </header>
 
-      {!isPlus ? <div className="flex flex-col items-center justify-center pt-24 px-6 text-center">
-          <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center mb-6">
-            <Crown size={40} className="text-amber-500" />
-          </div>
-          <h2 className="text-2xl font-extrabold text-foreground mb-3">{t("auto.z_autoz여행그룹생_837")}<br />{t("auto.z_autozMigoP_838")}</h2>
-          <p className="text-sm text-muted-foreground mb-8">{t("auto.z_autozMigoP_839")}</p>
-          <button onClick={() => setShowPlusModal(true)} className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2">
-            <Crown size={18} />{t("auto.z_autoz1일무료로_840")}</button>
-          
-          <MigoPlusModal isOpen={showPlusModal} onClose={() => setShowPlusModal(false)} />
-        </div> : <>
+      {/* Free & Plus can see it, Premium can toggle Premium Feature */}
           <div className="px-5 py-5 space-y-6 pb-32">
             {/* Cover Image */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{t("auto.z_autoz\uBC30\uACBD\uC0AC\uC9C48_742")}<span className="text-muted-foreground font-normal text-xs">{t("auto.z_autoz\uC120\uD0DD842_743")}</span></label>
+              <label className="text-sm font-bold text-foreground">{"배경사진8"}<span className="text-muted-foreground font-normal text-xs">{"선택842"}</span></label>
               <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-muted flex items-center justify-center cursor-pointer border-2 border-dashed border-primary/20 hover:border-primary/50 transition-colors" onClick={() => coverInputRef.current?.click()}>
                 {coverPreview ? <>
                     <img src={coverPreview} alt="cover" className="absolute inset-0 w-full h-full object-cover" />
@@ -180,7 +173,7 @@ const CreateTripPage = () => {
                     </div>
                   </> : <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Image size={28} />
-                    <span className="text-xs font-medium">{t("auto.z_autoz\uC0AC\uC9C4\uCD94\uAC008_744")}</span>
+                    <span className="text-xs font-medium">{"사진추가8"}</span>
                   </div>}
               </div>
               <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={e => {
@@ -195,20 +188,20 @@ const CreateTripPage = () => {
 
             {/* Title */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{t("auto.z_autoz여행제목4_844")}</label>
-              <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={t("auto.z_autoz예치앙마이_845")} maxLength={50} className="w-full bg-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 transition-shadow" />
+              <label className="text-sm font-bold text-foreground">{"여행제목4"}</label>
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={"예치앙마이"} maxLength={50} className="w-full bg-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 transition-shadow" />
               <span className="text-[10px] text-muted-foreground">{title.length}/50</span>
             </div>
 
             {/* Destination */}
             <div className="space-y-2 relative">
-              <label className="text-sm font-bold text-foreground">{t("auto.z_autoz여행지역4_846")}</label>
+              <label className="text-sm font-bold text-foreground">{"여행지역4"}</label>
               <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3.5 cursor-text" onClick={() => setShowDestinations(true)}>
                 <MapPin size={16} className="text-primary shrink-0" />
                 <input type="text" value={destination} onChange={e => {
               setDestination(e.target.value);
               setShowDestinations(true);
-            }} onFocus={() => setShowDestinations(true)} placeholder={t("auto.z_autoz도시또는지_847")} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+            }} onFocus={() => setShowDestinations(true)} placeholder={"도시또는지"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                 {destination && <button onClick={e => {
               e.stopPropagation();
               setDestination("");
@@ -218,7 +211,7 @@ const CreateTripPage = () => {
               </div>
 
               {showDestinations && !destination && <div className="bg-card rounded-2xl shadow-float border border-border p-3 space-y-1 animate-slide-up">
-                  <p className="text-[10px] font-semibold text-muted-foreground px-2 pb-1">{t("auto.z_autoz인기여행지_848")}</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground px-2 pb-1">{"인기여행지"}</p>
                   {popularDestinations.map(d => <button key={d.name} onClick={() => {
               setDestination(`${d.name}, ${d.country}`);
               setShowDestinations(false);
@@ -234,15 +227,15 @@ const CreateTripPage = () => {
 
             {/* Dates */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{t("auto.z_autoz여행날짜4_849")}</label>
+              <label className="text-sm font-bold text-foreground">{"여행날짜4"}</label>
               <div className="grid grid-cols-2 gap-3">
                 <Popover>
                   <PopoverTrigger asChild>
                     <button className={cn("flex items-center gap-2 bg-muted rounded-2xl px-4 py-3.5 text-sm transition-shadow focus:ring-2 focus:ring-primary/30", !startDate && "text-muted-foreground")}>
                       <Calendar size={14} className="text-primary shrink-0" />
-                      {startDate ? format(startDate, t("auto.z_autozM월d일4_850"), {
+                      {startDate ? format(startDate, "M월d일4", {
                     locale: ko
-                  }) : t("auto.z_autoz출발일44_851")}
+                  }) : "출발일44"}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -254,9 +247,9 @@ const CreateTripPage = () => {
                   <PopoverTrigger asChild>
                     <button className={cn("flex items-center gap-2 bg-muted rounded-2xl px-4 py-3.5 text-sm transition-shadow focus:ring-2 focus:ring-primary/30", !endDate && "text-muted-foreground")}>
                       <Calendar size={14} className="text-primary shrink-0" />
-                      {endDate ? format(endDate, t("auto.z_autozM월d일4_852"), {
+                      {endDate ? format(endDate, "M월d일4", {
                     locale: ko
-                  }) : t("auto.z_autoz도착일45_853")}
+                  }) : "도착일45"}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="end">
@@ -268,14 +261,14 @@ const CreateTripPage = () => {
 
             {/* Description */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{t("auto.z_autoz설명451_854")}</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t("auto.z_autoz어떤여행인_855")} maxLength={300} rows={4} className="w-full bg-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30 transition-shadow leading-relaxed" />
+              <label className="text-sm font-bold text-foreground">{"설명451"}</label>
+              <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={"어떤여행인"} maxLength={300} rows={4} className="w-full bg-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30 transition-shadow leading-relaxed" />
               <span className="text-[10px] text-muted-foreground">{description.length}/300</span>
             </div>
 
             {/* Travel Style Tags */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{t("auto.z_autoz여행스타일_856")}<span className="text-muted-foreground font-normal text-xs">{t("auto.z_autoz최대5개4_857")}</span></label>
+              <label className="text-sm font-bold text-foreground">{"여행스타일"}<span className="text-muted-foreground font-normal text-xs">{"최대5개4"}</span></label>
               <div className="flex flex-wrap gap-2">
                 {travelStyles.map(tag => <button key={tag} onClick={() => toggleTag(tag)} className={cn("px-3.5 py-2 rounded-full text-xs font-semibold transition-all", selectedTags.includes(tag) ? "gradient-primary text-primary-foreground shadow-card" : "bg-muted text-muted-foreground hover:bg-border")}>
                     {tag}
@@ -285,7 +278,7 @@ const CreateTripPage = () => {
 
             {/* Schedule */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{t("auto.z_autoz상세일정4_858")}<span className="text-muted-foreground font-normal text-xs">{t("auto.z_autoz선택최대1_859")}</span></label>
+              <label className="text-sm font-bold text-foreground">{"상세일정4"}<span className="text-muted-foreground font-normal text-xs">{"선택최대1"}</span></label>
               <div className="space-y-3">
                 {schedule.map((item, index) => <div key={`schedule-${index}-${item.substring(0, 8)}`} className="flex items-center gap-2 group">
                     <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
@@ -308,7 +301,7 @@ const CreateTripPage = () => {
                   </div>)}
                 {schedule.length < 10 && <button onClick={() => setSchedule([...schedule, ""])} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/20 bg-primary/5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors">
                     <Plus size={16} />
-                    {schedule.length === 0 ? t("auto.z_autoz첫번째일정_861") : t("auto.z_autoz일정추가4_862")}
+                    {schedule.length === 0 ? "첫번째일정" : "일정추가4"}
                   </button>}
                 
                 {/* AI 자동 생성 (Premium 전용) */}
@@ -330,7 +323,7 @@ const CreateTripPage = () => {
 
             {/* Max Members & N-Pay */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{t("auto.z_autoz최대인원4_863")}</label>
+              <label className="text-sm font-bold text-foreground">{"최대인원4"}</label>
               <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3">
                 <Users size={16} className="text-primary" />
                 <div className="flex items-center gap-4 flex-1">
@@ -338,7 +331,7 @@ const CreateTripPage = () => {
                       {n}
                     </button>)}
                 </div>
-                <span className="text-xs text-muted-foreground">{t("auto.z_autoz명461_864")}</span>
+                <span className="text-xs text-muted-foreground">{"명461"}</span>
               </div>
             </div>
 
@@ -357,15 +350,15 @@ const CreateTripPage = () => {
 
             {/* Visibility */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{t("auto.z_autoz공개방식4_865")}</label>
+              <label className="text-sm font-bold text-foreground">{"공개방식4"}</label>
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => setVisibility("public")} className={cn("flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all", visibility === "public" ? "border-primary bg-primary/5 shadow-card" : "border-border bg-card hover:border-muted-foreground/30")}>
                   <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center", visibility === "public" ? "gradient-primary" : "bg-muted")}>
                     <Globe size={20} className={visibility === "public" ? "text-primary-foreground" : "text-muted-foreground"} />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-bold text-foreground">{t("auto.z_autoz공개463_866")}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{t("auto.z_autoz누구나참여_867")}</p>
+                    <p className="text-sm font-bold text-foreground">{"공개463"}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{"누구나참여"}</p>
                   </div>
                 </button>
 
@@ -374,11 +367,36 @@ const CreateTripPage = () => {
                     <Lock size={20} className={visibility === "invite" ? "text-primary-foreground" : "text-muted-foreground"} />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-bold text-foreground">{t("auto.z_autoz초대전용4_868")}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{t("auto.z_autoz승인후참여_869")}</p>
+                    <p className="text-sm font-bold text-foreground">{"초대전용4"}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{"승인후참여"}</p>
                   </div>
                 </button>
               </div>
+            </div>
+
+            {/* Premium Group Toggle */}
+            <div className="mt-4 p-4 rounded-2xl border-2 border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-orange-500/5 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-extrabold flex items-center gap-1.5 text-foreground">
+                  <Crown size={16} className="text-amber-500" />
+                  프리미엄 그룹 설정
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  최상단 노출 및 Premium 회원 전용 모집
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (!isPremium) {
+                    setShowPlusModal(true);
+                  } else {
+                    setIsPremiumGroup(p => !p);
+                  }
+                }}
+                className={cn("relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2", isPremiumGroup ? "bg-amber-500" : "bg-muted")}
+              >
+                <span className={cn("pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out", isPremiumGroup ? "translate-x-5" : "translate-x-0")} />
+              </button>
             </div>
           </div>
 
@@ -387,12 +405,12 @@ const CreateTripPage = () => {
             <div className="max-w-lg mx-auto px-5 py-4">
               <button onClick={handleSubmit} disabled={!isValid || loading} className={cn("w-full py-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2", isValid && !loading ? "gradient-primary text-primary-foreground shadow-float active:scale-[0.98]" : "bg-muted text-muted-foreground cursor-not-allowed")}>
                 {loading ? <>
-                    <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />{t("auto.z_autoz생성중46_870")}</> : t("auto.z_autoz여행그룹만_871")}
+                    <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />{"생성중46"}</> : "여행그룹만"}
               </button>
             </div>
             <div className="h-[env(safe-area-inset-bottom)]" />
           </div>
-        </>}
+          <MigoPlusModal isOpen={showPlusModal} onClose={() => setShowPlusModal(false)} defaultPlan="premium" />
     </div>;
 };
 export default CreateTripPage;

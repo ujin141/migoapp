@@ -36,8 +36,18 @@ export const NotificationProvider = ({
   const {
     user
   } = useAuth();
+  // 로컬 스토리지에 저장된 "이미 읽은 알림 ID 목록"을 가져와서 DB 업데이트 실패 시에도 캐싱 유지
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('readNotifs');
+      return new Set<string>(stored ? JSON.parse(stored) : []);
+    } catch {
+      return new Set<string>();
+    }
+  });
+
   const [notifs, setNotifs] = useState<Notif[]>([]);
-  const unreadCount = notifs.filter(n => !n.read).length;
+  const unreadCount = notifs.filter(n => !n.read && !readIds.has(n.id)).length;
   useEffect(() => {
     if (!user) return;
     const fetchNotifs = async () => {
@@ -59,14 +69,14 @@ export const NotificationProvider = ({
           id: n.id,
           type: n.type,
           actorId: n.actor_id,
-          actor: profileMap[n.actor_id]?.name || i18n.t("auto.z_autoz익명946_1295"),
+          actor: profileMap[n.actor_id]?.name || "익명946",
           actorPhoto: profileMap[n.actor_id]?.photo_url || '',
           target: n.target_text || undefined,
           time: new Intl.DateTimeFormat('ko-KR', {
             hour: 'numeric',
             minute: 'numeric'
           }).format(new Date(n.created_at)),
-          read: n.read ?? false
+          read: (n.is_read ?? false) || readIds.has(n.id)
         })));
       }
     };
@@ -85,14 +95,14 @@ export const NotificationProvider = ({
         id: newNotif.id,
         type: newNotif.type,
         actorId: newNotif.actor_id,
-        actor: actorProfile?.name || i18n.t("auto.z_autoz익명947_1296"),
+        actor: actorProfile?.name || "익명947",
         actorPhoto: actorProfile?.photo_url || "",
         target: newNotif.target_text || undefined,
         time: new Intl.DateTimeFormat('ko-KR', {
           hour: 'numeric',
           minute: 'numeric'
         }).format(new Date(newNotif.created_at)),
-        read: newNotif.read ?? false
+        read: (newNotif.is_read ?? false) || readIds.has(newNotif.id)
       }, ...prev]);
     }).subscribe();
     return () => {
@@ -100,22 +110,40 @@ export const NotificationProvider = ({
     };
   }, [user?.id]);
   const markRead = useCallback(async (id: string) => {
+    // 로컬 스토리지 업데이트
+    setReadIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem('readNotifs', JSON.stringify([...next]));
+      return next;
+    });
+
     setNotifs(prev => prev.map(n => n.id === id ? {
       ...n,
       read: true
     } : n));
     await supabase.from('notifications').update({
-      read: true
+      is_read: true
     }).eq('id', id);
   }, []);
+  
   const markAllRead = useCallback(async () => {
     if (!user) return;
-    setNotifs(prev => prev.map(n => ({
-      ...n,
-      read: true
-    })));
+    
+    // notifs 상태를 함수형 updater로 참조하여 stale closure 방지
+    setNotifs(prev => {
+      const allIds = prev.map(n => n.id);
+      setReadIds(prevIds => {
+        const next = new Set(prevIds);
+        allIds.forEach(id => next.add(id));
+        localStorage.setItem('readNotifs', JSON.stringify([...next]));
+        return next;
+      });
+      return prev.map(n => ({ ...n, read: true }));
+    });
+
     await supabase.from('notifications').update({
-      read: true
+      is_read: true
     }).eq('user_id', user.id);
   }, [user?.id]);
   const addNotif = useCallback(async (template: Omit<Notif, "id" | "time" | "read">) => {

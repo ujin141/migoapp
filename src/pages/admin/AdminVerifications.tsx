@@ -83,7 +83,7 @@ export const AdminVerifications = () => {
         }).eq("id", rec.user_id);
       }
       toast({
-        title: i18n.t("auto.z_autoz승인완료5_959"),
+        title: "승인완료5",
         description: i18n.t("auto.z_tmpl_556", {
           defaultValue: i18n.t("auto.z_tmpl_960", {
             defaultValue: t("auto.p10", {
@@ -130,16 +130,16 @@ export const AdminVerifications = () => {
     rejected: "bg-red-500/10 text-red-500"
   };
   const statusLabels = {
-    pending: t("auto.z_autoz심사대기5_961"),
-    approved: t("auto.z_autoz승인558_962"),
-    rejected: t("auto.z_autoz반려559_963")
+    pending: "심사대기5",
+    approved: "승인558",
+    rejected: "반려559"
   };
   return <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-lg font-extrabold text-foreground">{t("auto.z_autoz신분증심사_964")}</h2>
-          <p className="text-xs text-muted-foreground">{t("auto.z_autoz제출된신분_965")}</p>
+          <h2 className="text-lg font-extrabold text-foreground">{"신분증심사"}</h2>
+          <p className="text-xs text-muted-foreground">{"제출된신분"}</p>
         </div>
         <button onClick={load} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
           <RefreshCw size={16} className={`text-muted-foreground ${loading ? "animate-spin" : ""}`} />
@@ -149,14 +149,14 @@ export const AdminVerifications = () => {
       {/* 필터 */}
       <div className="flex gap-2 mb-4">
         {(["pending", "approved", "rejected", "all"] as const).map(f => <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filter === f ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-            {f === "pending" ? i18n.t("auto.z_autoz심사대기5_966") : f === "approved" ? i18n.t("auto.z_autoz승인됨56_967") : f === "rejected" ? i18n.t("auto.z_autoz반려됨56_968") : i18n.t("auto.z_autoz전체565_969")}
+            {f === "pending" ? "심사대기5" : f === "approved" ? "승인됨56" : f === "rejected" ? "반려됨56" : "전체565"}
           </button>)}
       </div>
 
       {/* 목록 */}
       {loading ? <div className="flex items-center justify-center py-12">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div> : records.length === 0 ? <div className="text-center py-12 text-muted-foreground text-sm">{t("auto.z_autoz해당항목이_970")}</div> : <div className="space-y-3">
+        </div> : records.length === 0 ? <div className="text-center py-12 text-muted-foreground text-sm">{"해당항목이"}</div> : <div className="space-y-3">
           {records.map(rec => <div key={rec.id} className="p-4 rounded-2xl bg-card border border-border shadow-sm">
               <div className="flex items-start gap-3">
                 {/* 프로필 사진 */}
@@ -187,20 +187,20 @@ export const AdminVerifications = () => {
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                     <Eye size={16} className="text-white" />
                   </div>
-                  <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/50 px-1 rounded">{i18n.t("auto.z_autoz앞면567_971")}</span>
+                  <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/50 px-1 rounded">{"앞면567"}</span>
                 </button>
                 {rec.back_url && <button onClick={() => setPreview(rec.back_url!)} className="flex-1 h-20 rounded-xl overflow-hidden bg-muted border border-border relative group">
                     <img src={rec.back_url} alt={t("auto.x4005")} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                       <Eye size={16} className="text-white" />
                     </div>
-                    <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/50 px-1 rounded">{i18n.t("auto.z_autoz뒷면568_972")}</span>
+                    <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/50 px-1 rounded">{"뒷면568"}</span>
                   </button>}
               </div>
 
               {/* 반려 사유 표시 */}
               {rec.status === "rejected" && rec.reject_reason && <div className="mt-2 p-2 rounded-xl bg-red-500/5 border border-red-500/20">
-                  <p className="text-[11px] text-red-500">{i18n.t("auto.z_autoz반려사유5_973")}{rec.reject_reason}</p>
+                  <p className="text-[11px] text-red-500">{"반려사유5"}{rec.reject_reason}</p>
                 </div>}
 
               {/* 액션 버튼 */}
@@ -209,9 +209,9 @@ export const AdminVerifications = () => {
             id: rec.id,
             userId: rec.user_id
           })} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-500/10 text-red-500 text-xs font-bold transition-all hover:bg-red-500/20 disabled:opacity-50">
-                    <X size={13} />{i18n.t("auto.z_autoz반려570_974")}</button>
+                    <X size={13} />{"반려570"}</button>
                   <button disabled={processing === rec.id} onClick={() => approve(rec)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-xs font-bold transition-all disabled:opacity-50">
-                    <Check size={13} /> {processing === rec.id ? i18n.t("auto.z_autoz처리중57_975") : i18n.t("auto.z_autoz승인572_976")}
+                    <Check size={13} /> {processing === rec.id ? "처리중57" : "승인572"}
                   </button>
                 </div>}
             </div>)}
@@ -228,11 +228,11 @@ export const AdminVerifications = () => {
       {/* 반려 사유 모달 */}
       {rejectModal && <div className="fixed inset-0 z-[90] flex items-center justify-center p-6 bg-black/60">
           <div className="w-full max-w-sm bg-card rounded-3xl p-6 shadow-float">
-            <h3 className="text-lg font-extrabold text-foreground mb-3">{t("auto.z_autoz반려사유5_977")}</h3>
-            <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder={t("auto.z_autoz반려사유를_978")} rows={3} className="w-full px-4 py-3 rounded-2xl bg-muted border border-border text-sm text-foreground outline-none resize-none mb-4" />
+            <h3 className="text-lg font-extrabold text-foreground mb-3">{"반려사유5"}</h3>
+            <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder={"반려사유를"} rows={3} className="w-full px-4 py-3 rounded-2xl bg-muted border border-border text-sm text-foreground outline-none resize-none mb-4" />
             <div className="flex gap-2">
               <button onClick={() => setRejectModal(null)} className="flex-1 py-3 rounded-2xl bg-muted text-foreground font-semibold text-sm">{t("general.cancel")}</button>
-              <button onClick={reject} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-semibold text-sm">{t("auto.z_autoz반려처리5_979")}</button>
+              <button onClick={reject} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-semibold text-sm">{"반려처리5"}</button>
             </div>
           </div>
         </div>}

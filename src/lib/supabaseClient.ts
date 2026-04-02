@@ -109,7 +109,7 @@ if (!_supabase && isSupabaseConfigured) {
     console.warn(i18n.t("auto.z_Supabasecl_912"), e);
   }
 } else if (!isSupabaseConfigured) {
-  console.info(i18n.t("auto.z_autozSupab_1251") + i18n.t("auto.z_autozenvlo_1252"));
+  console.info("Supab" + "envlo");
 }
 
 // Export a safe proxy — all calls are no-ops when not configured

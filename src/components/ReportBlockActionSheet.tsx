@@ -126,14 +126,14 @@ const ReportBlockActionSheet: React.FC<Props> = ({
               
               <div className="flex items-center justify-between mb-4">
                 {mode === "report" ? <button onClick={() => setMode("menu")} className="flex items-center gap-1 text-muted-foreground text-sm font-bold">
-                    <ChevronRight size={18} className="rotate-180" />{t("auto.z_autoz뒤로102_1395")}</button> : <h3 className="text-lg font-extrabold text-foreground">
+                    <ChevronRight size={18} className="rotate-180" />{"뒤로102"}</button> : <h3 className="text-lg font-extrabold text-foreground">
                     {targetType === "user" ? t("auto.z_tmpl_1025", {
                 defaultValue: t("auto.z_tmpl_1396", {
                   defaultValue: t("auto.z_tmpl_1261", {
                     defaultValue: `Manage ${targetName}`
                   })
                 })
-              }) : t("auto.z_autoz게시물관리_1397")}
+              }) : "게시물관리"}
                   </h3>}
                 <button onClick={onClose} className="w-8 h-8 flex items-center justify-center bg-muted rounded-full">
                   <X size={18} className="text-muted-foreground" />
@@ -148,8 +148,8 @@ const ReportBlockActionSheet: React.FC<Props> = ({
                         <ShieldAlert size={20} className="text-amber-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-foreground">{t("auto.z_autoz신고하기1_1398")}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{t("auto.z_autoz부적절한콘_1399")}</p>
+                        <p className="text-sm font-bold text-foreground">{"신고하기1"}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{"부적절한콘"}</p>
                       </div>
                     </div>
                     <ChevronRight size={18} className="text-muted-foreground" />
@@ -161,8 +161,8 @@ const ReportBlockActionSheet: React.FC<Props> = ({
                           <UserMinus size={20} className="text-red-500 group-hover:text-white transition-colors" />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-red-500">{t("auto.z_autoz차단하기1_1400")}</p>
-                          <p className="text-xs text-red-500/70 mt-0.5">{t("auto.z_autoz서로의활동_1401")}</p>
+                          <p className="text-sm font-bold text-red-500">{"차단하기1"}</p>
+                          <p className="text-xs text-red-500/70 mt-0.5">{"서로의활동"}</p>
                         </div>
                       </div>
                     </button>}
@@ -170,14 +170,14 @@ const ReportBlockActionSheet: React.FC<Props> = ({
 
               {/* REPORT MODE */}
               {mode === "report" && <div className="space-y-3 mt-2">
-                  <p className="text-sm font-bold text-foreground mb-4">{t("auto.z_autoz어떤문제가_1402")}</p>
+                  <p className="text-sm font-bold text-foreground mb-4">{"어떤문제가"}</p>
                   <div className="space-y-2">
                     {REASONS.map(reason => <button key={reason} onClick={() => handleReport(reason)} disabled={isSubmitting} className="w-full text-left px-4 py-3.5 rounded-xl bg-muted hover:bg-border active:scale-[0.98] transition-all flex items-center gap-3 text-sm font-medium text-foreground">
                         <div className="w-2 h-2 rounded-full bg-amber-500/50" />
                         {reason}
                       </button>)}
                   </div>
-                  <p className="text-[10px] text-muted-foreground text-center mt-6">{t("auto.z_autoz허위신고시_1403")}</p>
+                  <p className="text-[10px] text-muted-foreground text-center mt-6">{"허위신고시"}</p>
                 </div>}
             </div>
           </motion.div>

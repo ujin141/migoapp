@@ -77,7 +77,7 @@ export const AdminUsers = () => {
     }
   };
   const toggleBan = async (id: string, currentBanned: boolean) => {
-    const label = currentBanned ? i18n.t("auto.z_autoz정지를해제_980") : i18n.t("auto.z_autoz계정을정지_981");
+    const label = currentBanned ? "정지를해제" : "계정을정지";
     if (!confirm(i18n.t("admin.confirmBanUser", {
       action: label,
       defaultValue: `Are you sure you want to ${label} this user?`
@@ -95,7 +95,7 @@ export const AdminUsers = () => {
     }
   };
   const handleDelete = async (id: string) => {
-    if (!confirm(i18n.t("auto.z_autoz계정을영구_983"))) return;
+    if (!confirm("계정을영구")) return;
     const success = await deleteUserAccount(id);
     if (success) {
       setUsers(prev => prev.filter(u => u.id !== id));
@@ -167,13 +167,13 @@ export const AdminUsers = () => {
   return <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">{t("auto.z_autoz유저관리5_988")}</h1>
-          <p className="text-sm text-muted-foreground">{t("auto.z_autoz총585_989")}{users.length}{t("auto.z_autoz명등록실시_990")}</p>
+          <h1 className="text-2xl font-extrabold text-foreground">{"유저관리5"}</h1>
+          <p className="text-sm text-muted-foreground">{"총585"}{users.length}{"명등록실시"}</p>
         </div>
         <motion.button whileTap={{
         scale: 0.95
       }} onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground text-sm transition-colors">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{t("auto.z_autoz새로고침5_991")}
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{"새로고침5"}
         </motion.button>
       </div>
 
@@ -187,7 +187,7 @@ export const AdminUsers = () => {
       <div className="flex gap-3 mb-5">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("auto.z_autoz이름이메일_992")} className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={"이름이메일"} className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors" />
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {filterButtons.map(b => <button key={b.key} onClick={() => setFilter(b.key)} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${filter === b.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
@@ -200,7 +200,7 @@ export const AdminUsers = () => {
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
         {loading ? <div className="py-16 flex items-center justify-center gap-3 text-muted-foreground">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm">{t("auto.z_autoz불러오는중_993")}</span>
+            <span className="text-sm">{"불러오는중"}</span>
           </div> : <table className="w-full">
             <thead>
                 <tr className="border-b border-border bg-muted/40">
@@ -229,8 +229,8 @@ export const AdminUsers = () => {
                         </div>}
                       <div className="min-w-0">
                         <div className="flex items-center gap-1">
-                          <p className="text-sm font-bold text-foreground truncate">{u.name || i18n.t("auto.z_autoz이름없음5_1000")}</p>
-                          {u.banned && <span className="shrink-0 px-1.5 py-0.5 rounded bg-red-500/10 text-[9px] font-bold text-red-400">{i18n.t("auto.z_autoz정지597_1001")}</span>}
+                          <p className="text-sm font-bold text-foreground truncate">{u.name || "이름없음5"}</p>
+                          {u.banned && <span className="shrink-0 px-1.5 py-0.5 rounded bg-red-500/10 text-[9px] font-bold text-red-400">{"정지597"}</span>}
                         </div>
                         <p className="text-[10px] text-muted-foreground truncate">{u.email}</p>
                         <p className="text-[10px] text-muted-foreground">{u.nationality || "-"} · {new Date(u.created_at).toLocaleDateString("ko-KR")}</p>
@@ -240,18 +240,18 @@ export const AdminUsers = () => {
                   <td className="px-3 py-3">
                     <div className="flex flex-col gap-1">
                       {u.plan === 'premium' ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-500/10 text-purple-400 w-fit"><Crown size={9} />Premium</span> : u.plan === 'plus' || u.is_plus ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/10 text-amber-400 w-fit"><Crown size={9} />Plus</span> : <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-muted text-muted-foreground w-fit">Free</span>}
-                      {u.verified ? <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold w-fit">{i18n.t("auto.z_autoz인증됨59_1002")}</span> : <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold w-fit">{i18n.t("auto.z_autoz미인증59_1003")}</span>}
+                      {u.verified ? <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold w-fit">{"인증됨59"}</span> : <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold w-fit">{"미인증59"}</span>}
                     </div>
                   </td>
                   <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => verifyUser(u.id, u.verified)} className={`p-1.5 rounded-lg transition-colors ${u.verified ? "bg-muted text-muted-foreground" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"}`} title={u.verified ? i18n.t("auto.z_autoz인증취소6_1004") : i18n.t("auto.z_autoz인증승인6_1005")}>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => verifyUser(u.id, u.verified)} className={`p-1.5 rounded-lg transition-colors ${u.verified ? "bg-muted text-muted-foreground" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"}`} title={u.verified ? "인증취소6" : "인증승인6"}>
                         <Check size={12} />
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} onClick={() => cyclePlan(u.id, u.plan, u.is_plus)} className={`p-1.5 rounded-lg transition-colors ${u.plan === 'premium' ? "bg-purple-500/20 text-purple-500" : u.plan === 'plus' || u.is_plus ? "bg-amber-500/20 text-amber-500" : "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"}`} title={i18n.t("auto.z_\uD50C\uB79C\uC21C\uD658FreePl_907")}>
                         <Crown size={12} />
                       </motion.button>
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => toggleBan(u.id, u.banned)} className={`p-1.5 rounded-lg transition-colors ${u.banned ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400 hover:bg-red-500/20"}`} title={u.banned ? i18n.t("auto.z_autoz정지해제6_1008") : i18n.t("auto.z_autoz계정정지6_1009")}>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => toggleBan(u.id, u.banned)} className={`p-1.5 rounded-lg transition-colors ${u.banned ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400 hover:bg-red-500/20"}`} title={u.banned ? "정지해제6" : "계정정지6"}>
                         <Ban size={12} />
                       </motion.button>
                     </div>
@@ -259,7 +259,7 @@ export const AdminUsers = () => {
                 </motion.tr>)}
             </tbody>
           </table>}
-        {!loading && filtered.length === 0 && <div className="py-12 text-center text-sm text-muted-foreground">{t("auto.z_autoz유저가없습_1010")}</div>}
+        {!loading && filtered.length === 0 && <div className="py-12 text-center text-sm text-muted-foreground">{"유저가없습"}</div>}
       </div>
 
       {/* User Detail Side Panel */}
@@ -285,7 +285,7 @@ export const AdminUsers = () => {
         }} className="relative z-10 w-96 bg-card border-l border-border h-screen overflow-y-auto shadow-float" onClick={e => e.stopPropagation()}>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-extrabold text-foreground">{t("auto.z_autoz유저상세6_1011")}</h3>
+                  <h3 className="font-extrabold text-foreground">{"유저상세6"}</h3>
                   <button onClick={() => setSelectedUser(null)} className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center">
                     <X size={14} />
                   </button>
@@ -295,12 +295,12 @@ export const AdminUsers = () => {
                 <div className="flex items-center gap-4 mb-6 p-4 bg-muted/40 rounded-2xl">
                   {selectedUser.photo_url ? <img src={selectedUser.photo_url} className="w-16 h-16 rounded-2xl object-cover" /> : <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">{(selectedUser.name?.[0] || "?").toUpperCase()}</div>}
                   <div>
-                    <p className="font-extrabold text-foreground">{selectedUser.name || t("auto.z_autoz이름없음6_1012")}</p>
+                    <p className="font-extrabold text-foreground">{selectedUser.name || "이름없음6"}</p>
                     <p className="text-xs text-muted-foreground">{selectedUser.email}</p>
                     <div className="flex gap-1.5 mt-1.5">
-                      {selectedUser.verified && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">{t("auto.z_autoz인증됨60_1013")}</span>}
+                      {selectedUser.verified && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">{"인증됨60"}</span>}
                       {selectedUser.plan === 'premium' ? <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold">Premium</span> : selectedUser.plan === 'plus' || selectedUser.is_plus ? <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold">Plus</span> : null}
-                      {selectedUser.banned && <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold">{t("auto.z_autoz정지됨61_1014")}</span>}
+                      {selectedUser.banned && <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold">{"정지됨61"}</span>}
                     </div>
                   </div>
                 </div>
@@ -308,16 +308,16 @@ export const AdminUsers = () => {
                 {/* Info */}
                 <div className="space-y-2 mb-6">
                   {[{
-                label: t("auto.z_autoz국가위치6_1015"),
+                label: "국가위치6",
                 value: selectedUser.nationality || selectedUser.location || "-"
               }, {
-                label: t("auto.z_autoz여행일정6_1016"),
+                label: "여행일정6",
                 value: selectedUser.travel_dates || "-"
               }, {
-                label: t("auto.z_autoz가입일61_1017"),
+                label: "가입일61",
                 value: new Date(selectedUser.created_at).toLocaleDateString("ko-KR")
               }, {
-                label: t("auto.z_autoz유저ID6_1018"),
+                label: "유저ID6",
                 value: selectedUser.id?.slice(0, 16) + "...",
                 mono: true
               }].map(i => <div key={i.label} className="flex justify-between py-2 border-b border-border/50">
@@ -328,29 +328,29 @@ export const AdminUsers = () => {
 
                 {/* Bio */}
                 {selectedUser.bio && <div className="mb-6 p-3 bg-muted/40 rounded-xl">
-                    <p className="text-[11px] text-muted-foreground font-bold mb-1">{t("auto.z_autoz자기소개6_1019")}</p>
+                    <p className="text-[11px] text-muted-foreground font-bold mb-1">{"자기소개6"}</p>
                     <p className="text-xs text-foreground leading-relaxed">{selectedUser.bio}</p>
                   </div>}
 
                 {/* Admin Note */}
                 <div className="mb-6">
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 flex items-center gap-1"><FileText size={11} />{t("auto.z_autoz관리자메모_1020")}</label>
-                  <textarea value={noteEdit} onChange={e => setNoteEdit(e.target.value)} rows={3} placeholder={t("auto.z_autoz이유저에대_1021")} className="w-full px-3 py-2 rounded-xl bg-muted border border-border text-xs text-foreground outline-none focus:border-primary resize-none transition-colors" />
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 flex items-center gap-1"><FileText size={11} />{"관리자메모"}</label>
+                  <textarea value={noteEdit} onChange={e => setNoteEdit(e.target.value)} rows={3} placeholder={"이유저에대"} className="w-full px-3 py-2 rounded-xl bg-muted border border-border text-xs text-foreground outline-none focus:border-primary resize-none transition-colors" />
                   <motion.button whileTap={{
                 scale: 0.97
               }} onClick={saveNote} disabled={savingNote} className="w-full mt-2 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold disabled:opacity-50 transition-colors hover:bg-primary/20">
-                    {savingNote ? t("auto.z_autoz저장중61_1022") : t("auto.z_autoz메모저장6_1023")}
+                    {savingNote ? "저장중61" : "메모저장6"}
                   </motion.button>
                 </div>
 
                 {/* Actions */}
                 <div className="space-y-2">
-                  <p className="text-xs font-bold text-muted-foreground mb-2">{t("auto.z_autoz관리액션6_1024")}</p>
+                  <p className="text-xs font-bold text-muted-foreground mb-2">{"관리액션6"}</p>
                   <motion.button whileTap={{
                 scale: 0.97
               }} onClick={() => verifyUser(selectedUser.id, selectedUser.verified)} className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2
                       ${selectedUser.verified ? "bg-muted text-muted-foreground hover:bg-muted/80" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"}`}>
-                    <Check size={14} />{selectedUser.verified ? t("auto.z_autoz인증취소6_1025") : t("auto.z_autoz인증승인6_1026")}
+                    <Check size={14} />{selectedUser.verified ? "인증취소6" : "인증승인6"}
                   </motion.button>
                   <motion.button whileTap={{
                 scale: 0.97
@@ -362,12 +362,12 @@ export const AdminUsers = () => {
                 scale: 0.97
               }} onClick={() => toggleBan(selectedUser.id, selectedUser.banned)} className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2
                       ${selectedUser.banned ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20" : "bg-red-500/10 text-red-400 hover:bg-red-500/20"}`}>
-                    <Ban size={14} />{selectedUser.banned ? t("auto.z_autoz계정정지해_1029") : t("auto.z_autoz계정정지6_1030")}
+                    <Ban size={14} />{selectedUser.banned ? "계정정지해" : "계정정지6"}
                   </motion.button>
                   <motion.button whileTap={{
                 scale: 0.97
               }} onClick={() => handleDelete(selectedUser.id)} className="w-full py-2.5 rounded-xl text-sm font-bold bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2">
-                    <Trash2 size={14} />{t("auto.z_autoz계정영구삭_1031")}</motion.button>
+                    <Trash2 size={14} />{"계정영구삭"}</motion.button>
                 </div>
               </div>
             </motion.div>
