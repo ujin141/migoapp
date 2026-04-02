@@ -17,8 +17,8 @@ interface SubscriptionContextType {
   canSendDm: boolean;
   upgradePlus: (plan?: 'plus' | 'premium') => void;
   startBoost: () => void;
-  useSuperLike: (toUserId?: string) => Promise<boolean>;
-  useDm: () => boolean;
+  consumeSuperLike: (toUserId?: string) => Promise<boolean>;
+  consumeDm: () => boolean;
   // Plus 전용 기능 게이팅
   canGlobalMatch: boolean;       // 글로벌 전세계 여행자 매칭
   canViewLikers: boolean;        // 나를 좋아한 사람 목록 보기
@@ -38,7 +38,7 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType>({
   isPlus: false, isPremium: false, boostActive: false, boostSecondsLeft: 0, boostsCount: 0,
   superLikesLeft: 0, maxSuperLikes: 0, dailyDmCount: 0, maxDailyDm: 10, canSendDm: true,
-  upgradePlus: () => {}, startBoost: () => {}, useSuperLike: async () => false, useDm: () => false,
+  upgradePlus: () => {}, startBoost: () => {}, consumeSuperLike: async () => false, consumeDm: () => false,
   canGlobalMatch: false, canViewLikers: false, canNowFeatured: false,
   canReadReceipts: false, canHideLocation: false, canTravelDNAFull: false,
   canJoinPremiumGroups: false,
@@ -177,7 +177,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     }, 1000);
   }, [boostsCount, isPlus, user]);
 
-  const useSuperLike = useCallback(async (toUserId?: string): Promise<boolean> => {
+  const consumeSuperLike = useCallback(async (toUserId?: string): Promise<boolean> => {
     if (isPremium) return true; // Premium은 무제한
     if (superLikesLeft <= 0) return false;
     // DB RPC 호출 (슈퍼라이크 차감 + likes 삽입 원자적)
@@ -191,9 +191,9 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       setSuperLikesLeft(n => n - 1);
     }
     return true;
-  }, [isPlus, superLikesLeft, user]);
+  }, [isPremium, superLikesLeft, user]);
 
-  const useDm = useCallback((): boolean => {
+  const consumeDm = useCallback((): boolean => {
     if (isPlus) return true;
     if (dailyDmCount >= MAX_FREE_DM) return false;
     setDailyDmCount((n) => n + 1);
@@ -205,7 +205,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       isPlus, isPremium, boostActive, boostSecondsLeft, boostsCount,
       superLikesLeft, maxSuperLikes,
       dailyDmCount, maxDailyDm, canSendDm,
-      upgradePlus, startBoost, useSuperLike, useDm,
+      upgradePlus, startBoost, consumeSuperLike, consumeDm,
       // Plus 전용 기능 (모두 isPlus에 연동)
       canGlobalMatch: isPlus,
       canViewLikers: isPlus,

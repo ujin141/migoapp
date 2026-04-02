@@ -8,6 +8,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { translateText } from "@/lib/translateService";
+import { useLocationTracker } from "@/hooks/useLocationTracker";
+import { getCurrentLocation } from "@/lib/locationService";
 import { GoogleMap, useLoadScript, OverlayView } from "@react-google-maps/api";
 const MAP_LIBRARIES: ("places")[] = ["places"];
 const mapStyles = [{
@@ -49,6 +51,54 @@ const mapStyles = [{
     color: "#e5e7eb"
   }]
 }];
+
+// 부드러운 위치 보간을 처리하는 마커 컴포넌트
+const SmoothTravelerMarker = ({ t, isSelected, onClick }: { t: any, isSelected: boolean, onClick: () => void }) => {
+  const [pos, setPos] = useState({ lat: t.lat, lng: t.lng });
+  
+  // 목적지로 부드럽게 이동 (선형 보간)
+  useEffect(() => {
+    if (t.lat === pos.lat && t.lng === pos.lng) return;
+    
+    let frame: number;
+    let progress = 0;
+    const startPos = { ...pos };
+    
+    const animate = () => {
+      progress += 0.05; // 한 프레임당 5%씩 이동 (대략 20프레임 = 0.3초)
+      if (progress >= 1) {
+        setPos({ lat: t.lat, lng: t.lng });
+        return;
+      }
+      setPos({
+        lat: startPos.lat + (t.lat - startPos.lat) * progress,
+        lng: startPos.lng + (t.lng - startPos.lng) * progress
+      });
+      frame = requestAnimationFrame(animate);
+    };
+    
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [t.lat, t.lng]);
+
+  return (
+    <OverlayView position={pos} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
+      <div className="flex flex-col items-center cursor-pointer group -translate-x-1/2 -translate-y-1/2" onClick={onClick}>
+        <div className={`absolute w-12 h-12 rounded-full ${isSelected ? "bg-primary/40" : "bg-primary/20"} animate-pulse`} />
+        <div className="relative">
+          {t.photo ? <img src={t.photo} alt={t.name} className={`w-11 h-11 rounded-full object-cover border-2 shadow-lg transition-transform ${isSelected ? "border-primary scale-110" : "border-white"}`} /> : <div className={`w-11 h-11 rounded-full border-2 shadow-lg flex items-center justify-center gradient-primary ${isSelected ? "border-primary scale-110" : "border-white"}`}>
+              <span className="text-white font-extrabold text-sm">{t.name?.[0] ?? "?"}</span>
+            </div>}
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white" />
+        </div>
+        {isSelected && <div className="mt-1 bg-white/90 backdrop-blur-sm rounded-xl px-2 py-0.5 shadow-md whitespace-nowrap">
+            <span className="text-[10px] font-bold text-gray-800">{t.name}</span>
+            <span className="text-[10px] text-gray-500 ml-1">{t.distance}</span>
+          </div>}
+      </div>
+    </OverlayView>
+  );
+};
 const MapPage = () => {
   const {
     t
@@ -92,6 +142,19 @@ const MapPage = () => {
   const [locationSharing, setLocationSharing] = useState(true);
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [myProfilePhoto, setMyProfilePhoto] = useState<string>("");
+
+  // 최신 위치 레퍼런스 유지 (useEffect 재생성 방지용)
+  const myLatLngRef = useRef<any>(null);
+
+  // 실시간 내 위치 추적 & Broadcast 발송
+  const realTimePos = useLocationTracker(user?.id, locationSharing);
+
+  useEffect(() => {
+    if (realTimePos) {
+      setMyLatLng(realTimePos);
+      myLatLngRef.current = realTimePos;
+    }
+  }, [realTimePos]);
 
   const [translatedBio, setTranslatedBio] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -155,52 +218,76 @@ const MapPage = () => {
             matchScore: 80 + Math.floor(Math.random() * 20)
           };
         }));
-        // fetch my profile photo
         const mine = data.find(p => p.id === user?.id);
         if (mine?.photo_url) setMyProfilePhoto(mine.photo_url);
       }
     };
     fetchTravelers();
 
-    // 내 위치를 DB에 저장 및 역지오코딩 (30초 주기)
-    const saveLocation = () => {
-      if (!user || !locationSharing) return;
-      navigator.geolocation?.getCurrentPosition(async pos => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setMyLatLng({
-          lat,
-          lng
-        });
-        if (mapRef.current) mapRef.current.panTo({
-          lat,
-          lng
-        });
-        try {
-          const lang = i18n.language.split("-")[0] || "en";
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${lang}`);
-          const data = await res.json();
-          const city = data.address?.city || data.address?.town || data.address?.borough || data.address?.suburb || data.address?.village || data.address?.county || "";
-          const country = data.address?.country || "";
-          const locationName = city ? `${city}, ${country}` : country || i18n.t("auto.z_autoz위치알수없_323");
-          setCurrentLocationName(locationName);
-          await supabase.from("profiles").update({
-            lat,
-            lng,
-            location: locationName
-          }).eq("id", user.id);
-        } catch (e) {
-          console.error("Geocoding error", e);
-          setCurrentLocationName(i18n.t("auto.z_autoz위치알수없_324"));
+    // Broadcast Listener 역방향 (상대방 움직임 캐치)
+    const channel = supabase.channel("public-map");
+    channel.on("broadcast", { event: "location_update" }, (payload) => {
+      const { user_id, lat, lng } = payload.payload;
+      if (user_id === user?.id) return; // 내 위치는 무시 (이미 프론트엔드에서 처리)
+      
+      setTravelers(prev => prev.map(t => {
+        if (t.id === user_id) {
+          // Haversine 거리 실시간 재계산 (비용절감 핵심 부분: DB를 치지 않고 계산만 수정)
+          const R = 6371;
+          const me = myLatLngRef.current;
+          let distStr = t.distance;
+          let distKm = t.distanceKm;
+          
+          if (me) {
+            const dLat = (lat - me.lat) * Math.PI / 180;
+            const dLng = (lng - me.lng) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(me.lat*Math.PI/180) * Math.cos(lat*Math.PI/180) * Math.sin(dLng/2)**2;
+            distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            distStr = `${distKm.toFixed(1)}km`;
+          }
+          
+          return { ...t, lat, lng, distanceKm: distKm, distance: distStr };
         }
-      }, () => {
-        setCurrentLocationName(i18n.t("auto.z_autoz위치권한없_325"));
-      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+        return t;
+      }));
+    }).subscribe();
+
+    let isMounted = true;
+    // 내 위치를 DB에 영구 저장 (백업/크론 용도) - 1분 간격 (비용 대폭 절감)
+    const saveLocationToDB = async () => {
+      if (!isMounted || !user || !locationSharing) return;
+      const pos = await getCurrentLocation(false);
+      if (!isMounted) return;
+      if (!pos) {
+        setCurrentLocationName(i18n.t("auto.z_autoz위치권한없_325", { defaultValue: "위치 정보를 가져올 수 없습니다." }));
+        return;
+      }
+      const { lat, lng } = pos;
+      setMyLatLng({ lat, lng });
+      if (mapRef.current) mapRef.current.panTo({ lat, lng });
+
+      try {
+        const lang = i18n.language.split("-")[0] || "en";
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${lang}`);
+        const data = await res.json();
+        const city = data.address?.city || data.address?.town || data.address?.borough || data.address?.suburb || data.address?.village || data.address?.county || "";
+        const country = data.address?.country || "";
+        const locationName = city ? `${city}, ${country}` : country || i18n.t("auto.z_autoz위치알수없_323");
+        setCurrentLocationName(locationName);
+        await supabase.from("profiles").update({ lat, lng, location: locationName }).eq("id", user.id);
+      } catch (e) {
+        console.error("Geocoding error", e);
+        setCurrentLocationName(i18n.t("auto.z_autoz위치알수없_324"));
+      }
     };
-    saveLocation();
-    const interval = setInterval(saveLocation, 30_000);
-    return () => clearInterval(interval);
-  }, [user, locationSharing]);
+    saveLocationToDB();
+    const interval = setInterval(saveLocationToDB, 60_000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, [user, locationSharing, t]);
   const tagOptions = [t("auto.z_autoz카페192_326"), t("auto.z_autoz트레킹19_327"), t("auto.z_autoz서핑194_328"), t("auto.z_autoz야시장19_329"), t("auto.z_autoz사진196_330"), t("auto.z_autoz음식197_331"), t("auto.z_autoz건축198_332"), t("auto.z_autoz자연199_333")];
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
@@ -212,10 +299,14 @@ const MapPage = () => {
     });
     setTimeout(() => setCenterAnim(false), 800);
   };
+  const likingRef = useRef(new Set<string>());
   const handleLike = async (id: string, name: string) => {
     if (!user) return;
-    setLiked(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]);
-    const isLiking = !liked.includes(id);
+    if (likingRef.current.has(id)) return;
+    likingRef.current.add(id);
+    try {
+      setLiked(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]);
+      const isLiking = !liked.includes(id);
     if (isLiking) {
       // 1. 내 좋아요 저장
       await supabase.from('likes').upsert({
@@ -304,6 +395,9 @@ const MapPage = () => {
     } else {
       await supabase.from('likes').delete().eq('from_user', user.id).eq('to_user', id);
     }
+    } finally {
+      likingRef.current.delete(id);
+    }
   };
   return <div className="min-h-screen bg-background safe-bottom relative">
       {/* Real Google Map */}
@@ -326,26 +420,9 @@ const MapPage = () => {
       }}>
             {/* Traveler markers */}
             {travelers.filter(t => t.distanceKm == null || t.distanceKm <= maxDistance).filter(t => t.lat && t.lng).map(t => {
-          const isSelected = selectedTraveler?.id === t.id;
-          return <OverlayView key={t.id} position={{
-            lat: t.lat,
-            lng: t.lng
-          }} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
-                    <div className="flex flex-col items-center cursor-pointer group -translate-x-1/2 -translate-y-1/2" onClick={() => setSelectedTraveler(isSelected ? null : t)}>
-                      <div className={`absolute w-12 h-12 rounded-full ${isSelected ? "bg-primary/40" : "bg-primary/20"} animate-pulse`} />
-                      <div className="relative">
-                        {t.photo ? <img src={t.photo} alt={t.name} className={`w-11 h-11 rounded-full object-cover border-2 shadow-lg transition-transform ${isSelected ? "border-primary scale-110" : "border-white"}`} /> : <div className={`w-11 h-11 rounded-full border-2 shadow-lg flex items-center justify-center gradient-primary ${isSelected ? "border-primary scale-110" : "border-white"}`}>
-                            <span className="text-white font-extrabold text-sm">{t.name?.[0] ?? "?"}</span>
-                          </div>}
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white" />
-                      </div>
-                      {isSelected && <div className="mt-1 bg-white/90 backdrop-blur-sm rounded-xl px-2 py-0.5 shadow-md whitespace-nowrap">
-                          <span className="text-[10px] font-bold text-gray-800">{t.name}</span>
-                          <span className="text-[10px] text-gray-500 ml-1">{t.distance}</span>
-                        </div>}
-                    </div>
-                  </OverlayView>;
-        })}
+              const isSelected = selectedTraveler?.id === t.id;
+              return <SmoothTravelerMarker key={t.id} t={t} isSelected={isSelected} onClick={() => setSelectedTraveler(isSelected ? null : t)} />;
+            })}
 
             {/* My location marker */}
             {myLatLng && <OverlayView position={myLatLng} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>

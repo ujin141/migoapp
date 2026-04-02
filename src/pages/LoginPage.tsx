@@ -7,6 +7,7 @@ import { Eye, EyeOff, ArrowLeft, Check, Camera, ChevronRight, Phone, Shield, Ale
 import { toast } from "@/hooks/use-toast";
 import siteLogo from "@/assets/site-logo.png";
 import { supabase } from "@/lib/supabaseClient";
+import { compressImage } from "@/lib/imageCompression";
 
 // ─── Constants ───
 const TRAVEL_STYLES: string[] = []; // loaded inside component
@@ -485,13 +486,14 @@ const LoginPage = () => {
         for (const {
           file
         } of profilePhotos) {
-          const ext = file.name.split(".").pop();
+          const compressedFile = await compressImage(file);
+          const ext = compressedFile.name.split(".").pop();
           const path = `${userId}_${Date.now()}_${photoUrls.length}.${ext}`;
           const {
             error: upErr
-          } = await supabase.storage.from("avatars").upload(path, file, {
+          } = await supabase.storage.from("avatars").upload(path, compressedFile, {
             upsert: true,
-            contentType: file.type
+            contentType: compressedFile.type
           });
           if (!upErr) {
             const {

@@ -43,7 +43,7 @@
     --shadow-card: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
     --shadow-card-hover: 0 8px 32px -4px rgba(0, 0, 0, 0.12);
     --shadow-float: 0 12px 40px -8px rgba(0, 0, 0, 0.15);
-    --nav-height: 5rem;
+    --nav-height: 4.75rem; /* 60px nav + safe area allowance */
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -155,5 +155,30 @@
 
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Scrollbar hide utility */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 }

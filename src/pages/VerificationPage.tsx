@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { Crown } from "lucide-react";
+import { compressImage } from "@/lib/imageCompression";
 
 // ─── Country codes ───
 const getCountryCodes = (t: any) => [{
@@ -236,14 +237,15 @@ const IdUploadModal = ({
     }
     setUploading(true);
     try {
-      // 앞면 업로드
-      const frontExt = frontFile.name.split(".").pop();
+      // 앞면 업로드 (해상도 중요하므로 3MB, 원본품질 유지)
+      const compressedFront = await compressImage(frontFile, { maxSizeMB: 3, maxWidthOrHeight: 2560 });
+      const frontExt = compressedFront.name.split(".").pop();
       const frontPath = `id-docs/${userId}_front_${Date.now()}.${frontExt}`;
       const {
         error: frontErr
-      } = await supabase.storage.from("avatars").upload(frontPath, frontFile, {
+      } = await supabase.storage.from("avatars").upload(frontPath, compressedFront, {
         upsert: true,
-        contentType: frontFile.type
+        contentType: compressedFront.type
       });
       if (frontErr) throw frontErr;
       const {
@@ -253,13 +255,14 @@ const IdUploadModal = ({
       // 뒷면 업로드(선택)
       let backUrl: string | null = null;
       if (backFile) {
-        const backExt = backFile.name.split(".").pop();
+        const compressedBack = await compressImage(backFile, { maxSizeMB: 3, maxWidthOrHeight: 2560 });
+        const backExt = compressedBack.name.split(".").pop();
         const backPath = `id-docs/${userId}_back_${Date.now()}.${backExt}`;
         const {
           error: backErr
-        } = await supabase.storage.from("avatars").upload(backPath, backFile, {
+        } = await supabase.storage.from("avatars").upload(backPath, compressedBack, {
           upsert: true,
-          contentType: backFile.type
+          contentType: compressedBack.type
         });
         if (!backErr) {
           const {

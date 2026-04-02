@@ -48,9 +48,50 @@ if (!isSupabaseConfigured) {
   };
   globalLoading = false;
 } else {
+  // 🚨 앱 최초 실행 시 즉각적으로 로컬 세션을 가져와 '깜빡임' 원천 차단
+  (async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        if (!globalUser) {
+          const base = mapUser(session.user);
+          globalSession = session;
+          globalUser = base;
+          globalLoading = false;
+          notifyAuthListeners();
+          
+          const enriched = await enrichWithProfilePhoto(base);
+          if (globalUser?.id === enriched.id) { // 세션이 유지된 상태일 때만
+            globalUser = enriched;
+            notifyAuthListeners();
+          }
+        }
+      } else {
+        if (globalLoading) {
+          globalLoading = false;
+          notifyAuthListeners();
+        }
+      }
+    } catch {
+      globalLoading = false;
+      notifyAuthListeners();
+    }
+  })();
+
   // 🚨 싱글톤 리스너: 모듈 레벨에서 딱 한 번만 등록해서 Lock 탈취(Race Condition)를 원천 차단합니다.
-  supabase.auth.onAuthStateChange(async (_event, session) => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
     globalSession = session;
+    
+    // 로그아웃 시 즉각 정리
+    if (event === 'SIGNED_OUT' || !session?.user) {
+      globalUser = null;
+      globalLoading = false;
+      localStorage.removeItem('migo_my_lat');
+      localStorage.removeItem('migo_my_lng');
+      notifyAuthListeners();
+      return;
+    }
+
     if (session?.user) {
       const base = mapUser(session.user);
       // 🔥 [중요] Cold start 응답 지연 시 화면이 비어 보이는 것을 막기 위해
@@ -62,10 +103,6 @@ if (!isSupabaseConfigured) {
       // 백그라운드에서 DB 프로필(이름, 사진)을 조회 후 재동기화
       const enriched = await enrichWithProfilePhoto(base);
       globalUser = enriched;
-      notifyAuthListeners();
-    } else {
-      globalUser = null;
-      globalLoading = false;
       notifyAuthListeners();
     }
   });

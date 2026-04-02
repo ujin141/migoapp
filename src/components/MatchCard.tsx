@@ -137,9 +137,9 @@ const MatchCard: React.FC<MatchCardProps> = ({
   dragElastic={0.9}
   onDragEnd={handleDragEnd}
   onClick={handleCardClick}
-  className={`bg-card rounded-3xl shadow-card overflow-hidden border border-border/40 ${isTop !== undefined ? "absolute inset-0" : ""} ${onClickCard ? "cursor-pointer" : ""}`}>
+    className={`bg-card rounded-3xl shadow-card overflow-hidden border border-border/40 ${isTop !== undefined ? "absolute inset-0" : ""} ${onClickCard ? "cursor-pointer" : ""}`}>
       {/* Cover image */}
-      <div className="relative w-full h-36 overflow-hidden bg-gradient-to-br from-primary/20 to-purple-500/20">
+      <div className="relative w-full h-28 overflow-hidden bg-gradient-to-br from-primary/20 to-purple-500/20">
         {group.coverImage && <img src={group.coverImage} alt="" className="w-full h-full object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70" />
 
@@ -191,7 +191,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
       </div>
 
       {/* Body */}
-      <div className="p-4 space-y-3">
+      <div className="p-3.5 space-y-2.5">
         {/* Match reasons */}
         {matchReasons.length > 0 && <div className="flex flex-wrap gap-1">
             {matchReasons.map(r => <span key={r} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">

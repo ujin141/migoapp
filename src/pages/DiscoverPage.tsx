@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { translateText } from "@/lib/translateService";
 import ProfileDetailSheet from "@/components/ProfileDetailSheet";
 import useGeoDistance, { distanceLabel, travelTimeLabel, distanceColor } from "@/hooks/useGeoDistance";
+import { Loader2, Beer } from "lucide-react";
 import { getLocalizedPrice, inferGroupTier, GROUP_TIER_CONFIGS } from "@/lib/pricing";
 import GlobalFilter from "@/components/GlobalFilter";
 import { useGlobalFilter } from "@/context/GlobalFilterContext";
@@ -19,6 +20,7 @@ import { getChosung } from "@/lib/chosungUtils";
 import GroupDetailFilter, { GroupDetailFilterState, DEFAULT_GROUP_DETAIL_FILTER, countGroupDetailFilters } from "@/components/GroupDetailFilter";
 import { getMyCheckIn } from "@/lib/checkInService";
 import PaymentModal from "@/components/PaymentModal";
+import { compressImage } from "@/lib/imageCompression";
 
 // ──────────────────────────────────────────────
 // Types
@@ -63,17 +65,28 @@ interface TripGroup {
   description?: string;
   memberPhotos: string[];
   memberNames: string[];
+  memberGenders?: ('male' | 'female' | 'unknown')[]; // 남녀 성비
   schedule?: string[];
   requirements?: string[];
   entryFee?: number;
   isPremiumGroup?: boolean;
   coverImage?: string;
-  hostCompletedGroups?: number; // [Feature 3] 호스트 완주 횟수
+  hostCompletedGroups?: number;
   recentMessages?: {
     author: string;
     text: string;
     time: string;
-  }[]; // [Feature 2] 채팅 미리보기
+  }[];
+}
+interface JoinPopupState {
+  group: TripGroup;
+  newCount: number;
+  genders: ('male' | 'female' | 'unknown')[];
+  deadlineMs: number; // 마감까지 남은 ms
+}
+interface CountdownAlert {
+  type: '1hour' | '30min' | 'expired';
+  groupTitle: string;
 }
 const FILTER_LIST = ["all", "recruiting", "almostFull", "hot"] as const;
 const FILTER_LABELS: Record<string, string> = {
@@ -140,10 +153,31 @@ const DiscoverPage = () => {
     distanceTo
   } = useGeoDistance();
 
+  // ── 팝업 タイマー 방어 (메모리 누수/다중실행 방지) ──
+  const timersRef = useRef<{ timeouts: any[], intervals: any[] }>({ timeouts: [], intervals: [] });
+
+  const clearAllTimers = useCallback(() => {
+    timersRef.current.timeouts.forEach(clearTimeout);
+    timersRef.current.intervals.forEach(clearInterval);
+    timersRef.current = { timeouts: [], intervals: [] };
+  }, []);
+
+  const closeJoinPopup = useCallback(() => {
+    setJoinPopup(null);
+    clearAllTimers();
+  }, [clearAllTimers]);
+
+  useEffect(() => {
+    return () => clearAllTimers();
+  }, [clearAllTimers]);
+
   // Group data
   const [tripGroups, setTripGroups] = useState<TripGroup[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [detailGroup, setDetailGroup] = useState<TripGroup | null>(null);
+  const [joinPopup, setJoinPopup] = useState<JoinPopupState | null>(null);
+  const [countdown, setCountdown] = useState<string>(''); // "HH:MM:SS"
+  const [countdownAlert, setCountdownAlert] = useState<CountdownAlert | null>(null);
 
   // Community data
   const [posts, setPosts] = useState<Post[]>([]);
@@ -164,6 +198,103 @@ const DiscoverPage = () => {
   // Comment
   const [commentText, setCommentText] = useState("");
   const [commentPost, setCommentPost] = useState<Post | null>(null);
+
+  // ── ⚡ Tonight Lightning Match ─────────────────────────────────
+  const [showLightningLoading, setShowLightningLoading] = useState(false);
+  const [lightningResult, setLightningResult] = useState<{ barName: string; members: { photo: string, name: string }[] } | null>(null);
+
+  // 프리미엄 전용 V.I.P 상태
+  const [showVipLightningFilter, setShowVipLightningFilter] = useState(false);
+  const [vipFilter, setVipFilter] = useState({ age: "20s", language: "ko", vibe: "party" });
+  const [lightningMultiResult, setLightningMultiResult] = useState<Array<{
+    id: string; title: string; barName: string; members: { photo: string, name: string }[]; vibeIcon: string;
+  }> | null>(null);
+
+  const startLightningMatch = () => {
+    if (!user) return toast({ title: i18n.t("auto.p407") });
+    if (isPlus) {
+      setShowVipLightningFilter(true);
+    } else {
+      executeLightningMatch(false);
+    }
+  };
+
+  const executeLightningMatch = (isVipMode: boolean) => {
+    setShowVipLightningFilter(false);
+    setShowLightningLoading(true);
+
+    setTimeout(() => {
+      setShowLightningLoading(false);
+      const me = { name: user.name || i18n.t("auto.z_autoz나361_726"), photo: user.photoUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150" };
+      
+      if (isVipMode) {
+        setLightningMultiResult([
+          { 
+            id: "v1", title: i18n.t("auto.v2_bar1_title", "🔥 미친 텐션 파티룸"), barName: checkInCity ? `${checkInCity} ${i18n.t("auto.v2_bar1_1", "클럽 라운지")}` : i18n.t("auto.v2_bar1_2", "프라이빗 라운지"), vibeIcon: "🎉",
+            members: [me, { name: "Jimin", photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150" }, { name: "Alex", photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150" }, { name: "Yuri", photo: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150" }]
+          },
+          { 
+            id: "v2", title: i18n.t("auto.v2_bar2_title", "🍷 조용한 와인 딥톡"), barName: checkInCity ? `${checkInCity} ${i18n.t("auto.v2_bar2_1", "고급 와인바")}` : i18n.t("auto.v2_bar2_2", "시크릿 와인바"), vibeIcon: "🥂",
+            members: [me, { name: "Suji", photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" }, { name: "Tom", photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }]
+          },
+          { 
+            id: "v3", title: i18n.t("auto.v2_bar3_title", "🍜 감성 로컬 맛집"), barName: checkInCity ? `${checkInCity} ${i18n.t("auto.v2_bar3_1", "현지인 맛집")}` : i18n.t("auto.v2_bar3_2", "숨겨진 이자카야"), vibeIcon: "🍣",
+            members: [me, { name: "Leo", photo: "https://images.unsplash.com/photo-1552058544-e223a7261a3f?w=150" }, { name: "Mia", photo: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150" }, { name: "Ken", photo: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150" }]
+          }
+        ]);
+      } else {
+        setLightningResult({
+          barName: checkInCity ? `${checkInCity} ${i18n.t("auto.v2_vibe_food", "로컬 감성")}` : i18n.t("auto.v2_bar1_2", '근처 핫플 펍'),
+          members: [me, { name: "Jimin", photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150" }, { name: "Alex", photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150" }, { name: "Yuki", photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150" }]
+        });
+      }
+    }, 2800);
+  };
+
+  const confirmLightningMatch = async (vipSelection?: any) => {
+    if (!user) return;
+    
+    let bName = "";
+    let threadMembers = [];
+
+    if (vipSelection && !vipSelection.nativeEvent) { // Ignore React Event Object
+      bName = vipSelection.barName;
+      threadMembers = vipSelection.members;
+      setLightningMultiResult(null);
+    } else if (lightningResult) {
+      bName = lightningResult.barName;
+      threadMembers = lightningResult.members;
+      setLightningResult(null);
+    } else {
+      return;
+    }
+
+    try {
+      const gName = (vipSelection && !vipSelection.nativeEvent) ? vipSelection.title : `🔥 ${i18n.t("auto.v2_tonight_vip", "오늘 저녁 벙개")} (${bName})`;
+
+      // 1. 단일 그룹 생성 (DB 트리거가 알아서 채팅방 개설 + 호스트 멤버 추가 처리)
+      const { data: grp } = await supabase.from('trip_groups').insert({
+        title: gName,
+        destination: bName,
+        dates: i18n.t("auto.v2_tonight_vip", "오늘 저녁"),
+        description: i18n.t("auto.v2_tonight_desc", "번개 자동 매칭으로 개설된 그룹입니다."),
+        host_id: user.id,
+        max_members: threadMembers.length,
+        tags: [i18n.t("auto.v2_tonight_vip", "오늘 저녁")],
+        status: 'recruiting',
+        cover_image: threadMembers[1]?.photo
+      }).select().single();
+
+      if (grp?.thread_id) {
+        toast({ title: i18n.t("auto.v2_created", "방이 개설되었습니다! 즐거운 모임 되세요 🍻") });
+        navigate('/chat', { state: { threadId: grp.thread_id } });
+      } else {
+        throw new Error("Trigger failed to provision thread_id.");
+      }
+    } catch {
+      toast({ title: i18n.t("auto.v2_error", "오류가 발생했습니다."), variant: "destructive" });
+    }
+  };
 
   // Group create
   const [showGroupCreate, setShowGroupCreate] = useState(false);
@@ -1127,13 +1258,14 @@ const DiscoverPage = () => {
     for (const {
       file
     } of attachedImages) {
-      const ext = file.name.split(".").pop();
+      const compressedFile = await compressImage(file);
+      const ext = compressedFile.name.split(".").pop();
       const path = `posts/${user.id}_${Date.now()}_${uploadedUrls.length}.${ext}`;
       const {
         error: upErr
-      } = await supabase.storage.from("avatars").upload(path, file, {
+      } = await supabase.storage.from("avatars").upload(path, compressedFile, {
         upsert: true,
-        contentType: file.type
+        contentType: compressedFile.type
       });
       if (!upErr) {
         const {
@@ -1220,8 +1352,31 @@ const DiscoverPage = () => {
     setCommentPost(null);
   };
 
+  // ── 카운트다운 실시간 업데이트 ──────────────────────────
+  useEffect(() => {
+    if (!joinPopup) { setCountdown(''); return; }
+    const tick = () => {
+      const remaining = joinPopup.deadlineMs - Date.now();
+      if (remaining <= 0) { setCountdown(t('groupPopup.expiredCountdown')); return; }
+      const totalSec = Math.floor(remaining / 1000);
+      const days = Math.floor(totalSec / 86400);
+      const hours = Math.floor((totalSec % 86400) / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      if (days > 0) {
+        setCountdown(`${t('groupPopup.daysStr', { days })}${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`);
+      } else {
+        setCountdown(`${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`);
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [joinPopup, t]);
+
   // ── Join group ────────────────────────────────
-  const handleJoin = (group: TripGroup) => {
+  const joiningRef = useRef(false);
+  const handleJoin = async (group: TripGroup) => {
     if (group.joined) {
       toast({
         title: t("alert.t44Title"),
@@ -1245,44 +1400,120 @@ const DiscoverPage = () => {
       setShowPlusModal(true);
       return;
     }
-    setDetailGroup(null);
-    joinGroup(group);
+    
+    if (joiningRef.current) return;
+    joiningRef.current = true;
+    try {
+      setDetailGroup(null);
+      await joinGroup(group);
+    } finally {
+      joiningRef.current = false;
+    }
   };
   const joinGroup = async (group: TripGroup) => {
     if (!user) return;
 
     // 목업 그룹 (DB에 없음) → DB insert 없이 로컬 상태만 업데이트
-    const isMock = group.id.startsWith("00000000");
+    const isMock = group.id.startsWith("00000000") || group.id.startsWith("seed");
     if (!isMock) {
-      const {
-        error
-      } = await supabase.from("trip_group_members").insert({
+      const { error } = await supabase.from("trip_group_members").insert({
         group_id: group.id,
         user_id: user.id
       });
       if (error) {
-        toast({
-          title: t("alert.t47Title")
-        });
+        toast({ title: t("alert.t47Title") });
         return;
       }
     }
+
+    // 로컬 상태 업데이트 (단톡방 X)
+    const newCount = group.currentMembers + 1;
+    // 내 성별 추가
+    const { data: myProfile } = await supabase.from('profiles').select('gender').eq('id', user.id).single();
+    const myGender: 'male' | 'female' | 'unknown' =
+      myProfile?.gender === 'male' ? 'male' :
+      myProfile?.gender === 'female' ? 'female' : 'unknown';
+
+    // 기존 멤버 성별 추정 (이름 기반 fallback: 실제로는 DB에서 가져와야 함)
+    const existingGenders: ('male' | 'female' | 'unknown')[] =
+      group.memberGenders ?? Array(group.currentMembers).fill('unknown');
+    const allGenders = [...existingGenders, myGender];
+
     setTripGroups(prev => prev.map(g => g.id === group.id ? {
       ...g,
       joined: true,
-      currentMembers: g.currentMembers + 1
+      currentMembers: newCount,
+      memberGenders: allGenders
     } : g));
-    createGroupThread({
-      id: group.id,
-      title: group.title,
-      hostPhoto: group.hostPhoto,
-      memberPhotos: group.memberPhotos,
-      currentMembers: group.currentMembers,
-      destination: group.destination
-    });
-    toast({
-      title: t("alert.t48Title")
-    });
+
+    // 마감 시간 계산 (daysLeft 예외 방어코드 추가. 비정상 값이면 1일로 간주)
+    const validDaysLeft = typeof group.daysLeft === 'number' && !isNaN(group.daysLeft) ? group.daysLeft : 1;
+    const deadlineMs = Date.now() + validDaysLeft * 24 * 60 * 60 * 1000;
+
+    // 팝업 새로 띄울 때 기존 타이머 모두 초기화 (레이스 컨디션 차단)
+    clearAllTimers();
+
+    // 실시간 팝업 표시 (단톡방 생성 X)
+    setJoinPopup({ group: { ...group, currentMembers: newCount, memberGenders: allGenders }, newCount, genders: allGenders, deadlineMs });
+
+    // 실시간으로 인원 늘어나는 효과 (3초마다 랜덤하게 1명 추가 시뮬레이션, 최대 2회)
+    let extras = 0;
+    const intervalId = setInterval(() => {
+      if (extras >= 2 || newCount + extras >= group.maxMembers - 1) {
+        clearInterval(intervalId);
+        return;
+      }
+      extras++;
+      const randGender: 'male' | 'female' = Math.random() > 0.5 ? 'male' : 'female';
+      setJoinPopup(prev => {
+        if (!prev) return null;
+        const updatedGenders = [...prev.genders, randGender];
+        const updatedCount = prev.newCount + 1;
+        setTripGroups(pg => pg.map(g => g.id === group.id ? {
+          ...g,
+          currentMembers: updatedCount,
+          memberGenders: updatedGenders
+        } : g));
+        return { ...prev, newCount: updatedCount, genders: updatedGenders };
+      });
+    }, 3500);
+    timersRef.current.intervals.push(intervalId);
+
+    // ─── 1시간 전 알림 ───────────────────────────────────
+    const msTo1h = deadlineMs - Date.now() - 60 * 60 * 1000;
+    if (msTo1h > 0) {
+      const t1 = setTimeout(() => {
+        setCountdownAlert({ type: '1hour', groupTitle: group.title });
+        timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 8000));
+      }, msTo1h);
+      timersRef.current.timeouts.push(t1);
+    }
+
+    // ─── 30분 전 알림 ────────────────────────────────────
+    const msTo30min = deadlineMs - Date.now() - 30 * 60 * 1000;
+    if (msTo30min > 0) {
+      const t2 = setTimeout(() => {
+        setCountdownAlert({ type: '30min', groupTitle: group.title });
+        timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 8000));
+      }, msTo30min);
+      timersRef.current.timeouts.push(t2);
+    }
+
+    // ─── 마감 알림 ────────────────────────────────────────
+    const msToExpiry = deadlineMs - Date.now();
+    if (msToExpiry > 0) {
+      const t3 = setTimeout(() => {
+        clearInterval(intervalId);
+        setJoinPopup(null);
+        setCountdownAlert({ type: 'expired', groupTitle: group.title });
+        timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 10000));
+      }, msToExpiry);
+      timersRef.current.timeouts.push(t3);
+    }
+
+    // 팝업 인원 애니메이션 종료 방어막
+    const tClose = setTimeout(() => clearInterval(intervalId), 15000);
+    timersRef.current.timeouts.push(tClose);
   };
 
   // ── 삭제 ──────────────────────────────────────
@@ -1562,7 +1793,182 @@ const DiscoverPage = () => {
   });
 
   // ── JSX ───────────────────────────────────────
+  // 남녀 비율 계산 헬퍼
+  const calcGenderRatio = (genders: ('male' | 'female' | 'unknown')[]) => {
+    const total = genders.length;
+    if (total === 0) return { male: 0, female: 0, unknown: 0, maleCount: 0, femaleCount: 0 };
+    const maleCount = genders.filter(g => g === 'male').length;
+    const femaleCount = genders.filter(g => g === 'female').length;
+    return { male: Math.round((maleCount / total) * 100), female: Math.round((femaleCount / total) * 100), unknown: Math.round(((total - maleCount - femaleCount) / total) * 100), maleCount, femaleCount };
+  };
+
   return <div className="min-h-screen bg-background pb-24">
+      {/* ── 카운트다운 알림 팝업 (1시간 전 / 30분 전 / 마감) ── */}
+      <AnimatePresence>
+        {countdownAlert && (() => {
+          const cfg = countdownAlert.type === 'expired'
+            ? { emoji: '⏰', bg: 'bg-red-500', title: t('groupPopup.expiredTitle'), desc: t('groupPopup.expiredDesc', { title: countdownAlert.groupTitle }) }
+            : countdownAlert.type === '30min'
+            ? { emoji: '⚡', bg: 'bg-orange-500', title: t('groupPopup.min30Title'), desc: t('groupPopup.min30Desc', { title: countdownAlert.groupTitle }) }
+            : { emoji: '🔔', bg: 'bg-amber-500', title: t('groupPopup.hour1Title'), desc: t('groupPopup.hour1Desc', { title: countdownAlert.groupTitle }) };
+          return (
+            <motion.div
+              key="countdown-alert"
+              initial={{ opacity: 0, y: -80, scale: 0.92 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -60, scale: 0.92 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 260 }}
+              className="fixed top-16 left-4 right-4 z-[60] max-w-sm mx-auto"
+            >
+              <div className={`${cfg.bg} rounded-2xl px-4 py-3.5 flex items-center gap-3 shadow-float`}>
+                <motion.span
+                  animate={{ rotate: countdownAlert.type === 'expired' ? [0, -15, 15, -10, 10, 0] : [0] }}
+                  transition={{ duration: 0.5, repeat: countdownAlert.type !== 'expired' ? 0 : 2 }}
+                  className="text-2xl shrink-0"
+                >{cfg.emoji}</motion.span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-extrabold text-sm">{cfg.title}</p>
+                  <p className="text-white/80 text-[11px] truncate">{cfg.desc}</p>
+                </div>
+                <button onClick={() => setCountdownAlert(null)} className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                  <X size={11} className="text-white" />
+                </button>
+              </div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+
+      {/* ── 그룹 참여 실시간 팝업 ── */}
+      <AnimatePresence>
+        {joinPopup && (() => {
+          const ratio = calcGenderRatio(joinPopup.genders);
+          const { group } = joinPopup;
+          const isUrgent = joinPopup.deadlineMs - Date.now() < 60 * 60 * 1000; // 1시간 미만
+          const isVeryUrgent = joinPopup.deadlineMs - Date.now() < 30 * 60 * 1000; // 30분 미만
+          return (
+            <motion.div
+              key="join-popup"
+              initial={{ opacity: 0, y: 80, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 60, scale: 0.92 }}
+              transition={{ type: "spring", damping: 22, stiffness: 280 }}
+              className="fixed bottom-24 left-4 right-4 z-50 max-w-sm mx-auto"
+            >
+              <div className="bg-card border border-border rounded-3xl shadow-float overflow-hidden">
+                {/* 상단 헤더 */}
+                <div className="px-5 pt-4 pb-3 gradient-primary flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <motion.span
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ repeat: Infinity, duration: 1.2 }}
+                      className="text-lg"
+                    >🎉</motion.span>
+                    <div>
+                      <p className="text-primary-foreground font-extrabold text-sm">{t("alert.t48Title")}</p>
+                      <p className="text-primary-foreground/70 text-[11px] truncate max-w-[180px]">{group.title}</p>
+                    </div>
+                  </div>
+                  <button onClick={closeJoinPopup} className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
+                    <X size={13} className="text-white" />
+                  </button>
+                </div>
+
+                <div className="px-5 py-4 space-y-3">
+                  {/* ⏱ 카운트다운 타이머 */}
+                  <div className={`flex items-center justify-between rounded-2xl px-4 py-2.5 ${isVeryUrgent ? 'bg-red-500/10 border border-red-500/30' : isUrgent ? 'bg-orange-500/10 border border-orange-500/30' : 'bg-muted'}`}>
+                    <div className="flex items-center gap-1.5">
+                      <motion.span
+                        animate={isVeryUrgent ? { scale: [1, 1.2, 1] } : {}}
+                        transition={{ repeat: Infinity, duration: 0.8 }}
+                        className="text-base"
+                      >{isVeryUrgent ? '🔴' : isUrgent ? '🟠' : '⏱'}</motion.span>
+                      <span className={`text-xs font-bold ${isVeryUrgent ? 'text-red-500' : isUrgent ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                        {t('groupPopup.untilDeadline')}
+                      </span>
+                    </div>
+                    <motion.span
+                      key={countdown}
+                      initial={{ scale: isVeryUrgent ? 1.15 : 1 }}
+                      animate={{ scale: 1 }}
+                      className={`font-extrabold text-base tabular-nums ${isVeryUrgent ? 'text-red-500' : isUrgent ? 'text-orange-500' : 'text-foreground'}`}
+                    >{countdown}</motion.span>
+                  </div>
+
+                  {/* 실시간 인원 카운터 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users size={15} className="text-primary" />
+                      <span className="text-sm font-bold text-foreground">{t('groupPopup.currentMembers')}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <motion.span
+                        key={joinPopup.newCount}
+                        initial={{ scale: 1.4, color: "#22c55e" }}
+                        animate={{ scale: 1, color: "var(--foreground)" }}
+                        className="text-lg font-extrabold text-foreground"
+                      >{joinPopup.newCount}</motion.span>
+                      <span className="text-sm text-muted-foreground">/ {group.maxMembers}명</span>
+                    </div>
+                  </div>
+
+                  {/* 인원 프로그레스 바 */}
+                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                    <motion.div
+                      className="h-full gradient-primary rounded-full"
+                      initial={{ width: `${((joinPopup.newCount - 1) / group.maxMembers) * 100}%` }}
+                      animate={{ width: `${(joinPopup.newCount / group.maxMembers) * 100}%` }}
+                      transition={{ duration: 0.6, ease: "easeOut" }}
+                    />
+                  </div>
+
+                  {/* 남녀 비율 */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-muted-foreground">{t('groupPopup.ratioPrefix')}</span>
+                      <div className="flex items-center gap-3 text-xs font-bold">
+                        <span className="text-blue-500">{t('groupPopup.maleCount', { count: ratio.maleCount })}</span>
+                        <span className="text-pink-500">{t('groupPopup.femaleCount', { count: ratio.femaleCount })}</span>
+                        {joinPopup.genders.filter(g => g === 'unknown').length > 0 &&
+                          <span className="text-muted-foreground">{t('groupPopup.unknownCount', { count: joinPopup.genders.filter(g => g === 'unknown').length })}</span>}
+                      </div>
+                    </div>
+                    <div className="flex h-3 rounded-full overflow-hidden">
+                      {ratio.maleCount > 0 && (
+                        <motion.div initial={{ flex: 0 }} animate={{ flex: ratio.maleCount }} transition={{ duration: 0.5 }} className="bg-blue-500" />
+                      )}
+                      {ratio.femaleCount > 0 && (
+                        <motion.div initial={{ flex: 0 }} animate={{ flex: ratio.femaleCount }} transition={{ duration: 0.5 }} className="bg-pink-500" />
+                      )}
+                      {joinPopup.genders.filter(g => g === 'unknown').length > 0 && (
+                        <motion.div initial={{ flex: 0 }} animate={{ flex: joinPopup.genders.filter(g => g === 'unknown').length }} transition={{ duration: 0.5 }} className="bg-muted-foreground/30" />
+                      )}
+                    </div>
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                      <span>{t('groupPopup.malePct', { pct: ratio.male })}</span>
+                      <span>{t('groupPopup.femalePct', { pct: ratio.female })}</span>
+                    </div>
+                  </div>
+
+                  {/* 실시간 상태 */}
+                  <motion.div
+                    animate={{ opacity: [0.6, 1, 0.6] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-3 py-2"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                      {group.maxMembers - joinPopup.newCount > 0
+                        ? t('groupPopup.seatsLeft', { count: group.maxMembers - joinPopup.newCount })
+                        : t('groupPopup.full')}
+                    </span>
+                  </motion.div>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-5 pt-12 pb-0 transition-transform duration-300" style={{
       transform: headerVisible ? "translateY(0)" : "translateY(-100%)"
@@ -1791,6 +2197,27 @@ const DiscoverPage = () => {
 
       {/* ── Groups Tab ── */}
       {activeTab === "groups" && <div className="px-5 space-y-3 pb-24">
+          {/* ⚡ 오늘 저녁 번개 CTA */}
+          <motion.button 
+            whileTap={{ scale: 0.96 }}
+            onClick={() => navigate('/trip-match', { state: { initialMode: 'instant' } })}
+            className="w-full relative overflow-hidden rounded-2xl p-4 text-left shadow-lg border border-amber-500/30"
+            style={{ background: "linear-gradient(135deg, #f59e0b, #ea580c)" }}
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 blur-3xl rounded-full pointer-events-none" />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="text-left text-white">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-bold tracking-tight text-white" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}>{i18n.t("auto.v2_tonight_vip", "🔥 오늘 저녁 술 모임 자동 매칭")}</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white text-orange-600">HOT</span>
+                </div>
+                <p className="text-[11px] font-medium text-white/90">{i18n.t("auto.v2_tonight_desc", "버튼 한 번으로 근처 3~4명 랜덤 펍 번개")}</p>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-lg shrink-0">
+                <Beer size={16} className="text-orange-500" fill="currentColor" />
+              </div>
+            </div>
+          </motion.button>
           {/* 스마트 매칭 진입 배너 */}
           <motion.button initial={{
         opacity: 0,
@@ -1848,7 +2275,7 @@ const DiscoverPage = () => {
       }} className="bg-card rounded-2xl shadow-card cursor-pointer overflow-hidden" onClick={() => setDetailGroup(group)}>
               {/* Cover image */}
               {group.coverImage && <div className="relative w-full h-28 overflow-hidden">
-                  <img src={group.coverImage} alt="" className="w-full h-full object-cover" />
+                  <img loading="lazy" src={group.coverImage} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
                   <div className="absolute bottom-2 left-3 right-3">
                     <h3 className="text-sm font-extrabold text-white truncate">{group.title}</h3>
@@ -1879,7 +2306,7 @@ const DiscoverPage = () => {
           })()}
               {/* Group card header */}
               <div className="flex items-start gap-3 mb-3">
-                {group.hostPhoto ? <img src={group.hostPhoto} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" loading="lazy" onError={e => {
+                {group.hostPhoto ? <img loading="lazy" src={group.hostPhoto} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" loading="lazy" onError={e => {
               (e.target as HTMLImageElement).style.display = "none";
             }} /> : <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0 text-primary font-bold text-sm">{group.hostName?.[0] || "M"}</div>}
                 <div className="flex-1 min-w-0">
@@ -2062,7 +2489,7 @@ const DiscoverPage = () => {
         y: 0
       }} className="bg-card rounded-2xl p-4 shadow-card cursor-pointer" onClick={() => setDetailPost(post)}>
               <div className="flex items-center gap-3 mb-3 cursor-pointer" onClick={e => handleProfileClick(e, post.authorId)}>
-                <img src={post.photo} alt="" className="w-9 h-9 rounded-full object-cover" loading="lazy" />
+                <img loading="lazy" src={post.photo} alt="" className="w-9 h-9 rounded-full object-cover" loading="lazy" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground hover:underline">{post.author}</p>
                   <p className="text-[11px] text-muted-foreground">{post.time}</p>
@@ -2077,14 +2504,14 @@ const DiscoverPage = () => {
               <p className="text-sm text-foreground leading-relaxed mb-3 line-clamp-3">{post.content}</p>
 
               {/* Images */}
-              {post.images && post.images.length > 0 ? post.images.length === 1 ? <img src={post.images[0]} className="w-full h-52 rounded-xl object-cover mb-3 bg-black/5" onError={e => e.currentTarget.style.display = 'none'} /> : <div className={`grid gap-1 mb-3 ${post.images.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+              {post.images && post.images.length > 0 ? post.images.length === 1 ? <img loading="lazy" src={post.images[0]} className="w-full h-52 rounded-xl object-cover mb-3 bg-black/5" onError={e => e.currentTarget.style.display = 'none'} /> : <div className={`grid gap-1 mb-3 ${post.images.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
                     {post.images.slice(0, 6).map((img, idx) => <div key={idx} className="relative">
-                        <img src={img} className="w-full h-28 rounded-xl object-cover bg-black/5" onError={e => e.currentTarget.style.display = 'none'} />
+                        <img loading="lazy" src={img} className="w-full h-28 rounded-xl object-cover bg-black/5" onError={e => e.currentTarget.style.display = 'none'} />
                         {idx === 5 && post.images && post.images.length > 6 && <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center text-white text-sm font-bold pointer-events-none">
                             +{post.images.length - 6}
                           </div>}
                       </div>)}
-                  </div> : post.imageUrl ? <img src={post.imageUrl} className="w-full h-52 rounded-xl object-cover mb-3 bg-black/5" onError={e => e.currentTarget.style.display = 'none'} /> : null}
+                  </div> : post.imageUrl ? <img loading="lazy" src={post.imageUrl} className="w-full h-52 rounded-xl object-cover mb-3 bg-black/5" onError={e => e.currentTarget.style.display = 'none'} /> : null}
 
               <div className="flex items-center gap-4">
                 <button onClick={e => {
@@ -2121,7 +2548,7 @@ const DiscoverPage = () => {
               {/* Host */}
               <div className="bg-card rounded-2xl p-4 shadow-card mb-4">
                 <div className="flex items-center gap-3 mb-3">
-                  {currentDetail.hostPhoto ? <img src={currentDetail.hostPhoto} alt="" className="w-12 h-12 rounded-xl object-cover" loading="lazy" onError={e => {
+                  {currentDetail.hostPhoto ? <img loading="lazy" src={currentDetail.hostPhoto} alt="" className="w-12 h-12 rounded-xl object-cover" loading="lazy" onError={e => {
                 (e.target as HTMLImageElement).style.display = "none";
               }} /> : <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-bold">{currentDetail.hostName?.[0] || "M"}</div>}
                   <div className="flex-1 overflow-hidden">
@@ -2238,7 +2665,7 @@ const DiscoverPage = () => {
                 </div>
                 <div className="space-y-2.5">
                   {currentDetail.memberPhotos.map((photo, idx) => <div key={idx} className="flex items-center gap-3">
-                      <img src={photo} alt="" className="w-9 h-9 rounded-full object-cover" loading="lazy" />
+                      <img loading="lazy" src={photo} alt="" className="w-9 h-9 rounded-full object-cover" loading="lazy" />
                       <span className="text-sm font-semibold text-foreground">{currentDetail.memberNames[idx] || i18n.t("auto.z_autoz멤버393_777")}</span>
                     </div>)}
                 </div>
@@ -2266,7 +2693,7 @@ const DiscoverPage = () => {
                 <ArrowLeft size={16} />{t("auto.z_autoz목록으로3_780")}</button>
 
               <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={e => handleProfileClick(e, detailPost.authorId)}>
-                  <img src={detailPost.photo} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" />
+                  <img loading="lazy" src={detailPost.photo} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" />
                 <div>
                   <p className="text-sm font-bold text-foreground hover:underline">{detailPost.author}</p>
                   <p className="text-[11px] text-muted-foreground">{detailPost.time}</p>
@@ -2280,7 +2707,7 @@ const DiscoverPage = () => {
                   {detailPost.images.map((img, idx) => <img key={idx} src={img} alt="" className="w-full rounded-xl object-cover" style={{
               maxHeight: 320
             }} loading="lazy" />)}
-                </div> : detailPost.imageUrl ? <img src={detailPost.imageUrl} alt="" className="w-full rounded-xl object-cover mb-4" style={{
+                </div> : detailPost.imageUrl ? <img loading="lazy" src={detailPost.imageUrl} alt="" className="w-full rounded-xl object-cover mb-4" style={{
             maxHeight: 320
           }} loading="lazy" /> : null}
 
@@ -2304,7 +2731,7 @@ const DiscoverPage = () => {
               <h3 className="text-sm font-extrabold text-foreground mb-3">{t("auto.z_autoz댓글399_783")}{detailPost.commentList.length}{t("auto.z_autoz개400_784")}</h3>
               <div className="space-y-3 mb-4">
                 {detailPost.commentList.map(c => <div key={c.id} className="flex items-start gap-2.5">
-                    <img src={c.photo} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" loading="lazy" />
+                    <img loading="lazy" src={c.photo} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" loading="lazy" />
                     <div className="bg-muted rounded-2xl px-3 py-2 flex-1">
                       <p className="text-xs font-bold text-foreground mb-0.5">{c.author}</p>
                       <p className="text-xs text-foreground/80">{c.text}</p>
@@ -2347,7 +2774,7 @@ const DiscoverPage = () => {
               {/* Image previews */}
               {attachedImages.length > 0 && <div className="grid grid-cols-3 gap-2 mb-4">
                   {attachedImages.map((img, idx) => <div key={idx} className="relative">
-                      <img src={img.url} alt="" className="w-full h-24 rounded-xl object-cover" loading="lazy" />
+                      <img loading="lazy" src={img.url} alt="" className="w-full h-24 rounded-xl object-cover" loading="lazy" />
                       <button onClick={() => setAttachedImages(prev => prev.filter((_, i) => i !== idx))} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
                         <X size={10} className="text-white" />
                       </button>
@@ -2377,7 +2804,7 @@ const DiscoverPage = () => {
               
               <div className="bg-card rounded-2xl p-4 shadow-card mb-4 border border-border">
                 <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={e => handleProfileClick(e, detailPost.authorId)}>
-                  <img src={detailPost.photo} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" />
+                  <img loading="lazy" src={detailPost.photo} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" />
                   <div>
                     <p className="text-sm font-bold text-foreground hover:underline">{detailPost.author}</p>
                     <p className="text-[11px] text-muted-foreground">{detailPost.time}</p>
@@ -2388,7 +2815,7 @@ const DiscoverPage = () => {
 
                 {detailPost.images && detailPost.images.length > 0 ? <div className="grid gap-2 mb-4">
                     {detailPost.images.map((img, idx) => <img key={idx} src={img} className="w-full rounded-xl object-cover bg-black/5" onError={e => e.currentTarget.style.display = 'none'} />)}
-                  </div> : detailPost.imageUrl ? <img src={detailPost.imageUrl} className="w-full rounded-xl object-cover mb-4 bg-black/5" onError={e => e.currentTarget.style.display = 'none'} /> : null}
+                  </div> : detailPost.imageUrl ? <img loading="lazy" src={detailPost.imageUrl} className="w-full rounded-xl object-cover mb-4 bg-black/5" onError={e => e.currentTarget.style.display = 'none'} /> : null}
 
                 <div className="flex items-center gap-4 pt-4 border-t border-border">
                   <button onClick={() => handleLikePost(detailPost)} className={`flex items-center gap-1.5 text-sm font-bold ${detailPost.liked ? "text-red-500" : "text-muted-foreground"}`}>
@@ -2410,7 +2837,7 @@ const DiscoverPage = () => {
               <h3 className="text-sm font-extrabold text-foreground mb-4">{t("auto.z_autoz댓글409_793")}{detailPost.comments}</h3>
               <div className="space-y-4">
                 {detailPost.commentList.map(c => <div key={c.id} className="flex items-start gap-3">
-                    <img src={c.photo} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" loading="lazy" />
+                    <img loading="lazy" src={c.photo} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" loading="lazy" />
                     <div className="flex-1 bg-muted rounded-2xl rounded-tl-sm p-3">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[11px] font-black text-foreground">{c.author}</span>
@@ -2428,7 +2855,7 @@ const DiscoverPage = () => {
                 <input value={commentText} onChange={e => {
               setCommentText(e.target.value);
               setCommentPost(detailPost);
-            }} placeholder={t("auto.z_autoz따뜻한댓글_794")} className="flex-1 bg-muted rounded-full pl-4 pr-12 py-3 text-sm text-foreground outline-none" onKeyDown={e => e.key === 'Enter' && handleSubmitComment()} />
+            }} placeholder={t("auto.z_autoz따뜻한댓글_794")} className="flex-1 bg-muted rounded-full pl-4 pr-12 py-3 text-sm text-foreground outline-none" onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && handleSubmitComment()} />
                 <button onClick={handleSubmitComment} disabled={!commentText.trim()} className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full gradient-primary flex items-center justify-center disabled:opacity-40">
                   <Send size={14} className="text-primary-foreground" />
                 </button>
@@ -2452,7 +2879,7 @@ const DiscoverPage = () => {
           y: 0
         }} exit={{
           y: "100%"
-        }} onClick={e => e.stopPropagation()} className="w-full bg-card rounded-3xl mb-4 sm:mb-8 px-5 pt-6 pb-12">
+        }} onClick={e => e.stopPropagation()} className="w-full bg-card rounded-3xl mb-20 sm:mb-24 px-5 pt-6 pb-8">
               <div className="text-center mb-6">
                 <Crown size={40} className="text-yellow-400 mx-auto mb-3" />
                 <h2 className="text-xl font-black text-foreground mb-2">Migo Plus</h2>
@@ -2481,7 +2908,7 @@ const DiscoverPage = () => {
           y: 0
         }} exit={{
           y: "100%"
-        }} onClick={e => e.stopPropagation()} className="w-full bg-card rounded-3xl mb-4 sm:mb-8 px-5 pt-6 pb-12">
+        }} onClick={e => e.stopPropagation()} className="w-full bg-card rounded-3xl mb-20 sm:mb-24 px-5 pt-6 pb-8">
               <div className="text-center mb-6">
                 <Ticket size={36} className="text-primary mx-auto mb-3" />
                 <h2 className="text-lg font-black text-foreground mb-2">{t("auto.z_autoz참가비결제_797")}</h2>
@@ -2516,7 +2943,7 @@ const DiscoverPage = () => {
              </div>
              <div className="overflow-y-auto flex-1 space-y-3">
                {likesList.length === 0 ? <p className="text-center text-sm text-muted-foreground py-8">{t("auto.z_autoz아직좋아요_804")}</p> : likesList.map((usr, i) => <div key={i} className="flex items-center gap-3">
-                   <img src={usr?.photo_url || "https://api.dicebear.com/9.x/notionists/svg?seed=" + i} alt="" className="w-10 h-10 rounded-full object-cover bg-muted" loading="lazy" />
+                   <img loading="lazy" src={usr?.photo_url || "https://api.dicebear.com/9.x/notionists/svg?seed=" + i} alt="" className="w-10 h-10 rounded-full object-cover bg-muted" loading="lazy" />
                    <span className="text-sm font-bold text-foreground">{usr?.name || i18n.t("auto.z_autoz알수없음4_805")}</span>
                  </div>)}
              </div>
@@ -2529,7 +2956,7 @@ const DiscoverPage = () => {
           <div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-12 shadow-float" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
             <div className="flex items-center gap-3 mb-4">
-              {applyGroup.hostPhoto ? <img src={applyGroup.hostPhoto} alt="" className="w-12 h-12 rounded-2xl object-cover" /> : <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold">
+              {applyGroup.hostPhoto ? <img loading="lazy" src={applyGroup.hostPhoto} alt="" className="w-12 h-12 rounded-2xl object-cover" /> : <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold">
                   {applyGroup.hostName?.[0]}
                 </div>}
               <div>
@@ -2568,7 +2995,7 @@ const DiscoverPage = () => {
             {applicantsList.length === 0 ? <div className="text-center py-10 text-muted-foreground text-sm">{t("auto.z_autoz\uC544\uC9C1\uC9C0\uC6D0\uC790_718")}</div> : <div className="space-y-3">
                 {applicantsList.map((app: any) => <div key={app.id} className="p-4 rounded-2xl bg-muted/50 border border-border">
                     <div className="flex items-start gap-3 mb-3">
-                      {app.profiles?.photo_url ? <img src={app.profiles.photo_url} alt="" className="w-10 h-10 rounded-xl object-cover" /> : <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                      {app.profiles?.photo_url ? <img loading="lazy" src={app.profiles.photo_url} alt="" className="w-10 h-10 rounded-xl object-cover" /> : <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
                           {app.profiles?.name?.[0]}
                         </div>}
                       <div className="flex-1 min-w-0">
@@ -2594,7 +3021,190 @@ const DiscoverPage = () => {
                   </div>)}
               </div>}
           </div>
-        </div>}
+        </div>
+      }
+
+      {/* ── ⚡ Basic Lightning Loading / Radar Screen ── */}
+      <AnimatePresence>
+        {showLightningLoading && (
+          <motion.div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="relative w-64 h-64 flex items-center justify-center mb-8">
+              <motion.div className="absolute inset-0 rounded-full border border-orange-500/30" animate={{ scale: [1, 2], opacity: [0.8, 0] }} transition={{ repeat: Infinity, duration: 2 }} />
+              <motion.div className="absolute inset-4 rounded-full border border-orange-500/20" animate={{ scale: [1, 2], opacity: [0.6, 0] }} transition={{ repeat: Infinity, duration: 2, delay: 0.5 }} />
+              <motion.div className="absolute inset-8 rounded-full border border-orange-500/10" animate={{ scale: [1, 2], opacity: [0.4, 0] }} transition={{ repeat: Infinity, duration: 2, delay: 1 }} />
+              <motion.div className="w-24 h-24 rounded-full bg-orange-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(249,115,22,0.5)] border border-orange-500/50 relative z-10"
+                animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }}>
+                <Beer size={40} className="text-orange-400" fill="currentColor" />
+              </motion.div>
+            </div>
+            <motion.h3 animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 1.5 }} className="text-xl font-black text-white mb-2 text-center">
+              {i18n.t("auto.v2_scan_msg", "내 주변 매칭 탐색 중...")}
+            </motion.h3>
+            <p className="text-sm text-white/50">{i18n.t("auto.v2_scan_sub", "반경 3km 내의 핫플을 확인합니다")}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── ⚡ Basic Lightning Result Modal (For Basic Users) ── */}
+      <AnimatePresence>
+        {lightningResult && (
+          <motion.div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="w-full max-w-sm bg-card rounded-[2rem] p-8 shadow-2xl relative overflow-hidden"
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
+              
+              <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-br from-orange-500 to-amber-500 opacity-20" />
+              
+              <div className="relative z-10 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 text-white flex items-center justify-center mx-auto mb-5 shadow-lg shadow-orange-500/30">
+                  <Beer size={32} fill="currentColor" />
+                </div>
+                
+                <h3 className="text-2xl font-black text-foreground mb-1 leading-tight tracking-tight">
+                  {i18n.t("auto.v2_basic_done", "매칭 완료!")}
+                </h3>
+                <p className="text-sm font-medium text-amber-600 mb-6 flex items-center justify-center gap-1">
+                  <MapPin size={12} /> {lightningResult.barName}
+                </p>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+                  {lightningResult.members.map((m, i) => (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <img loading="lazy" src={m.photo} className="w-14 h-14 rounded-full object-cover border-4 border-background shadow-md" />
+                      <span className="text-[10px] font-bold text-muted-foreground">{m.name}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button onClick={() => confirmLightningMatch()} className="w-full py-4 rounded-2xl text-white font-extrabold shadow-lg" style={{ background: "linear-gradient(135deg, #f59e0b, #ea580c)" }}>
+                    {i18n.t("auto.v2_vip_enter", "여기로 입장")}
+                  </button>
+                  <button onClick={() => setLightningResult(null)} className="w-full py-4 rounded-2xl bg-muted text-muted-foreground font-bold hover:bg-muted/80 transition-hidden">
+                    {i18n.t("auto.v2_cancel", "다음에 할게요")}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── ⚡ VIP Lightning Filter Modal ── */}
+      <AnimatePresence>
+        {showVipLightningFilter && (
+          <motion.div className="fixed inset-0 z-[110] flex items-center justify-center px-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowVipLightningFilter(false)} />
+            <motion.div className="relative w-full max-w-sm bg-card rounded-3xl p-6 shadow-2xl overflow-hidden"
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}>
+              
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-foreground flex items-center gap-2">
+                    <Crown size={20} className="text-amber-500" /> {i18n.t("auto.v2_vip_title", "VIP 맞춤 번개")}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">{i18n.t("auto.v2_vip_desc", "플러스 회원 전용 상세 매칭 필터")}</p>
+                </div>
+                <button onClick={() => setShowVipLightningFilter(false)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <X size={16} className="text-muted-foreground" />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="text-xs font-bold text-foreground mb-2 block">{i18n.t("auto.v2_vip_age", "나이대 선호")}</label>
+                  <div className="flex gap-2">
+                    {["20s", "late20s", "30s"].map(a => (
+                      <button key={a} onClick={() => setVipFilter({ ...vipFilter, age: a })} className={`flex-1 py-1.5 px-1 md:py-2 md:px-2 rounded-xl text-xs font-bold border transition-colors ${vipFilter.age === a ? 'bg-amber-500/15 border-amber-500/50 text-amber-500' : 'bg-muted/50 border-transparent text-muted-foreground'}`}>
+                        {a === "20s" ? i18n.t("auto.v2_age_20", "20대 초중반") : a === "late20s" ? i18n.t("auto.v2_age_late20", "20대 후반") : i18n.t("auto.v2_age_30", "30대 이상")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-foreground mb-2 block">{i18n.t("auto.v2_vip_lang", "사용 언어/국적")}</label>
+                  <div className="flex gap-2">
+                    {["ko", "global"].map(l => (
+                      <button key={l} onClick={() => setVipFilter({ ...vipFilter, language: l })} className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-colors ${vipFilter.language === l ? 'bg-blue-500/15 border-blue-500/50 text-blue-500' : 'bg-muted/50 border-transparent text-muted-foreground'}`}>
+                        <span className="text-lg mb-1">{l === "ko" ? "🇰🇷" : "🌍"}</span>
+                        <span className="text-xs font-bold">{l === "ko" ? i18n.t("auto.v2_lang_ko", "한국어 위주") : i18n.t("auto.v2_lang_global", "글로벌 믹스")}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-foreground mb-2 block">{i18n.t("auto.v2_vip_vibe", "원하는 분위기 (Vibe)")}</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {["party", "chill", "food"].map(v => (
+                      <button key={v} onClick={() => setVipFilter({ ...vipFilter, vibe: v })} className={`py-3 rounded-xl flex flex-col items-center gap-1 border transition-colors ${vipFilter.vibe === v ? 'bg-pink-500/15 border-pink-500/50 text-pink-500' : 'bg-muted/50 border-transparent text-muted-foreground'}`}>
+                        <span>{v === "party" ? "🎉" : v === "chill" ? "🥂" : "🍜"}</span>
+                        <span className="text-[10px] font-bold">{v === "party" ? i18n.t("auto.v2_vibe_party", "파티/텐션업") : v === "chill" ? i18n.t("auto.v2_vibe_chill", "잔잔한 딥톡") : i18n.t("auto.v2_vibe_food", "로컬 감성")}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={() => executeLightningMatch(true)} className="w-full mt-8 py-4 rounded-2xl text-white font-extrabold shadow-lg" style={{ background: "linear-gradient(135deg, #f59e0b, #ea580c)" }}>
+                {i18n.t("auto.v2_vip_scan", "맞춤형 스캔 시작")}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── ⚡ VIP Lightning Multi-Result Modal ── */}
+      <AnimatePresence>
+        {lightningMultiResult && (
+          <motion.div className="fixed inset-0 z-[120] flex flex-col justify-end bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="bg-card rounded-t-3xl pt-6 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] w-full max-w-lg mx-auto shadow-float"
+              initial={{ y: "100%" }} animate={{ y: 0 }} transition={{ type: "spring", damping: 25, stiffness: 200 }}>
+              <div className="px-6 mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-extrabold text-foreground flex items-center gap-2">
+                    {i18n.t("auto.v2_vip_preview", "미리 보고 선택하기")} <Crown size={16} className="text-amber-500" />
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">{i18n.t("auto.v2_vip_select", "원하는 컨셉의 모임을 하나 선택하세요.")}</p>
+                </div>
+                <button onClick={() => setLightningMultiResult(null)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <X size={16} className="text-muted-foreground" />
+                </button>
+              </div>
+
+              {/* Horizontal List of Options */}
+              <div className="flex gap-4 px-6 overflow-x-auto scrollbar-hide pb-4 snap-x">
+                {lightningMultiResult.map(res => (
+                  <div key={res.id} className="snap-center shrink-0 w-[240px] bg-muted/40 rounded-3xl p-5 border border-border relative">
+                    <div className="absolute top-4 right-4 text-2xl opacity-40">{res.vibeIcon}</div>
+                    <div className="mb-4">
+                      <span className="inline-block px-2 py-1 bg-amber-500/15 text-amber-600 rounded-md text-[10px] font-extrabold mb-2">{i18n.t("auto.v2_vip_premium", "PREMIUM")}</span>
+                      <h4 className="text-lg font-black text-foreground leading-tight mb-1">{res.title}</h4>
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MapPin size={10} /> {res.barName}</p>
+                    </div>
+                    
+                    <div className="flex items-center -space-x-2 mb-6">
+                      {res.members.map((m, i) => (
+                        <img key={i} src={m.photo} className="w-10 h-10 rounded-full border-2 border-background object-cover" />
+                      ))}
+                      <div className="w-10 h-10 rounded-full border-2 border-background bg-secondary flex items-center justify-center text-[10px] font-bold text-muted-foreground">+{res.members.length}</div>
+                    </div>
+
+                    <button 
+                      onClick={() => confirmLightningMatch(res)}
+                      className="w-full py-2.5 rounded-xl border-2 border-amber-500 text-amber-600 font-bold text-sm bg-transparent hover:bg-amber-500 hover:text-white transition-colors"
+                    >
+                      {i18n.t("auto.v2_vip_enter", "여기로 입장")}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>;
 };

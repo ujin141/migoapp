@@ -14,6 +14,9 @@ import { SubscriptionProvider } from "./context/SubscriptionContext";
 import { GlobalFilterProvider } from "./context/GlobalFilterContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { getCurrentLocation } from "@/lib/locationService";
+import { checkInStreak } from "@/lib/streakService";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import i18n from "./i18n";
 
 // ── 즉시 로드 (첫 화면) ────────────────────────────────────────────
@@ -110,6 +113,9 @@ const AppContent = () => {
   const showTutorial = !noTutorialRoutes.some((r) => location.pathname.startsWith(r));
   const { show: tutorialVisible, complete: completeTutorial } = useTutorial();
 
+  // ── 네이티브 푸시 권한 및 토큰 레지스터 (백그라운드 알림용) ──
+  usePushNotifications(user?.id);
+
   // ── 인증 상태 중앙 감지: 미로그인 시 스플래시/로그인으로 자동 이동 ──
   useEffect(() => {
     if (loading) return;
@@ -117,24 +123,21 @@ const AppContent = () => {
     if (!user && !isPublicRoute) {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
+    } else if (user) {
+      checkInStreak();
     }
   }, [user, loading, location.pathname, navigate]);
 
   // ── GPS 권한 요청 ──────────────────────────────────────────────
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        localStorage.setItem('migo_my_lat', String(lat));
-        localStorage.setItem('migo_my_lng', String(lng));
-        const { data: { user: su } } = await supabase.auth.getUser();
-        if (su) supabase.from('profiles').update({ lat, lng }).eq('id', su.id);
-      },
-      () => {},
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
+    getCurrentLocation(false).then(async pos => {
+      if (!pos) return;
+      const { lat, lng } = pos;
+      localStorage.setItem('migo_my_lat', String(lat));
+      localStorage.setItem('migo_my_lng', String(lng));
+      const { data: { user: su } } = await supabase.auth.getUser();
+      if (su) supabase.from('profiles').update({ lat, lng }).eq('id', su.id);
+    });
   }, []);
 
   // ── 언어 자동 감지 ────────────────────────────────────────────
@@ -229,7 +232,7 @@ const App = () => (
         <SubscriptionProvider>
           <ChatProvider>
             <NotificationProvider>
-              <HashRouter>
+              <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <AppContent />
               </HashRouter>
             </NotificationProvider>

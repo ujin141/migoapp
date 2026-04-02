@@ -16,8 +16,10 @@ export interface MatchInput {
   minSize?: number;            // 기본 4
   maxSize?: number;            // 기본 8
   vibe: TripVibe;
-  genderRatioPref: GenderRatioPref;
-  isPremium: boolean;          // Migo Plus 구독 여부
+  isPremium: boolean;          // (과거) 프리미엄 모드 선택 여부 (4.0 평점 필터용)
+  isInstant?: boolean;         // 바로모임(1시간 이내 즉흥 만남) 여부
+  hotplace?: string;           // 선택한 유명장소 아이디
+  isPlusUser?: boolean;        // 유저의 실제 Migo Plus 구독 여부 (부스트용)
 }
 
 export interface GroupGenderStats {
@@ -82,8 +84,18 @@ export function getFeeForUser(
 function scoreGroup(group: TripGroup, input: MatchInput): number {
   let score = 0;
 
-  // 목적지 매칭
-  if (input.destination) {
+  // 목적지 / 핫플레이스 매칭
+  if (input.isInstant && input.hotplace) {
+    if (group.destination.toLowerCase().includes("seoul") || group.destination.toLowerCase().includes("서울") || group.destination.toLowerCase().includes("tokyo")) {
+      score += 60; // 임시로 즉석 만남 타겟 도시 그룹에 보너스
+    } else {
+      score += 40; 
+    }
+    // 프리미엄 구독자의 경우 매칭 부스트 (즉흥 만남일 때 최상단 노출)
+    if (input.isPlusUser) {
+      score += 150; 
+    }
+  } else if (input.destination) {
     const dest = input.destination.toLowerCase();
     if (group.destination.toLowerCase().includes(dest)) score += 30;
   } else {
@@ -187,6 +199,7 @@ export function runMatchingEngine(
     if (isFree) reasons.push("🎁 여성 무료");
     if (group.daysLeft <= 3) reasons.push("⚡ 마감 임박");
     if (group.currentMembers < group.maxMembers - 1) reasons.push("✅ 여유 있음");
+    if (input.isInstant) reasons.push("⚡ 바로모임 가능");
 
     results.push({
       group,

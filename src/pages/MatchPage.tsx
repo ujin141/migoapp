@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -41,7 +41,7 @@ const MatchPage = () => {
     boostActive,
     boostSecondsLeft,
     startBoost,
-    useSuperLike,
+    consumeSuperLike,
     canGlobalMatch,
     canTravelDNAFull
   } = useSubscription();
@@ -87,40 +87,43 @@ const MatchPage = () => {
   const [pendingLikers, setPendingLikers] = useState<any[]>([]); // 나를 라이크한 사람
   const [dailyLikesUsed, setDailyLikesUsed] = useState(0); // 오늘 보낸 라이크 수 (free: max 10)
   const FREE_DAILY_LIKE_LIMIT = 10;
+  
+  const matchTimersRef = useRef<{ timeouts: any[] }>({ timeouts: [] });
+  const showMatchRef = useRef(false);
+
+  useEffect(() => {
+    const timers = matchTimersRef.current;
+    return () => {
+      timers.timeouts.forEach(clearTimeout);
+    };
+  }, []);
   useEffect(() => {
     fetchActiveAdsForScreen("MatchPage").then(setAds);
     const fetchProfiles = async () => {
       if (!user) return;
 
-      // meet_reviews fetch (avgRating 계산용)
-      const {
-        data: reviewsData
-      } = await supabase.from('meet_reviews').select('*');
-      const ratingsMap: Record<string, {
-        sum: number;
-        count: number;
-      }> = {};
-      if (reviewsData) {
-        for (const rv of reviewsData) {
-          if (!ratingsMap[rv.to_user]) ratingsMap[rv.to_user] = {
-            sum: 0,
-            count: 0
-          };
-          ratingsMap[rv.to_user].sum += rv.rating || 0;
-          ratingsMap[rv.to_user].count += 1;
-        }
-      }
+
+
+      const ratingsMap: Record<string, { sum: number; count: number; }> = {};
 
       // 내 프로필 정보 (matchScore 계산 기준)
       const {
         data: me
       } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates').eq('id', user.id).single();
 
-      // 이미 스와이프한 상대 ID 수집
+      // 이미 스와이프한 상대 ID 수집 (최근 24시간 이내 데이터만)
       const {
         data: swipedData
-      } = await supabase.from('likes').select('to_user').eq('from_user', user.id);
-      const swipedIds = new Set((swipedData || []).map((r: any) => r.to_user));
+      } = await supabase.from('likes').select('to_user, created_at').eq('from_user', user.id);
+      
+      const swipedIds = new Set();
+      const now = Date.now();
+      const H24 = 24 * 60 * 60 * 1000;
+      (swipedData || []).forEach((r: any) => {
+        if (now - new Date(r.created_at).getTime() < H24) {
+          swipedIds.add(r.to_user);
+        }
+      });
 
       // 자신을 DB 레벨에서 확실히 제외
       const {
@@ -129,6 +132,23 @@ const MatchPage = () => {
       } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type').neq('id', user.id).limit(50); // ← egress 절감: 최대 50명만
 
       if (!error && data) {
+        // 방금 불러온 프로필 대상자들만의 meet_reviews 만 선별하여 가져오기 (O(N) 트래픽 최적화)
+        const profileIds = data.map(p => p.id);
+        
+        if (profileIds.length > 0) {
+          const {
+            data: reviewsData
+          } = await supabase.from('meet_reviews').select('target_id, rating').in('target_id', profileIds);
+          
+          if (reviewsData) {
+            for (const rv of reviewsData) {
+              if (!ratingsMap[rv.target_id]) ratingsMap[rv.target_id] = { sum: 0, count: 0 };
+              ratingsMap[rv.target_id].sum += rv.rating || 0;
+              ratingsMap[rv.target_id].count += 1;
+            }
+          }
+        }
+
         // Haversine 거리 계산
         const haversine = (lat1: number, lng1: number, lat2: number, lng2: number) => {
           const R = 6371;
@@ -240,6 +260,15 @@ const MatchPage = () => {
           data: likerProfiles
         } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type').in('id', likerIds);
         if (likerProfiles) {
+          const { data: likerReviews } = await supabase.from('meet_reviews').select('target_id, rating').in('target_id', likerIds);
+          if (likerReviews) {
+            for (const rv of likerReviews) {
+              if (!ratingsMap[rv.target_id]) ratingsMap[rv.target_id] = { sum: 0, count: 0 };
+              ratingsMap[rv.target_id].sum += rv.rating || 0;
+              ratingsMap[rv.target_id].count += 1;
+            }
+          }
+
           const mappedLikers = likerProfiles.map(p => ({
             id: p.id,
             name: p.name || i18n.t("auto.z_autoz\uC54C\uC218\uC5C6\uC74C1_172"),
@@ -328,9 +357,10 @@ const MatchPage = () => {
 
   // Filter + keep sorted by matchScore (showFilter 모달 + showFilterModal 모달 통합 적용)
   const filteredTravelers = profiles.filter(p => {
-    // 거리: 좌표 없는 유저(distanceKm=999)는 거리 제한 설정 시 엄격하게 제외됨
+    // 거리: 좌표 없는 유저(distanceKm=999 or null)는 거리 필터를 항상 통과시킴
     const distLimit = filterDistance < 9999 ? filterDistance : maxDistance < 9999 ? maxDistance : 9999;
-    const distOk = distLimit >= 9999 ? true : p.distanceKm !== null && p.distanceKm <= distLimit;
+    const hasNoCoords = p.distanceKm === null || p.distanceKm >= 999;
+    const distOk = distLimit >= 9999 ? true : hasNoCoords ? true : p.distanceKm <= distLimit;
 
     // 태그 필터
     const tagOk = selectedTags.length === 0 || selectedTags.some(t => p.travelStyle.includes(t));
@@ -522,7 +552,13 @@ const MatchPage = () => {
     // Show Like popup
     setLikePopupProfile(profile);
     setShowLikePopup(true);
-    setTimeout(() => setShowLikePopup(false), 2200);
+    
+    // 이전 Like 타이머 초기화 (연속 스와이프 시 꼬임 방지)
+    matchTimersRef.current.timeouts.forEach(clearTimeout);
+    matchTimersRef.current.timeouts = [];
+    const tLike = setTimeout(() => setShowLikePopup(false), 2200);
+    matchTimersRef.current.timeouts.push(tLike);
+
     // 좋아요 패턴 학습
     recordSwipe({
       id: profile.id,
@@ -536,18 +572,26 @@ const MatchPage = () => {
     // DB 저장 + 매칭 확인
     saveLikeAndCheckMatch(profile.id).then(isMatch => {
       if (isMatch) {
-        setTimeout(() => {
-          setMatchProfile(profile);
-          setIsSuperLikeMatch(false);
-          setShowMatch(true);
-          if (typeof isMatch === 'string') setMatchedThreadId(isMatch);
-          addUnread(profile.id);
-          setInAppNotif({
-            type: "like",
-            actorName: profile.name,
-            actorPhoto: profile.photo
-          });
-        }, 300);
+         if (showMatchRef.current) {
+           // 이미 매칭창이 떠있으면 조용히 백그라운드 매칭 (인앱 알리미만)
+           addUnread(profile.id);
+           setInAppNotif({ type: "like", actorName: profile.name, actorPhoto: profile.photo });
+         } else {
+           showMatchRef.current = true;
+           const tMatch = setTimeout(() => {
+             setMatchProfile(profile);
+             setIsSuperLikeMatch(false);
+             setShowMatch(true);
+             if (typeof isMatch === 'string') setMatchedThreadId(isMatch);
+             addUnread(profile.id);
+             setInAppNotif({
+               type: "like",
+               actorName: profile.name,
+               actorPhoto: profile.photo
+             });
+           }, 300);
+           matchTimersRef.current.timeouts.push(tMatch);
+         }
       }
     });
   }, [currentIndex, withAds, addUnread, saveLikeAndCheckMatch, isPlus, dailyLikesUsed]);
@@ -579,29 +623,37 @@ const MatchPage = () => {
     setSuperLikedId(profile.id);
 
     // decrease sub-counter
-    useSuperLike();
+    consumeSuperLike();
 
     // DB 저장
     saveLikeAndCheckMatch(profile.id, 'superlike', superMsg || undefined).then(isMatch => {
-      setTimeout(() => {
+      const tSuperLike = setTimeout(() => {
         setSuperLikedId(null);
         setCurrentIndex(i => i + 1);
-        setTimeout(() => {
-          setMatchProfile(profile);
-          setIsSuperLikeMatch(true);
-          setShowMatch(!!isMatch);
-          if (isMatch) {
-            if (typeof isMatch === 'string') setMatchedThreadId(isMatch);
+        if (isMatch) {
+          if (showMatchRef.current) {
             addUnread(profile.id);
-            setInAppNotif({
-              type: "superlike",
-              actorName: profile.name,
-              actorPhoto: profile.photo,
-              message: superMsg || undefined
-            });
+            setInAppNotif({ type: "superlike", actorName: profile.name, actorPhoto: profile.photo, message: superMsg || undefined });
+          } else {
+            showMatchRef.current = true;
+            const tMatch = setTimeout(() => {
+              setMatchProfile(profile);
+              setIsSuperLikeMatch(true);
+              setShowMatch(true);
+              if (typeof isMatch === 'string') setMatchedThreadId(isMatch);
+              addUnread(profile.id);
+              setInAppNotif({
+                type: "superlike",
+                actorName: profile.name,
+                actorPhoto: profile.photo,
+                message: superMsg || undefined
+              });
+            }, 300);
+            matchTimersRef.current.timeouts.push(tMatch);
           }
-        }, 300);
+        }
       }, 700);
+      matchTimersRef.current.timeouts.push(tSuperLike);
     });
     toast({
       title: i18n.t("auto.z_tmpl_128", {
@@ -614,6 +666,7 @@ const MatchPage = () => {
   }, [pendingSuperProfile, superMsg, addUnread, saveLikeAndCheckMatch]);
   const handleChatFromMatch = () => {
     setShowMatch(false);
+    showMatchRef.current = false;
     if (matchedThreadId) {
       navigate('/chat', {
         state: {
@@ -1175,7 +1228,7 @@ const MatchPage = () => {
           </motion.div>}
       </AnimatePresence>
 
-      <MatchModal isOpen={showMatch} profile={matchProfile} onClose={() => setShowMatch(false)} onChat={handleChatFromMatch} isSuperLike={isSuperLikeMatch} superLikeMessage={isSuperLikeMatch ? superLikeMessage : ""} />
+      <MatchModal isOpen={showMatch} profile={matchProfile} onClose={() => { setShowMatch(false); showMatchRef.current = false; }} onChat={handleChatFromMatch} isSuperLike={isSuperLikeMatch} superLikeMessage={isSuperLikeMatch ? superLikeMessage : ""} />
 
       {/* Filter Drawer */}
       <AnimatePresence>

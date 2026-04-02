@@ -98,7 +98,7 @@ export const NotificationProvider = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id]);
   const markRead = useCallback(async (id: string) => {
     setNotifs(prev => prev.map(n => n.id === id ? {
       ...n,
@@ -117,7 +117,7 @@ export const NotificationProvider = ({
     await supabase.from('notifications').update({
       read: true
     }).eq('user_id', user.id);
-  }, [user]);
+  }, [user?.id]);
   const addNotif = useCallback(async (template: Omit<Notif, "id" | "time" | "read">) => {
     // Usually added via triggers or other backend actions, but UI can do it directly for itself too.
     if (!user) return;

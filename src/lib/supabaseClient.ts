@@ -9,6 +9,49 @@ declare global {
   }
 }
 
+// ── Log Sanitizer (데이터 유출 원천 차단 방어막) ──────────────────────
+const sanitizeLogArgs = (args: any[]) => {
+  return args.map((arg) => {
+    if (typeof arg === "string") {
+      // JWT/Bearer 토큰 마스킹 (헤더, 페이로드 등)
+      return arg.replace(/Bearer\s+[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*/gi, "Bearer [SECURE_REDACTED]");
+    }
+    if (arg && typeof arg === "object") {
+      try {
+        const str = JSON.stringify(arg);
+        if (str.includes("access_token") || str.includes("refresh_token") || str.includes("password")) {
+          // 객체 내의 토큰, 패스워드 키값을 마스킹
+          return JSON.parse(
+            str.replace(/"(access_token|refresh_token|password)":"[^"]+"/gi, '"$1":"[SECURE_REDACTED]"')
+               .replace(/"Bearer\s+[^"]+"/gi, '"Bearer [SECURE_REDACTED]"')
+          );
+        }
+      } catch (e) {
+        return arg;
+      }
+    }
+    return arg;
+  });
+};
+
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+console.log = (...args) => {
+  // 배포 환경(PROD)에서는 일반 로그 출력 생략
+  if (import.meta.env.PROD) return;
+  originalConsoleLog(...sanitizeLogArgs(args));
+};
+
+console.error = (...args) => {
+  originalConsoleError(...sanitizeLogArgs(args));
+};
+
+console.warn = (...args) => {
+  originalConsoleWarn(...sanitizeLogArgs(args));
+};
+
 // Only create client when properly configured to avoid runtime crash
 // 🚨 브라우저 전역 객체에 캐싱하여 Vite HMR(핫 리로드) 시 클라이언트가 반복 생성되어
 // Lock(auth token) 경합 에러가 발생하는 현상을 완벽하게 방지합니다.
@@ -17,6 +60,7 @@ if (window.__SUPABASE_CLIENT__) {
   delete window.__SUPABASE_CLIENT__;
 }
 import { Preferences } from "@capacitor/preferences";
+import { Capacitor } from "@capacitor/core";
 
 // 안드로이드/iOS WebView 환경에서 localStorage 휘발성 이슈를 해결하기 위한 영구 저장소 어댑터
 const capacitorStorageAdapter = {
@@ -50,9 +94,9 @@ if (!_supabase && isSupabaseConfigured) {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
+        detectSessionInUrl: !Capacitor.isNativePlatform(),
         // 디바이스 플랫폼 확인: WebView/네이티브 앱이면 Preferences 사용, 일반 웹 브라우저면 localStorage 사용
-        storage: typeof window !== 'undefined' && 'Capacitor' in window 
+        storage: Capacitor.isNativePlatform() 
           ? capacitorStorageAdapter 
           : window.localStorage,
         lock: async (name: string, acquireTimeout: number, fn: () => Promise<any>) => {

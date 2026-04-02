@@ -1,5 +1,6 @@
 import i18n from "@/i18n";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { compressImage } from "@/lib/imageCompression";
 export type AdStatus = "draft" | "active" | "paused" | "completed";
 export type AdFormat = "banner" | "card" | "interstitial" | "native";
 export interface AdSlot {
@@ -216,12 +217,14 @@ export async function uploadAdImage(file: File): Promise<string | null> {
     // Mock: return an object URL for preview
     return URL.createObjectURL(file);
   }
-  const ext = file.name.split(".").pop();
+  const compressedFile = await compressImage(file);
+  const ext = compressedFile.name.split(".").pop();
   const path = `ads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const {
     error
-  } = await supabase.storage.from("ad-images").upload(path, file, {
-    upsert: true
+  } = await supabase.storage.from("ad-images").upload(path, compressedFile, {
+    upsert: true,
+    contentType: compressedFile.type
   });
   if (error) {
     console.error("uploadAdImage error:", error);

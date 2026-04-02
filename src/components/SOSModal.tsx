@@ -6,6 +6,7 @@ import { X, MapPin, Phone, AlertTriangle, Shield, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { getCurrentLocation } from "@/lib/locationService";
 interface SOSModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -48,13 +49,14 @@ const SOSModal = ({
     setPhase("warning");
     setCountdown(3);
     setLocSent(false);
-    navigator.geolocation?.getCurrentPosition(pos => {
-      setCoords({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude
-      });
-      setAddress(`Lat ${pos.coords.latitude.toFixed(4)} / Lon ${pos.coords.longitude.toFixed(4)}`);
-    }, () => setAddress(i18n.t("auto.z_autoz위치접근거_1382")), { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    getCurrentLocation(false).then(pos => {
+      if (pos) {
+        setCoords(pos);
+        setAddress(`Lat ${pos.lat.toFixed(4)} / Lon ${pos.lng.toFixed(4)}`);
+      } else {
+        setAddress(i18n.t("auto.z_autoz위치접근거_1382", { defaultValue: "위치 정보를 가져올 수 없습니다." }));
+      }
+    });
   }, [isOpen]);
 
   // Countdown + DB 저장

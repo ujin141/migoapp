@@ -2,11 +2,12 @@ import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Check, ChevronRight, Sparkles, Globe, MapPin, Calendar, User, Heart } from "lucide-react";
+import { Camera, Check, ChevronRight, Sparkles, Globe, MapPin, Calendar, User, Heart, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import siteLogo from "@/assets/site-logo.png";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { compressImage } from "@/lib/imageCompression";
 const MBTI_COLOR: Record<string, string> = {
   INTJ: "bg-indigo-500/20 text-indigo-500 border-indigo-500/40",
   INTP: "bg-indigo-500/20 text-indigo-500 border-indigo-500/40",
@@ -25,6 +26,7 @@ const MBTI_COLOR: Record<string, string> = {
   ESTP: "bg-red-500/20 text-red-500 border-red-500/40",
   ESFP: "bg-yellow-500/20 text-yellow-500 border-yellow-500/40"
 };
+const MBTI_TYPES = Object.keys(MBTI_COLOR);
 
 // Setup steps: 0=photo/bio, 1=style, 2=destination, 3=personality, 4=done
 
@@ -101,11 +103,11 @@ const ProfileSetupPage = () => {
     user
   } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
-  const photoFileRef = useRef<File | null>(null);
   const [step, setStep] = useState(0);
+  const MAX_PROFILE_PHOTOS = 6;
 
   // Step 0
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [profilePhotos, setProfilePhotos] = useState<Array<{ file: File; url: string }>>([]);
   const [userType, setUserType] = useState<"traveler" | "local">("traveler");
   const [bio, setBio] = useState("");
   const [travelMission, setTravelMission] = useState("");
@@ -132,11 +134,16 @@ const ProfileSetupPage = () => {
     }
   };
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      photoFileRef.current = file;
-      setPhoto(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    const remaining = MAX_PROFILE_PHOTOS - profilePhotos.length;
+    const toAdd = files.slice(0, remaining).map(file => ({
+      file,
+      url: URL.createObjectURL(file)
+    }));
+    if (toAdd.length) {
+      setProfilePhotos(prev => [...prev, ...toAdd]);
     }
+    e.target.value = "";
   };
   const handleNext = async () => {
     if (step === 0 && !bio.trim()) {
@@ -172,25 +179,25 @@ const ProfileSetupPage = () => {
       }
       setSaving(true);
       try {
-        let photoUrl: string | undefined;
+        let uploadedUrls: string[] = [];
 
         // 사진 업로드
-        if (photoFileRef.current) {
-          const ext = photoFileRef.current.name.split(".").pop();
-          const path = `${user.id}/profile.${ext}`;
-          const {
-            error: upErr
-          } = await supabase.storage.from("avatars").upload(path, photoFileRef.current, {
+        for (let i = 0; i < profilePhotos.length; i++) {
+          const file = profilePhotos[i].file;
+          const compressedFile = await compressImage(file);
+          const ext = compressedFile.name.split(".").pop();
+          const path = `${user.id}/profile_${Date.now()}_${i}.${ext}`;
+          const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
             upsert: true,
-            contentType: photoFileRef.current.type
+            contentType: compressedFile.type
           });
           if (!upErr) {
-            const {
-              data
-            } = supabase.storage.from("avatars").getPublicUrl(path);
-            photoUrl = data.publicUrl;
+            const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+            uploadedUrls.push(data.publicUrl);
           }
         }
+        
+        const photoUrl = uploadedUrls[0];
 
         // profiles 업데이트
         await supabase.from("profiles").update({
@@ -205,7 +212,8 @@ const ProfileSetupPage = () => {
           personality_tags: personality,
           mbti: mbti || null,
           ...(photoUrl ? {
-            photo_url: photoUrl
+            photo_url: photoUrl,
+            photo_urls: uploadedUrls
           } : {}),
           setup_complete: true
         }).eq("id", user.id);
@@ -315,22 +323,30 @@ const ProfileSetupPage = () => {
         }}>
 
               {/* Photo picker */}
-              <div className="flex flex-col items-center gap-3">
-                <motion.div whileTap={{
-              scale: 0.97
-            }} onClick={() => fileRef.current?.click()} className="relative cursor-pointer">
-                  <div className="w-28 h-28 rounded-3xl bg-muted overflow-hidden border-2 border-dashed border-primary/30">
-                    {photo ? <img src={photo} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-                        <Camera size={28} className="text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">{t("profileSetup.addPhoto")}</span>
-                      </div>}
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full gradient-primary flex items-center justify-center shadow-card border-2 border-card">
-                    <Camera size={15} className="text-primary-foreground" />
-                  </div>
-                </motion.div>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
-                <p className="text-xs text-muted-foreground">{t("profileSetup.photoHint1")} <span className="text-primary font-bold">{t("profileSetup.photoHint2")}</span> {t("profileSetup.photoHint3")}</p>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-foreground">{t("profileSetup.addPhoto")}</span>
+                  <span className="text-[10px] text-muted-foreground">{profilePhotos.length}/{MAX_PROFILE_PHOTOS}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {profilePhotos.map((photoItem, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-border shadow-sm">
+                      <img src={photoItem.url} alt="" className="w-full h-full object-cover" />
+                      {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full z-10">Main</div>}
+                      <button onClick={(e) => { e.stopPropagation(); setProfilePhotos(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center z-10">
+                        <X size={10} className="text-white" />
+                      </button>
+                    </div>
+                  ))}
+                  {profilePhotos.length < MAX_PROFILE_PHOTOS && (
+                    <motion.div whileTap={{ scale: 0.95 }} onClick={() => fileRef.current?.click()} className="aspect-square rounded-2xl border-2 border-dashed border-primary/30 bg-muted flex flex-col items-center justify-center gap-1 cursor-pointer">
+                      <Camera size={18} className="text-primary/60" />
+                      <span className="text-[10px] text-primary/60">{t("profileSetup.addPhoto", "Add Photo")}</span>
+                    </motion.div>
+                  )}
+                </div>
+                <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelect} />
+                <p className="text-xs text-muted-foreground mt-1 text-center">{t("profileSetup.photoHint1")} <span className="text-primary font-bold">{t("profileSetup.photoHint2")}</span> {t("profileSetup.photoHint3")}</p>
               </div>
 
               {/* User Type */}
@@ -466,7 +482,7 @@ const ProfileSetupPage = () => {
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-3">{t("profileSetup.preview")}</p>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl overflow-hidden bg-muted shrink-0">
-                    {photo ? <img src={photo} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><User size={20} className="text-muted-foreground" /></div>}
+                    {profilePhotos[0]?.url ? <img src={profilePhotos[0].url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><User size={20} className="text-muted-foreground" /></div>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">

@@ -57,7 +57,11 @@ export function loadStreak(): StreakData {
 
 /** 앱 접속 시 호출. 스트릭 갱신 후 반환 */
 export function checkInStreak(): { data: StreakData; isNew: boolean; leveledUp: boolean } {
-  const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const today = `${year}-${month}-${day}`;
   const prev = loadStreak();
 
   if (prev.lastVisit === today) {

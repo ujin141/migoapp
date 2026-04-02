@@ -149,7 +149,7 @@ const AdminPage = () => {
             setPin(e.target.value);
             setPinError(false);
           }} onKeyDown={e => {
-            if (e.key === "Enter") tryLogin();
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) tryLogin();
           }} placeholder={t("auto.z_autozPIN입력_945")} className={`w-full px-4 py-3.5 rounded-2xl bg-muted border text-foreground text-sm outline-none transition-all
                 ${pinError ? "border-red-500" : "border-border focus:border-primary"}`} />
             <button onClick={() => setShowPin(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">

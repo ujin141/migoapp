@@ -103,6 +103,9 @@ const SwipeCard = ({
   const likeOpacity = useTransform(x, [0, 100], [0, 1]);
   const nopeOpacity = useTransform(x, [-100, 0], [1, 0]);
   const [showDetail, setShowDetail] = useState(false);
+  const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
+  const photos = profile.photoUrls && profile.photoUrls.length > 0 ? profile.photoUrls : profile.photo ? [profile.photo] : [];
+  const currentPhoto = photos[currentPhotoIdx];
   const [bioT, setBioT] = useState('');
   const [loadingBio, setLoadingBio] = useState(false);
   const [showCompat, setShowCompat] = useState(false);
@@ -190,9 +193,18 @@ const SwipeCard = ({
       }
     }}>
       <div className="relative w-full h-full rounded-3xl bg-card overflow-hidden shadow-float">
+        {/* Top Progress Dots */}
+        {photos.length > 1 && (
+          <div className="absolute top-2 left-2 right-2 flex gap-1 z-30 pointer-events-none">
+            {photos.map((_, i) => (
+              <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i === currentPhotoIdx ? "bg-white" : "bg-white/40"}`} />
+            ))}
+          </div>
+        )}
+
         {/* Full Screen Image */}
-        {profile.photo ? <>
-            <img src={profile.photo} alt="Profile" className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${isBlurTarget ? 'blur-2xl scale-110 brightness-75' : ''}`} draggable="false" />
+        {currentPhoto ? <>
+            <img src={currentPhoto} alt="Profile" className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${isBlurTarget ? 'blur-2xl scale-110 brightness-75' : ''}`} draggable="false" />
             {isBlurTarget && <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center z-10 pointer-events-none">
                 <Crown size={48} className="text-amber-400 mb-4 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
                 <p className="text-white font-black text-xl drop-shadow-lg text-center px-4">{t("auto.z_\uB098\uB97C\uC88B\uC544\uC694\uD588\uC5B4\uC694_1223")}</p>
@@ -204,6 +216,26 @@ const SwipeCard = ({
              </div>
              <p className="text-white/80 text-sm font-semibold">{t('auto.j507')}</p>
           </div>}
+
+        {/* Tap areas for photo sliding (left 40%, right 40%) */}
+        {isTop && photos.length > 1 && (
+          <>
+            <div 
+              className="absolute top-10 bottom-32 left-0 w-[40%] z-20 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentPhotoIdx > 0) setCurrentPhotoIdx(i => i - 1);
+              }}
+            />
+            <div 
+              className="absolute top-10 bottom-32 right-0 w-[40%] z-20 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentPhotoIdx < photos.length - 1) setCurrentPhotoIdx(i => i + 1);
+              }}
+            />
+          </>
+        )}
 
         {/* ── 현지인 테두리 / 프리미엄 테두리 ── */}
         {profile.isPremium ? <div className="absolute inset-0 pointer-events-none rounded-3xl" style={{

@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   boosts_count          INTEGER DEFAULT 0,
   super_likes_left      INTEGER DEFAULT 3,
   super_likes_reset     TIMESTAMPTZ,
+  fcm_token             TEXT,
   created_at            TIMESTAMPTZ DEFAULT NOW(),
   updated_at            TIMESTAMPTZ DEFAULT NOW(),
   -- 인증 관련
@@ -66,6 +67,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   avg_rating            NUMERIC(3,2) DEFAULT 0,
   review_count          INTEGER DEFAULT 0,
   trip_count            INTEGER DEFAULT 0,
+  -- 바로모임 (Instant Meet) 제한
+  no_show_count         INTEGER DEFAULT 0,
+  instant_meets_count   INTEGER DEFAULT 0,
   -- 관리자용
   banned                BOOLEAN DEFAULT false,
   admin_note            TEXT,
@@ -148,15 +152,32 @@ CREATE POLICY "matches_insert" ON matches FOR INSERT WITH CHECK (true);
 -- TABLE: chat_threads
 -- ============================================================
 CREATE TABLE IF NOT EXISTS chat_threads (
-  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  is_group   BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  is_group        BOOLEAN DEFAULT false,
+  name            TEXT,
+  photo           TEXT,       -- alias for UI (photo_url)
+  photo_url       TEXT,
+  last_message    TEXT,
+  unread_count    INTEGER DEFAULT 0,
+  -- 약속 시간: 이 시간이 지나면 채팅방이 자동 폭파됨
+  meet_expires_at TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE chat_threads ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "threads_select" ON chat_threads;
 DROP POLICY IF EXISTS "threads_insert" ON chat_threads;
-CREATE POLICY "threads_select" ON chat_threads FOR SELECT USING (true);
+DROP POLICY IF EXISTS "threads_delete" ON chat_threads;
+CREATE POLICY "threads_select" ON chat_threads FOR SELECT USING (
+  EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid()) OR is_group = true
+);
 CREATE POLICY "threads_insert" ON chat_threads FOR INSERT WITH CHECK (true);
+CREATE POLICY "threads_delete" ON chat_threads FOR DELETE USING (false);
+-- 기존 DB에 컬럼 없으면 추가 (멱등)
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS photo            TEXT;
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS last_message     TEXT;
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS unread_count     INTEGER DEFAULT 0;
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS meet_expires_at  TIMESTAMPTZ;
+
 
 -- ============================================================
 -- TABLE: chat_members
@@ -170,7 +191,19 @@ CREATE TABLE IF NOT EXISTS chat_members (
 ALTER TABLE chat_members ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "members_select" ON chat_members;
 DROP POLICY IF EXISTS "members_insert" ON chat_members;
-CREATE POLICY "members_select" ON chat_members FOR SELECT USING (true);
+
+-- 무한 재귀(Infinite Recursion) 방지용 SECURITY DEFINER 함수
+CREATE OR REPLACE FUNCTION check_is_chat_member(target_thread_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM chat_members 
+    WHERE thread_id = target_thread_id AND user_id = auth.uid()
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
+
+CREATE POLICY "members_select" ON chat_members FOR SELECT USING (
+  check_is_chat_member(thread_id)
+);
 CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (true);
 
 -- ============================================================
@@ -191,7 +224,9 @@ CREATE TABLE IF NOT EXISTS messages (
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "messages_select" ON messages;
 DROP POLICY IF EXISTS "messages_insert" ON messages;
-CREATE POLICY "messages_select" ON messages FOR SELECT USING (true);
+CREATE POLICY "messages_select" ON messages FOR SELECT USING (
+  thread_id IN (SELECT thread_id FROM chat_members WHERE user_id = auth.uid())
+);
 CREATE POLICY "messages_insert" ON messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
 -- NOTE: user_id 컬럼 추가 후 아래 ALTER TABLE 섹션에서 이 정책을 재생성합니다
 
@@ -345,6 +380,7 @@ CREATE TABLE IF NOT EXISTS trip_groups (
   recent_messages       JSONB DEFAULT '[]',
   status                TEXT DEFAULT 'active',
   created_at            TIMESTAMPTZ DEFAULT NOW(),
+  thread_id             UUID REFERENCES chat_threads(id) ON DELETE SET NULL,
   -- 어드민 대시보드 확장 컬럼
   is_active             BOOLEAN DEFAULT true,
   member_count          INTEGER DEFAULT 0,
@@ -432,6 +468,69 @@ DROP TRIGGER IF EXISTS on_application_status ON trip_applications;
 CREATE TRIGGER on_application_status
   AFTER UPDATE ON trip_applications
   FOR EACH ROW EXECUTE FUNCTION notify_application_status();
+
+-- ============================================================
+-- ★ TRIGGERS FOR CHAT <-> TRIP SYNC ★
+-- ============================================================
+CREATE OR REPLACE FUNCTION trg_trip_group_create_thread()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_thread_id UUID;
+BEGIN
+  INSERT INTO chat_threads (is_group, name, photo_url)
+  VALUES (true, NEW.title, NEW.cover_image)
+  RETURNING id INTO v_thread_id;
+  NEW.thread_id := v_thread_id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_trip_group_create_thread_on_insert ON trip_groups;
+CREATE TRIGGER trg_trip_group_create_thread_on_insert
+  BEFORE INSERT ON trip_groups FOR EACH ROW
+  EXECUTE FUNCTION trg_trip_group_create_thread();
+
+CREATE OR REPLACE FUNCTION trg_trip_group_insert_host()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO trip_group_members (group_id, user_id)
+  VALUES (NEW.id, NEW.host_id) ON CONFLICT DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_trip_group_insert_host_on_insert ON trip_groups;
+CREATE TRIGGER trg_trip_group_insert_host_on_insert
+  AFTER INSERT ON trip_groups FOR EACH ROW
+  EXECUTE FUNCTION trg_trip_group_insert_host();
+
+CREATE OR REPLACE FUNCTION trg_sync_chat_members()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_thread_id UUID;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    SELECT thread_id INTO v_thread_id FROM trip_groups WHERE id = NEW.group_id;
+    IF v_thread_id IS NOT NULL THEN
+      INSERT INTO chat_members (thread_id, user_id) VALUES (v_thread_id, NEW.user_id) ON CONFLICT DO NOTHING;
+    END IF;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    SELECT thread_id INTO v_thread_id FROM trip_groups WHERE id = OLD.group_id;
+    IF v_thread_id IS NOT NULL THEN
+      DELETE FROM chat_members WHERE thread_id = v_thread_id AND user_id = OLD.user_id;
+    END IF;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_sync_chat_members_on_change ON trip_group_members;
+CREATE TRIGGER trg_sync_chat_members_on_change
+  AFTER INSERT OR DELETE ON trip_group_members FOR EACH ROW
+  EXECUTE FUNCTION trg_sync_chat_members();
+
 
 -- ============================================================
 -- TABLE: reports
@@ -1780,3 +1879,87 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.find_email_by_phone(TEXT, TEXT) TO authenticated, anon;
+
+
+-- ============================================================
+-- ★ MIGRATION: 2026-04-02
+-- 랜덤매칭 위치/시간/장소 + 단톡방 자동 폭파 기능 추가
+-- Supabase SQL Editor에서 이 파일 전체 또는 이 섹션만 실행하세요.
+-- 모든 구문은 멱등(idempotent)하게 작성되었습니다.
+-- ============================================================
+
+-- 1) chat_threads 신규 컬럼 추가
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS photo            TEXT;
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS last_message     TEXT;
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS unread_count     INTEGER DEFAULT 0;
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS meet_expires_at  TIMESTAMPTZ;
+
+-- 2) chat_threads 정책 추가 (자동 폭파·업데이트용)
+DROP POLICY IF EXISTS "threads_delete" ON chat_threads;
+CREATE POLICY "threads_delete" ON chat_threads FOR DELETE USING (
+  EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
+);
+
+DROP POLICY IF EXISTS "threads_update" ON chat_threads;
+CREATE POLICY "threads_update" ON chat_threads FOR UPDATE USING (
+  EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
+);
+
+-- 3) meet_expires_at 인덱스 (만료 시간 기반 빠른 조회)
+CREATE INDEX IF NOT EXISTS idx_chat_threads_expires
+  ON chat_threads (meet_expires_at)
+  WHERE meet_expires_at IS NOT NULL;
+
+-- ============================================================
+-- ★ OPTIONAL: 서버사이드 자동 폭파 함수 (pg_cron 설치 시 활성화)
+-- Supabase에서 pg_cron extension이 활성화된 경우,
+-- 아래 함수+스케줄을 등록하면 서버에서 자동으로 만료 채팅방을 삭제합니다.
+-- ============================================================
+
+-- 만료된 채팅방 삭제 함수
+CREATE OR REPLACE FUNCTION cleanup_expired_chat_threads()
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  -- meet_expires_at 이 현재 시각보다 이전인 채팅방 삭제
+  -- (cascade로 messages, chat_members도 함께 삭제됨)
+  DELETE FROM chat_threads
+  WHERE meet_expires_at IS NOT NULL
+    AND meet_expires_at < NOW();
+
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.cleanup_expired_chat_threads() TO authenticated, service_role;
+
+-- pg_cron이 활성화된 경우: 1분마다 만료 채팅방 자동 삭제
+-- (pg_cron extension이 없으면 이 구문은 에러 발생 → 주석 처리 유지)
+/*
+SELECT cron.schedule(
+  'cleanup-expired-chats',
+  '* * * * *',  -- 매분 실행
+  $$SELECT cleanup_expired_chat_threads()$$
+);
+*/
+
+-- ============================================================
+-- ★ PRIVACY: 오래된 위치 정보 자동 파기 (pg_cron)
+-- ============================================================
+/*
+SELECT cron.schedule(
+  'auto-delete-location',
+  '0 0 * * *', -- 매일 자정 실행
+  $$
+    UPDATE profiles 
+    SET lat = NULL, lng = NULL, location = NULL
+    WHERE updated_at < NOW() - INTERVAL '1 day';
+  $$
+);
+*/
+

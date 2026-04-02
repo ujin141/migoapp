@@ -12,10 +12,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import TutorialOverlay, { useTutorial } from "@/components/TutorialOverlay";
 import TrustVerifyModal from "@/components/TrustVerifyModal";
+import { compressImage } from "@/lib/imageCompression";
 import ProfileViewsModal from "@/components/ProfileViewsModal";
 import StreakBadge from "@/components/StreakBadge";
 import ActivityReport from "@/components/ActivityReport";
 import { checkInStreak } from "@/lib/streakService";
+import { getCurrentLocation } from "@/lib/locationService";
 const ProfilePage = () => {
   const {
     t
@@ -67,7 +69,7 @@ const ProfilePage = () => {
     restart: restartTutorial
   } = useTutorial();
   const [showTutorialLocal, setShowTutorialLocal] = useState(false);
-  const [name, setName] = useState("Me");
+  const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [travelDates, setTravelDates] = useState("");
   const [bio, setBio] = useState("");
@@ -91,13 +93,14 @@ const ProfilePage = () => {
     if (!user) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      const compressedFile = await compressImage(file);
+      const ext = compressedFile.name.split(".").pop();
       const filePath = `${user.id}.${ext}`;
       const {
         error: upErr
-      } = await supabase.storage.from("avatars").upload(filePath, file, {
+      } = await supabase.storage.from("avatars").upload(filePath, compressedFile, {
         upsert: true,
-        contentType: file.type
+        contentType: compressedFile.type
       });
       if (upErr) throw upErr;
       const {
@@ -137,13 +140,14 @@ const ProfilePage = () => {
       .map(p => p.url);
       for (const p of profilePhotos.filter(ph => !!ph.file)) {
         const file = p.file!;
-        const ext = file.name.split(".").pop();
+        const compressedFile = await compressImage(file);
+        const ext = compressedFile.name.split(".").pop();
         const path = `${user.id}_${Date.now()}_${uploadedUrls.length}.${ext}`;
         const {
           error: upErr
-        } = await supabase.storage.from("avatars").upload(path, file, {
+        } = await supabase.storage.from("avatars").upload(path, compressedFile, {
           upsert: true,
-          contentType: file.type
+          contentType: compressedFile.type
         });
         if (!upErr) {
           const {
@@ -241,15 +245,12 @@ const ProfilePage = () => {
       }
 
       // ── GPS 역지오코딩 ── (보존된 location이 없거나 비어있으면 자동 실행)
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(async pos => {
-          const {
-            latitude: lat,
-            longitude: lng
-          } = pos.coords;
-          // 로컨스토리지에 GPS 좌표 저장 (매칭용)
-          localStorage.setItem('migo_my_lat', String(lat));
-          localStorage.setItem('migo_my_lng', String(lng));
+      getCurrentLocation(false).then(async pos => {
+        if (!pos) return;
+        const { lat, lng } = pos;
+        // 로컨스토리지에 GPS 좌표 저장 (매칭용)
+        localStorage.setItem('migo_my_lat', String(lat));
+        localStorage.setItem('migo_my_lng', String(lng));
           try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, {
               headers: {
@@ -272,12 +273,7 @@ const ProfilePage = () => {
               }
             }
           } catch {/* 네트워크 오류 시 조용히 무시 */}
-        }, () => {/* 권한 거부 시 무시 */}, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        });
-      }
+      });
 
       // ─── 매칭 목록: matches 테이블에서 양방향 ───
       const {
@@ -428,6 +424,11 @@ const ProfilePage = () => {
     desc: t("profilePage.settings.faqDesc", "Frequently asked questions"),
     action: () => setShowHelpModal(true)
   }, {
+    icon: Shield,
+    label: t("legalPages.privacyTitle", "Privacy Policy"),
+    desc: t("privacy.menuDesc", "Data destruction and privacy terms"),
+    action: () => navigate("/privacy")
+  }, {
     icon: Crown,
     label: "MIGO Premium Support",
     desc: t("auto.z_\uC804\uB2F4\uACE0\uAC1D\uC13C\uD13011\uC6B0\uC120_124"),
@@ -516,15 +517,13 @@ const ProfilePage = () => {
               <div className="flex items-center gap-1 mt-0.5">
                 <MapPin size={12} className="text-primary shrink-0" />
               <span className="text-xs text-muted-foreground">{location || t("auto.z_\uC704\uCE58\uAC10\uC9C0\uC911_126")}</span>
-              <button onClick={() => {
-              if (!navigator.geolocation || !user) return;
-              navigator.geolocation.getCurrentPosition(async pos => {
-                const {
-                  latitude: lat,
-                  longitude: lng
-                } = pos.coords;
-                localStorage.setItem('migo_my_lat', String(lat));
-                localStorage.setItem('migo_my_lng', String(lng));
+              <button onClick={async () => {
+              if (!user) return;
+              const pos = await getCurrentLocation(true);
+              if (!pos) return;
+              const { lat, lng } = pos;
+              localStorage.setItem('migo_my_lat', String(lat));
+              localStorage.setItem('migo_my_lng', String(lng));
                 try {
                   const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, {
                     headers: {
@@ -544,11 +543,6 @@ const ProfilePage = () => {
                     }).eq('id', user.id);
                   }
                 } catch {/* ignore */}
-              }, () => {}, {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-              });
             }} className="ml-0.5 text-primary/50 hover:text-primary transition-colors" title={t("auto.z_\uD604\uC7AC\uC704\uCE58\uB85C\uC5C5\uB370\uC774\uD2B8_127")}>
                 <Navigation size={10} />
               </button>
@@ -600,12 +594,14 @@ const ProfilePage = () => {
           if (boostActive) return;
           startBoost();
         }}>
-              <Zap size={18} className={boostActive ? "animate-pulse" : ""} />
-              {boostActive ? `${Math.floor(boostSecondsLeft / 60)}:${(boostSecondsLeft % 60).toString().padStart(2, '0')} ${"Boosting ⚡"}` : isPlus ? t("profilePage.boostFree", {
-            n: boostsCount
-          }) : boostsCount > 0 ? t("profilePage.boostOn", {
-            n: boostsCount
-          }) : t("profilePage.boostNone")}
+              <Zap size={18} className={`shrink-0 ${boostActive ? "animate-pulse" : ""}`} />
+              <span className="text-sm shrink-0 leading-tight">
+                {boostActive ? `${Math.floor(boostSecondsLeft / 60)}:${(boostSecondsLeft % 60).toString().padStart(2, '0')} ${"Boosting ⚡"}` : isPlus ? t("profilePage.boostFree", {
+              n: boostsCount, count: boostsCount
+            }) : boostsCount > 0 ? t("profilePage.boostOn", {
+              n: boostsCount, count: boostsCount
+            }) : t("profilePage.boostNone")}
+              </span>
             </button>
           </div>
       </div>
@@ -868,7 +864,7 @@ const ProfilePage = () => {
                       </span>)}
                   </div>
                   {tags.length < 8 && <div className="flex gap-2">
-                      <input value={newTag} onChange={e => setNewTag(e.target.value)} onKeyDown={e => e.key === "Enter" && addTag()} placeholder={t("profilePage.tagPlaceholder")} className="flex-1 bg-muted rounded-xl px-3 py-2 text-sm outline-none" />
+                      <input value={newTag} onChange={e => setNewTag(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) addTag(); }} placeholder={t("profilePage.tagPlaceholder")} className="flex-1 bg-muted rounded-xl px-3 py-2 text-sm outline-none" />
                       <button onClick={addTag} className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
                         <Plus size={14} className="text-primary-foreground" />
                       </button>
@@ -1241,13 +1237,14 @@ const ProfilePage = () => {
 
               for (let i = localStorage.length - 1; i >= 0; i--) {
                 const key = localStorage.key(i);
-                if (key && (key.includes('migo') || key.includes('supabase'))) {
+                if (key && key !== 'migo_onboarding_done' && (key.includes('migo') || key.includes('supabase'))) {
                   localStorage.removeItem(key);
                 }
               }
               setShowLogoutConfirm(false);
               // 앱 메모리 상태(캐시 포함)를 완벽하게 날리기 위해 강제 리로드 이동
-              window.location.href = "/";
+              window.location.href = "/#/login";
+              window.location.reload();
             }} className="flex-1 py-3 rounded-2xl bg-destructive text-white font-semibold text-sm">
                   {t("auto.j532")}
                 </button>

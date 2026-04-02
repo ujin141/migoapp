@@ -11,6 +11,7 @@ import MigoPlusModal from "@/components/MigoPlusModal";
 import SOSModal from "@/components/SOSModal";
 import { translateText, LANG_NAMES, SupportedLang } from "@/lib/translateService";
 import { fetchActiveAdsForScreen, recordAdImpression, recordAdClick } from "@/lib/adService";
+import { getCurrentLocation } from "@/lib/locationService";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -40,7 +41,7 @@ const ChatPage = () => {
     dailyDmCount,
     maxDailyDm,
     canSendDm,
-    useDm,
+    consumeDm,
     canReadReceipts
   } = useSubscription();
   const [showPlusModal, setShowPlusModal] = useState(false);
@@ -58,6 +59,9 @@ const ChatPage = () => {
   const {
     user
   } = useAuth();
+  // ─── 자동 채팅방 폭파 체크는 백엔드(Edge/Cron)로 이관됨 ───
+
+
   useEffect(() => {
     if (!selectedChat || !user) return;
     const fetchMessages = async () => {
@@ -65,12 +69,12 @@ const ChatPage = () => {
         data,
         error
       } = await supabase.from('messages').select('*').eq('thread_id', selectedChat).order('created_at', {
-        ascending: true
-      });
+        ascending: false
+      }).limit(100);
       if (!error && data) {
-        setMessages(data.map(m => ({
+        setMessages(data.reverse().map(m => ({
           id: m.id,
-          text: m.content,
+          text: m.text,
           sender: m.sender_id === user.id ? "me" : "other",
           time: new Intl.DateTimeFormat('ko-KR', {
             hour: 'numeric',
@@ -89,7 +93,7 @@ const ChatPage = () => {
       const newMsg = payload.new;
       setMessages(prev => [...prev, {
         id: newMsg.id,
-        text: newMsg.content,
+        text: newMsg.text,
         sender: newMsg.sender_id === user?.id ? "me" : "other",
         time: new Intl.DateTimeFormat('ko-KR', {
           hour: 'numeric',
@@ -200,7 +204,7 @@ const ChatPage = () => {
       setShowPlusModal(true);
       return;
     }
-    const allowed = useDm();
+    const allowed = consumeDm();
     if (!allowed) {
       setShowPlusModal(true);
       return;
@@ -210,21 +214,18 @@ const ChatPage = () => {
     const textToSend = message.trim();
     setMessage("");
 
-    // Insert to DB
+    // Insert to DB (컬럼명: text)
     await supabase.from('messages').insert({
       thread_id: selectedChat,
       sender_id: user.id,
-      content: textToSend
+      text: textToSend
     });
   };
   const handleShareLocation = async () => {
     if (!selectedChat || !user) return;
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async pos => {
-        const {
-          latitude,
-          longitude
-        } = pos.coords;
+    const pos = await getCurrentLocation(true);
+    if (pos) {
+      const { lat: latitude, lng: longitude } = pos;
         let locationStr = t("chat.unknownLocation");
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ko`);
@@ -247,26 +248,22 @@ const ChatPage = () => {
         await supabase.from('messages').insert({
           thread_id: selectedChat,
           sender_id: user.id,
-          content: text
+          text: text
         });
         toast({
           title: t("alert.t22Title")
         });
-      }, async () => {
+        setShowMoreMenu(false);
+    } else {
         await supabase.from('messages').insert({
           thread_id: selectedChat,
           sender_id: user.id,
-          content: i18n.t("auto.z_autoz현재위치공_874")
+          text: i18n.t("auto.z_autoz현재위치공_874", { defaultValue: "위치 공유 실패" })
         });
         toast({
           title: t("chat.locationPermErr")
         });
-      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-    } else {
-      toast({
-        title: t("alert.t23Title"),
-        variant: "destructive"
-      });
+        setShowMoreMenu(false);
     }
   };
   const handleScheduleShare = async () => {
@@ -289,7 +286,7 @@ const ChatPage = () => {
     await supabase.from('messages').insert({
       thread_id: selectedChat,
       sender_id: user.id,
-      content: text
+      text: text
     });
     setShowScheduleModal(false);
     setScheduleDate("");
@@ -318,7 +315,7 @@ const ChatPage = () => {
     await supabase.from('messages').insert({
       thread_id: selectedChat,
       sender_id: user.id,
-      content: text
+      text: text
     });
     setShowMeetProposal(false);
     setMeetDate("");
@@ -372,6 +369,31 @@ const ChatPage = () => {
     toast({
       title: t("alert.t30Title")
     });
+  };
+  const handleNoShowReport = async () => {
+    // 모의: 방폭 및 노쇼 스택 증가 처리 (프리미엄 혜택)
+    if (!user || !selectedChat) return;
+    try {
+      const { data: members } = await supabase.from('chat_members').select('user_id').eq('thread_id', selectedChat).neq('user_id', user.id);
+      if (members && members.length > 0) {
+        const partnerId = members[0].user_id;
+        const { data: pData } = await supabase.from('profiles').select('no_show_count').eq('id', partnerId).maybeSingle();
+        if (pData) {
+          await supabase.from('profiles').update({ no_show_count: (pData.no_show_count || 0) + 1 }).eq('id', partnerId);
+        }
+      }
+      // 내 채팅 목록에서 삭제 (방폭)
+      await supabase.from('chat_members').delete().eq('thread_id', selectedChat).eq('user_id', user.id);
+      toast({
+        title: "바로모임 파기 완료",
+        description: "노쇼 신고가 접수되었으며 채팅방을 나갑니다.",
+        duration: 3000
+      });
+      setSelectedChat(null);
+      setShowMoreMenu(false);
+    } catch (err) {
+      console.error(err);
+    }
   };
   const filteredThreads = threads.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -488,10 +510,21 @@ const ChatPage = () => {
                     setShowDeleteConfirm(true);
                   }} className="w-full text-left px-4 py-2.5 text-sm text-red-500 rounded-xl hover:bg-red-500/10 transition-colors">{t('chat.deleteChat')}</button>
                       <button onClick={() => {
-                    setShowMoreMenu(false);
-                    setShowSOS(true);
-                  }} className="w-full text-left px-4 py-2.5 text-sm text-orange-500 rounded-xl hover:bg-orange-500/10 transition-colors flex items-center gap-2">
-                        <AlertTriangle size={13} />{t("auto.z_autoz긴급SOS_888")}</button>
+                        setShowMoreMenu(false);
+                        setShowSOS(true);
+                      }} className="w-full text-left px-4 py-2.5 text-sm text-orange-500 rounded-xl hover:bg-orange-500/10 transition-colors flex items-center gap-2">
+                        <AlertTriangle size={13} />{t("auto.z_autoz긴급SOS_888")}
+                      </button>
+                      
+                      {/* 프리미엄 유저 대상: 방폭 및 노쇼 제한 조치 */}
+                      {isPlus && (
+                        <div className="pt-2 mt-2 border-t border-border">
+                          <button onClick={handleNoShowReport} className="w-full text-left px-4 py-2.5 text-sm font-bold text-rose-500 rounded-xl hover:bg-rose-500/10 transition-colors flex items-center gap-2">
+                            <Crown size={13} className="text-rose-500" />
+                            노쇼 신고 및 채팅방 나가기 (방폭)
+                          </button>
+                        </div>
+                      )}
                     </motion.div>}
                 </AnimatePresence>
               </div>
@@ -673,7 +706,7 @@ const ChatPage = () => {
         {/* Input */}
         <div className="px-4 pb-20 pt-2">
           <div className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 transition-colors ${isLocked ? "bg-muted/50" : "bg-muted"}`}>
-            <input type="text" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder={isLocked ? t("auto.z_autozPlus로_912") : isMuted ? t("auto.z_autoz알림이꺼진_913") : t("auto.z_autoz메시지입력_914")} disabled={isLocked} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none disabled:cursor-not-allowed" />
+            <input type="text" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) sendMessage(); }} placeholder={isLocked ? t("auto.z_autozPlus로_912") : isMuted ? t("auto.z_autoz알림이꺼진_913") : t("auto.z_autoz메시지입력_914")} disabled={isLocked} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none disabled:cursor-not-allowed" />
             {isLocked ? <motion.button whileTap={{
             scale: 0.9
           }} onClick={() => setShowPlusModal(true)} className="w-9 h-9 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">

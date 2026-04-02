@@ -1,237 +1,500 @@
 import { useTranslation } from "react-i18next";
-import i18n from "@/i18n";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Star, Zap, Eye, Filter, Crown, Check, Sparkles, Users, Globe, MessageCircle, Shield, Dna, Clock, MapPin, Heart, Lock } from "lucide-react";
+import {
+  X, Star, Zap, Eye, Filter, Crown, Check, Sparkles,
+  Users, Globe, MessageCircle, Shield, Dna, Clock,
+  MapPin, Heart, Lock, ChevronRight, Bot, Headphones,
+  Palette, Award, Infinity as InfinityIcon
+} from "lucide-react";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { toast } from "@/hooks/use-toast";
-import PaymentModal from "@/components/PaymentModal";
 import { useAuth } from "@/hooks/useAuth";
+import { getMigoPlusPricing, getLocalizedPrice } from "@/lib/pricing";
+import { supabase } from "@/lib/supabaseClient";
+
 interface MigoPlusModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultPlan?: "plus" | "premium";
 }
 
-import { getMigoPlusPricing } from "@/lib/pricing";
+// ── 결제 수단 ──────────────────────────────────────────────
+const PAYMENT_METHODS = [
+  { id: "kakao",  emoji: "💛", label: "카카오페이",  color: "bg-yellow-400/10 border-yellow-400/30 text-yellow-600" },
+  { id: "toss",   emoji: "🔵", label: "토스페이",    color: "bg-blue-500/10 border-blue-500/30 text-blue-600" },
+  { id: "card",   emoji: "💳", label: "신용/체크카드", color: "bg-muted border-border text-foreground" },
+];
 
+// ── 플랜 기능 정의 ──────────────────────────────────────────
+const PLUS_FEATURES = [
+  { icon: Heart,          label: "일일 좋아요",        free: "10개/일",    plus: "무제한" },
+  { icon: Star,           label: "슈퍼라이크",          free: "3개/일",     plus: "무제한" },
+  { icon: Eye,            label: "나를 좋아한 사람",    free: "숨김",       plus: "전체 공개" },
+  { icon: Zap,            label: "프로필 부스트",       free: "❌",         plus: "월 1회 무료" },
+  { icon: Filter,         label: "고급 필터",           free: "기본만",     plus: "MBTI·언어·나이" },
+  { icon: Globe,          label: "글로벌 매칭",         free: "근처만",     plus: "전세계" },
+  { icon: Dna,            label: "여행 DNA 리포트",     free: "❌",         plus: "전체 공개" },
+  { icon: Clock,          label: "지금여기있어요",       free: "일반",       plus: "최상단 고정" },
+  { icon: MessageCircle,  label: "읽음 확인",           free: "❌",         plus: "✅" },
+  { icon: MapPin,         label: "위치 숨기기",         free: "❌",         plus: "대략 위치만" },
+  { icon: Shield,         label: "안전 기능",           free: "기본",       plus: "긴급 연락 우선" },
+  { icon: Sparkles,       label: "광고 제거",           free: "광고 있음",  plus: "광고 없음" },
+];
 
+const PREMIUM_ONLY_FEATURES = [
+  { icon: Users,        label: "프리미엄 그룹 참여",    desc: "검증된 고급 그룹 무제한 입장" },
+  { icon: Bot,          label: "AI 여행 일정 생성",     desc: "GPT 기반 맞춤 일정 무제한" },
+  { icon: Award,        label: "동행 완료 리뷰 뱃지",   desc: "프로필 강조 표시 + 신뢰도 UP" },
+  { icon: Palette,      label: "프리미엄 프로필 테마",  desc: "독점 테마·아이콘 제공" },
+  { icon: Headphones,   label: "전담 고객 지원",        desc: "24h 전용 채널 우선 응대" },
+  { icon: InfinityIcon, label: "슈퍼라이크 무제한",     desc: "상한 없이 무제한 사용" },
+];
 
-
-import { MIGO_PLUS_TRANSLATIONS } from "../i18n/migoPlusLocales";
-
-const MigoPlusModal = ({ isOpen, onClose }: MigoPlusModalProps) => {
-  const { isPlus, upgradePlus } = useSubscription();
+// ── 메인 컴포넌트 ───────────────────────────────────────────
+const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalProps) => {
+  const { isPlus, isPremium, upgradePlus } = useSubscription();
   const { user } = useAuth();
-  const [selectedPlan, setSelectedPlan] = useState("quarterly");
-  const [showPayment, setShowPayment] = useState(false);
-  const [tab, setTab] = useState<"features" | "compare">("features");
+  const { i18n } = useTranslation();
 
-  const lang = i18n.language?.split('-')[0] || 'en';
-  const L = MIGO_PLUS_TRANSLATIONS[lang] || MIGO_PLUS_TRANSLATIONS.en;
-
-  const FEATURE_COMPARISON = [
-    { icon: Heart, label: L.dailyLikes, free: L.free10, plus: L.unlimited },
-    { icon: Star, label: L.superLikes, free: L.free3, plus: L.unlimited },
-    { icon: Eye, label: L.whoLikedMe, free: L.hidden, plus: L.allPublic },
-    { icon: Zap, label: L.profileBoost, free: "❌", plus: L.onePerMonth },
-    { icon: Filter, label: L.advFilter, free: L.basicOnly, plus: L.mbtiEtc },
-    { icon: Globe, label: L.globalMatch, free: L.localOnly, plus: L.worldwide },
-    { icon: Dna, label: L.travelDNA, free: "❌", plus: L.dnaFull },
-    { icon: Clock, label: L.imHere, free: L.standard, plus: L.pinned },
-    { icon: MessageCircle, label: L.readReceipt, free: "❌", plus: L.readCheck },
-    { icon: MapPin, label: L.hideLocation, free: "❌", plus: L.approxLoc },
-    { icon: Shield, label: L.advSafety, free: L.basic, plus: L.emergency },
-    { icon: Users, label: L.premiumGroups, free: "❌", plus: L.unlimited },
-    { icon: Crown, label: L.plusBadge, free: "❌", plus: L.profileDisplay },
-    { icon: Sparkles, label: L.removeAds, free: L.hasAds, plus: L.noAds }
-  ];
-
-  const HIGHLIGHT_FEATURES = [
-    { emoji: "🧬", title: L.travelDNA, desc: L.dnaDesc, color: "from-violet-600 to-purple-600" },
-    { emoji: "🔴", title: L.imHere, desc: L.imHereDesc, color: "from-emerald-500 to-teal-600" },
-    { emoji: "👁️", title: L.likedMeTitle, desc: L.likedDesc, color: "from-pink-500 to-rose-600" },
-    { emoji: "🌍", title: L.globalMatch, desc: L.globalDesc, color: "from-blue-500 to-cyan-600" }
-  ];
+  // 탭: plus | premium
+  const [activePlan, setActivePlan] = useState<"plus" | "premium">(defaultPlan);
+  // 기간 선택 (Plus만 해당)
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "quarterly" | "yearly">("quarterly");
+  // 결제 단계: plan → method → confirm → done
+  const [step, setStep] = useState<"plan" | "method" | "confirm" | "done">("plan");
+  const [method, setMethod] = useState("kakao");
+  const [loading, setLoading] = useState(false);
 
   const pricing = getMigoPlusPricing();
-  const annualSavePct = Math.round((1 - pricing.month12 / (pricing.month1 * 12)) * 100);
-  const quarterlySavePct = Math.round((1 - pricing.month3 / (pricing.month1 * 3)) * 100);
 
-  const PLANS = [{
-    id: "monthly", label: L.month1, price: pricing.format(pricing.month1).replace(pricing.currency, ""),
-    per: L.perMonth, priceNum: pricing.month1, badge: null, total: null
-  }, {
-    id: "quarterly", label: L.month3, price: pricing.format(Number((pricing.month3 / 3).toFixed(2))).replace(pricing.currency, ""),
-    per: L.perMonth, priceNum: pricing.month3, badge: quarterlySavePct > 0 ? `${quarterlySavePct}% OFF` : L.popular, total: pricing.format(pricing.month3)
-  }, {
-    id: "yearly", label: L.month12, price: pricing.format(Number((pricing.month12 / 12).toFixed(2))).replace(pricing.currency, ""),
-    per: L.perMonth, priceNum: pricing.month12, badge: annualSavePct > 0 ? `${annualSavePct}% OFF` : L.bestValue, total: pricing.format(pricing.month12)
-  }];
+  // ── 선택한 플랜의 금액 계산 ──────────────────────────────
+  const plusPrices = {
+    monthly:   { krw: pricing.month1,  label: "1개월",  badge: null },
+    quarterly: { krw: pricing.month3,  label: "3개월",  badge: `${Math.round((1 - pricing.month3 / (pricing.month1 * 3)) * 100)}% OFF` },
+    yearly:    { krw: pricing.month12, label: "12개월", badge: `${Math.round((1 - pricing.month12 / (pricing.month1 * 12)) * 100)}% OFF` },
+  };
+  const PREMIUM_KRW = 99900;
 
-  const selectedPlanObj = PLANS.find(p => p.id === selectedPlan)!;
+  const selectedKrw = activePlan === "premium"
+    ? PREMIUM_KRW
+    : plusPrices[billingCycle].krw;
 
-  const handleStartPayment = () => {
+  const selectedLabel = activePlan === "premium"
+    ? "1개월"
+    : plusPrices[billingCycle].label;
+
+  // ── 결제 처리 ────────────────────────────────────────────
+  const handlePay = async () => {
     if (!user) {
-      toast({ title: L.loginNeeded, variant: "destructive" });
+      toast({ title: "로그인이 필요합니다", variant: "destructive" });
       return;
     }
-    setShowPayment(true);
+    setLoading(true);
+    try {
+      const monthsMap = { monthly: 1, quarterly: 3, yearly: 12 };
+      const months = activePlan === "premium" ? 1 : monthsMap[billingCycle];
+      const expiresAt = new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      await Promise.all([
+        supabase.from("payments").insert({
+          user_id: user.id,
+          group_id: `subscription_${activePlan}`,
+          amount: selectedKrw,
+          method,
+          status: "pending",
+          created_at: new Date().toISOString(),
+        }),
+        supabase.from("profiles").update({
+          is_plus: true,
+          plan: activePlan,
+          plus_expires_at: expiresAt,
+        }).eq("id", user.id),
+        supabase.from("subscriptions").insert({
+          user_id: user.id,
+          plan: activePlan,
+          status: "active",
+          expires_at: expiresAt,
+          price_krw: selectedKrw,
+        }),
+      ]);
+
+      await upgradePlus(activePlan);
+      setStep("done");
+      setTimeout(() => {
+        onClose();
+        setStep("plan");
+        toast({
+          title: activePlan === "premium" ? "🎉 Premium 활성화!" : "✨ Plus 활성화!",
+          description: "모든 혜택을 지금 바로 누려보세요!",
+        });
+      }, 1800);
+    } catch {
+      toast({ title: "결제 중 오류가 발생했습니다", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePaymentSuccess = async () => {
-    await upgradePlus();
-    setShowPayment(false);
-    toast({ title: L.plusActive, description: L.plusActiveDesc });
+  const handleClose = () => {
+    setStep("plan");
     onClose();
   };
 
+  // ── 현재 이미 구독 중인지 ────────────────────────────────
+  const alreadySubscribed =
+    (activePlan === "plus" && isPlus && !isPremium) ||
+    (activePlan === "premium" && isPremium);
+
   return (
-    <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div className="fixed inset-0 z-[80] flex items-end justify-center px-safe pb-safe pt-safe" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-foreground/70 backdrop-blur-md" onClick={onClose} />
-            <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 overflow-hidden shadow-float flex flex-col" 
-                        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} 
-                        transition={{ type: "spring", damping: 28, stiffness: 300 }} 
-                        style={{ maxHeight: "92vh" }}>
-              {/* ── 헤더 ── */}
-              <div className="relative bg-gradient-to-br from-amber-500 via-orange-500 to-pink-500 px-6 pt-8 pb-5 text-center shrink-0">
-                <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <X size={16} className="text-white" />
-                </button>
-                <motion.div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-2" 
-                            animate={{ rotate: [0, -5, 5, 0] }} 
-                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
-                  <Crown size={32} className="text-white" />
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-[80] flex items-end justify-center"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        >
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={handleClose} />
+
+          <motion.div
+            className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float flex flex-col"
+            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            style={{ maxHeight: "92vh" }}
+          >
+            {/* ── 드래그 핸들 + 닫기 ── */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            </div>
+            <button
+              onClick={handleClose}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted flex items-center justify-center z-10"
+            >
+              <X size={15} className="text-muted-foreground" />
+            </button>
+
+            {/* ── DONE 화면 ── */}
+            {step === "done" && (
+              <motion.div
+                className="flex flex-col items-center justify-center py-16 gap-4 px-5"
+                initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              >
+                <motion.div
+                  className="w-20 h-20 rounded-full flex items-center justify-center"
+                  style={{ background: activePlan === "premium" ? "linear-gradient(135deg,#f59e0b,#ef4444)" : "linear-gradient(135deg,#34D399,#3B82F6)" }}
+                  animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 0.5 }}
+                >
+                  <Check size={40} className="text-white" strokeWidth={3} />
                 </motion.div>
-                <h2 className="text-2xl font-extrabold text-white">Migo Plus</h2>
-                <p className="text-white/80 text-sm mt-1">{L.unlimitedCompanions}</p>
-                <div className="inline-flex items-center gap-1.5 mt-3 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm">
-                  <Sparkles size={12} className="text-yellow-300" />
-                  <span className="text-white text-xs font-bold">{L.freeTrial}</span>
-                </div>
-              </div>
+                <p className="text-xl font-extrabold text-foreground">
+                  {activePlan === "premium" ? "Premium 시작!" : "Plus 시작!"}
+                </p>
+                <p className="text-sm text-muted-foreground">모든 혜택이 활성화되었습니다 🎉</p>
+              </motion.div>
+            )}
 
-              {/* ── 탭 ── */}
-              <div className="flex border-b border-border shrink-0">
-                {[{ key: "features", label: L.newFeatures }, { key: "compare", label: L.compare }].map(t => (
-                  <button key={t.key} onClick={() => setTab(t.key as any)} 
-                          className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === t.key ? "text-amber-500 border-b-2 border-amber-500" : "text-muted-foreground"}`}>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* ── 스크롤 가능한 콘텐츠 ── min-h-0 prevents flex blowout */}
-              <div className="overflow-y-auto flex-1 min-h-0">
-                {tab === "features" ? (
-                  <div className="p-4 grid grid-cols-2 gap-3">
-                    {HIGHLIGHT_FEATURES.map((f, i) => (
-                      <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }} 
-                                  className={`rounded-2xl p-4 bg-gradient-to-br ${f.color} text-white`}>
-                        <span className="text-2xl mb-2 block">{f.emoji}</span>
-                        <p className="text-xs font-extrabold leading-snug mb-1">{f.title}</p>
-                        <p className="text-[10px] text-white/70 leading-tight">{f.desc}</p>
-                      </motion.div>
-                    ))}
-
-                    <div className="col-span-2 space-y-2 pt-2">
-                      {FEATURE_COMPARISON.slice(0, 6).map((f, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                            <f.icon size={14} className="text-amber-500" />
-                          </div>
-                          <div className="flex-1">
-                            <span className="text-sm font-bold text-foreground">{f.label}</span>
-                            <span className="text-xs text-muted-foreground ml-2">→ {f.plus}</span>
-                          </div>
-                          <Check size={14} className="text-emerald-500 shrink-0" />
-                        </div>
-                      ))}
-                      <p className="text-[10px] text-muted-foreground text-center pt-1">+ {FEATURE_COMPARISON.length - 6}{L.moreFeatures}</p>
-                    </div>
+            {/* ── PLAN 선택 화면 ── */}
+            {step === "plan" && (
+              <>
+                {/* 플랜 탭 */}
+                <div className="px-5 pt-2 pb-3 shrink-0">
+                  <div className="flex gap-2 p-1 bg-muted rounded-2xl">
+                    <button
+                      onClick={() => setActivePlan("plus")}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-extrabold transition-all ${
+                        activePlan === "plus"
+                          ? "bg-gradient-to-r from-emerald-500 to-blue-500 text-white shadow-md"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      ✨ Plus
+                    </button>
+                    <button
+                      onClick={() => setActivePlan("premium")}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-extrabold transition-all ${
+                        activePlan === "premium"
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      👑 Premium
+                    </button>
                   </div>
-                ) : (
-                  <div className="p-4">
-                    <div className="rounded-2xl overflow-hidden border border-border">
-                      <div className="grid grid-cols-3 bg-muted">
-                        <div className="p-2.5 text-[10px] font-bold text-muted-foreground">{L.featuresTitle}</div>
-                        <div className="p-2.5 text-[10px] font-bold text-muted-foreground text-center border-l border-border">{L.freeTitle}</div>
-                        <div className="p-2.5 text-[10px] font-extrabold text-amber-500 text-center border-l border-border flex items-center justify-center gap-1">
-                          <Crown size={10} />Plus
+                </div>
+
+                {/* 스크롤 영역 */}
+                <div className="flex-1 overflow-y-auto min-h-0 px-5 space-y-4 pb-4">
+
+                  {/* ═══ PLUS 플랜 ═══ */}
+                  {activePlan === "plus" && (
+                    <>
+                      {/* 헤더 */}
+                      <div className="rounded-2xl p-4 bg-gradient-to-br from-emerald-500 to-blue-500 text-white text-center">
+                        <Crown size={28} className="mx-auto mb-1" />
+                        <h2 className="text-xl font-extrabold">Migo Plus</h2>
+                        <p className="text-white/80 text-xs mt-0.5">매칭의 모든 제한을 해제하세요</p>
+                      </div>
+
+                      {/* 기간 선택 */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">구독 기간</p>
+                        <div className="flex gap-2">
+                          {(["monthly", "quarterly", "yearly"] as const).map((cycle) => {
+                            const p = plusPrices[cycle];
+                            return (
+                              <button
+                                key={cycle}
+                                onClick={() => setBillingCycle(cycle)}
+                                className={`relative flex-1 rounded-2xl border-2 p-3 text-center transition-all ${
+                                  billingCycle === cycle
+                                    ? "border-emerald-500 bg-emerald-500/10"
+                                    : "border-border"
+                                }`}
+                              >
+                                {p.badge && (
+                                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                                    {p.badge}
+                                  </span>
+                                )}
+                                <p className="text-[10px] text-muted-foreground">{p.label}</p>
+                                <p className="text-sm font-extrabold text-foreground mt-0.5">
+                                  {getLocalizedPrice(p.krw, i18n.language)}
+                                </p>
+                                {cycle !== "monthly" && (
+                                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                                    월 {getLocalizedPrice(Math.round(p.krw / (cycle === "quarterly" ? 3 : 12)), i18n.language)}
+                                  </p>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
-                      {FEATURE_COMPARISON.map((f, i) => (
-                        <div key={i} className={`grid grid-cols-3 border-t border-border ${i % 2 === 0 ? "" : "bg-muted/30"}`}>
-                          <div className="p-2.5 flex items-center gap-1.5">
-                            <f.icon size={11} className="text-muted-foreground shrink-0" />
-                            <span className="text-[10px] text-foreground font-medium leading-tight">{f.label}</span>
+
+                      {/* 기능 목록 */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Plus 혜택</p>
+                        <div className="rounded-2xl border border-border overflow-hidden">
+                          {/* 헤더 행 */}
+                          <div className="grid grid-cols-3 bg-muted px-3 py-2">
+                            <span className="text-[10px] font-bold text-muted-foreground">기능</span>
+                            <span className="text-[10px] font-bold text-muted-foreground text-center">Free</span>
+                            <span className="text-[10px] font-extrabold text-emerald-500 text-center">Plus ✨</span>
                           </div>
-                          <div className="p-2.5 text-[10px] text-muted-foreground text-center border-l border-border flex items-center justify-center">
-                            {f.free}
-                          </div>
-                          <div className="p-2.5 text-[10px] font-bold text-amber-500 text-center border-l border-border flex items-center justify-center">
-                            {f.plus}
-                          </div>
+                          {PLUS_FEATURES.map((f, i) => (
+                            <div key={i} className={`grid grid-cols-3 border-t border-border px-3 py-2 ${i % 2 === 0 ? "" : "bg-muted/20"}`}>
+                              <div className="flex items-center gap-1.5">
+                                <f.icon size={11} className="text-emerald-500 shrink-0" />
+                                <span className="text-[10px] text-foreground font-medium leading-tight">{f.label}</span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground text-center self-center">{f.free}</span>
+                              <span className="text-[10px] font-bold text-emerald-600 text-center self-center">{f.plus}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                      </div>
+                    </>
+                  )}
 
-              {/* ── 플랜 선택 ── */}
-              <div className="px-4 py-3 flex gap-2 shrink-0 border-t border-border bg-card">
-                {PLANS.map(p => (
-                  <button key={p.id} onClick={() => setSelectedPlan(p.id)} 
-                          className={`flex-1 relative rounded-2xl border-2 p-2.5 text-center transition-all ${selectedPlan === p.id ? "border-amber-500 bg-amber-500/10" : "border-border"}`}>
-                    {p.badge && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                        {p.badge}
-                      </span>
-                    )}
-                    <p className="text-[10px] text-muted-foreground font-medium">{p.label}</p>
-                    <p className="flex justify-center items-baseline mt-0.5">
-                      <span className="text-base font-extrabold text-foreground">{pricing.currency}{p.price.split('.')[0]}</span>
-                      {p.price.includes('.') && <span className="text-[9px] font-bold text-muted-foreground/80 ml-0.5">.{p.price.split('.')[1]}</span>}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground">/{p.per}</p>
-                    {p.total && (
-                      <p className="flex justify-center items-baseline text-[9px] text-amber-500 font-semibold mt-0.5">
-                        {L.total}{p.total.split('.')[0]}
-                        {p.total.includes('.') && <span className="text-[7px] ml-[1px]">.{p.total.split('.')[1]}</span>}
+                  {/* ═══ PREMIUM 플랜 ═══ */}
+                  {activePlan === "premium" && (
+                    <>
+                      {/* 헤더 */}
+                      <div className="rounded-2xl p-4 bg-gradient-to-br from-amber-500 to-orange-500 text-white text-center relative overflow-hidden">
+                        <motion.div
+                          className="absolute inset-0 bg-white/10"
+                          animate={{ x: ["-100%", "150%"] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                          style={{ skewX: -20 }}
+                        />
+                        <Crown size={28} className="mx-auto mb-1 relative z-10" />
+                        <h2 className="text-xl font-extrabold relative z-10">Migo Premium</h2>
+                        <p className="text-white/80 text-xs mt-0.5 relative z-10">최고급 여행 메이트 경험</p>
+                        <div className="mt-2 relative z-10">
+                          <span className="text-2xl font-extrabold">₩99,900</span>
+                          <span className="text-white/70 text-xs ml-1">/ 월</span>
+                        </div>
+                      </div>
+
+                      {/* Plus 포함 안내 */}
+                      <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                        <Check size={14} className="text-emerald-500 shrink-0" />
+                        <p className="text-xs font-bold text-emerald-600">Plus의 모든 기능 포함 + Premium 전용 혜택</p>
+                      </div>
+
+                      {/* Premium 전용 기능 */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Premium 전용 혜택</p>
+                        <div className="space-y-2">
+                          {PREMIUM_ONLY_FEATURES.map((f, i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                              <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                                <f.icon size={16} className="text-amber-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-foreground">{f.label}</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">{f.desc}</p>
+                              </div>
+                              <Crown size={12} className="text-amber-500 shrink-0" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Plus 기능도 포함됨 안내 */}
+                      <div className="rounded-2xl border border-border overflow-hidden">
+                        <div className="bg-muted px-3 py-2">
+                          <p className="text-[10px] font-bold text-muted-foreground">Plus 기능도 전부 포함</p>
+                        </div>
+                        {PLUS_FEATURES.slice(0, 6).map((f, i) => (
+                          <div key={i} className="flex items-center gap-2 px-3 py-2 border-t border-border">
+                            <f.icon size={11} className="text-emerald-500 shrink-0" />
+                            <span className="text-[10px] text-foreground font-medium flex-1">{f.label}</span>
+                            <span className="text-[10px] font-bold text-emerald-600">{f.plus}</span>
+                          </div>
+                        ))}
+                        <div className="px-3 py-2 border-t border-border bg-muted/30">
+                          <p className="text-[9px] text-muted-foreground text-center">+ {PLUS_FEATURES.length - 6}개 추가 혜택</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* ── 하단 CTA ── */}
+                <div className="px-5 py-4 border-t border-border bg-card shrink-0">
+                  {alreadySubscribed ? (
+                    <div className="w-full py-4 rounded-2xl bg-emerald-500/10 text-center">
+                      <p className="text-emerald-600 font-bold flex items-center justify-center gap-2">
+                        <Crown size={16} />
+                        현재 {activePlan === "premium" ? "Premium" : "Plus"} 구독 중
                       </p>
-                    )}
+                    </div>
+                  ) : (
+                    <>
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setStep("method")}
+                        className="w-full py-4 rounded-2xl text-white font-extrabold text-base shadow-lg flex items-center justify-center gap-2"
+                        style={{
+                          background: activePlan === "premium"
+                            ? "linear-gradient(135deg,#f59e0b,#ef4444)"
+                            : "linear-gradient(135deg,#34D399,#3B82F6)",
+                          boxShadow: activePlan === "premium"
+                            ? "0 8px 24px rgba(245,158,11,0.4)"
+                            : "0 8px 24px rgba(52,211,153,0.4)",
+                        }}
+                      >
+                        {activePlan === "premium" ? <Crown size={18} /> : <Sparkles size={18} />}
+                        {getLocalizedPrice(selectedKrw, i18n.language)} · {selectedLabel} 시작하기
+                        <ChevronRight size={16} />
+                      </motion.button>
+                      <p className="text-center text-[10px] text-muted-foreground mt-2">
+                        언제든지 취소 가능 · 자동 갱신
+                      </p>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── METHOD 선택 ── */}
+            {step === "method" && (
+              <>
+                <div className="px-5 py-4 border-b border-border shrink-0">
+                  <h2 className="text-base font-extrabold text-foreground">결제 수단 선택</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {activePlan === "premium" ? "👑 Migo Premium" : "✨ Migo Plus"} · {selectedLabel} ·{" "}
+                    {getLocalizedPrice(selectedKrw, i18n.language)}
+                  </p>
+                </div>
+                <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4 space-y-2">
+                  {PAYMENT_METHODS.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setMethod(m.id)}
+                      className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${
+                        method === m.id ? m.color + " ring-1 ring-primary/30" : "bg-muted border-border text-muted-foreground"
+                      }`}
+                    >
+                      <span className="text-xl">{m.emoji}</span>
+                      <span className="text-sm font-bold flex-1 text-left">{m.label}</span>
+                      {method === m.id && <Check size={14} className="text-primary" />}
+                    </button>
+                  ))}
+                </div>
+                <div className="px-5 py-4 border-t border-border bg-card shrink-0 flex gap-3">
+                  <button
+                    onClick={() => setStep("plan")}
+                    className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground font-bold text-sm"
+                  >
+                    이전
                   </button>
-                ))}
-              </div>
-
-              {/* ── CTA ── */}
-              <div className="px-4 pb-8 shrink-0 bg-card">
-                {isPlus ? (
-                  <div className="w-full py-4 rounded-2xl bg-emerald-500/10 text-center">
-                    <p className="text-emerald-500 font-bold flex items-center justify-center gap-2">
-                      <Crown size={16} />{L.currentlyPlus}
-                    </p>
-                  </div>
-                ) : (
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={handleStartPayment} 
-                                 className="w-full py-4 rounded-2xl text-white font-extrabold text-base shadow-lg flex items-center justify-center gap-2" 
-                                 style={{ background: "linear-gradient(135deg, #f59e0b, #ef4444)", boxShadow: "0 8px 24px rgba(245,158,11,0.4)" }}>
-                    <Crown size={18} />{L.try7Days}{selectedPlanObj.label}{L.start}
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setStep("confirm")}
+                    className="flex-1 py-3.5 rounded-2xl gradient-primary text-white font-extrabold text-sm flex items-center justify-center gap-1.5"
+                  >
+                    확인 <ChevronRight size={14} />
                   </motion.button>
-                )}
-                <p className="text-center text-[10px] text-muted-foreground mt-2">{L.cancelAnytime}</p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                </div>
+              </>
+            )}
 
-      {/* 결제 모달 */}
-      <PaymentModal isOpen={showPayment} onClose={() => setShowPayment(false)} groupTitle={`Migo Plus (${selectedPlanObj.label})`} groupId="plus_subscription" entryFee={selectedPlanObj.priceNum} onPaymentSuccess={handlePaymentSuccess} />
-    </>
+            {/* ── CONFIRM ── */}
+            {step === "confirm" && (
+              <>
+                <div className="px-5 py-4 border-b border-border shrink-0">
+                  <h2 className="text-base font-extrabold text-foreground">결제 확인</h2>
+                </div>
+                <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4 space-y-0">
+                  {[
+                    ["플랜", activePlan === "premium" ? "👑 Migo Premium" : "✨ Migo Plus"],
+                    ["구독 기간", selectedLabel],
+                    ["결제 수단", PAYMENT_METHODS.find((m) => m.id === method)?.label ?? method],
+                    ["결제 금액", getLocalizedPrice(selectedKrw, i18n.language)],
+                  ].map(([label, value], i, arr) => (
+                    <div
+                      key={i}
+                      className={`flex items-center justify-between py-3.5 ${i < arr.length - 1 ? "border-b border-border/40" : ""}`}
+                    >
+                      <span className="text-sm text-muted-foreground">{label}</span>
+                      <span className={`text-sm font-bold ${i === arr.length - 1 ? "text-base text-primary" : "text-foreground"}`}>
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-5 py-4 border-t border-border bg-card shrink-0 flex gap-3">
+                  <button
+                    onClick={() => setStep("method")}
+                    className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground font-bold text-sm"
+                  >
+                    이전
+                  </button>
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    disabled={loading}
+                    onClick={handlePay}
+                    className="flex-1 py-3.5 rounded-2xl text-white font-extrabold text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                    style={{
+                      background: activePlan === "premium"
+                        ? "linear-gradient(135deg,#f59e0b,#ef4444)"
+                        : "linear-gradient(135deg,#34D399,#3B82F6)",
+                    }}
+                  >
+                    {loading
+                      ? <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />결제 중</>
+                      : <><Lock size={14} />{getLocalizedPrice(selectedKrw, i18n.language)} 결제</>
+                    }
+                  </motion.button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
+
 export default MigoPlusModal;

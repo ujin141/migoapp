@@ -4,6 +4,7 @@ import i18n from "@/i18n";
  * 앱 전역에서 사용 가능한 위치 기반 거리 계산 유틸
  */
 import { useState, useEffect, useCallback } from "react";
+import { getCurrentLocation } from "@/lib/locationService";
 interface GeoPosition {
   lat: number;
   lng: number;
@@ -89,30 +90,21 @@ const useGeoDistance = () => {
   const [myPos, setMyPos] = useState<GeoPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setError(i18n.t("auto.z_autoz\uC774\uBE0C\uB77C\uC6B0\uC800_1118"));
-      return;
-    }
+  const requestLocation = useCallback(async () => {
     setLoading(true);
-    navigator.geolocation.getCurrentPosition(pos => {
-      setMyPos({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude
-      });
-      setLoading(false);
-    }, err => {
-      setError(err.message);
-      setLoading(false);
+    const pos = await getCurrentLocation(false);
+    if (pos) {
+      setMyPos(pos);
+      setError(null);
+    } else {
+      setError(i18n.t("auto.z_autoz이브라우저_1118", { defaultValue: "위치를 가져올 수 없습니다." }));
       // 위치 권한 거부 시 서울 중심 fallback (데모용)
       setMyPos({
         lat: 37.5665,
         lng: 126.9780
       });
-    }, {
-      enableHighAccuracy: true,
-      timeout: 8000
-    });
+    }
+    setLoading(false);
   }, []);
   useEffect(() => {
     requestLocation();

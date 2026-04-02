@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, X, Loader2, CheckCircle2, LogOut, Users, Plane } from "lucide-react";
 import { checkIn, checkOut, getMyCheckIn, fetchCityTravelers, CheckIn } from "@/lib/checkInService";
+import { getCurrentLocation } from "@/lib/locationService";
 import { useAuth } from "@/hooks/useAuth";
 interface Props {
   open: boolean;
@@ -42,42 +43,36 @@ export default function CheckInModal({
       });
     }
   }, [open, user]);
-  const handleLocate = () => {
+  const handleLocate = async () => {
     setError("");
     setStep("locating");
-    navigator.geolocation.getCurrentPosition(async pos => {
-      const {
-        latitude,
-        longitude
-      } = pos.coords;
-      setLat(latitude);
-      setLng(longitude);
-      // 역지오코딩
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ko`, {
-          headers: {
-            "User-Agent": "MigoApp/1.0"
-          }
-        });
-        const data = await res.json();
-        const addr = data.address || {};
-        const detectedCity = addr.city || addr.town || addr.village || addr.county || addr.state || i18n.t("checkin.unknown_city");
-        const detectedCountry = addr.country || i18n.t("checkin.unknown_country");
-        setCity(detectedCity);
-        setCountry(detectedCountry);
-        setStep("confirming");
-      } catch {
-        setError(i18n.t("checkin.fetch_failed"));
-        setStep("idle");
-      }
-    }, () => {
-      setError(i18n.t("checkin.perm_req"));
+    const pos = await getCurrentLocation(false);
+    if (!pos) {
+      setError(i18n.t("checkin.perm_req", { defaultValue: "위치 권한이 필요합니다." }));
       setStep("idle");
-    }, {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    });
+      return;
+    }
+    const { lat: latitude, lng: longitude } = pos;
+    setLat(latitude);
+    setLng(longitude);
+    // 역지오코딩
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ko`, {
+        headers: {
+          "User-Agent": "MigoApp/1.0"
+        }
+      });
+      const data = await res.json();
+      const addr = data.address || {};
+      const detectedCity = addr.city || addr.town || addr.village || addr.county || addr.state || i18n.t("checkin.unknown_city");
+      const detectedCountry = addr.country || i18n.t("checkin.unknown_country");
+      setCity(detectedCity);
+      setCountry(detectedCountry);
+      setStep("confirming");
+    } catch {
+      setError(i18n.t("checkin.fetch_failed"));
+      setStep("idle");
+    }
   };
   const handleConfirm = async () => {
     if (!user) return;

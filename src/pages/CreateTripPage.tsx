@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useSubscription } from "@/context/SubscriptionContext";
 import MigoPlusModal from "@/components/MigoPlusModal";
+import { compressImage } from "@/lib/imageCompression";
 const popularDestinations = [{
   name: "Bangkok",
   country: "Thailand",
@@ -93,13 +94,14 @@ const CreateTripPage = () => {
       // 커버 이미지 업로드
       let coverImageUrl: string | null = null;
       if (coverImage) {
-        const ext = coverImage.name.split(".").pop() || "jpg";
+        const compressedFile = await compressImage(coverImage);
+        const ext = compressedFile.name.split(".").pop() || "jpg";
         const filePath = `trip_covers/${user.id}_${Date.now()}.${ext}`;
         const {
           error: upErr
-        } = await supabase.storage.from("avatars").upload(filePath, coverImage, {
+        } = await supabase.storage.from("avatars").upload(filePath, compressedFile, {
           upsert: true,
-          contentType: coverImage.type
+          contentType: compressedFile.type
         });
         if (!upErr) {
           const {

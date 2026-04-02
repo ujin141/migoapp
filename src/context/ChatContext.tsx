@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import React from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 export interface GroupThread {
@@ -52,8 +53,19 @@ export const ChatProvider = ({
     user
   } = useAuth();
   const [threads, setThreads] = useState<GroupThread[]>([]);
-  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>(() => {
+    try {
+      const stored = localStorage.getItem('migo_unread_map');
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
   const [openThread, setOpenThread] = useState<string | null>(null);
+  const openThreadRef = React.useRef<string | null>(null);
+
+  const handleSetOpenThread = useCallback((chatId: string | null) => {
+    setOpenThread(chatId);
+    openThreadRef.current = chatId;
+  }, []);
   const totalUnread = Object.values(unreadMap).reduce((s, n) => s + n, 0);
   const fetchThreads = useCallback(async () => {
     if (!user) return;
@@ -71,7 +83,7 @@ export const ChatProvider = ({
     }
 
     // [2] N+1 제거: 모든 멤버+프로필 + 마지막 메시지를 병렬 배치 처리
-    const [membersRes, msgsRes] = await Promise.all([supabase.from('chat_members').select('thread_id, user_id, profiles ( name, photo_url )').in('thread_id', threadIds), supabase.from('messages').select('thread_id, content, created_at').in('thread_id', threadIds).order('created_at', {
+    const [membersRes, msgsRes] = await Promise.all([supabase.from('chat_members').select('thread_id, user_id, profiles ( name, photo_url )').in('thread_id', threadIds), supabase.from('messages').select('thread_id, text, created_at').in('thread_id', threadIds).order('created_at', {
       ascending: false
     })]);
 
@@ -86,6 +98,10 @@ export const ChatProvider = ({
     for (const m of membersRes.data || []) {
       (membersByThread[m.thread_id] ||= []).push(m);
     }
+
+    let localUnreadMap: Record<string, number> = {};
+    try { localUnreadMap = JSON.parse(localStorage.getItem('migo_unread_map') || '{}'); } catch {}
+
     const mapped: GroupThread[] = data.map((m: any) => {
       const t = m.chat_threads;
       if (!t) return null;
@@ -108,12 +124,12 @@ export const ChatProvider = ({
         id: t.id,
         name,
         photo,
-        lastMessage: lastMsg?.content ?? "New conversation",
+        lastMessage: lastMsg?.text ?? "New conversation",
         time: lastMsg ? new Intl.DateTimeFormat('ko-KR', {
           hour: 'numeric',
           minute: 'numeric'
         }).format(new Date(lastMsg.created_at)) : "",
-        unread: 0,
+        unread: localUnreadMap[t.id] || 0,
         online: true,
         isGroup: t.is_group,
         memberCount: members.length || 2,
@@ -137,19 +153,23 @@ export const ChatProvider = ({
         if (t.id !== newMsg.thread_id) return t;
         return {
           ...t,
-          lastMessage: newMsg.content,
+          lastMessage: newMsg.text,
           time: new Intl.DateTimeFormat('ko-KR', {
             hour: 'numeric',
             minute: 'numeric'
           }).format(new Date(newMsg.created_at)),
-          unread: newMsg.sender_id !== user.id && newMsg.thread_id !== openThread ? t.unread + 1 : t.unread
+          unread: newMsg.sender_id !== user.id && newMsg.thread_id !== openThreadRef.current ? t.unread + 1 : t.unread
         };
       }));
-      if (newMsg.sender_id !== user.id && newMsg.thread_id !== openThread) {
-        setUnreadMap(prev => ({
-          ...prev,
-          [newMsg.thread_id]: (prev[newMsg.thread_id] || 0) + 1
-        }));
+      if (newMsg.sender_id !== user.id && newMsg.thread_id !== openThreadRef.current) {
+        setUnreadMap(prev => {
+          const next = {
+            ...prev,
+            [newMsg.thread_id]: (prev[newMsg.thread_id] || 0) + 1
+          };
+          try { localStorage.setItem('migo_unread_map', JSON.stringify(next)); } catch {}
+          return next;
+        });
       }
     }).subscribe();
 
@@ -161,28 +181,44 @@ export const ChatProvider = ({
     }, () => {
       fetchThreads();
     }).subscribe();
+
+    // 스레드 파기(삭제) 시 실시간 UI 반영
+    const threadDeleteChannel = supabase.channel('thread_del_ctx').on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'chat_threads'
+    }, (payload) => {
+      setThreads(prev => prev.filter(t => t.id !== payload.old.id));
+    }).subscribe();
+
     return () => {
       supabase.removeChannel(msgChannel);
       supabase.removeChannel(matchChannel);
+      supabase.removeChannel(threadDeleteChannel);
     };
   }, [user, fetchThreads]);
   const markRead = useCallback((chatId: string) => {
-    setUnreadMap(prev => ({
-      ...prev,
-      [chatId]: 0
-    }));
+    setUnreadMap(prev => {
+      const next = { ...prev, [chatId]: 0 };
+      try { localStorage.setItem('migo_unread_map', JSON.stringify(next)); } catch {}
+      return next;
+    });
     setThreads(prev => prev.map(t => t.id === chatId ? {
       ...t,
       unread: 0
     } : t));
   }, []);
   const addUnread = useCallback((chatId: string, count = 1) => {
-    setUnreadMap(prev => ({
-      ...prev,
-      [chatId]: (prev[chatId] ?? 0) + count
-    }));
+    setUnreadMap(prev => {
+      const next = { ...prev, [chatId]: (prev[chatId] ?? 0) + count };
+      try { localStorage.setItem('migo_unread_map', JSON.stringify(next)); } catch {}
+      return next;
+    });
   }, []);
-  const resetAll = useCallback(() => setUnreadMap({}), []);
+  const resetAll = useCallback(() => {
+    setUnreadMap({});
+    try { localStorage.setItem('migo_unread_map', '{}'); } catch {}
+  }, []);
   const createGroupThread = useCallback((group: {
     id: string;
     title: string;
@@ -214,7 +250,7 @@ export const ChatProvider = ({
     markRead,
     addUnread,
     resetAll,
-    setOpenThread,
+    setOpenThread: handleSetOpenThread,
     createGroupThread
   }}>
       {children}

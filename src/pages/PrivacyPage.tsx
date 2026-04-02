@@ -103,6 +103,18 @@ const PrivacyPage = () => {
           </ul>
         </section>
 
+        <section className="space-y-2 bg-primary/5 p-4 rounded-xl border border-primary/10">
+          <h2 className="text-sm font-bold text-primary flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+            Data Destruction Guarantee
+          </h2>
+          <p className="text-xs text-foreground/80 leading-relaxed font-medium">
+            1. <strong>위치 정보 자동 파기:</strong> 서비스 안정성을 위해 수집된 모든 일회성 위치 데이터(GPS)는 마지막 접속 후 24시간이 경과하면 백엔드 자동화 스케줄러(Cron)에 의해 영구 비식별화(NULL) 처리됩니다.
+            <br/><br/>
+            2. <strong>탈퇴 시 연쇄 영구 파기(CASCADE):</strong> 회원이 탈퇴할 경우 최상위 계정 기록이 제거됨과 동시에, 프로필, 매칭 내역, 채팅방 메시지, 결제 이력 등 모든 파생 데이터가 <strong>"하드 삭제(Hard Delete)"</strong> 방식으로 물리적 디스크에서 영구히 지워집니다.
+          </p>
+        </section>
+
         <section className="space-y-2">
           <h2 className="text-sm font-bold text-foreground">{t("privacy.h8")}</h2>
           <div className="bg-muted rounded-2xl p-4 text-xs space-y-1">

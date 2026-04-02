@@ -227,7 +227,7 @@ const GroupCreateModal = ({
                   </div>
                   <div className="flex gap-2">
                     <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => {
-                  if (e.key === "Enter") {
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                     e.preventDefault();
                     addTag();
                   }
