@@ -323,28 +323,14 @@ const MapPage = () => {
       } = await supabase.from('likes').select('id').eq('from_user', id).eq('to_user', user.id).eq('kind', 'like').maybeSingle();
       if (mutual) {
         toast({
-          title: i18n.t("auto.z_tmpl_200", {
-            defaultValue: i18n.t("auto.z_tmpl_334", {
-              defaultValue: t("auto.t5017", {
-                v0: name
-              })
-            })
-          }),
-          description: "채팅탭에서"
+          title: `🎉 ${name}님과 매칭성공!`
         });
 
         // 매칭 성사 시 채팅방(trip_groups) 생성
         const {
           data: group
         } = await supabase.from('trip_groups').insert({
-          name: i18n.t("auto.z_tmpl_202", {
-            defaultValue: i18n.t("auto.z_tmpl_336", {
-              defaultValue: t("auto.t5018", {
-                v0: user.name,
-                v1: name
-              })
-            })
-          }),
+          name: `${user.name} & ${name}`,
           created_by: user.id
         }).select().single();
         if (group) {
@@ -360,36 +346,20 @@ const MapPage = () => {
           user_id: id,
           type: 'match',
           title: "매칭성공2",
-          content: i18n.t("auto.z_tmpl_204", {
-            defaultValue: i18n.t("auto.z_tmpl_338", {
-              defaultValue: t("auto.t5019", {
-                v0: user.name
-              })
-            })
-          })
+          content: `${user.name}님이 회원님에게 매칭 신청을 보냈습니다`
         });
 
         // 약간의 딜레이 후 채팅으로 이동
         setTimeout(() => navigate('/chat'), 1500);
       } else {
         toast({
-          title: i18n.t("auto.z_tmpl_205", {
-            defaultValue: i18n.t("auto.z_tmpl_339", {
-              defaultValue: t("auto.t5020", {
-                v0: name
-              })
-            })
-          })
+          title: `❤️ ${name}님에게 충심 전달!`
         });
         await supabase.from('in_app_notifications').insert({
           user_id: id,
           type: 'like',
           title: "새로운반가",
-          content: i18n.t("auto.z_tmpl_207", {
-            defaultValue: i18n.t("auto.z_tmpl_341", {
-              defaultValue: t("auto.t5021")
-            })
-          })
+          content: `${user.name}님이 회원님의 프로필에 충심행습니다`
         });
       }
     } else {
@@ -441,7 +411,7 @@ const MapPage = () => {
           </GoogleMap>}
 
         {/* Header overlay */}
-        <div className="absolute top-0 left-0 right-0 p-5 flex items-center justify-between z-30">
+        <div className="absolute top-[env(safe-area-inset-top)] left-0 right-0 px-4 pt-3 pb-2 flex items-center justify-between z-30">
           <div className="bg-card/90 backdrop-blur-sm rounded-2xl px-4 py-2.5 shadow-card flex items-center gap-2">
             <MapPin size={16} className="text-primary" />
             <span className="text-sm font-bold text-foreground">{currentLocationName}</span>
@@ -466,7 +436,7 @@ const MapPage = () => {
 
         {/* Selected Traveler Card */}
         <AnimatePresence>
-          {selectedTraveler && <motion.div className="absolute bottom-28 left-4 right-4 z-30" initial={{
+          {selectedTraveler && <motion.div className="absolute bottom-[calc(80px_+_env(safe-area-inset-bottom,0px))] left-4 right-4 z-30" initial={{
           y: 40,
           opacity: 0
         }} animate={{
@@ -497,7 +467,7 @@ const MapPage = () => {
         </AnimatePresence>
 
         {/* Default bottom card if none selected */}
-        {!selectedTraveler && travelers.length > 0 && <div className="absolute bottom-28 left-4 right-4 z-30">
+        {!selectedTraveler && travelers.length > 0 && <div className="absolute bottom-[calc(80px_+_env(safe-area-inset-bottom,0px))] left-4 right-4 z-30">
             <div className="bg-card rounded-2xl p-4 shadow-float flex items-center gap-3">
               {travelers[0].photo ? <img src={travelers[0].photo} alt="" className="w-12 h-12 rounded-xl object-cover cursor-pointer" onClick={() => setProfileDetail(travelers[0])} onError={e => {
             (e.target as HTMLImageElement).style.display = 'none';
@@ -513,7 +483,7 @@ const MapPage = () => {
           </div>}
 
         {/* Re-center button */}
-        <button onClick={handleReCenter} className="absolute bottom-56 right-4 z-30 bg-card rounded-xl p-3 shadow-card transition-transform active:scale-90">
+        <button onClick={handleReCenter} className="absolute bottom-[calc(170px_+_env(safe-area-inset-bottom,0px))] right-4 z-30 bg-card rounded-xl p-3 shadow-card transition-transform active:scale-90">
           <Navigation size={18} className={`text-primary ${centerAnim ? "animate-pulse" : ""}`} />
         </button>
       </div>
@@ -685,13 +655,7 @@ const MapPage = () => {
               setShowFilter(false);
               toast({
                 title: "필터가적용",
-                description: i18n.t("auto.z_tmpl_222", {
-                  defaultValue: i18n.t("auto.z_tmpl_356", {
-                    defaultValue: t("auto.t5022", {
-                      v0: maxDistance
-                    })
-                  })
-                })
+                description: `${maxDistance}km 반경 필터 적용됨`
               });
             }} className="flex-1 py-3 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-card flex items-center justify-center gap-2">
                   <Check size={16} />{"적용하기2"}</button>

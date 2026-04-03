@@ -332,20 +332,12 @@ const DiscoverPage = () => {
           // 자리 줄었고 1개 남음
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Migo ✈️', {
-              body: i18n.t("auto.z_tmpl_520", {
-                defaultValue: t("auto.t5009", {
-                  v0: g.title
-                })
-              }),
+              body: `⚠️ '${g.title}' 정원이 1자리만 남았습니다!`,
               icon: '/favicon.ico'
             });
           }
           toast({
-            title: i18n.t("auto.z_tmpl_521", {
-              defaultValue: t("auto.t5010", {
-                v0: g.title
-              })
-            }),
+            title: `⚠️ '${g.title}' 정원 1자리 남음!`,
             description: "지금지원하"
           });
         }
@@ -801,13 +793,7 @@ const DiscoverPage = () => {
     }));
     if (toAdd.length === 0) {
       toast({
-        title: i18n.t("auto.z_tmpl_360", {
-          defaultValue: i18n.t("auto.z_tmpl_725", {
-            defaultValue: t("auto.t5011", {
-              v0: MAX_POST_PHOTOS
-            })
-          })
-        }),
+        title: `사진은 최대 ${MAX_POST_PHOTOS}장까지 쳊부 가능합니다`,
         variant: "destructive"
       });
       return;
@@ -1628,19 +1614,7 @@ const DiscoverPage = () => {
         {/* Write / Pencil button */}
         <div className="flex items-center justify-between py-3">
           <span className="text-xs text-muted-foreground font-medium">
-            {activeTab === "groups" ? t("auto.z_tmpl_367", {
-            defaultValue: t("auto.z_tmpl_732", {
-              defaultValue: t("auto.t5012", {
-                v0: filtered.length
-              })
-            })
-          }) : t("auto.z_tmpl_368", {
-            defaultValue: t("auto.z_tmpl_733", {
-              defaultValue: t("auto.t5013", {
-                v0: posts.length
-              })
-            })
-          })}
+            {activeTab === "groups" ? `그룹 ${filtered.length}개` : `게시물 ${posts.length}개`}
           </span>
           {user && <button onClick={() => activeTab === "groups" ? navigate("/create-trip") : setShowWriteModal(true)} className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-card" title={activeTab === "groups" ? "여행그룹만" : "게시글쓰기"}>
               {activeTab === "groups" ? <Plus size={18} className="text-primary-foreground" /> : <Pencil size={18} className="text-primary-foreground" />}
@@ -2198,14 +2172,7 @@ const DiscoverPage = () => {
                 icon: Calendar
               }, {
                 label: "인원",
-                value: t("auto.z_tmpl_386", {
-                  defaultValue: t("auto.z_tmpl_770", {
-                    defaultValue: t("auto.t5014", {
-                      v0: currentDetail.currentMembers,
-                      v1: currentDetail.maxMembers
-                    })
-                  })
-                }),
+                value: `${currentDetail.currentMembers}/${currentDetail.maxMembers}명`,
                 icon: Users
               }, {
                 label: "마감",
@@ -2566,11 +2533,7 @@ const DiscoverPage = () => {
               <p className="text-[11px] text-muted-foreground mt-1">{"호스트가지"}</p>
             </div>
             <label className="text-xs font-bold text-foreground mb-2 block">{"나를어필하"}</label>
-            <textarea value={applyMessage} onChange={e => setApplyMessage(e.target.value)} maxLength={200} rows={4} placeholder={t("auto.z_tmpl_809", {
-          defaultValue: t("auto.p19", {
-            dest: applyGroup.destination
-          })
-        })} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30 mb-1" />
+            <textarea value={applyMessage} onChange={e => setApplyMessage(e.target.value)} maxLength={200} rows={4} placeholder={`간단한 자기소개와 함께 ${applyGroup?.destination || '여행지'}에 가는 이유, 여행 스타일 등을 어필해보세요!`} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30 mb-1" />
             <p className="text-[10px] text-muted-foreground text-right mb-4">{applyMessage.length}/200</p>
             <div className="flex gap-3">
               <button onClick={() => setApplyGroup(null)} className="flex-1 py-3 rounded-2xl bg-muted text-muted-foreground font-semibold text-sm">{"취소"}</button>
@@ -2596,11 +2559,7 @@ const DiscoverPage = () => {
                           {app.profiles?.name?.[0]}
                         </div>}
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm text-foreground">{app.profiles?.name} {app.profiles?.age && i18n.t("auto.z_tmpl_815", {
-                    defaultValue: t("auto.t5015", {
-                      v0: app.profiles.age
-                    })
-                  })}</p>
+                        <p className="font-bold text-sm text-foreground">{app.profiles?.name} {app.profiles?.age && `(${app.profiles.age}세)`}</p>
                         <p className="text-xs text-muted-foreground line-clamp-1">{app.profiles?.bio}</p>
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${app.status === 'approved' ? 'bg-emerald-500/15 text-emerald-400' : app.status === 'rejected' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>

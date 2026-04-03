@@ -213,9 +213,7 @@ const ShopPage = () => {
     setSelectedPlan(null);
     setSelectedItem(null);
     toast({
-      title: i18n.t("auto.z_tmpl_81", {
-        defaultValue: `✅ ${name} purchase applied!`
-      }),
+      title: `✅ ${name} 구매 완료!`,
       description: i18n.t("auto.z_\uC2E4\uC81C\uACC4\uC815\uC774\uC5C5\uADF8\uB808\uC774\uB4DC_82")
     });
     setTimeout(() => setPurchaseSuccess(null), 3000);

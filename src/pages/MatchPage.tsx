@@ -134,6 +134,15 @@ const MatchPage = () => {
         }
       });
 
+      // **매칭된 사람(채팅창이 열린 사람)**은 영구적으로 스와이프에 나오면 안됨
+      const { data: matchData } = await supabase.from('matches')
+        .select('user1_id, user2_id')
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+        
+      (matchData || []).forEach((m: any) => {
+        swipedIds.add(m.user1_id === user.id ? m.user2_id : m.user1_id);
+      });
+
       // 자신을 DB 레벨에서 확실히 제외
       const {
         data,
@@ -462,11 +471,7 @@ const MatchPage = () => {
           user_id: toUserId,
           type: 'match',
           title: t("auto.p524"),
-          content: i18n.t("auto.z_tmpl_122", {
-            defaultValue: t("auto.t5025", {
-              v0: user.name
-            })
-          })
+          content: `${user.name}님과 매칭되었습니다!`
         });
       }
       return thread?.id ?? true; // matched! (thread.id 또는 true)
@@ -482,13 +487,7 @@ const MatchPage = () => {
       user_id: toUserId,
       type: kind,
       title: kind === 'superlike' ? "새로운슈퍼" : "새로운반가",
-      content: kind === 'superlike' ? i18n.t("auto.z_tmpl_125", {
-        defaultValue: t("auto.t5026", {
-          v0: user.name
-        })
-      }) : i18n.t("auto.z_tmpl_126", {
-        defaultValue: t("auto.t5027")
-      })
+      content: kind === 'superlike' ? `${user.name}님이 슈퍼라이크를 보냈습니다! ⭐` : `${user.name}님이 좋아요를 눌렀습니다`
     });
     return false;
   }, [user]);
@@ -624,11 +623,7 @@ const MatchPage = () => {
       matchTimersRef.current.timeouts.push(tSuperLike);
     });
     toast({
-      title: i18n.t("auto.z_tmpl_128", {
-        defaultValue: t("auto.t5029", {
-          v0: profile.name
-        })
-      }),
+      title: `⭐ ${profile.name}님에게 슈퍼라이크 전송!`,
       description: superMsg ? `"${superMsg}"` : "상대방에게"
     });
   }, [pendingSuperProfile, superMsg, addUnread, saveLikeAndCheckMatch]);
@@ -728,9 +723,7 @@ const MatchPage = () => {
               {activeCheckIn.city}{t("auto.z_\uC5EC\uD589\uC790\uC6B0\uC120\uB9E4\uCE6D\uC911_195")}</span>
           </div>
           <span className="text-emerald-500/70 text-[10px]">
-            {checkInCityTravelers.length > 0 ? t("auto.z_tmpl_196", {
-          defaultValue: `${checkInCityTravelers.length} online`
-        }) : t("auto.z_\uD65C\uC131_197")}
+            {checkInCityTravelers.length > 0 ? `${checkInCityTravelers.length}명 온라인` : t("auto.z_\uD65C\uC131_197")}
           </span>
         </motion.div>}
 
@@ -765,11 +758,7 @@ const MatchPage = () => {
           length: 3
         }).map((_, i) => <Star key={i} size={10} className={i < superLikesLeft ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground"} />)}
             <span className="text-[10px] font-semibold text-muted-foreground ml-0.5">
-              {isPlus ? "슈퍼라이크" : t("auto.z_tmpl_133", {
-            defaultValue: t("auto.t5030", {
-              v0: superLikesLeft
-            })
-          })}
+              {isPlus ? "슈퍼라이크 무제한" : `슈퍼라이크 ${superLikesLeft}개 남음`}
             </span>
           </div>
           {/* Report/Block menu button */}
@@ -819,11 +808,7 @@ const MatchPage = () => {
           if (boostActive) {
             toast({
               title: t("auto.p526"),
-              description: i18n.t("auto.z_tmpl_136", {
-                defaultValue: i18n.t("auto.z_tmpl_203", {
-                  defaultValue: `${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")} remaining`
-                })
-              })
+              description: `부스트 ${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")} 남음`
             });
             return;
           }
@@ -834,11 +819,7 @@ const MatchPage = () => {
           });
         }} className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold shadow-lg transition-all ${boostActive ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : isPlus ? "bg-purple-500/10 border border-purple-500/30 text-purple-400" : "bg-muted text-muted-foreground"}`}>
                 <Zap size={13} fill={boostActive ? "white" : "none"} />
-                {boostActive ? t("auto.z_tmpl_137", {
-            defaultValue: t("auto.z_tmpl_204", {
-              defaultValue: `Boosting ${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")}`
-            })
-          }) : isPlus ? "부스트사용" : "부스트Pl"}
+                {boostActive ? `부스팅 중 ${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")}` : isPlus ? "부스트 사용" : "부스트 (Plus)"}
              </motion.button>
           </div>
 
@@ -1143,11 +1124,7 @@ const MatchPage = () => {
                 }).map((_, i) => <Star key={i} size={13} className={i < superLikesLeft ? "text-blue-400 fill-blue-400" : "text-white/20 fill-white/10"} />)}
                   </div>
                   <span className="text-xs font-bold text-blue-300">
-                    {isPlus ? "슈퍼라이크" : t("auto.z_tmpl_144", {
-                  defaultValue: t("auto.t5031", {
-                    v0: superLikesLeft
-                  })
-                })}
+                    {isPlus ? "슈퍼라이크 무제한" : `슈퍼라이크 ${superLikesLeft}개 남음`}
                   </span>
                 </div>
 
@@ -1155,9 +1132,7 @@ const MatchPage = () => {
                 <div className="mb-3">
                   <label className="text-xs font-bold text-white/60 mb-2 block">{t("auto.j507")}<span className="text-white/30 font-normal">{t("auto.j508")}</span></label>
                   <div className="relative">
-                    <textarea value={superMsg} onChange={e => setSuperMsg(e.target.value)} maxLength={80} rows={2} placeholder={t("auto.z_tmpl_145", {
-                  defaultValue: `t("auto.x4039")`
-                })} className="w-full px-4 py-3 pr-12 rounded-2xl text-white text-sm placeholder:text-white/30 outline-none resize-none transition-all" style={{
+                    <textarea value={superMsg} onChange={e => setSuperMsg(e.target.value)} maxLength={80} rows={2} placeholder="여행에 대한 진심을 전해보세요..." className="w-full px-4 py-3 pr-12 rounded-2xl text-white text-sm placeholder:text-white/30 outline-none resize-none transition-all" style={{
                   background: "rgba(255,255,255,0.06)",
                   border: "1.5px solid rgba(99,102,241,0.3)",
                   caretColor: "#60a5fa"
@@ -1168,11 +1143,7 @@ const MatchPage = () => {
 
                 {/* Quick message chips */}
                 <div className="flex flex-wrap gap-1.5 mb-5">
-                  {[t("auto.z_tmpl_146", {
-                defaultValue: t("auto.t5032", {
-                  v0: pendingSuperProfile.destination
-                })
-              }), "같이여행해", "관심사가비", "맛집같이탐"].map(q => <button key={q} onClick={() => setSuperMsg(q)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${superMsg === q ? "text-white" : "text-white/50"}`} style={{
+                  {[pendingSuperProfile?.destination ? `${pendingSuperProfile.destination}로 여행 가나요?` : "여행 같이 가요!", "같이 여행해요!", "관심사가 비슷해요", "맛집 같이 탐방해요"].map(q => <button key={q} onClick={() => setSuperMsg(q)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${superMsg === q ? "text-white" : "text-white/50"}`} style={{
                 background: superMsg === q ? "linear-gradient(135deg,#3b82f6,#6366f1)" : "rgba(255,255,255,0.06)",
                 border: "1px solid rgba(99,102,241,0.25)"
               }}>{q}</button>)}

@@ -46,13 +46,7 @@ const ReportBlockActionSheet: React.FC<Props> = ({
       return;
     }
     if (!authorId) return;
-    if (!window.confirm(i18n.t("auto.z_tmpl_1023", {
-      defaultValue: i18n.t("auto.z_tmpl_1394", {
-        defaultValue: i18n.t("auto.z_tmpl_1259", {
-          defaultValue: `Block ${targetName}?\nYou won't see each other's posts or profiles.`
-        })
-      })
-    }))) {
+    if (!window.confirm(`${targetName}님을 차단하시겠습니까?\n서로의 게시물과 프로필이 보이지 않게 됩니다.`)) {
       return;
     }
     setIsSubmitting(true);
@@ -127,13 +121,7 @@ const ReportBlockActionSheet: React.FC<Props> = ({
               <div className="flex items-center justify-between mb-4">
                 {mode === "report" ? <button onClick={() => setMode("menu")} className="flex items-center gap-1 text-muted-foreground text-sm font-bold">
                     <ChevronRight size={18} className="rotate-180" />{"뒤로"}</button> : <h3 className="text-lg font-extrabold text-foreground">
-                    {targetType === "user" ? t("auto.z_tmpl_1025", {
-                defaultValue: t("auto.z_tmpl_1396", {
-                  defaultValue: t("auto.z_tmpl_1261", {
-                    defaultValue: `Manage ${targetName}`
-                  })
-                })
-              }) : "게시물관리"}
+                    {targetType === "user" ? `${targetName} 관리` : "게시물 관리"}
                   </h3>}
                 <button onClick={onClose} className="w-8 h-8 flex items-center justify-center bg-muted rounded-full">
                   <X size={18} className="text-muted-foreground" />
@@ -172,7 +160,7 @@ const ReportBlockActionSheet: React.FC<Props> = ({
               {mode === "report" && <div className="space-y-3 mt-2">
                   <p className="text-sm font-bold text-foreground mb-4">{"어떤문제가"}</p>
                   <div className="space-y-2">
-                    {REASONS.map(reason => <button key={reason} onClick={() => handleReport(reason)} disabled={isSubmitting} className="w-full text-left px-4 py-3.5 rounded-xl bg-muted hover:bg-border active:scale-[0.98] transition-all flex items-center gap-3 text-sm font-medium text-foreground">
+                    {(REPORT_REASONS.length > 0 ? REPORT_REASONS : ["스팸", "음란/불건전한 콘텐츠", "혐오성 언어", "개인정보 침해", "거짓 정보", "기타"]).map(reason => <button key={reason} onClick={() => handleReport(reason)} disabled={isSubmitting} className="w-full text-left px-4 py-3.5 rounded-xl bg-muted hover:bg-border active:scale-[0.98] transition-all flex items-center gap-3 text-sm font-medium text-foreground">
                         <div className="w-2 h-2 rounded-full bg-amber-500/50" />
                         {reason}
                       </button>)}

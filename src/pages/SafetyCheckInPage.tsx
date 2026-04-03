@@ -84,9 +84,7 @@ const SafetyCheckInPage = () => {
     if (navigator.share) {
       await navigator.share({
         title: i18n.t("auto.z_Migo\uC548\uC804\uCCB4\uD06C\uC778_39"),
-        text: i18n.t("auto.z_tmpl_40", {
-          defaultValue: t("auto.t5035")
-        }),
+        text: "Migo 동행 안전 체크인이 등록되었습니다. 비상시 이 링크를 확인해주세요.",
         url: shareLink
       });
     } else {

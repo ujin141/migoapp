@@ -78,7 +78,7 @@ if (!isSupabaseConfigured) {
     }
   })();
 
-  // 🚨 싱글톤 리스너: 모듈 레벨에서 딱 한 번만 등록해서 Lock 탈취(Race Condition)를 원천 차단합니다.
+  // 🚨 싱글톤 리스너: 모듈 레벨에서 딱 한 번만 등록해서 Lock 탈취 원천 차단
   supabase.auth.onAuthStateChange(async (event, session) => {
     globalSession = session;
     
@@ -94,16 +94,20 @@ if (!isSupabaseConfigured) {
 
     if (session?.user) {
       const base = mapUser(session.user);
-      // 🔥 [중요] Cold start 응답 지연 시 화면이 비어 보이는 것을 막기 위해
-      // DB 통신(enrichWithProfilePhoto) 전에 세션 기본 정보를 먼저 전역에 세팅!
-      globalUser = base;
+      // 🔥 토큰 만료시 빈 프로필로 나오는 현상(계정 연결 안됨)을 방지하기 위해 
+      // 기존에 로드된 프로필 데이터가 있으면 합쳐서 보존
+      globalUser = globalUser ? { ...globalUser, ...base } : base;
       globalLoading = false;
       notifyAuthListeners();
 
-      // 백그라운드에서 DB 프로필(이름, 사진)을 조회 후 재동기화
-      const enriched = await enrichWithProfilePhoto(base);
-      globalUser = enriched;
-      notifyAuthListeners();
+      // INITIAL_SESSION: 앱 강제종료 후 다시 켰을 때
+      // TOKEN_REFRESHED: 백그라운드에서 토큰 만료 후 갱신 성공했을 때
+      // SIGNED_IN: 새로 로그인 했을 때
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        const enriched = await enrichWithProfilePhoto(base);
+        globalUser = enriched;
+        notifyAuthListeners();
+      }
     }
   });
 }

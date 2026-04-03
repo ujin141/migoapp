@@ -98,13 +98,7 @@ const WriteReview = ({
     });
     onSubmit(user.id);
     toast({
-      title: i18n.t("auto.z_tmpl_85", {
-        defaultValue: i18n.t("auto.z_tmpl_117", {
-          defaultValue: t("auto.t5033", {
-            v0: user.name
-          })
-        })
-      })
+      title: `${user.name}님 후기 작성 완료!`
     });
     onClose();
   };

@@ -89,10 +89,11 @@
     padding-right: env(safe-area-inset-right, 0px);
   }
 
-  /* 텍스트 입력창은 선택 허용 */
-  input, textarea {
+  /* 텍스트 입력창은 선택 허용 및 iOS 줌 방지 */
+  input, textarea, select {
     -webkit-user-select: text;
     user-select: text;
+    font-size: 16px !important; /* iOS 자동 확대 방지 해법 */
   }
 
   /* ── 버튼/인터랙티브 요소 즉시 반응 ───────────────────── */

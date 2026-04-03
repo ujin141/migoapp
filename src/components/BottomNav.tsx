@@ -16,9 +16,8 @@ const BottomNav = () => {
     { path: "/chat",     icon: MessageCircle,   label: t("nav.chat"), badge: true },
     { path: "/profile",  icon: User,            label: t("nav.profile") },
   ];
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border">
+    <nav id="migo-bottom-nav" className="fixed bottom-0 left-0 right-0 z-[100] bg-card/95 backdrop-blur-xl border-t border-border">
       <div className="flex items-center justify-around max-w-lg mx-auto px-1" style={{ height: '60px' }}>
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;

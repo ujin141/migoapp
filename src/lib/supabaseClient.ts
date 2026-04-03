@@ -62,19 +62,7 @@ if (window.__SUPABASE_CLIENT__) {
 import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
 
-// 안드로이드/iOS WebView 환경에서 localStorage 휘발성 이슈를 해결하기 위한 영구 저장소 어댑터
-const capacitorStorageAdapter = {
-  getItem: async (key: string) => {
-    const { value } = await Preferences.get({ key });
-    return value ?? null;
-  },
-  setItem: async (key: string, value: string) => {
-    await Preferences.set({ key, value });
-  },
-  removeItem: async (key: string) => {
-    await Preferences.remove({ key });
-  }
-};
+
 
 let _supabase: SupabaseClient | null = null;
 
@@ -95,10 +83,9 @@ if (!_supabase && isSupabaseConfigured) {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: !Capacitor.isNativePlatform(),
-        // 디바이스 플랫폼 확인: WebView/네이티브 앱이면 Preferences 사용, 일반 웹 브라우저면 localStorage 사용
-        storage: Capacitor.isNativePlatform() 
-          ? capacitorStorageAdapter 
-          : window.localStorage,
+        // 디바이스 플랫폼 확인: Capacitor 브릿지 행(hang) 이슈 방지를 위해 모든 환경에서 동기식 localStorage 사용
+        // WKWebView(iOS)에서 localStorage는 기본적으로 영구 보존됩니다.
+        storage: window.localStorage,
         lock: async (name: string, acquireTimeout: number, fn: () => Promise<any>) => {
           return await fn();
         }

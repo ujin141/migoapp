@@ -111,24 +111,12 @@ const TrustVerifyModal = ({
         target_id: user.id,
         reported_id: user.id,
         reporter_id: user.id,
-        reason: i18n.t("auto.z_tmpl_987", {
-          defaultValue: i18n.t("auto.z_tmpl_1318", {
-            defaultValue: i18n.t("auto.z_tmpl_1142", {
-              defaultValue: `[Verification Request] ${levelKey}`
-            })
-          })
-        }),
+        reason: `[인증 요청] ${levelKey}`,
         status: "pending"
       });
       if (error) throw error;
       toast({
-        title: i18n.t("auto.z_tmpl_988", {
-          defaultValue: i18n.t("auto.z_tmpl_1319", {
-            defaultValue: i18n.t("auto.z_tmpl_1143", {
-              defaultValue: `${levelKey === "id" ? "🪪 ID Verification" : "🏆 Top Trust"} request submitted!`
-            })
-          })
-        }),
+        title: levelKey === "id" ? "🪪 신분증 인증 신청 완료!" : "🏆 최고 신뢰 인증 신청 완료!",
         description: "운영자가2"
       });
     } catch (err: any) {

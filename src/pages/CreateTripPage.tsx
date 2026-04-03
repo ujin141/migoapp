@@ -288,13 +288,7 @@ const CreateTripPage = () => {
                 const newSchedule = [...schedule];
                 newSchedule[index] = e.target.value;
                 setSchedule(newSchedule);
-              }} placeholder={i18n.t("auto.z_tmpl_457", {
-                defaultValue: i18n.t("auto.z_tmpl_860", {
-                  defaultValue: t("auto.p14", {
-                    day: index + 1
-                  })
-                })
-              })} className="flex-1 bg-muted rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 transition-shadow" />
+              }} placeholder={`(Day ${index + 1}) 일정을 적어주세요`} className="flex-1 bg-muted rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 transition-shadow" />
                     <button onClick={() => setSchedule(schedule.filter((_, i) => i !== index))} className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-red-500 transition-colors shrink-0">
                       <X size={16} />
                     </button>

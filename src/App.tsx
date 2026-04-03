@@ -2,6 +2,9 @@ import { useTranslation } from "react-i18next";
 import { lazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { App as CapApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
+
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -119,15 +122,46 @@ const AppContent = () => {
   // ── 네이티브 푸시 권한 및 토큰 레지스터 (백그라운드 알림용) ──
   usePushNotifications(user?.id);
 
-  // ── 인증 상태 중앙 감지: 미로그인 시 스플래시/로그인으로 자동 이동 ──
+  // ── 인증 상태 중앙 감지: 미로그인 시 스플래시/로그인으로 자동 이동 등 ──
   useEffect(() => {
     if (loading) return;
     const isPublicRoute = PUBLIC_ROUTES.some(r => location.pathname.startsWith(r));
     if (!user && !isPublicRoute) {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
+    } else if (user && (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding')) {
+      navigate('/', { replace: true });
     }
   }, [user, loading, location.pathname, navigate]);
+
+  // ── 네이티브 앱 OAuth 딥링크 수신 핸들러 ──
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      const authListener = CapApp.addListener('appUrlOpen', async (data) => {
+        // migoapp://login-callback#access_token=... 형식의 URL 수신 시
+        if (data.url && data.url.includes('login-callback')) {
+          const urlObj = new URL(data.url);
+          const code = urlObj.searchParams.get('code');
+          if (code) {
+             await supabase.auth.exchangeCodeForSession(code);
+             return;
+          }
+          const urlParts = data.url.split('#');
+          if (urlParts.length > 1) {
+            const searchParams = new URLSearchParams(urlParts[1]); 
+            const access_token = searchParams.get('access_token');
+            const refresh_token = searchParams.get('refresh_token');
+            if (access_token && refresh_token) {
+              await supabase.auth.setSession({ access_token, refresh_token });
+            }
+          }
+        }
+      });
+      return () => {
+        authListener.then(listener => listener.remove());
+      };
+    }
+  }, []);
 
   // 체크인 스트리크: user 세션 시작 시 1회만 실행
   useEffect(() => {

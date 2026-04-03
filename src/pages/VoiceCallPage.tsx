@@ -89,8 +89,23 @@ const VoiceCallPage = () => {
           transition={{ duration: 3, repeat: Infinity }} />
       </div>
 
-      {/* Top area */}
-      <div className="flex flex-col items-center pt-20 z-10">
+      {/* Top area & Exit button */}
+      <div className="absolute top-0 left-0 right-0 p-4 pt-safe flex justify-end z-50">
+        <button onClick={() => {
+          if (callState !== "ended") {
+            handleEndCall();
+          } else {
+            navigate(-1);
+          }
+        }} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center pt-24 z-10 w-full px-8">
         {/* Status */}
         <motion.p className="text-indigo-300 text-xs font-semibold tracking-widest uppercase mb-8"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -125,7 +140,7 @@ const VoiceCallPage = () => {
           </motion.div>
         </div>
 
-        <h2 className="text-2xl font-extrabold text-white mb-1">{contact.name}</h2>
+        <h2 className="text-2xl font-extrabold text-white mb-1 text-center">{contact.name}</h2>
 
         {/* Timer */}
         {callState === "connected" && (
@@ -141,7 +156,7 @@ const VoiceCallPage = () => {
 
         {/* Sound wave (connected only) */}
         {callState === "connected" && (
-          <div className="flex items-center gap-1 mt-5 h-8">
+          <div className="flex items-center justify-center gap-1 mt-5 h-8 w-full">
             {Array.from({ length: BARS }).map((_, i) => (
               <motion.div key={i}
                 className="w-1 rounded-full"
@@ -171,15 +186,15 @@ const VoiceCallPage = () => {
               }`} style={{ backdropFilter: "blur(12px)" }}>
                 <Icon size={22} className="text-white" />
               </div>
-              <span className="text-[10px] text-white/60 font-medium">{label}</span>
+              <span className="text-[10px] text-white/60 font-medium tracking-tight truncate w-16 text-center">{label}</span>
             </motion.button>
           ))}
         </div>
 
-        {/* End call */}
-        <AnimatePresence>
-          {callState !== "ended" && (
-            <motion.div className="flex justify-center" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+        {/* End call / Leave room */}
+        <AnimatePresence mode="wait">
+          {callState === "connected" && (
+            <motion.div key="call" className="flex justify-center" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
               <motion.button
                 whileTap={{ scale: 0.88 }}
                 onClick={handleEndCall}
@@ -189,6 +204,18 @@ const VoiceCallPage = () => {
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <PhoneOff size={28} className="text-white" />
+              </motion.button>
+            </motion.div>
+          )}
+          
+          {callState === "ended" && (
+            <motion.div key="exit" className="flex justify-center" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => navigate(-1)}
+                className="w-20 h-20 rounded-full flex items-center justify-center shadow-2xl bg-white/20 backdrop-blur-md"
+              >
+                <span className="text-white font-bold text-sm">{"나가기"}</span>
               </motion.button>
             </motion.div>
           )}

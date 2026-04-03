@@ -3,14 +3,41 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import siteLogo from "@/assets/site-logo.png";
+import { supabase } from "@/lib/supabaseClient";
 
 const SplashPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   useEffect(() => {
-    const timer = setTimeout(() => navigate("/onboarding"), 2500);
-    return () => clearTimeout(timer);
+    let redirected = false;
+
+    const doRedirect = (hasSession: boolean) => {
+      if (redirected) return;
+      redirected = true;
+      if (hasSession) {
+        // 기존 로그인 세션이 있으면 바로 홈으로
+        navigate("/", { replace: true });
+      } else {
+        // 세션 없으면 온보딩/로그인으로
+        const hasSeenOnboarding = localStorage.getItem("migo_onboarding_done");
+        navigate(hasSeenOnboarding ? "/login" : "/onboarding", { replace: true });
+      }
+    };
+
+    // 저장된 세션(토큰) 즉시 체크
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      doRedirect(!!session);
+    }).catch(() => {
+      doRedirect(false);
+    });
+
+    // 최대 3초 안에 세션 체크가 완료 안 되면 로그인으로 fallback
+    const fallback = setTimeout(() => {
+      doRedirect(false);
+    }, 3000);
+
+    return () => clearTimeout(fallback);
   }, [navigate]);
 
   return (
@@ -31,7 +58,7 @@ const SplashPage = () => {
         style={{ bottom: "0%", right: "-10%" }}
       />
 
-      {/* Site Logo — centered, animated */}
+      {/* Site Logo */}
       <motion.div
         className="z-10 flex flex-col items-center gap-1"
         initial={{ opacity: 0, scale: 0.7, y: 30 }}

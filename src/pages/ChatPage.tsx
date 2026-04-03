@@ -140,11 +140,17 @@ const ChatPage = () => {
     if (selectedChat) {
       markRead(selectedChat);
       setOpenThread(selectedChat);
+      const nav = document.getElementById("migo-bottom-nav");
+      if (nav) nav.style.display = "none";
     } else {
       setOpenThread(null);
+      const nav = document.getElementById("migo-bottom-nav");
+      if (nav) nav.style.display = "block";
     }
     return () => {
       setOpenThread(null);
+      const nav = document.getElementById("migo-bottom-nav");
+      if (nav) nav.style.display = "block";
     };
   }, [selectedChat, markRead, setOpenThread]);
 
@@ -236,15 +242,7 @@ const ChatPage = () => {
         } catch (e) {
           console.error(e);
         }
-        const text = i18n.t("auto.z_tmpl_470", {
-          defaultValue: i18n.t("auto.z_tmpl_873", {
-            defaultValue: t("auto.p11", {
-              loc: locationStr,
-              lat: latitude,
-              lng: longitude
-            })
-          })
-        });
+        const text = `📍 현재 위치 공유\n${locationStr || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}`;
         await supabase.from('messages').insert({
           thread_id: selectedChat,
           sender_id: user.id,
@@ -275,14 +273,7 @@ const ChatPage = () => {
       return;
     }
     if (!selectedChat || !user) return;
-    const text = i18n.t("auto.z_tmpl_472", {
-      defaultValue: i18n.t("auto.z_tmpl_875", {
-        defaultValue: t("auto.p12", {
-          date: scheduleDate,
-          text: scheduleText
-        })
-      })
-    });
+    const text = `📅 일정 공유\n날짜: ${scheduleDate}\n내용: ${scheduleText}`;
     await supabase.from('messages').insert({
       thread_id: selectedChat,
       sender_id: user.id,
@@ -304,14 +295,7 @@ const ChatPage = () => {
       return;
     }
     if (!selectedChat || !user) return;
-    const text = i18n.t("auto.z_tmpl_473", {
-      defaultValue: i18n.t("auto.z_tmpl_876", {
-        defaultValue: t("auto.p13", {
-          date: meetDate,
-          place: meetPlace
-        })
-      })
-    });
+    const text = `🤝 만남 제안\n날짜: ${meetDate}\n장소: ${meetPlace}`;
     await supabase.from('messages').insert({
       thread_id: selectedChat,
       sender_id: user.id,
@@ -328,19 +312,7 @@ const ChatPage = () => {
     setMutedChats(prev => {
       const isMuted = prev.includes(chatId);
       toast({
-        title: isMuted ? i18n.t("auto.z_tmpl_474", {
-          defaultValue: i18n.t("auto.z_tmpl_877", {
-            defaultValue: t("auto.t5006", {
-              v0: name
-            })
-          })
-        }) : i18n.t("auto.z_tmpl_475", {
-          defaultValue: i18n.t("auto.z_tmpl_878", {
-            defaultValue: t("auto.t5007", {
-              v0: name
-            })
-          })
-        })
+        title: isMuted ? `${name} 알림 켜짐` : `${name} 알림 꺼짐`
       });
       return isMuted ? prev.filter(id => id !== chatId) : [...prev, chatId];
     });
@@ -408,14 +380,7 @@ const ChatPage = () => {
       <div className="flex items-center gap-2">
         {dailyDmCount >= maxDailyDm ? <Lock size={13} className="text-red-500 shrink-0" /> : <Crown size={13} className="text-amber-500 shrink-0" />}
         <span className={`text-xs font-semibold ${dailyDmCount >= maxDailyDm ? "text-red-500" : "text-amber-500"}`}>
-          {dailyDmCount >= maxDailyDm ? "오늘메시지" : t("auto.z_tmpl_477", {
-          defaultValue: t("auto.z_tmpl_880", {
-            defaultValue: t("auto.t5008", {
-              v0: dailyDmCount,
-              v1: maxDailyDm
-            })
-          })
-        })}
+          {dailyDmCount >= maxDailyDm ? "오늘 메시지 한도 도달" : `오늘 ${dailyDmCount}/${maxDailyDm}건 전송`}
         </span>
       </div>
       <button onClick={() => setShowPlusModal(true)} className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full shrink-0 ${dailyDmCount >= maxDailyDm ? "bg-red-500 text-white" : "bg-amber-500/20 text-amber-500 border border-amber-500/30"}`}>
@@ -704,7 +669,7 @@ const ChatPage = () => {
         </div>
 
         {/* Input */}
-        <div className="px-4 pb-20 pt-2">
+        <div className="px-4 pb-safe pt-2 mb-2">
           <div className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 transition-colors ${isLocked ? "bg-muted/50" : "bg-muted"}`}>
             <input type="text" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) sendMessage(); }} placeholder={isLocked ? "Plus로" : isMuted ? "알림이꺼진" : "메시지입력"} disabled={isLocked} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none disabled:cursor-not-allowed" />
             {isLocked ? <motion.button whileTap={{

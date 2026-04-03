@@ -22,20 +22,12 @@ interface MatchResultCardProps {
 function findCommon(me: Profile | null, other: Profile) {
   const common: string[] = [];
   if (!me) return common;
-  if (me.nationality === other.nationality) common.push(i18n.t("auto.z_tmpl_1373", {
-    defaultValue: `🌏 Same nationality (${other.nationality})`
-  }));
-  if (me.travel_style && me.travel_style === other.travel_style) common.push(i18n.t("auto.z_tmpl_1374", {
-    defaultValue: `🎒 ${other.travel_style} travel style`
-  }));
+  if (me.nationality === other.nationality) common.push(`🌏 같은 국적 (${other.nationality})`);
+  if (me.travel_style && me.travel_style === other.travel_style) common.push(`🎒 ${other.travel_style} 여행 스타일`);
   const sharedLangs = (me.languages || []).filter(l => (other.languages || []).includes(l));
-  if (sharedLangs.length > 0) common.push(i18n.t("auto.z_tmpl_1375", {
-    defaultValue: `💬 Shared languages: ${sharedLangs.join(", ")}`
-  }));
+  if (sharedLangs.length > 0) common.push(`💬 공통 언어: ${sharedLangs.join(", ")}`);
   const sharedTags = (me.tags || []).filter(t => (other.tags || []).includes(t));
-  sharedTags.slice(0, 2).forEach(t => common.push(i18n.t("auto.z_tmpl_1376", {
-    defaultValue: `✨ Common interest: #${t}`
-  })));
+  sharedTags.slice(0, 2).forEach(t => common.push(`✨ 공통 관심사: #${t}`));
   return common;
 }
 const ICE_BREAKERS = [i18n.t("auto.z_\uAC00\uC7A5\uC778\uC0C1\uAE4A\uC5C8\uB358\uC5EC\uD589\uC9C0_1377"), i18n.t("auto.z_\uC5EC\uD589\uC911\uAC00\uC7A5\uAE30\uC5B5\uC5D0\uB0A8\uB294_1378"), i18n.t("auto.z_\uBC84\uD0B7\uB9AC\uC2A4\uD2B8\uC5EC\uD589\uC9C01\uC21C_1379"), i18n.t("auto.z_\uD63C\uC790\uC5EC\uD589vs\uD568\uAED8\uC5EC\uD589_1380"), i18n.t("auto.z_\uC9C0\uAE08\uAE4C\uC9C0\uAC00\uBCF8\uB098\uB77C\uAC00\uBA87_1381"), i18n.t("auto.z_\uC5EC\uD589\uC911\uAC00\uC7A5\uBB34\uC11C\uC6E0\uB358\uACBD_1382"), i18n.t("auto.z_\uC774\uBC88\uC5EC\uD589\uC5D0\uC11C\uAF2D\uD574\uBCF4\uACE0_1383")];

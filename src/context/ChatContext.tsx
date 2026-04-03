@@ -235,11 +235,7 @@ export const ChatProvider = ({
       const {
         data: thread
       } = await supabase.from('chat_threads').insert({
-        name: i18n.t("auto.z_tmpl_948", {
-          defaultValue: i18n.t("auto.z_tmpl_1297", {
-            defaultValue: t("auto.t5000", { v0: group.title })
-          })
-        }),
+        name: group.title || "그룹 채팅",
         is_group: true,
         photo_url: group.hostPhoto
       }).select('id').single();

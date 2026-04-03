@@ -1,3 +1,5 @@
+import { Capacitor } from "@capacitor/core";
+
 import i18n from "@/i18n";
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -1052,11 +1054,11 @@ const LoginPage = () => {
               } = await supabase.auth.signInWithOAuth({
                 provider: "google",
                 options: {
-                  redirectTo: `${window.location.origin}/auth/callback`
+                  redirectTo: Capacitor.isNativePlatform() ? 'migoapp://login-callback' : `${window.location.origin}/auth/callback`
                 }
               });
               if (error) toast({
-                title: i18n.t("auto.z_\uC18C\uC15C\uB85C\uADF8\uC778\uC5D0\uB7EC_386"),
+                title: "구글 로그인 오류",
                 description: error.message,
                 variant: "destructive"
               });

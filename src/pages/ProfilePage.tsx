@@ -201,85 +201,102 @@ const ProfilePage = () => {
   // Fetch real profile
   useEffect(() => {
     if (!user) return;
-    const fetchProfile = async () => {
-      let {
-        data,
-        error
-      } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    const fetchProfile = async (retryCount = 0) => {
+      try {
+        let {
+          data,
+          error
+        } = await supabase.from('profiles').select('*').eq('id', user.id).single();
 
-      // DB에 이 유저 레코드가 없다면 (예: 트리거 실패, 레거시 계정) 빈 레코드 자동 생성으로 복구!
-      if (error && error.code === 'PGRST116') {
-        const fbName = user.name || user.email?.split('@')[0] || "User";
-        await supabase.from('profiles').upsert([{
-          id: user.id,
-          name: fbName,
-          email: user.email
-        }]);
-        const retry = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        data = retry.data;
-      }
-      if (data) {
-        setName(data.name || user.name || user.email?.split('@')[0] || "Unknown");
-        setLocation(data.location || "");
-        setBio(data.bio || "");
-        setTags(data.interests || []);
-        if (data.photo_url) {
-          // 캐시 버스팅
-          const bustedUrl = data.photo_url.includes('?') ? data.photo_url.replace(/[?&]t=\d+/, `?t=${Date.now()}`) : `${data.photo_url}?t=${Date.now()}`;
-          setPhotoUrl(bustedUrl);
-        } else if (user.photoUrl) {
-          setPhotoUrl(user.photoUrl);
+        // DB에 이 유저 레코드가 없다면 (예: 트리거 실패, 레거시 계정) 빈 레코드 자동 생성으로 복구!
+        if (error && error.code === 'PGRST116') {
+          const fbName = user.name || user.email?.split('@')[0] || "User";
+          await supabase.from('profiles').upsert([{
+            id: user.id,
+            name: fbName,
+            email: user.email
+          }]);
+          const retry = await supabase.from('profiles').select('*').eq('id', user.id).single();
+          data = retry.data;
+          error = retry.error;
         }
-        setTravelMission(data.travel_mission || "");
-        setVisitedCountries(data.visited_countries || []);
-        const urls: string[] = data.photo_urls || (data.photo_url ? [data.photo_url] : user.photoUrl ? [user.photoUrl] : []);
-        setProfilePhotos(urls.map(url => ({
-          url
-        })));
-        if (data.notif_match !== undefined) setNotifMatch(data.notif_match);
-        if (data.notif_chat !== undefined) setNotifChat(data.notif_chat);
-        if (data.notif_group !== undefined) setNotifGroup(data.notif_group);
-      } else {
-        setName(user.name || user.email?.split('@')[0] || "User");
-        if (user.photoUrl) setPhotoUrl(user.photoUrl);
-      }
 
-      // ── GPS 역지오코딩 ── (보존된 location이 없거나 비어있으면 자동 실행)
-      getCurrentLocation(false).then(async pos => {
-        if (!pos) return;
-        const { lat, lng } = pos;
-        // 로컨스토리지에 GPS 좌표 저장 (매칭용)
-        localStorage.setItem('migo_my_lat', String(lat));
-        localStorage.setItem('migo_my_lng', String(lng));
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, {
-              headers: {
-                'User-Agent': 'MigoApp/1.0'
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        if (data) {
+          setName(data.name || user.name || user.email?.split('@')[0] || "Unknown");
+          setLocation(data.location || "");
+          setBio(data.bio || "");
+          setTags(data.interests || []);
+          if (data.photo_url) {
+            // 캐시 버스팅
+            const bustedUrl = data.photo_url.includes('?') ? data.photo_url.replace(/[?&]t=\d+/, `?t=${Date.now()}`) : `${data.photo_url}?t=${Date.now()}`;
+            setPhotoUrl(bustedUrl);
+          } else if (user.photoUrl) {
+            setPhotoUrl(user.photoUrl);
+          }
+          setTravelMission(data.travel_mission || "");
+          setVisitedCountries(data.visited_countries || []);
+          const urls: string[] = data.photo_urls || (data.photo_url ? [data.photo_url] : user.photoUrl ? [user.photoUrl] : []);
+          setProfilePhotos(urls.map(url => ({
+            url
+          })));
+          if (data.notif_match !== undefined) setNotifMatch(data.notif_match);
+          if (data.notif_chat !== undefined) setNotifChat(data.notif_chat);
+          if (data.notif_group !== undefined) setNotifGroup(data.notif_group);
+        } else {
+          setName(user.name || user.email?.split('@')[0] || "User");
+          if (user.photoUrl) setPhotoUrl(user.photoUrl);
+        }
+
+        // ── GPS 역지오코딩 ── (보존된 location이 없거나 비어있으면 자동 실행)
+        getCurrentLocation(false).then(async pos => {
+          if (!pos) {
+            if (!data?.location) setLocation("위치 없음");
+            return;
+          }
+          const { lat, lng } = pos;
+          // 로컨스토리지에 GPS 좌표 저장 (매칭용)
+          localStorage.setItem('migo_my_lat', String(lat));
+          localStorage.setItem('migo_my_lng', String(lng));
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, {
+                headers: {
+                  'User-Agent': 'MigoApp/1.0'
+                }
+              });
+              const geo = await res.json();
+              const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || geo.address?.state || "";
+              const country = geo.address?.country || "";
+              const locationStr = city ? `${city}, ${country}` : country;
+              if (locationStr) {
+                setLocation(locationStr);
+                // DB에도 저장 (lat/lng 포함)
+                if (user) {
+                  await supabase.from('profiles').update({
+                    location: locationStr,
+                    lat,
+                    lng
+                  }).eq('id', user.id);
+                }
+              } else if (!data?.location) {
+                setLocation("위치 알 수 없음");
               }
-            });
-            const geo = await res.json();
-            const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || geo.address?.state || "";
-            const country = geo.address?.country || "";
-            const locationStr = city ? `${city}, ${country}` : country;
-            if (locationStr) {
-              setLocation(locationStr);
-              // DB에도 저장 (lat/lng 포함)
-              if (user) {
-                await supabase.from('profiles').update({
-                  location: locationStr,
-                  lat,
-                  lng
-                }).eq('id', user.id);
-              }
+            } catch {
+              if (!data?.location) setLocation("위치 알 수 없음");
             }
-          } catch {/* 네트워크 오류 시 조용히 무시 */}
-      });
+        });
 
-      // ─── 매칭 목록: matches 테이블에서 양방향 ───
-      const {
-        data: matchData
-      } = await supabase.from('matches').select('user1_id, user2_id').or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`).limit(50);
-      if (matchData) {
+        // ─── 매칭 목록: matches 테이블에서 양방향 ───
+        const {
+          data: matchData,
+          error: matchErr
+        } = await supabase.from('matches').select('user1_id, user2_id').or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`).limit(50);
+        if (matchErr) throw matchErr;
+
+        if (matchData) {
         const partnerIds = matchData.map((m: any) => m.user1_id === user.id ? m.user2_id : m.user1_id);
         if (partnerIds.length > 0) {
           const {
@@ -352,21 +369,33 @@ const ProfilePage = () => {
       } = await supabase.from('posts').select('id, content, image_urls, image_url, created_at, post_likes(count), comments(id)').eq('author_id', user.id).order('created_at', {
         ascending: false
       }).limit(30);
-      if (postData) {
-        setMyPosts(postData.map((p: any) => ({
-          id: p.id,
-          content: p.content || '',
-          images: p.image_urls || (p.image_url ? [p.image_url] : []),
-          time: new Intl.DateTimeFormat('ko-KR', {
-            month: 'long',
-            day: 'numeric'
-          }).format(new Date(p.created_at)),
-          likes: p.post_likes?.[0]?.count || 0,
-          comments: p.comments?.length || 0
-        })));
+        if (postData) {
+          setMyPosts(postData.map((p: any) => ({
+            id: p.id,
+            content: p.content || '',
+            images: p.image_urls || (p.image_url ? [p.image_url] : []),
+            time: new Intl.DateTimeFormat('ko-KR', {
+              month: 'long',
+              day: 'numeric'
+            }).format(new Date(p.created_at)),
+            likes: p.post_likes?.[0]?.count || 0,
+            comments: p.comments?.length || 0
+          })));
+        }
+      } catch (err: any) {
+        console.error("Profile Fetch Error:", err);
+        if (retryCount < 3) {
+          setTimeout(() => fetchProfile(retryCount + 1), 1000);
+        } else {
+          toast({
+            title: "데이터 연동 지연",
+            description: "화면을 나갔다 다시 들어오시거나 조금 뒤에 다시 시도해주세요.",
+            variant: "destructive"
+          });
+        }
       }
     };
-    fetchProfile();
+    fetchProfile(0);
   }, [user]);
 
   // Settings state
