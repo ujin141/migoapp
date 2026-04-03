@@ -211,7 +211,7 @@ const TrustVerifyModal = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-foreground">{level.badge} {level.label}</span>
-                          {isCompleted && <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${level.bgClass} ${level.textClass}`}>{"완료997"}</span>}
+                          {isCompleted && <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${level.bgClass} ${level.textClass}`}>{"완료"}</span>}
                           {isNext && <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">{"다음단계9"}</span>}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{level.sublabel}</p>
@@ -222,7 +222,7 @@ const TrustVerifyModal = ({
                     {!isCompleted && !isLocked && <motion.button whileTap={{
                 scale: 0.97
               }} onClick={() => handleRequest(level.key)} disabled={!!submitting} className={`mt-3 w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${level.key === "basic" ? "bg-muted text-muted-foreground" : `gradient-primary text-primary-foreground shadow-card`} disabled:opacity-60`}>
-                        {submitting === level.key ? <span>{"처리중99"}</span> : level.key === "basic" ? <><Phone size={12} />{"전화번호인"}</> : level.key === "id" ? <><Camera size={12} />{"신분증인증"}<ChevronRight size={12} /></> : <><Camera size={12} />{"얼굴인증요"}<ChevronRight size={12} /></>}
+                        {submitting === level.key ? <span>{"처리중"}</span> : level.key === "basic" ? <><Phone size={12} />{"전화번호인"}</> : level.key === "id" ? <><Camera size={12} />{"신분증인증"}<ChevronRight size={12} /></> : <><Camera size={12} />{"얼굴인증요"}<ChevronRight size={12} /></>}
                       </motion.button>}
                   </motion.div>;
           })}

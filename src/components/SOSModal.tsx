@@ -12,7 +12,7 @@ interface SOSModalProps {
   onClose: () => void;
 }
 const EMERGENCY_CONTACTS = [{
-  name: "경찰청10",
+  name: "경찰청",
   number: "112",
   icon: "🚔"
 }, {
@@ -185,7 +185,7 @@ const SOSModal = ({
                 <button onClick={() => {
             setPhase("warning");
             setCountdown(3);
-          }} className="px-6 py-3 rounded-2xl bg-white/10 text-white text-sm font-bold border border-white/20">{"취소101"}</button>
+          }} className="px-6 py-3 rounded-2xl bg-white/10 text-white text-sm font-bold border border-white/20">{"취소"}</button>
               </div>}
 
             {phase === "sent" && locSent && <motion.div className="bg-[#021a0a] rounded-3xl p-8 text-center border border-emerald-500/40" initial={{
@@ -205,7 +205,7 @@ const SOSModal = ({
                   <Shield size={14} className="text-emerald-400" />
                   <p className="text-xs text-emerald-300">{"Migo가"}</p>
                 </div>
-                <button onClick={onClose} className="w-full py-3.5 rounded-2xl bg-white/10 text-white text-sm font-bold border border-white/20">{"닫기102"}</button>
+                <button onClick={onClose} className="w-full py-3.5 rounded-2xl bg-white/10 text-white text-sm font-bold border border-white/20">{"닫기"}</button>
               </motion.div>}
           </motion.div>
         </motion.div>}

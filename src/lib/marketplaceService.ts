@@ -22,10 +22,10 @@ export interface Package {
 // Helper to standardise fetched data
 const mapToPackage = (d: any): Package => ({
   id: d.id,
-  title: d.title || "무제915",
+  title: d.title || "무제",
   host: d.profiles?.name || d.host || "익명호스트",
   hostAvatar: d.profiles?.photo_url || d.host_avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&q=80",
-  destination: d.destination || "미등록91",
+  destination: d.destination || "미등록",
   category: d.category || 'tour',
   price: d.price || 0,
   duration: d.duration || "상세보기9",

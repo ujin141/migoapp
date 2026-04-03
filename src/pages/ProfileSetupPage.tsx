@@ -40,9 +40,9 @@ const ProfileSetupPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const TRAVEL_STYLES = getArr("travelStyles", ["배낭여행5", "럭셔리52", "자연트레킹", "맛집탐방5", "문화역사5", "휴양호캉스", "사진촬영5", "나이트라이", "쇼핑59", "요가힐링6", "현지체험6", "로드트립6"]);
-  const REGIONS = getArr("regions", ["동남아63", "유럽64", "일본65", "미주캐나다", "중남미67", "중동아프리", "대양주69", "국내70", "중화권71", "인도권72"]);
-  const LANGUAGES = getArr("login.languages", ["한국어73", "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"]);
+  const TRAVEL_STYLES = getArr("travelStyles", ["배낭여행 🎒", "럭셔리 ✈️", "자연/트레킹 🏔️", "맛집탐방 🍜", "문화/역사 🏛️", "해변/휴양 🏖️", "사진촬영 📸", "나이트라이프 🌙", "쇼핑 🛍️", "힐링/요가 🧘", "로컬체험 🎭", "드라이브 🚗"]);
+  const REGIONS = getArr("regions", ["동남아", "유럽", "일본", "미국/캐나다", "중남미", "중동/아프리카", "오세아니아", "국내여행", "중국/대만", "인도"]);
+  const LANGUAGES = getArr("login.languages", ["한국어", "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"]);
   const PERSONALITIES = [{
     id: "planner",
     emoji: "📋",
@@ -119,7 +119,7 @@ const ProfileSetupPage = () => {
 
   // Step 2
   const [regions, setRegions] = useState<string[]>([]);
-  const [languages, setLanguages] = useState<string[]>([t("profileSetup.langDefault", "한국어74")]);
+  const [languages, setLanguages] = useState<string[]>([t("profileSetup.langDefault", "한국어")]);
 
   // Step 3
   const [personality, setPersonality] = useState<string[]>([]);

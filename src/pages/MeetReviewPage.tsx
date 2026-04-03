@@ -253,7 +253,7 @@ const MeetReviewPage = () => {
       if (revData) {
         setReviews(revData.map(r => ({
           id: r.id,
-          reviewerName: r.profiles?.name || "익명94",
+          reviewerName: r.profiles?.name || "익명",
           reviewerPhoto: r.profiles?.photo_url || "",
           rating: r.rating,
           tags: r.tags || [],
@@ -277,7 +277,7 @@ const MeetReviewPage = () => {
             id: p.id,
             name: p.name || "알수없음9",
             photo: p.photo_url || "",
-            destination: p.location || "여행지96",
+            destination: p.location || "여행지",
             meetDate: new Intl.DateTimeFormat('ko-KR').format(new Date(p.created_at)),
             reviewed: false
           })));

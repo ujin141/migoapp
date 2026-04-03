@@ -195,11 +195,11 @@ const GroupCreateModal = ({
                   <div className="flex gap-2">
                     <div className="flex items-center gap-2 flex-1 px-4 py-3 rounded-2xl bg-muted border border-border">
                       <MapPin size={14} className="text-muted-foreground shrink-0" />
-                      <input value={destination} onChange={e => setDestination(e.target.value)} placeholder={"목적지10"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                      <input value={destination} onChange={e => setDestination(e.target.value)} placeholder={"목적지"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                     </div>
                     <div className="flex items-center gap-2 flex-1 px-4 py-3 rounded-2xl bg-muted border border-border">
                       <Calendar size={14} className="text-muted-foreground shrink-0" />
-                      <input value={dates} onChange={e => setDates(e.target.value)} placeholder={"날짜예41"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                      <input value={dates} onChange={e => setDates(e.target.value)} placeholder={"날짜예"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                     </div>
                   </div>
                   <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={"그룹소개및"} rows={3} className="w-full px-4 py-3 rounded-2xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/50 resize-none" />
@@ -232,7 +232,7 @@ const GroupCreateModal = ({
                     addTag();
                   }
                 }} placeholder={"카페트레킹"} className="flex-1 px-4 py-2.5 rounded-2xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground outline-none" />
-                    <button onClick={addTag} className="px-4 py-2.5 rounded-2xl bg-primary/10 text-primary text-xs font-bold">{"추가106"}</button>
+                    <button onClick={addTag} className="px-4 py-2.5 rounded-2xl bg-primary/10 text-primary text-xs font-bold">{"추가"}</button>
                   </div>
                 </div>
 
@@ -242,7 +242,7 @@ const GroupCreateModal = ({
                   <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
                     <div className="flex items-center gap-2 mb-2">
                       <CreditCard size={14} className="text-amber-500" />
-                      <p className="text-sm font-bold text-foreground">{"개설비10"}<span className="text-[10px] text-muted-foreground font-normal">{"호스트결제"}</span></p>
+                      <p className="text-sm font-bold text-foreground">{"개설비"}<span className="text-[10px] text-muted-foreground font-normal">{"호스트결제"}</span></p>
                     </div>
                     <p className="text-[10px] text-muted-foreground mb-3">{"스팸방지및"}</p>
                     <div className="flex gap-2 flex-wrap">
@@ -270,7 +270,7 @@ const GroupCreateModal = ({
                 <motion.button whileTap={{
               scale: 0.97
             }} disabled={saving} onClick={handleSubmit} className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-extrabold flex items-center justify-center gap-2 shadow-float disabled:opacity-60">
-                  {saving ? "저장중10" : creationFee > 0 ? <><Lock size={14} /> {pricingOptions.format(creationFee)}{"결제후공개"}</> : <><Check size={14} />{"무료로그룹"}</>}
+                  {saving ? "저장중" : creationFee > 0 ? <><Lock size={14} /> {pricingOptions.format(creationFee)}{"결제후공개"}</> : <><Check size={14} />{"무료로그룹"}</>}
                 </motion.button>
               </div>
             </motion.div>

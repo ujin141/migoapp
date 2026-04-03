@@ -226,7 +226,7 @@ const DiscoverPage = () => {
 
     setTimeout(() => {
       setShowLightningLoading(false);
-      const me = { name: user.name || "나361", photo: user.photoUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150" };
+      const me = { name: user.name || "나", photo: user.photoUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150" };
       
       if (isVipMode) {
         setLightningMultiResult([
@@ -551,12 +551,12 @@ const DiscoverPage = () => {
         if (!target) return prev;
         return [{
           ...target,
-          time: "방금전35"
+          time: "방금전"
         }, ...prev.filter(p => p.id !== postId)];
       });
       if (detailPost?.id === postId) setDetailPost(prev => prev ? {
         ...prev,
-        time: "방금전35"
+        time: "방금전"
       } : prev);
     } else {
       toast({
@@ -705,7 +705,7 @@ const DiscoverPage = () => {
             id: g.id,
             title: g.title || "",
             destination: g.destination || "",
-            dates: g.dates || "미정357",
+            dates: g.dates || "미정",
             currentMembers: members.length,
             maxMembers: g.max_members || 4,
             tags: g.tags || [],
@@ -754,13 +754,13 @@ const DiscoverPage = () => {
               : 99999,
             // [Feature 2] 채팅 미리보기 (실제 messages 없으므로 mock)
             recentMessages: [{
-              author: g.profiles?.name?.split(' ')?.[0] || "호스트54",
+              author: g.profiles?.name?.split(' ')?.[0] || "호스트",
               text: "일정확정됐",
-              time: "방금전54"
+              time: "방금전"
             }, {
-              author: "멤버544",
+              author: "멤버",
               text: "완전기대됩",
-              time: "5분전54"
+              time: "5분전"
             }]
           };
         });
@@ -889,10 +889,10 @@ const DiscoverPage = () => {
     }
     const newPost: Post = {
       id: data.id,
-      author: userData?.name || "나361",
+      author: userData?.name || "나",
       photo: userData?.photo_url || "",
       content: writeContent,
-      time: "방금전36",
+      time: "방금전",
       likes: 0,
       comments: 0,
       liked: false,
@@ -928,10 +928,10 @@ const DiscoverPage = () => {
     if (error) return;
     const newComment: Comment = {
       id: data.id,
-      author: userData?.name || "나363",
+      author: userData?.name || "나",
       photo: userData?.photo_url || "",
       text: commentText,
-      time: "방금전36"
+      time: "방금전"
     };
     setPosts(prev => prev.map(p => p.id === commentPost.id ? {
       ...p,
@@ -1887,7 +1887,7 @@ const DiscoverPage = () => {
             return <div className="flex items-center gap-1.5 mb-3 flex-wrap">
                     {fillRatio >= 0.75 && <span className="flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full text-white" style={{
                 background: 'linear-gradient(90deg, #f59e0b, #ef4444)'
-              }}>{"인기737"}</span>}
+              }}>{"인기"}</span>}
                     {group.daysLeft <= 3 && <span className="flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
                         ⚡ D-{group.daysLeft}{"마감임박7"}</span>}
                     {group.isPremiumGroup && <span className="flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-400 border border-amber-500/20">{"검증된호스"}</span>}
@@ -1915,13 +1915,13 @@ const DiscoverPage = () => {
                     <p className="text-xs text-muted-foreground">{group.hostName}</p>
                     <span className="text-[9px] text-emerald-400 font-semibold">{"1시간내답"}</span>
                     {/* [Feature 3] 호스트 완주 횟수 배지 */}
-                    {(group as any).hostCompletedGroups > 0 && <span className="text-[9px] font-extrabold text-amber-400">🏆 {(group as any).hostCompletedGroups}{"번완주74"}</span>}
+                    {(group as any).hostCompletedGroups > 0 && <span className="text-[9px] font-extrabold text-amber-400">🏆 {(group as any).hostCompletedGroups}{"번완주"}</span>}
                   </div>
                 </div>
                 {/* 남은 자리 뱃지 */}
                 {(() => {
               const left = group.maxMembers - group.currentMembers;
-              if (left <= 0) return <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-gray-500/15 text-gray-400 shrink-0">{"마감744"}</span>;
+              if (left <= 0) return <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-gray-500/15 text-gray-400 shrink-0">{"마감"}</span>;
               if (left === 1) return <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 shrink-0 animate-pulse">{"1자리남음"}</span>;
               if (left <= 2) return <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20 shrink-0">{left}{"자리남음7"}</span>;
               return null;
@@ -1938,7 +1938,7 @@ const DiscoverPage = () => {
                   <Calendar size={10} /> {group.dates}
                 </span>
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <Users size={10} /> {group.currentMembers}/{group.maxMembers}{"명373"}</span>
+                  <Users size={10} /> {group.currentMembers}/{group.maxMembers}{"명"}</span>
                 <span className="flex items-center gap-1 text-[11px] text-orange-500">
                   <Clock size={10} /> D-{group.daysLeft}
                 </span>
@@ -2005,7 +2005,7 @@ const DiscoverPage = () => {
                       <span className="text-[10px] font-bold" style={{
                   color: fill >= 0.75 ? '#f59e0b' : fill >= 0.5 ? '#6366f1' : '#10b981'
                 }}>
-                        {Math.round(fill * 100)}{"충원753"}</span>
+                        {Math.round(fill * 100)}{"충원"}</span>
                     </div>
                     <div className="h-1 bg-muted rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all" style={{
@@ -2029,7 +2029,7 @@ const DiscoverPage = () => {
               <button onClick={e => {
                 e.stopPropagation();
                 deleteGroup(group.id);
-              }} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 transition-all hover:bg-red-500/20">{"삭제375"}</button> :
+              }} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 transition-all hover:bg-red-500/20">{"삭제"}</button> :
               // 다른 사람 그룹: 지원하기 버튼 (크루 지원 시스템)
               <div className="flex flex-col gap-1.5">
               {user && group.hostId !== user.id && <>
@@ -2046,7 +2046,7 @@ const DiscoverPage = () => {
                     setPaymentGroup(group);
                   }} className="text-xs font-bold px-3 py-1.5 rounded-lg gradient-primary text-primary-foreground shadow-card">{"동행지원하"}</button>}
                   <button onClick={e => handleInterest(group.id, e)} className={`text-[11px] font-bold px-2 py-1 rounded-lg border transition-all ${interestedGroups.has(group.id) ? 'bg-amber-400/15 text-amber-400 border-amber-400/30' : 'bg-muted text-muted-foreground border-border hover:border-amber-400/30 hover:text-amber-400'}`}>
-                    {interestedGroups.has(group.id) ? "관심중75" : "관심있어요"}
+                    {interestedGroups.has(group.id) ? "관심중" : "관심있어요"}
                   </button>
                 </>}
               {user && group.hostId === user.id && <button onClick={e => {
@@ -2063,8 +2063,8 @@ const DiscoverPage = () => {
       {/* ── Community Tab ── */}
       {activeTab === "community" && <div className="px-5 space-y-3 pt-3 pb-24">
           <div className="flex gap-4 border-b border-border/50 pb-2 mb-4">
-            <button onClick={() => setActiveCommunityFilter("latest")} className={`font-bold pb-2 border-b-2 px-1 transition-all ${activeCommunityFilter === "latest" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>{"최신글37"}</button>
-            <button onClick={() => setActiveCommunityFilter("popular")} className={`font-bold pb-2 border-b-2 px-1 transition-all ${activeCommunityFilter === "popular" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>{"인기글37"}</button>
+            <button onClick={() => setActiveCommunityFilter("latest")} className={`font-bold pb-2 border-b-2 px-1 transition-all ${activeCommunityFilter === "latest" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>{"최신글"}</button>
+            <button onClick={() => setActiveCommunityFilter("popular")} className={`font-bold pb-2 border-b-2 px-1 transition-all ${activeCommunityFilter === "popular" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>{"인기글"}</button>
           </div>
           {loadingPosts ? <div className="flex items-center justify-center py-16">
               <motion.div className="w-8 h-8 rounded-full gradient-primary" animate={{
@@ -2189,15 +2189,15 @@ const DiscoverPage = () => {
               <div className="bg-card rounded-2xl p-4 shadow-card mb-4">
                 <div className="grid grid-cols-2 gap-3">
                   {[{
-                label: "목적지38",
+                label: "목적지",
                 value: translateMap[`groupDest_${currentDetail.id}`] || currentDetail.destination,
                 icon: MapPin
               }, {
-                label: "날짜384",
+                label: "날짜",
                 value: currentDetail.dates,
                 icon: Calendar
               }, {
-                label: "인원385",
+                label: "인원",
                 value: t("auto.z_tmpl_386", {
                   defaultValue: t("auto.z_tmpl_770", {
                     defaultValue: t("auto.t5014", {
@@ -2208,7 +2208,7 @@ const DiscoverPage = () => {
                 }),
                 icon: Users
               }, {
-                label: "마감387",
+                label: "마감",
                 value: `D-${currentDetail.daysLeft}`,
                 icon: Clock
               }].map(({
@@ -2252,7 +2252,7 @@ const DiscoverPage = () => {
               <div className="bg-card rounded-2xl p-4 shadow-card mb-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-extrabold text-foreground">{"참여멤버3"}</h3>
-                  <span className="text-xs font-bold text-primary">{currentDetail.currentMembers}/{currentDetail.maxMembers}{"명392"}</span>
+                  <span className="text-xs font-bold text-primary">{currentDetail.currentMembers}/{currentDetail.maxMembers}{"명"}</span>
                 </div>
                 {/* Progress bar */}
                 <div className="w-full h-2 bg-muted rounded-full mb-4">
@@ -2263,7 +2263,7 @@ const DiscoverPage = () => {
                 <div className="space-y-2.5">
                   {currentDetail.memberPhotos.map((photo, idx) => <div key={idx} className="flex items-center gap-3">
                       <img src={photo} alt="" className="w-9 h-9 rounded-full object-cover" loading="lazy" />
-                      <span className="text-sm font-semibold text-foreground">{currentDetail.memberNames[idx] || "멤버393"}</span>
+                      <span className="text-sm font-semibold text-foreground">{currentDetail.memberNames[idx] || "멤버"}</span>
                     </div>)}
                 </div>
               </div>
@@ -2325,7 +2325,7 @@ const DiscoverPage = () => {
                 </p>}
 
               {/* Comments */}
-              <h3 className="text-sm font-extrabold text-foreground mb-3">{"댓글399"}{detailPost.commentList.length}{"개400"}</h3>
+              <h3 className="text-sm font-extrabold text-foreground mb-3">{"댓글"}{detailPost.commentList.length}{"개"}</h3>
               <div className="space-y-3 mb-4">
                 {detailPost.commentList.map(c => <div key={c.id} className="flex items-start gap-2.5">
                     <img src={c.photo} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" loading="lazy" />
@@ -2361,8 +2361,8 @@ const DiscoverPage = () => {
                 <button onClick={() => setShowWriteModal(false)}>
                   <X size={20} className="text-foreground" />
                 </button>
-                <h2 className="text-base font-black text-foreground">{"글작성40"}</h2>
-                <button onClick={handleSubmitPost} className="text-sm font-bold text-primary">{"올리기40"}</button>
+                <h2 className="text-base font-black text-foreground">{"글작성"}</h2>
+                <button onClick={handleSubmitPost} className="text-sm font-bold text-primary">{"올리기"}</button>
               </div>
 
               <input value={writeTitle} onChange={e => setWriteTitle(e.target.value)} placeholder={"제목을입력"} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none mb-3" />
@@ -2431,7 +2431,7 @@ const DiscoverPage = () => {
               </div>
 
               {/* Comments List */}
-              <h3 className="text-sm font-extrabold text-foreground mb-4">{"댓글409"}{detailPost.comments}</h3>
+              <h3 className="text-sm font-extrabold text-foreground mb-4">{"댓글"}{detailPost.comments}</h3>
               <div className="space-y-4">
                 {detailPost.commentList.map(c => <div key={c.id} className="flex items-start gap-3">
                     <img src={c.photo} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" loading="lazy" />
@@ -2517,7 +2517,7 @@ const DiscoverPage = () => {
               joinGroup(paymentGroup);
               setPaymentGroup(null);
             }} className="w-full py-3.5 rounded-2xl bg-muted text-foreground text-sm font-bold">
-                    {method}{"로결제41"}</button>)}
+                    {method}{"로결제"}</button>)}
               </div>
             </motion.div>
           </motion.div>}
@@ -2573,7 +2573,7 @@ const DiscoverPage = () => {
         })} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30 mb-1" />
             <p className="text-[10px] text-muted-foreground text-right mb-4">{applyMessage.length}/200</p>
             <div className="flex gap-3">
-              <button onClick={() => setApplyGroup(null)} className="flex-1 py-3 rounded-2xl bg-muted text-muted-foreground font-semibold text-sm">{"취소810"}</button>
+              <button onClick={() => setApplyGroup(null)} className="flex-1 py-3 rounded-2xl bg-muted text-muted-foreground font-semibold text-sm">{"취소"}</button>
               <button onClick={handleApply} disabled={applySubmitting} className="flex-1 py-3 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm flex items-center justify-center gap-2" style={{
             opacity: applySubmitting ? 0.7 : 1
           }}>
@@ -2604,7 +2604,7 @@ const DiscoverPage = () => {
                         <p className="text-xs text-muted-foreground line-clamp-1">{app.profiles?.bio}</p>
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${app.status === 'approved' ? 'bg-emerald-500/15 text-emerald-400' : app.status === 'rejected' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
-                        {app.status === 'approved' ? "승인816" : app.status === 'rejected' ? "거절817" : "검토중81"}
+                        {app.status === 'approved' ? "승인" : app.status === 'rejected' ? "거절" : "검토중"}
                       </span>
                     </div>
                     <div className="bg-card rounded-xl p-3 mb-3">
@@ -2612,7 +2612,7 @@ const DiscoverPage = () => {
                       <p className="text-sm text-foreground">{app.message}</p>
                     </div>
                     {app.status === 'pending' && <div className="flex gap-2">
-                        <button onClick={() => handleRejectApplicant(app.id)} className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-400 font-bold text-xs border border-red-500/20">{"거절820"}</button>
+                        <button onClick={() => handleRejectApplicant(app.id)} className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-400 font-bold text-xs border border-red-500/20">{"거절"}</button>
                         <button onClick={() => handleApproveApplicant(app.id, app.applicant_id, showApplicants)} className="flex-1 py-2 rounded-xl gradient-primary text-primary-foreground font-bold text-xs">{"동행승인8"}</button>
                       </div>}
                   </div>)}

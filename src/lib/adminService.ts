@@ -157,13 +157,13 @@ export async function fetchAdminPosts() {
     }
     return (d2 || []).map((p: any) => ({
       ...p,
-      authorName: "?곸벉931",
+      authorName: "?곸벉",
       authorPhoto: null
     }));
   }
   return (data || []).map((p: any) => ({
     ...p,
-    authorName: (p.profiles as any)?.name || "?곸벉932",
+    authorName: (p.profiles as any)?.name || "?곸벉",
     authorPhoto: (p.profiles as any)?.photo_url || null
   }));
 }
@@ -221,13 +221,13 @@ export async function fetchAdminGroups() {
     }
     return (d2 || []).map((g: any) => ({
       ...g,
-      hostName: "?곸벉933",
+      hostName: "?곸벉",
       memberCount: 0
     }));
   }
   return (data || []).map((g: any) => ({
     ...g,
-    hostName: (g.profiles as any)?.name || "?곸벉934",
+    hostName: (g.profiles as any)?.name || "?곸벉",
     memberCount: Array.isArray(g.trip_group_members) ? g.trip_group_members.length : 0
   }));
 }
@@ -262,13 +262,13 @@ export async function fetchAdminReports() {
     }
     return (data2 || []).map((r: any) => ({
       ...r,
-      reporterName: r.profiles?.name || "?곸벉935",
+      reporterName: r.profiles?.name || "?곸벉",
       reporterPhoto: r.profiles?.photo_url
     }));
   }
   return (data || []).map((r: any) => ({
     ...r,
-    reporterName: r.reporter?.name || "?곸벉936",
+    reporterName: r.reporter?.name || "?곸벉",
     reporterPhoto: r.reporter?.photo_url
   }));
 }

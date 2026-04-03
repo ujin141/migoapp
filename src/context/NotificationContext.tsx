@@ -69,7 +69,7 @@ export const NotificationProvider = ({
           id: n.id,
           type: n.type,
           actorId: n.actor_id,
-          actor: profileMap[n.actor_id]?.name || "익명946",
+          actor: profileMap[n.actor_id]?.name || "익명",
           actorPhoto: profileMap[n.actor_id]?.photo_url || '',
           target: n.target_text || undefined,
           time: new Intl.DateTimeFormat('ko-KR', {
@@ -95,7 +95,7 @@ export const NotificationProvider = ({
         id: newNotif.id,
         type: newNotif.type,
         actorId: newNotif.actor_id,
-        actor: actorProfile?.name || "익명947",
+        actor: actorProfile?.name || "익명",
         actorPhoto: actorProfile?.photo_url || "",
         target: newNotif.target_text || undefined,
         time: new Intl.DateTimeFormat('ko-KR', {

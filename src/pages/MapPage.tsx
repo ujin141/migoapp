@@ -198,7 +198,7 @@ const MapPage = () => {
           const distKm = me?.lat && me?.lng && p.lat && p.lng ? haversine(me.lat, me.lng, p.lat, p.lng) : null;
           return {
             id: p.id,
-            name: p.name || "유저182",
+            name: p.name || "유저",
             age: p.age || 25,
             photo: p.photo_url || "",
             lat: p.lat ?? null,
@@ -206,13 +206,13 @@ const MapPage = () => {
             distanceKm: distKm,
             distance: distKm != null ? `${distKm.toFixed(1)}km` : t("mapPage.noDistance"),
             bio: p.bio || "자기소개가",
-            destination: p.location || "여행지18",
+            destination: p.location || "여행지",
             dates: "일정미정1",
             tags: p.interests?.slice(0, 3) || [],
             travelStyle: p.interests || [],
-            languages: p.languages || ["한국어18"],
+            languages: p.languages || ["한국어"],
             gender: p.gender || "알수없음1",
-            location: p.location || "서울188",
+            location: p.location || "서울",
             verified: p.verified || false,
             verifyLevel: p.verified ? 'gold' : 'none',
             matchScore: 80 + Math.floor(Math.random() * 20)
@@ -288,7 +288,7 @@ const MapPage = () => {
       supabase.removeChannel(channel);
     };
   }, [user, locationSharing, t]);
-  const tagOptions = ["카페192", "트레킹19", "서핑194", "야시장19", "사진196", "음식197", "건축198", "자연199"];
+  const tagOptions = ["카페", "트레킹", "서핑", "야시장", "사진", "음식", "건축", "자연"];
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
@@ -432,7 +432,7 @@ const MapPage = () => {
                   <div className="absolute w-12 h-12 rounded-full bg-primary/30 animate-pulse" />
                   <div className="relative">
                     {myProfilePhoto || user?.photoUrl ? <img src={myProfilePhoto || user?.photoUrl} alt={t("auto.x4028")} className="w-11 h-11 rounded-full object-cover border-2 border-primary shadow-lg scale-110" /> : <div className="w-11 h-11 rounded-full border-2 border-primary shadow-lg flex items-center justify-center gradient-primary scale-110">
-                        <span className="text-white font-extrabold text-sm">{user?.name?.[0] ?? "나208"}</span>
+                        <span className="text-white font-extrabold text-sm">{user?.name?.[0] ?? "나"}</span>
                       </div>}
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border-2 border-white" />
                   </div>
@@ -491,7 +491,7 @@ const MapPage = () => {
                   <p className="text-xs text-muted-foreground truncate">{selectedTraveler.bio}</p>
                   <p className="text-[10px] text-primary font-medium mt-0.5">📍 {selectedTraveler.distance}</p>
                 </div>
-                <button onClick={() => setProfileDetail(selectedTraveler)} className="px-3 py-1.5 rounded-xl gradient-primary text-primary-foreground text-xs font-semibold shadow-card transition-transform active:scale-95">{"프로필21"}</button>
+                <button onClick={() => setProfileDetail(selectedTraveler)} className="px-3 py-1.5 rounded-xl gradient-primary text-primary-foreground text-xs font-semibold shadow-card transition-transform active:scale-95">{"프로필"}</button>
               </div>
             </motion.div>}
         </AnimatePresence>
@@ -508,7 +508,7 @@ const MapPage = () => {
                 <h4 className="font-bold text-sm text-foreground">{travelers[0].name}</h4>
                 <p className="text-xs text-muted-foreground truncate">{travelers[0].bio}</p>
               </div>
-              <button onClick={() => setProfileDetail(travelers[0])} className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-xs font-semibold shadow-card transition-transform active:scale-95">{"프로필21"}</button>
+              <button onClick={() => setProfileDetail(travelers[0])} className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-xs font-semibold shadow-card transition-transform active:scale-95">{"프로필"}</button>
             </div>
           </div>}
 
@@ -592,14 +592,14 @@ const MapPage = () => {
                   <div className="bg-muted rounded-2xl p-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <MapPin size={13} className="text-primary" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{"여행지21"}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{"여행지"}</span>
                     </div>
                     <p className="text-sm font-bold text-foreground">{profileDetail.destination}</p>
                   </div>
                   <div className="bg-muted rounded-2xl p-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Calendar size={13} className="text-primary" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{"일정213"}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{"일정"}</span>
                     </div>
                     <p className="text-sm font-bold text-foreground">{profileDetail.dates}</p>
                   </div>
@@ -680,7 +680,7 @@ const MapPage = () => {
                 <button onClick={() => {
               setSelectedTags([]);
               setMaxDistance(10);
-            }} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm">{"초기화22"}</button>
+            }} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm">{"초기화"}</button>
                 <button onClick={() => {
               setShowFilter(false);
               toast({
@@ -726,10 +726,10 @@ const MapPage = () => {
               </div>
               <div className="flex items-center gap-4 px-5 py-4">
                 {myProfilePhoto || user?.photoUrl ? <img src={myProfilePhoto || user?.photoUrl} alt={t("auto.x4029")} className="w-16 h-16 rounded-2xl object-cover border-2 border-primary shadow-card" /> : <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center text-white font-extrabold text-2xl">
-                    {user?.name?.[0] ?? "나224"}
+                    {user?.name?.[0] ?? "나"}
                   </div>}
                 <div className="flex-1">
-                  <p className="font-extrabold text-foreground text-base">{user?.name ?? "나225"}</p>
+                  <p className="font-extrabold text-foreground text-base">{user?.name ?? "나"}</p>
                   <p className="text-xs text-muted-foreground">{currentLocationName}</p>
                 </div>
               </div>

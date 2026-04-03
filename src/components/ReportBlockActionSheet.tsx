@@ -126,7 +126,7 @@ const ReportBlockActionSheet: React.FC<Props> = ({
               
               <div className="flex items-center justify-between mb-4">
                 {mode === "report" ? <button onClick={() => setMode("menu")} className="flex items-center gap-1 text-muted-foreground text-sm font-bold">
-                    <ChevronRight size={18} className="rotate-180" />{"뒤로102"}</button> : <h3 className="text-lg font-extrabold text-foreground">
+                    <ChevronRight size={18} className="rotate-180" />{"뒤로"}</button> : <h3 className="text-lg font-extrabold text-foreground">
                     {targetType === "user" ? t("auto.z_tmpl_1025", {
                 defaultValue: t("auto.z_tmpl_1396", {
                   defaultValue: t("auto.z_tmpl_1261", {

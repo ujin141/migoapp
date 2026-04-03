@@ -81,9 +81,9 @@ export const AdminSafetyCheckins = () => {
       {/* Filter */}
       <div className="flex gap-2 mb-4">
         {[
-          { id: "all" as const, label: "전체565" },
+          { id: "all" as const, label: "전체" },
           { id: "sos" as const, label: `🆘 SOS (${sosCount})` },
-          { id: "active" as const, label: "활성828" },
+          { id: "active" as const, label: "활성" },
           { id: "resolved" as const, label: "처리완료" },
         ].map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)}
@@ -130,7 +130,7 @@ export const AdminSafetyCheckins = () => {
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === "resolved" ? "bg-emerald-500/10 text-emerald-400" : "bg-blue-500/10 text-blue-400"}`}>
                         {c.status === "resolved"
                           ? "처리완료"
-                          : "활성828"}
+                          : "활성"}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -174,12 +174,12 @@ export const AdminSafetyCheckins = () => {
               </div>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">{"상태594"}</span>
+                  <span className="text-muted-foreground">{"상태"}</span>
                   <span className={`font-bold ${selected.status === "resolved" ? "text-emerald-400" : selected.is_sos ? "text-red-400" : "text-blue-400"}`}>
                     {selected.status === "resolved"
                       ? "처리완료"
                       : selected.is_sos ? "🆘 SOS"
-                      : "활성828"}
+                      : "활성"}
                   </span>
                 </div>
                 <div className="flex justify-between">

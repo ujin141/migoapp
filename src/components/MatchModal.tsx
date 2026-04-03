@@ -210,7 +210,7 @@ const MatchModal = ({
 
                 {/* 버튼 */}
                 <div className="flex gap-3 pt-1">
-                  <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm hover:bg-muted transition-colors">{"나중에15"}</button>
+                  <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm hover:bg-muted transition-colors">{"나중에"}</button>
                   <motion.button onClick={onChat} whileTap={{
                 scale: 0.97
               }} className={`flex-2 px-6 py-3 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 shadow-card ${isSuperLike ? "bg-gradient-to-r from-blue-500 to-indigo-600" : "gradient-primary text-primary-foreground"}`}>

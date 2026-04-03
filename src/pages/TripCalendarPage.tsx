@@ -201,8 +201,8 @@ const TripCalendarPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const DAYS = getArr("trip.days", ["일8", "월9", "화10", "수11", "목12", "금13", "토14"]);
-  const MONTHS = getArr("trip.months", ["1월15", "2월16", "3월17", "4월18", "5월19", "6월20", "7월21", "8월22", "9월23", "10월24", "11월25", "12월26"]);
+  const DAYS = getArr("trip.days", ["일8", "월9", "화", "수", "목", "금", "토"]);
+  const MONTHS = getArr("trip.months", ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]);
   const navigate = useNavigate();
   const {
     user

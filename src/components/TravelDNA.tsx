@@ -30,16 +30,16 @@ const inferDNA = (profile: any): Record<string, number> => {
   const mbti = profile?.mbti || "";
 
   // 즉흥vs계획 (E=즉흥, J=계획)
-  const spontaneous = mbti.includes("P") ? 75 : mbti.includes("J") ? 30 : travelStyle.some((s: string) => s.includes("즉흥133")) ? 80 : travelStyle.some((s: string) => s.includes("계획133")) ? 25 : 55;
+  const spontaneous = mbti.includes("P") ? 75 : mbti.includes("J") ? 30 : travelStyle.some((s: string) => s.includes("즉흥")) ? 80 : travelStyle.some((s: string) => s.includes("계획")) ? 25 : 55;
 
   // 활동vs여유 (활동적 관심사 기반)
-  const active = interests.some(i => ["하이킹13", "서핑133", "액티비티1", "스포츠13", "트레킹13"].some(k => i.includes(k))) ? 80 : interests.some(i => ["카페134", "여유134", "힐링134", "spa", "휴양134"].some(k => i.includes(k))) ? 25 : 55;
+  const active = interests.some(i => ["하이킹", "서핑", "액티비티1", "스포츠", "트레킹"].some(k => i.includes(k))) ? 80 : interests.some(i => ["카페", "여유", "힐링", "spa", "휴양"].some(k => i.includes(k))) ? 25 : 55;
 
   // 아침vs밤 (MBTI E=조금 더 아침, I=밤)
   const earlyBird = mbti.includes("E") ? 60 : mbti.includes("I") ? 40 : 52;
 
   // 절약vs경험 (budget_range 기반)
-  const budget = profile?.budgetRange === "low" ? 25 : profile?.budgetRange === "high" ? 85 : interests.some(i => ["럭셔리13", "파인다이닝", "비즈니스1"].some(k => i.includes(k))) ? 80 : interests.some(i => ["가성비13", "저예산13", "게스트하우"].some(k => i.includes(k))) ? 20 : 55;
+  const budget = profile?.budgetRange === "low" ? 25 : profile?.budgetRange === "high" ? 85 : interests.some(i => ["럭셔리", "파인다이닝", "비즈니스1"].some(k => i.includes(k))) ? 80 : interests.some(i => ["가성비", "저예산", "게스트하우"].some(k => i.includes(k))) ? 20 : 55;
 
   // 혼자시간vs함께 (I=혼자, E=함께)
   const social = mbti.includes("E") ? 75 : mbti.includes("I") ? 35 : 55;
@@ -57,38 +57,38 @@ const getMatchPct = (a: number, b: number): number => {
 };
 const DIMENSIONS = [{
   key: "spontaneous",
-  label: "즉흥적13",
+  label: "즉흥적",
   emoji: "⚡",
-  labelA: "즉흥135",
-  labelB: "계획135",
+  labelA: "즉흥",
+  labelB: "계획",
   color: "#f59e0b"
 }, {
   key: "active",
-  label: "활동적13",
+  label: "활동적",
   emoji: "🏃",
-  labelA: "액티브13",
-  labelB: "여유135",
+  labelA: "액티브",
+  labelB: "여유",
   color: "#10b981"
 }, {
   key: "earlyBird",
-  label: "아침형13",
+  label: "아침형",
   emoji: "🌅",
-  labelA: "아침형13",
-  labelB: "야행성13",
+  labelA: "아침형",
+  labelB: "야행성",
   color: "#8b5cf6"
 }, {
   key: "budget",
   label: "경험중시1",
   emoji: "💰",
   labelA: "경험중심1",
-  labelB: "절약형13",
+  labelB: "절약형",
   color: "#3b82f6"
 }, {
   key: "social",
-  label: "활발함13",
+  label: "활발함",
   emoji: "👥",
-  labelA: "함께136",
-  labelB: "혼자136",
+  labelA: "함께",
+  labelB: "혼자",
   color: "#ec4899"
 }];
 const TravelDNA = ({
@@ -118,7 +118,7 @@ const TravelDNA = ({
           <span className="ml-auto text-[11px] font-extrabold" style={{
           color: overallMatch >= 80 ? "#10b981" : overallMatch >= 60 ? "#f59e0b" : "#ef4444"
         }}>
-            {overallMatch}{"매칭136"}</span>
+            {overallMatch}{"매칭"}</span>
         </div>
         {dimensions.slice(0, 3).map((d, i) => {
         const match = myDNA ? getMatchPct(d.myScore, d.theirScore) : Math.round(d.theirScore);
@@ -155,7 +155,7 @@ const TravelDNA = ({
           <span className="text-xs font-extrabold text-foreground">{"여행DNA"}</span>
         </div>
         <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-500">
-          <span className="text-xs font-extrabold">--{"일치137"}</span>
+          <span className="text-xs font-extrabold">--{"일치"}</span>
         </div>
       </div>
 
@@ -184,7 +184,7 @@ const TravelDNA = ({
         background: overallMatch >= 80 ? "rgba(16,185,129,0.15)" : overallMatch >= 60 ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)",
         color: overallMatch >= 80 ? "#10b981" : overallMatch >= 60 ? "#f59e0b" : "#ef4444"
       }}>
-          <span className="text-xs font-extrabold">{overallMatch}{"일치137"}</span>
+          <span className="text-xs font-extrabold">{overallMatch}{"일치"}</span>
         </div>
       </div>
 

@@ -833,7 +833,7 @@ const ProfilePage = () => {
                 </div>
                 <div>
                   <label className="text-sm font-bold text-foreground mb-2 flex items-center gap-1">
-                    🛂 {i18n.t("여권120", {
+                    🛂 {i18n.t("여권", {
                   defaultValue: t("auto.x4095")
                 })}
                   </label>

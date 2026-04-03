@@ -156,7 +156,7 @@ const AdminPage = () => {
               {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {pinError && !lockedUntil && <p className="text-xs text-red-400 mb-3 text-center">{"PIN이올"}{MAX_ATTEMPTS - attempts < 0 ? 0 : MAX_ATTEMPTS - Math.min(attempts, MAX_ATTEMPTS)}{"회남음54"}</p>}
+          {pinError && !lockedUntil && <p className="text-xs text-red-400 mb-3 text-center">{"PIN이올"}{MAX_ATTEMPTS - attempts < 0 ? 0 : MAX_ATTEMPTS - Math.min(attempts, MAX_ATTEMPTS)}{"회남음"}</p>}
           {lockedUntil && <p className="text-xs text-red-400 mb-3 text-center">⏳ {lockSecsLeft}{"초후재시도"}</p>}
           <motion.button whileTap={{
           scale: 0.97
@@ -208,7 +208,7 @@ const AdminPage = () => {
     icon: Store
   }, {
     id: "marketing",
-    label: "마케팅55",
+    label: "마케팅",
     icon: Megaphone
   }, {
     id: "verifications",

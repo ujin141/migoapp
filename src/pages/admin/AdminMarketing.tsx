@@ -22,7 +22,7 @@ const formatColor = (f: string) => f === "card" ? "bg-violet-500/10 text-violet-
 
 // ─── Ad status badge ───────────────────────────────────────
 const statusBadge = (s: AdStatus) => s === "active" ? "bg-emerald-500/10 text-emerald-400" : s === "draft" ? "bg-muted text-muted-foreground" : s === "paused" ? "bg-amber-500/10 text-amber-400" : "bg-blue-500/10 text-blue-400";
-const statusLabel = (s: AdStatus) => s === "active" ? "게재중73" : s === "draft" ? "초안733" : s === "paused" ? "일시정지7" : "완료735";
+const statusLabel = (s: AdStatus) => s === "active" ? "게재중" : s === "draft" ? "초안" : s === "paused" ? "일시정지7" : "완료";
 
 // ─── Image Upload Component ────────────────────────────────
 const ImageUpload = ({
@@ -77,7 +77,7 @@ const ImageUpload = ({
         e.stopPropagation();
         inputRef.current?.click();
       }} className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-background/80 text-xs font-semibold">
-            <Upload size={10} />{"교체737"}</button>
+            <Upload size={10} />{"교체"}</button>
         </> : <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
           <ImageIcon size={28} />
           <p className="text-xs font-semibold">{"이미지를드"}</p>
@@ -173,7 +173,7 @@ const CreateAdModal = ({
             }))} className={`text-left p-4 rounded-2xl border-2 transition-all ${form.slot_id === s.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${formatColor(s.format)}`}>
-                        {s.format === "card" ? "카드746" : s.format === "banner" ? "배너747" : s.format === "native" ? "네이티브7" : "전면749"}
+                        {s.format === "card" ? "카드" : s.format === "banner" ? "배너" : s.format === "native" ? "네이티브7" : "전면"}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{s.dimensions}</span>
                     </div>
@@ -195,7 +195,7 @@ const CreateAdModal = ({
               }))} placeholder={"예에어아시"} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"광고주75"}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"광고주"}</label>
                   <input value={form.advertiser} onChange={e => setForm(f => ({
                 ...f,
                 advertiser: e.target.value
@@ -250,14 +250,14 @@ const CreateAdModal = ({
                     </div> : selectedSlot.format === "card" ? <div className="w-48 mx-auto rounded-2xl overflow-hidden border border-border bg-card shadow-card">
                       {imageUrl ? <img src={imageUrl} className="w-full h-32 object-cover" /> : <div className="w-full h-32 bg-muted flex items-center justify-center"><ImageIcon size={20} className="text-muted-foreground" /></div>}
                       <div className="p-3">
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{"광고764"}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{"광고"}</span>
                         <p className="text-xs font-bold text-foreground mt-0.5">{form.headline || "헤드라인7"}</p>
                         <button className="mt-2 w-full py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold">{form.cta_text}</button>
                       </div>
                     </div> : <div className="flex gap-3 items-start">
                       {imageUrl && <img src={imageUrl} className="w-20 h-16 rounded-xl object-cover shrink-0" />}
                       <div>
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{"광고766"}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{"광고"}</span>
                         <p className="text-sm font-bold text-foreground">{form.headline || "헤드라인7"}</p>
                         <p className="text-xs text-muted-foreground">{form.body_text}</p>
                         <span className="text-xs text-primary font-bold mt-1 block">{form.cta_text} →</span>
@@ -271,7 +271,7 @@ const CreateAdModal = ({
               <div>
                 <label className="text-xs font-bold text-muted-foreground mb-2 block">{"타겟성별7"}</label>
                 <div className="flex gap-2">
-                  {[["all", "전체769"], ["male", "남성770"], ["female", "여성771"]].map(([val, label]) => <button key={val} onClick={() => setForm(f => ({
+                  {[["all", "전체"], ["male", "남성"], ["female", "여성"]].map(([val, label]) => <button key={val} onClick={() => setForm(f => ({
                 ...f,
                 target_gender: val
               }))} className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all border ${form.target_gender === val ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>
@@ -280,7 +280,7 @@ const CreateAdModal = ({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-2 block">{"타겟연령7"}{form.target_age_min}{"세773"}{form.target_age_max}{"세774"}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-2 block">{"타겟연령7"}{form.target_age_min}{"세"}{form.target_age_max}{"세"}</label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-[10px] text-muted-foreground mb-1">{"최소연령7"}</p>
@@ -300,14 +300,14 @@ const CreateAdModal = ({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"시작일77"}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"시작일"}</label>
                   <input type="date" value={form.start_date} onChange={e => setForm(f => ({
                 ...f,
                 start_date: e.target.value
               }))} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"종료일77"}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"종료일"}</label>
                   <input type="date" value={form.end_date} onChange={e => setForm(f => ({
                 ...f,
                 end_date: e.target.value
@@ -315,12 +315,12 @@ const CreateAdModal = ({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"총예산77"}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"총예산"}</label>
                 <input type="number" value={form.budget} step={100000} onChange={e => setForm(f => ({
               ...f,
               budget: Number(e.target.value)
             }))} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary" />
-                <p className="text-[10px] text-muted-foreground mt-1">{"일예산78"}{Math.round(form.budget / Math.max(1, Math.ceil((new Date(form.end_date).getTime() - new Date(form.start_date).getTime()) / 86400000))).toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{"일예산"}{Math.round(form.budget / Math.max(1, Math.ceil((new Date(form.end_date).getTime() - new Date(form.start_date).getTime()) / 86400000))).toLocaleString()}</p>
               </div>
               <div>
                 <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"게재상태7"}</label>
@@ -338,14 +338,14 @@ const CreateAdModal = ({
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border flex items-center justify-between">
           <button onClick={() => step > 0 ? setStep(s => s - 1) : onClose()} className="px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">
-            {step === 0 ? "취소784" : "이전785"}
+            {step === 0 ? "취소" : "이전"}
           </button>
           {step < 2 ? <motion.button whileTap={{
           scale: 0.97
-        }} onClick={() => setStep(s => s + 1)} disabled={step === 1 && (!form.title || !form.advertiser)} className="px-5 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-extrabold disabled:opacity-40">{"다음786"}</motion.button> : <motion.button whileTap={{
+        }} onClick={() => setStep(s => s + 1)} disabled={step === 1 && (!form.title || !form.advertiser)} className="px-5 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-extrabold disabled:opacity-40">{"다음"}</motion.button> : <motion.button whileTap={{
           scale: 0.97
         }} onClick={handleCreate} disabled={saving || !form.cta_url} className="px-5 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-extrabold disabled:opacity-40 flex items-center gap-2">
-              {saving ? <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />{"저장중78"}</> : "광고만들기"}
+              {saving ? <><div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />{"저장중"}</> : "광고만들기"}
             </motion.button>}
         </div>
       </motion.div>
@@ -431,7 +431,7 @@ export const AdminMarketing = () => {
   return <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">{"마케팅79"}</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">{"마케팅"}</h1>
           <p className="text-sm text-muted-foreground">{"광고게재위"}</p>
         </div>
         {tab === "ads" && <motion.button whileTap={{
@@ -494,7 +494,7 @@ export const AdminMarketing = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${formatColor(s.format)}`}>
-                        {s.format === "card" ? "카드804" : s.format === "banner" ? "배너805" : s.format === "native" ? "네이티브8" : "전면광고8"}
+                        {s.format === "card" ? "카드" : s.format === "banner" ? "배너" : s.format === "native" ? "네이티브8" : "전면광고8"}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{s.dimensions}</span>
                     </div>
@@ -508,7 +508,7 @@ export const AdminMarketing = () => {
                 <div className="flex items-center gap-2 text-xs">
                   <Smartphone size={11} className="text-muted-foreground" />
                   <span className="text-muted-foreground">{s.app_screen}</span>
-                  <span className="ml-auto text-[10px] font-bold text-primary">{"최대808"}{s.max_active}{"개동시게재"}</span>
+                  <span className="ml-auto text-[10px] font-bold text-primary">{"최대"}{s.max_active}{"개동시게재"}</span>
                 </div>
                 {/* Visual slot preview */}
                 <div className={`mt-3 rounded-xl border border-dashed border-border/50 flex items-center justify-center text-[10px] text-muted-foreground font-semibold
@@ -523,7 +523,7 @@ export const AdminMarketing = () => {
       {tab === "ads" && <div>
           <div className="flex gap-2 mb-4">
             {(["all", "active", "draft", "paused", "completed"] as const).map(f => <button key={f} onClick={() => setAdFilter(f)} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${adFilter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                {f === "all" ? "전체812" : f === "active" ? "게재중81" : f === "draft" ? "초안814" : f === "paused" ? "일시정지8" : "완료816"}
+                {f === "all" ? "전체" : f === "active" ? "게재중" : f === "draft" ? "초안" : f === "paused" ? "일시정지8" : "완료"}
               </button>)}
           </div>
           <div className="space-y-3">
@@ -541,10 +541,10 @@ export const AdminMarketing = () => {
                       <p className="font-bold text-foreground">{a.title}</p>
                       <p className="text-xs text-muted-foreground">{a.advertiser} · {a.start_date} ~ {a.end_date}</p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span>{"노출817"}<b className="text-foreground">{a.impressions.toLocaleString()}</b></span>
-                        <span>{"클릭818"}<b className="text-foreground">{a.clicks.toLocaleString()}</b></span>
+                        <span>{"노출"}<b className="text-foreground">{a.impressions.toLocaleString()}</b></span>
+                        <span>{"클릭"}<b className="text-foreground">{a.clicks.toLocaleString()}</b></span>
                         <span>CTR: <b className={parseFloat(ctr) > 5 ? "text-emerald-400" : "text-foreground"}>{ctr}%</b></span>
-                        <span>{"예산819"}<b className="text-foreground">₩{a.budget.toLocaleString()}</b></span>
+                        <span>{"예산"}<b className="text-foreground">₩{a.budget.toLocaleString()}</b></span>
                       </div>
                       {a.impressions > 0 && <div className="mt-2 flex items-center gap-2">
                           <div className="flex-1 h-1 bg-muted rounded-full">
@@ -552,7 +552,7 @@ export const AdminMarketing = () => {
                       width: `${Math.min(a.budget_spent / a.budget * 100, 100)}%`
                     }} />
                           </div>
-                          <span className="text-[10px] text-muted-foreground">{"예산820"}{Math.round(a.budget_spent / a.budget * 100)}{"소진821"}</span>
+                          <span className="text-[10px] text-muted-foreground">{"예산"}{Math.round(a.budget_spent / a.budget * 100)}{"소진"}</span>
                         </div>}
                     </div>
                     <div className="flex flex-col gap-1.5 shrink-0">
@@ -563,7 +563,7 @@ export const AdminMarketing = () => {
                         </motion.button>}
                       {a.status === "paused" && <motion.button whileTap={{
                   scale: 0.9
-                }} onClick={() => handleStatusChange(a.id, "active")} className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors" title={"재게재82"}>
+                }} onClick={() => handleStatusChange(a.id, "active")} className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors" title={"재게재"}>
                           <Play size={12} />
                         </motion.button>}
                       {a.status === "draft" && <motion.button whileTap={{
@@ -592,10 +592,10 @@ export const AdminMarketing = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="font-bold text-foreground">{a.title}</p>
-                    <p className="text-xs text-muted-foreground">{a.advertiser}{"시작일82"}{a.start_date}</p>
+                    <p className="text-xs text-muted-foreground">{a.advertiser}{"시작일"}{a.start_date}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${a.status === "active" ? "bg-emerald-500/10 text-emerald-400" : a.status === "draft" ? "bg-muted text-muted-foreground" : "bg-blue-500/10 text-blue-400"}`}>
-                    {a.status === "active" ? "활성828" : a.status === "draft" ? "초안829" : "종료830"}
+                    {a.status === "active" ? "활성" : a.status === "draft" ? "초안" : "종료"}
                   </span>
                 </div>
                 <div className="grid grid-cols-4 gap-3">
@@ -603,7 +603,7 @@ export const AdminMarketing = () => {
               label: "도달노출8",
               value: a.impressions.toLocaleString()
             }, {
-              label: "클릭832",
+              label: "클릭",
               value: a.clicks.toLocaleString()
             }, {
               label: "CTR",
@@ -646,14 +646,14 @@ export const AdminMarketing = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <code className="text-sm font-extrabold text-foreground">{p.code}</code>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-muted text-muted-foreground"}`}>{p.is_active ? "활성838" : "비활성83"}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-muted text-muted-foreground"}`}>{p.is_active ? "활성" : "비활성"}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{p.discount}{"만료840"}{new Date(p.expires_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{p.discount}{"만료"}{new Date(p.expires_at).toLocaleDateString()}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex-1 h-1 bg-muted rounded-full"><div className="h-1 rounded-full bg-primary" style={{
                     width: `${(p.used_count || 0) / p.max_limit * 100}%`
                   }} /></div>
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{p.used_count || 0}/{p.max_limit}{"회841"}</span>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{p.used_count || 0}/{p.max_limit}{"회"}</span>
                     </div>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
@@ -687,19 +687,19 @@ export const AdminMarketing = () => {
             <p className="font-extrabold text-foreground mb-5 flex items-center gap-2"><Bell size={16} />{"푸시알림발"}</p>
             <div className="space-y-3 mb-5">
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"대상845"}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"대상"}</label>
                 <select value={pushTarget} onChange={e => setPushTarget(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary">
                   <option>{"전체유저8"}</option><option>{"무료유저8"}</option><option>{"Plus유"}</option>
                   <option>{"비활성유저"}</option><option>{"신규가입7"}</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"제목851"}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"제목"}</label>
                 <input value={pushTitle} onChange={e => setPushTitle(e.target.value)} placeholder={"예봄여행시"} maxLength={50} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary" />
                 <p className="text-right text-[10px] text-muted-foreground mt-1">{pushTitle.length}/50</p>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"내용853"}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{"내용"}</label>
                 <textarea value={pushBody} onChange={e => setPushBody(e.target.value)} rows={3} placeholder={"예지금Mi"} maxLength={150} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary resize-none" />
                 <p className="text-right text-[10px] text-muted-foreground mt-1">{pushBody.length}/150</p>
               </div>
@@ -708,7 +708,7 @@ export const AdminMarketing = () => {
                 <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wide">{"미리보기8"}</p>
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0"><Bell size={14} className="text-white" /></div>
-                  <div><p className="text-sm font-bold text-foreground">{pushTitle || "제목856"}</p><p className="text-xs text-muted-foreground mt-0.5">{pushBody || "내용857"}</p></div>
+                  <div><p className="text-sm font-bold text-foreground">{pushTitle || "제목"}</p><p className="text-xs text-muted-foreground mt-0.5">{pushBody || "내용"}</p></div>
                 </div>
               </div>}
             <AnimatePresence>

@@ -74,7 +74,7 @@ export const AdminPosts = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-foreground">{"커뮤니티글"}</h1>
-          <p className="text-sm text-muted-foreground">{"총682"}{posts.length}{"개실시간D"}</p>
+          <p className="text-sm text-muted-foreground">{"총"}{posts.length}{"개실시간D"}</p>
         </div>
         <motion.button whileTap={{
         scale: 0.95
@@ -107,8 +107,8 @@ export const AdminPosts = () => {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                      {p.pinned && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[9px] font-bold text-primary">{"고정687"}</span>}
-                      {p.hidden && <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-[9px] font-bold text-red-400">{"숨김688"}</span>}
+                      {p.pinned && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[9px] font-bold text-primary">{"고정"}</span>}
+                      {p.hidden && <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-[9px] font-bold text-red-400">{"숨김"}</span>}
                       {p.authorPhoto ? <img src={p.authorPhoto} className="w-5 h-5 rounded-lg object-cover" /> : <div className="w-5 h-5 rounded-lg bg-muted" />}
                       <span className="text-xs text-muted-foreground">{p.authorName}</span>
                       <span className="text-xs text-muted-foreground">·</span>
@@ -128,12 +128,12 @@ export const AdminPosts = () => {
                   <div className="flex flex-col gap-1.5 shrink-0">
                     <motion.button whileTap={{
                 scale: 0.9
-              }} onClick={() => handleTogglePin(p.id, p.pinned)} className={`p-2 rounded-xl transition-colors ${p.pinned ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={p.pinned ? "핀해제68" : "글고정69"}>
+              }} onClick={() => handleTogglePin(p.id, p.pinned)} className={`p-2 rounded-xl transition-colors ${p.pinned ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={p.pinned ? "핀해제" : "글고정"}>
                       <Pin size={14} />
                     </motion.button>
                     <motion.button whileTap={{
                 scale: 0.9
-              }} onClick={() => handleToggleHidden(p.id, p.hidden)} className={`p-2 rounded-xl transition-colors ${p.hidden ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"}`} title={p.hidden ? "숨김해제6" : "글숨김69"}>
+              }} onClick={() => handleToggleHidden(p.id, p.hidden)} className={`p-2 rounded-xl transition-colors ${p.hidden ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"}`} title={p.hidden ? "숨김해제6" : "글숨김"}>
                       {p.hidden ? <Eye size={14} /> : <EyeOff size={14} />}
                     </motion.button>
                     <motion.button whileTap={{

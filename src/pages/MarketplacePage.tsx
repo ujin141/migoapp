@@ -118,7 +118,7 @@ const HostRegistrationModal = ({
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"연락처15"}</label>
+            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"연락처"}</label>
             <input
               value={form.phone}
               onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
@@ -390,7 +390,7 @@ function PackageCard({
               onClick={onBook}
               className="px-3 py-2 rounded-xl gradient-primary text-primary-foreground text-[11px] font-extrabold shadow-card flex items-center gap-1"
             >
-              {"예약175"}<ChevronRight size={11} />
+              {"예약"}<ChevronRight size={11} />
             </motion.button>
           </div>
         </div>

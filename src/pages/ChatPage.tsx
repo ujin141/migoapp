@@ -443,7 +443,7 @@ const ChatPage = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm text-foreground">{thread?.name}</h3>
-                {isMuted && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">{"알림끔47"}</span>}
+                {isMuted && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">{"알림끔"}</span>}
               </div>
               <span className="text-[10px] text-primary font-medium">{thread?.online ? t('chat.online') : "오프라인4"}</span>
             </div>
@@ -597,8 +597,8 @@ const ChatPage = () => {
                       </div>
                       <div>
                         <p className="text-[10px] font-extrabold text-orange-500 mb-0.5">{"만남제안4"}</p>
-                        <p className="text-sm font-bold text-foreground mb-0.5">{msg.text.split('\n')[1]?.replace("날짜493", '') || ""}</p>
-                        <p className="text-xs text-muted-foreground truncate">{msg.text.split('\n')[2]?.replace("장소494", '') || ""}</p>
+                        <p className="text-sm font-bold text-foreground mb-0.5">{msg.text.split('\n')[1]?.replace("날짜", '') || ""}</p>
+                        <p className="text-xs text-muted-foreground truncate">{msg.text.split('\n')[2]?.replace("장소", '') || ""}</p>
                       </div>
                     </div> : msg.text.startsWith("여행일정공") ? <div className="flex gap-3 items-start">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-green-500/20 mt-1">
@@ -606,8 +606,8 @@ const ChatPage = () => {
                       </div>
                       <div className="flex-1">
                         <p className="text-[10px] font-extrabold text-green-500 mb-0.5">{"우리의일정"}</p>
-                        <p className="text-xs font-bold text-foreground mb-1 bg-background/50 inline-block px-2 py-0.5 rounded text-left">{msg.text.split('\n')[1]?.replace("일시497", '')}</p>
-                        <p className="text-sm text-foreground text-left">{msg.text.split('\n').slice(2).join('\n').replace("내용498", '')}</p>
+                        <p className="text-xs font-bold text-foreground mb-1 bg-background/50 inline-block px-2 py-0.5 rounded text-left">{msg.text.split('\n')[1]?.replace("일시", '')}</p>
+                        <p className="text-sm text-foreground text-left">{msg.text.split('\n').slice(2).join('\n').replace("내용", '')}</p>
                       </div>
                     </div> : msg.text}
                   <div className={`flex items-center ${isMe ? "justify-end" : "justify-start"} gap-1 mt-1`}>
@@ -615,7 +615,7 @@ const ChatPage = () => {
                     {isMe && canReadReceipts && <span className={`text-[10px] font-bold flex items-center gap-0.5 ${isLastMine ? "text-primary-foreground/50" : "text-blue-300"}`}>
                         <Check size={9} strokeWidth={3} />
                         <Check size={9} strokeWidth={3} className="-ml-1.5" />
-                        {!isLastMine && <span className="text-[8px]">{"읽음499"}</span>}
+                        {!isLastMine && <span className="text-[8px]">{"읽음"}</span>}
                       </span>}
                   </div>
                 </div>
@@ -631,7 +631,7 @@ const ChatPage = () => {
                 repeat: Infinity,
                 ease: "linear"
               }} /> : <Languages size={10} />}
-                  {isTranslating ? "번역중50" : translated ? "원문보기5" : i18n.t("auto.z_tmpl_502", {
+                  {isTranslating ? "번역중" : translated ? "원문보기5" : i18n.t("auto.z_tmpl_502", {
                 defaultValue: i18n.t("auto.z_tmpl_905", {
                   defaultValue: i18n.t("auto.z_tmpl_805", {
                     defaultValue: `번역 (${LANG_NAMES[targetLang]})`
@@ -661,7 +661,7 @@ const ChatPage = () => {
               }}>
                       <div className="flex items-center gap-1 mb-1">
                         <Languages size={9} className="text-indigo-400" />
-                        <span className="text-[9px] font-bold text-indigo-400">{"번역됨50"}{LANG_NAMES[targetLang]})</span>
+                        <span className="text-[9px] font-bold text-indigo-400">{"번역됨"}{LANG_NAMES[targetLang]})</span>
                       </div>
                       {translated}
                     </motion.div>}
@@ -696,9 +696,9 @@ const ChatPage = () => {
         {/* Quick actions */}
         <div className="flex gap-2 px-4 pb-2 overflow-x-auto scrollbar-hide">
           <button onClick={handleShareLocation} className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground transition-colors hover:bg-border active:scale-95">
-            <MapPin size={12} />{"위치506"}</button>
+            <MapPin size={12} />{"위치"}</button>
           <button onClick={() => setShowMeetProposal(true)} className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground transition-colors hover:bg-border active:scale-95">
-            <Calendar size={12} />{"제안507"}</button>
+            <Calendar size={12} />{"제안"}</button>
           <button onClick={() => setShowScheduleModal(true)} className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground transition-colors hover:bg-border active:scale-95">
             <Map size={12} />{"일정공유5"}</button>
         </div>
@@ -745,11 +745,11 @@ const ChatPage = () => {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-bold text-foreground mb-2 block">{"날짜513"}</label>
+                    <label className="text-sm font-bold text-foreground mb-2 block">{"날짜"}</label>
                     <input type="date" value={meetDate} onChange={e => setMeetDate(e.target.value)} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-foreground mb-2 block">{"장소514"}</label>
+                    <label className="text-sm font-bold text-foreground mb-2 block">{"장소"}</label>
                     <input type="text" value={meetPlace} onChange={e => setMeetPlace(e.target.value)} placeholder={"예카오산로"} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
                   </div>
                   <button onClick={handleMeetProposal} className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-card flex items-center justify-center gap-2 mt-2">
@@ -788,7 +788,7 @@ const ChatPage = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-bold text-foreground mb-2 block">{"언제할까요"}</label>
-                    <input type="text" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} placeholder={"예5월12"} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-green-500/30" />
+                    <input type="text" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} placeholder={"예5월"} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-green-500/30" />
                   </div>
                   <div>
                     <label className="text-sm font-bold text-foreground mb-2 block">{"어떤일정인"}</label>
@@ -827,13 +827,13 @@ const ChatPage = () => {
                 <h3 className="text-lg font-extrabold text-foreground text-center mb-1">{"신고하기5"}</h3>
                 <p className="text-sm text-muted-foreground text-center mb-4">{thread?.name}{"님을신고하"}</p>
                 <div className="space-y-2 mb-4">
-                  {["부적절한언", "스팸광고5", "허위프로필", "불쾌한내용", "기타529"].map(reason => <button key={reason} onClick={() => setReportReason(reason)} className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${reportReason === reason ? "bg-red-500/10 text-red-500 border border-red-500/30" : "bg-muted text-foreground"}`}>
+                  {["부적절한언", "스팸광고5", "허위프로필", "불쾌한내용", "기타"].map(reason => <button key={reason} onClick={() => setReportReason(reason)} className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${reportReason === reason ? "bg-red-500/10 text-red-500 border border-red-500/30" : "bg-muted text-foreground"}`}>
                       {reason}
                     </button>)}
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setShowReportModal(false)} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm">{t('common.cancel')}</button>
-                  <button onClick={handleReport} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm">{"신고530"}</button>
+                  <button onClick={handleReport} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm">{"신고"}</button>
                 </div>
               </motion.div>
             </motion.div>}
@@ -866,7 +866,7 @@ const ChatPage = () => {
                 <p className="text-sm text-muted-foreground mb-6">{"삭제된대화"}</p>
                 <div className="flex gap-3">
                   <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm">{t('common.cancel')}</button>
-                  <button onClick={() => handleDeleteChat(selectedChat)} className="flex-1 py-3 rounded-2xl bg-destructive text-white font-bold text-sm">{"삭제533"}</button>
+                  <button onClick={() => handleDeleteChat(selectedChat)} className="flex-1 py-3 rounded-2xl bg-destructive text-white font-bold text-sm">{"삭제"}</button>
                 </div>
               </motion.div>
             </motion.div>}
@@ -946,7 +946,7 @@ const ChatPage = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <h4 className="font-bold text-sm text-foreground truncate max-w-[150px]">{chat.name}</h4>
-                      {groupChat.isGroup && <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">{"단톡537"}{groupChat.memberCount}{"명538"}</span>}
+                      {groupChat.isGroup && <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">{"단톡"}{groupChat.memberCount}{"명"}</span>}
                     </div>
                     <span className="text-[10px] text-muted-foreground shrink-0">{chat.time}</span>
                   </div>

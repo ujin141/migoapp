@@ -25,7 +25,7 @@ const ProductModal = ({
     destination: "",
     category: "tour",
     price: 0,
-    duration: "1일695",
+    duration: "1일",
     maxPeople: 10,
     currentPeople: 0,
     image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&q=80",
@@ -59,7 +59,7 @@ const ProductModal = ({
         
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"상품명69"}</label>
+            <label className="text-xs font-bold text-muted-foreground mb-1 block">{"상품명"}</label>
             <input value={form.title} onChange={e => setForm({
             ...form,
             title: e.target.value
@@ -72,21 +72,21 @@ const ProductModal = ({
               ...form,
               category: e.target.value
             })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none">
-                <option value="tour">{"투어701"}</option>
+                <option value="tour">{"투어"}</option>
                 <option value="activity">{"액티비티7"}</option>
-                <option value="stay">{"숙소703"}</option>
-                <option value="food">{"맛집704"}</option>
+                <option value="stay">{"숙소"}</option>
+                <option value="food">{"맛집"}</option>
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-muted-foreground mb-1 block">{"가격원70"}</label>
+              <label className="text-xs font-bold text-muted-foreground mb-1 block">{"가격원"}</label>
               <input type="number" value={form.price} onChange={e => setForm({
               ...form,
               price: Number(e.target.value)
             })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none" />
             </div>
             <div>
-              <label className="text-xs font-bold text-muted-foreground mb-1 block">{"목적지70"}</label>
+              <label className="text-xs font-bold text-muted-foreground mb-1 block">{"목적지"}</label>
               <input value={form.destination} onChange={e => setForm({
               ...form,
               destination: e.target.value
@@ -129,7 +129,7 @@ const ProductModal = ({
         </div>
 
         <button onClick={handleSubmit} disabled={saving} className="w-full mt-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl flex justify-center items-center gap-2">
-          {saving ? "저장중71" : <><Save size={18} />{"저장하기7"}</>}
+          {saving ? "저장중" : <><Save size={18} />{"저장하기7"}</>}
         </button>
       </motion.div>
     </div>;
@@ -218,12 +218,12 @@ const AdminMarketplace = () => {
             <table className="w-full text-left">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="p-4 text-xs font-bold text-muted-foreground w-16">{"이미지72"}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground">{"상품명72"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground w-16">{"이미지"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground">{"상품명"}</th>
                   <th className="p-4 text-xs font-bold text-muted-foreground">{"카테고리7"}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground">{"목적지72"}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground text-right">{"가격725"}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground text-right w-24">{"관리726"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground">{"목적지"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground text-right">{"가격"}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground text-right w-24">{"관리"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -239,13 +239,13 @@ const AdminMarketplace = () => {
                       <p className="text-[10px] text-muted-foreground">{item.description.substring(0, 50)}...</p>
                     </td>
                     <td className="p-4 text-xs font-semibold text-muted-foreground">
-                      {item.category === "tour" ? "투어727" : item.category === "stay" ? "숙소728" : item.category === "activity" ? "액티비티7" : "맛집730"}
+                      {item.category === "tour" ? "투어" : item.category === "stay" ? "숙소" : item.category === "activity" ? "액티비티7" : "맛집"}
                     </td>
                     <td className="p-4 text-xs text-muted-foreground flex items-center gap-1 mt-3.5">
                       <MapPin size={12} /> {item.destination}
                     </td>
                     <td className="p-4 text-sm font-bold text-foreground text-right">
-                      {item.price.toLocaleString()}{"원731"}</td>
+                      {item.price.toLocaleString()}{"원"}</td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => {

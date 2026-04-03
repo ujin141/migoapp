@@ -131,8 +131,8 @@ export const AdminVerifications = () => {
   };
   const statusLabels = {
     pending: "심사대기5",
-    approved: "승인558",
-    rejected: "반려559"
+    approved: "승인",
+    rejected: "반려"
   };
   return <div>
       {/* Header */}
@@ -149,7 +149,7 @@ export const AdminVerifications = () => {
       {/* 필터 */}
       <div className="flex gap-2 mb-4">
         {(["pending", "approved", "rejected", "all"] as const).map(f => <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filter === f ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-            {f === "pending" ? "심사대기5" : f === "approved" ? "승인됨56" : f === "rejected" ? "반려됨56" : "전체565"}
+            {f === "pending" ? "심사대기5" : f === "approved" ? "승인됨" : f === "rejected" ? "반려됨" : "전체"}
           </button>)}
       </div>
 
@@ -187,14 +187,14 @@ export const AdminVerifications = () => {
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                     <Eye size={16} className="text-white" />
                   </div>
-                  <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/50 px-1 rounded">{"앞면567"}</span>
+                  <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/50 px-1 rounded">{"앞면"}</span>
                 </button>
                 {rec.back_url && <button onClick={() => setPreview(rec.back_url!)} className="flex-1 h-20 rounded-xl overflow-hidden bg-muted border border-border relative group">
                     <img src={rec.back_url} alt={t("auto.x4005")} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                       <Eye size={16} className="text-white" />
                     </div>
-                    <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/50 px-1 rounded">{"뒷면568"}</span>
+                    <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/50 px-1 rounded">{"뒷면"}</span>
                   </button>}
               </div>
 
@@ -209,9 +209,9 @@ export const AdminVerifications = () => {
             id: rec.id,
             userId: rec.user_id
           })} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-500/10 text-red-500 text-xs font-bold transition-all hover:bg-red-500/20 disabled:opacity-50">
-                    <X size={13} />{"반려570"}</button>
+                    <X size={13} />{"반려"}</button>
                   <button disabled={processing === rec.id} onClick={() => approve(rec)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-xs font-bold transition-all disabled:opacity-50">
-                    <Check size={13} /> {processing === rec.id ? "처리중57" : "승인572"}
+                    <Check size={13} /> {processing === rec.id ? "처리중" : "승인"}
                   </button>
                 </div>}
             </div>)}

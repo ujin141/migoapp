@@ -117,7 +117,7 @@ export const AdminDashboard = () => {
     update: "🆕"
   };
   const statsCards = [{
-    label: "총유저87",
+    label: "총유저",
     value: stats.users.toLocaleString(),
     icon: Users,
     color: "from-violet-500 to-purple-600"
@@ -252,7 +252,7 @@ export const AdminDashboard = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-xs text-foreground truncate font-semibold">{r.reason}</p>
-                    <p className="text-[10px] text-muted-foreground">{"신고자89"}{r.reporterName || "알수없음8"}</p>
+                    <p className="text-[10px] text-muted-foreground">{"신고자"}{r.reporterName || "알수없음8"}</p>
                   </div>
                 </div>)}
           </div>
@@ -313,13 +313,13 @@ export const AdminDashboard = () => {
             <div className="space-y-3">
               <div className="flex gap-2">
                 {(["info", "warning", "update"] as AnnouncementType[]).map(t => <button key={t} onClick={() => setAnnType(t)} className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${annType === t ? typeColors[t] : "bg-muted border-border text-muted-foreground"}`}>
-                    {typeIcons[t]} {t === "info" ? "일반903" : t === "warning" ? "경고904" : "업데이트9"}
+                    {typeIcons[t]} {t === "info" ? "일반" : t === "warning" ? "경고" : "업데이트9"}
                   </button>)}
               </div>
               <input value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder={"공지제목9"} className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
               <textarea value={annContent} onChange={e => setAnnContent(e.target.value)} rows={3} placeholder={"공지내용9"} className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors resize-none" />
               <button onClick={handleCreateAnnouncement} disabled={savingAnn || !annTitle || !annContent} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-extrabold text-sm disabled:opacity-40 transition-opacity">
-                {savingAnn ? "발행중90" : "공지발행하"}
+                {savingAnn ? "발행중" : "공지발행하"}
               </button>
             </div>
           </div>

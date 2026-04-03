@@ -73,8 +73,8 @@ const MatchPage = () => {
   const [filterMbti, setFilterMbti] = useState<string[]>([]);
   const [filterLanguages, setFilterLanguages] = useState<string[]>([]);
   const [filterTravelStyle, setFilterTravelStyle] = useState<string[]>([]);
-  const travelStyleOptions = ["카페106", "트레킹10", "서핑108", "야시장10", "사진110", "음식111", "건축112", "자연113", "럭셔리11", "배낭115"];
-  const languageOptions = ["한국어97", "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
+  const travelStyleOptions = ["카페", "트레킹", "서핑", "야시장", "사진", "음식", "건축", "자연", "럭셔리", "배낭여행"];
+  const languageOptions = ["한국어", "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
   // 활성 필터 총 개수
   const totalActiveFilterCount =
     (filterGender !== 'all' ? 1 : 0) +
@@ -204,8 +204,8 @@ const MatchPage = () => {
             bio: p.bio || "안녕하세요",
             photo: p.photo_url || "",
             photoUrls: p.photo_urls && p.photo_urls.length > 0 ? p.photo_urls : p.photo_url ? [p.photo_url] : [],
-            destination: p.location || "어딘가10",
-            dates: p.travel_dates || "미정101",
+            destination: p.location || "어딘가",
+            dates: p.travel_dates || "미정",
             tags: p.interests || [],
             travelMission: p.travel_mission || undefined,
             userType: p.user_type || 'traveler',
@@ -264,8 +264,8 @@ const MatchPage = () => {
             bio: p.bio || "안녕하세요",
             photo: p.photo_url || '',
             photoUrls: p.photo_urls && p.photo_urls.length > 0 ? p.photo_urls : p.photo_url ? [p.photo_url] : [],
-            destination: p.location || "어딘가10",
-            dates: p.travel_dates || "미정105",
+            destination: p.location || "어딘가",
+            dates: p.travel_dates || "미정",
             tags: p.interests || [],
             travelMission: p.travel_mission || undefined,
             userType: p.user_type || 'traveler',
@@ -369,7 +369,7 @@ const MatchPage = () => {
         const ad = ads[adIdx % ads.length];
         withAds.push({
           id: `ad-${ad.id}-${i}`,
-          name: ad.advertiser || "스폰서12",
+          name: ad.advertiser || "스폰서",
           age: 0,
           gender: "none",
           location: "Sponsored",
@@ -758,7 +758,7 @@ const MatchPage = () => {
       {topProfile && <div className="flex items-center justify-center gap-2 pb-1 relative">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
             <Zap size={12} className="text-primary" />
-            <span className="text-xs font-bold text-primary">{"매칭점수1"}{topProfile.matchScore}{"점131"}</span>
+            <span className="text-xs font-bold text-primary">{"매칭점수1"}{topProfile.matchScore}{"점"}</span>
           </div>
           <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-muted">
             {isPlus ? <Crown size={11} className="text-amber-500" /> : Array.from({
@@ -1122,7 +1122,7 @@ const MatchPage = () => {
                     </motion.div>
                   </div>
                   <div>
-                    <h3 className="text-lg font-extrabold text-white">{pendingSuperProfile.name}{"님께142"}</h3>
+                    <h3 className="text-lg font-extrabold text-white">{pendingSuperProfile.name}{"님께"}</h3>
                     <p className="text-sm font-bold" style={{
                   background: "linear-gradient(90deg, #60a5fa, #a78bfa)",
                   WebkitBackgroundClip: "text",
@@ -1330,13 +1330,13 @@ const MatchPage = () => {
                 <div className="relative">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-wide">
-                      {t("match.filterAge")} <span className="text-primary font-bold">{filterAge[0]}~{filterAge[1]}{"세151"}</span>
+                      {t("match.filterAge")} <span className="text-primary font-bold">{filterAge[0]}~{filterAge[1]}세</span>
                     </p>
                     {!isPlus && <Crown size={14} className="text-amber-500 fill-amber-500" />}
                   </div>
                   <div className={`flex gap-2 flex-wrap ${!isPlus ? "opacity-30 blur-[1px] pointer-events-none" : ""}`}>
                     {[[18, 25], [20, 30], [25, 35], [30, 40], [35, 50], [18, 60]].map(([s, e]) => <button key={`${s}-${e}`} onClick={() => setFilterAge([s, e])} className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${filterAge[0] === s && filterAge[1] === e ? 'gradient-primary text-primary-foreground shadow-card' : 'bg-muted text-muted-foreground'}`}>
-                        {s}~{e}{"세152"}</button>)}
+                        {s}~{e}세</button>)}
                   </div>
                   {!isPlus && <div className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer" onClick={() => setShowPlusModal(true)}>
                       <div className="bg-background/90 px-4 py-2 rounded-full shadow-md flex items-center gap-2 border border-border">

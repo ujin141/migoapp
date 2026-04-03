@@ -168,7 +168,7 @@ export const AdminUsers = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-foreground">{"유저관리5"}</h1>
-          <p className="text-sm text-muted-foreground">{"총585"}{users.length}{"명등록실시"}</p>
+          <p className="text-sm text-muted-foreground">{"총"}{users.length}{"명등록실시"}</p>
         </div>
         <motion.button whileTap={{
         scale: 0.95
@@ -230,7 +230,7 @@ export const AdminUsers = () => {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1">
                           <p className="text-sm font-bold text-foreground truncate">{u.name || "이름없음5"}</p>
-                          {u.banned && <span className="shrink-0 px-1.5 py-0.5 rounded bg-red-500/10 text-[9px] font-bold text-red-400">{"정지597"}</span>}
+                          {u.banned && <span className="shrink-0 px-1.5 py-0.5 rounded bg-red-500/10 text-[9px] font-bold text-red-400">{"정지"}</span>}
                         </div>
                         <p className="text-[10px] text-muted-foreground truncate">{u.email}</p>
                         <p className="text-[10px] text-muted-foreground">{u.nationality || "-"} · {new Date(u.created_at).toLocaleDateString("ko-KR")}</p>
@@ -240,7 +240,7 @@ export const AdminUsers = () => {
                   <td className="px-3 py-3">
                     <div className="flex flex-col gap-1">
                       {u.plan === 'premium' ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-500/10 text-purple-400 w-fit"><Crown size={9} />Premium</span> : u.plan === 'plus' || u.is_plus ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/10 text-amber-400 w-fit"><Crown size={9} />Plus</span> : <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-muted text-muted-foreground w-fit">Free</span>}
-                      {u.verified ? <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold w-fit">{"인증됨59"}</span> : <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold w-fit">{"미인증59"}</span>}
+                      {u.verified ? <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold w-fit">{"인증됨"}</span> : <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold w-fit">{"미인증"}</span>}
                     </div>
                   </td>
                   <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
@@ -298,9 +298,9 @@ export const AdminUsers = () => {
                     <p className="font-extrabold text-foreground">{selectedUser.name || "이름없음6"}</p>
                     <p className="text-xs text-muted-foreground">{selectedUser.email}</p>
                     <div className="flex gap-1.5 mt-1.5">
-                      {selectedUser.verified && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">{"인증됨60"}</span>}
+                      {selectedUser.verified && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">{"인증됨"}</span>}
                       {selectedUser.plan === 'premium' ? <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold">Premium</span> : selectedUser.plan === 'plus' || selectedUser.is_plus ? <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold">Plus</span> : null}
-                      {selectedUser.banned && <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold">{"정지됨61"}</span>}
+                      {selectedUser.banned && <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold">{"정지됨"}</span>}
                     </div>
                   </div>
                 </div>
@@ -314,7 +314,7 @@ export const AdminUsers = () => {
                 label: "여행일정6",
                 value: selectedUser.travel_dates || "-"
               }, {
-                label: "가입일61",
+                label: "가입일",
                 value: new Date(selectedUser.created_at).toLocaleDateString("ko-KR")
               }, {
                 label: "유저ID6",
@@ -339,7 +339,7 @@ export const AdminUsers = () => {
                   <motion.button whileTap={{
                 scale: 0.97
               }} onClick={saveNote} disabled={savingNote} className="w-full mt-2 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold disabled:opacity-50 transition-colors hover:bg-primary/20">
-                    {savingNote ? "저장중61" : "메모저장6"}
+                    {savingNote ? "저장중" : "메모저장6"}
                   </motion.button>
                 </div>
 

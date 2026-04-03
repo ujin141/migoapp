@@ -107,7 +107,7 @@ export default function ProfileViewsModal({
                               {new Intl.DateTimeFormat("ko-KR", {
                         month: "short",
                         day: "numeric"
-                      }).format(new Date(v.created_at))}{" "}{"방문103"}</p>
+                      }).format(new Date(v.created_at))}{" "}{"방문"}</p>
                           </> : <div className="flex items-center gap-1 justify-center mb-1">
                             <Lock size={14} className="text-white" />
                             <span className="text-white font-bold text-xs">{"누군가날봤"}</span>

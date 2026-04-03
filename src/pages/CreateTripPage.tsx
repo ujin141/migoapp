@@ -25,7 +25,7 @@ const popularDestinations = [{
   emoji: "🇮🇩"
 }, {
   name: "Tokyo",
-  country: "일본422",
+  country: "일본",
   emoji: "🇯🇵"
 }, {
   name: "Barcelona",
@@ -40,7 +40,7 @@ const popularDestinations = [{
   country: "Thailand",
   emoji: "🇹🇭"
 }];
-const travelStyles = ["카페424", "야시장42", "트레킹42", "서핑427", "사진428", "음식429", "건축430", "자연431", "예술432", "쇼핑433", "역사434", "모험435"];
+const travelStyles = ["카페", "야시장", "트레킹", "서핑", "사진", "음식", "건축", "자연", "예술", "쇼핑", "역사", "모험"];
 const CreateTripPage = () => {
   const {
     t
@@ -164,7 +164,7 @@ const CreateTripPage = () => {
           <div className="px-5 py-5 space-y-6 pb-32">
             {/* Cover Image */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{"배경사진8"}<span className="text-muted-foreground font-normal text-xs">{"선택842"}</span></label>
+              <label className="text-sm font-bold text-foreground">{"배경사진8"}<span className="text-muted-foreground font-normal text-xs">{"선택"}</span></label>
               <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-muted flex items-center justify-center cursor-pointer border-2 border-dashed border-primary/20 hover:border-primary/50 transition-colors" onClick={() => coverInputRef.current?.click()}>
                 {coverPreview ? <>
                     <img src={coverPreview} alt="cover" className="absolute inset-0 w-full h-full object-cover" />
@@ -235,7 +235,7 @@ const CreateTripPage = () => {
                       <Calendar size={14} className="text-primary shrink-0" />
                       {startDate ? format(startDate, "M월d일4", {
                     locale: ko
-                  }) : "출발일44"}
+                  }) : "출발일"}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -249,7 +249,7 @@ const CreateTripPage = () => {
                       <Calendar size={14} className="text-primary shrink-0" />
                       {endDate ? format(endDate, "M월d일4", {
                     locale: ko
-                  }) : "도착일45"}
+                  }) : "도착일"}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="end">
@@ -261,7 +261,7 @@ const CreateTripPage = () => {
 
             {/* Description */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-foreground">{"설명451"}</label>
+              <label className="text-sm font-bold text-foreground">{"설명"}</label>
               <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={"어떤여행인"} maxLength={300} rows={4} className="w-full bg-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30 transition-shadow leading-relaxed" />
               <span className="text-[10px] text-muted-foreground">{description.length}/300</span>
             </div>
@@ -331,7 +331,7 @@ const CreateTripPage = () => {
                       {n}
                     </button>)}
                 </div>
-                <span className="text-xs text-muted-foreground">{"명461"}</span>
+                <span className="text-xs text-muted-foreground">{"명"}</span>
               </div>
             </div>
 
@@ -357,7 +357,7 @@ const CreateTripPage = () => {
                     <Globe size={20} className={visibility === "public" ? "text-primary-foreground" : "text-muted-foreground"} />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-bold text-foreground">{"공개463"}</p>
+                    <p className="text-sm font-bold text-foreground">{"공개"}</p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{"누구나참여"}</p>
                   </div>
                 </button>
@@ -405,7 +405,7 @@ const CreateTripPage = () => {
             <div className="max-w-lg mx-auto px-5 py-4">
               <button onClick={handleSubmit} disabled={!isValid || loading} className={cn("w-full py-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2", isValid && !loading ? "gradient-primary text-primary-foreground shadow-float active:scale-[0.98]" : "bg-muted text-muted-foreground cursor-not-allowed")}>
                 {loading ? <>
-                    <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />{"생성중46"}</> : "여행그룹만"}
+                    <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />{"생성중"}</> : "여행그룹만"}
               </button>
             </div>
             <div className="h-[env(safe-area-inset-bottom)]" />

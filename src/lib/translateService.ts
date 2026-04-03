@@ -12,7 +12,7 @@ const MAX_CACHE_SIZE = 500; // 최대 500개 캐싱 (메모리 관리)
 
 function getClient(): OpenAI | null {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!apiKey || apiKey.startsWith("여기에91") || apiKey.startsWith("sk-proj-YOUR")) return null;
+  if (!apiKey || apiKey.startsWith("여기에") || apiKey.startsWith("sk-proj-YOUR")) return null;
   if (_client) return _client;
   try {
     _client = new OpenAI({

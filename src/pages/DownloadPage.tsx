@@ -91,7 +91,7 @@ export default function DownloadPage() {
             <span className="text-xs text-muted-foreground truncate max-w-[200px]">{pageUrl}</span>
             <button onClick={handleCopy} className="flex items-center gap-1 text-xs text-primary font-semibold">
               {copied ? <Check size={13} /> : <Copy size={13} />}
-              {copied ? "복사됨50" : "복사509"}
+              {copied ? "복사됨" : "복사"}
             </button>
           </div>
         </motion.div>

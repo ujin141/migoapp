@@ -11,7 +11,7 @@ import { compressImage } from "@/lib/imageCompression";
 
 // ─── Constants ───
 const TRAVEL_STYLES: string[] = []; // loaded inside component
-const LANGUAGES = ["한국어22", "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
+const LANGUAGES = ["한국어", "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
 const REGIONS: string[] = []; // loaded inside component
 const MAX_PHOTOS = 6;
 const NATIONALITIES: string[] = []; // loaded inside component via t()
@@ -93,10 +93,10 @@ const LoginPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const TRAVEL_STYLES = getArr("travelStyles", ["배낭여행2", "럭셔리23", "자연트레킹", "맛집탐방2", "문화역사2", "휴양호캉스", "사진촬영2", "나이트라이", "쇼핑242", "요가힐링2", "현지체험2", "로드트립2"]);
-  const REGIONS = getArr("regions", ["동남아24", "유럽247", "일본248", "미주캐나다", "중남미25", "중동아프리", "대양주25", "국내253", "중화권25", "인도권25"]);
-  const STEP_LABELS_I18N = getArr("login.stepLabels", ["가입정보2", "계정257", "프로필설정", "휴대폰인증", "약관동의2", "완료261"]);
-  const NATIONALITIES = getArr("login.nationalities", ["대한민국2", "미국263", "일본264", "중국265", "영국266", "호주267", "캐나다26"]);
+  const TRAVEL_STYLES = getArr("travelStyles", ["배낭여행2", "럭셔리", "자연트레킹", "맛집탐방2", "문화역사2", "휴양호캉스", "사진촬영2", "나이트라이", "쇼핑", "요가힐링2", "현지체험2", "로드트립2"]);
+  const REGIONS = getArr("regions", ["동남아", "유럽", "일본", "미주캐나다", "중남미", "중동아프리", "대양주", "국내", "중화권", "인도권"]);
+  const STEP_LABELS_I18N = getArr("login.stepLabels", ["가입정보2", "계정", "프로필설정", "휴대폰인증", "약관동의2", "완료"]);
+  const NATIONALITIES = getArr("login.nationalities", ["대한민국2", "미국", "일본", "중국", "영국", "호주", "캐나다"]);
   const PURPOSE_OPTIONS = PURPOSE_OPTIONS_STATIC.map(p => {
     const title = t(p.titleKey);
     const desc = t(p.descKey);
@@ -145,7 +145,7 @@ const LoginPage = () => {
   }>>([]);
   const [bio, setBio] = useState("");
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
-  const [selectedLangs, setSelectedLangs] = useState<string[]>([t("lang.ko") || "한국어26"]);
+  const [selectedLangs, setSelectedLangs] = useState<string[]>([t("lang.ko") || "한국어"]);
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -716,11 +716,11 @@ const LoginPage = () => {
                 <label className="text-xs font-bold text-foreground mb-1.5 block">{"이름실명2"}</label>
                 <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3">
                   <User size={16} className="text-muted-foreground shrink-0" />
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={"홍길동29"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={"홍길동"} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{"이메일29"}</label>
+                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("login.email") || "이메일"}</label>
                 <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3">
                   <Mail size={16} className="text-muted-foreground shrink-0" />
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="hello@lunaticsgroup.com" className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
@@ -728,18 +728,18 @@ const LoginPage = () => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-foreground mb-1.5 block">{"나이292"}</label>
+                  <label className="text-xs font-bold text-foreground mb-1.5 block">{t("login.age") || "나이"}</label>
                   <input type="number" value={age} onChange={e => setAge(e.target.value)} min={18} max={99} placeholder="25" className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-foreground mb-1.5 block">{"성별293"}</label>
+                  <label className="text-xs font-bold text-foreground mb-1.5 block">{"성별"}</label>
                   <div className="flex gap-1.5">
-                    {["남성294", "여성295", "기타296"].map(g => <button key={g} onClick={() => setGender(g)} className={`flex-1 py-3 rounded-2xl text-xs font-bold transition-all ${gender === g ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{g}</button>)}
+                    {["남성", "여성", "기타"].map(g => <button key={g} onClick={() => setGender(g)} className={`flex-1 py-3 rounded-2xl text-xs font-bold transition-all ${gender === g ? "gradient-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{g}</button>)}
                   </div>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{"국적표시용"}</label>
+                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("login.nationality") || "국적"}</label>
                 <select value={nationality} onChange={e => setNationality(e.target.value)} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none bg-none">
                   {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
@@ -847,7 +847,7 @@ const LoginPage = () => {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">{"전화번호인"}</p>
-                    <p className="text-xs text-muted-foreground">{phoneCountry} {phone}{"인증됨30"}</p>
+                    <p className="text-xs text-muted-foreground">{phoneCountry} {phone}{"인증됨"}</p>
                   </div>
                 </motion.div>}
 
@@ -902,7 +902,7 @@ const LoginPage = () => {
             key: "age",
             value: agreeAge,
             set: setAgreeAge,
-            label: "필수만18",
+            label: "필수만",
             sub: "Migo는",
             required: true
           }, {
@@ -959,13 +959,13 @@ const LoginPage = () => {
               {/* 프로필 사진 최대 6장 */}
               <div>
                 <label className="text-xs font-bold text-foreground mb-2 block">{"프로필사진"}{" "}
-                  <span className="text-red-500 font-bold text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded-full">{"필수321"}</span>{" "}
-                  <span className="text-muted-foreground font-normal">({profilePhotos.length}/{MAX_PHOTOS}{"장322"}</span>
+                  <span className="text-red-500 font-bold text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded-full">{"필수"}</span>{" "}
+                  <span className="text-muted-foreground font-normal">({profilePhotos.length}/{MAX_PHOTOS}{"장"}</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {profilePhotos.map((photo, idx) => <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-border">
                       <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                      {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">{"대표323"}</div>}
+                      {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">{"대표"}</div>}
                       <button onClick={() => removePhoto(idx)} className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center">
                         <X size={10} className="text-white" />
                       </button>

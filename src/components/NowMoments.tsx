@@ -32,7 +32,7 @@ const DEMO_NOW_CARDS: NowCard[] = [{
   name: "Sarah",
   photo: "",
   age: 26,
-  location: "시부야14",
+  location: "시부야",
   activity: "라멘같이먹",
   expiresAt: Date.now() + 5400000,
   emoji: "🍜",
@@ -41,7 +41,7 @@ const DEMO_NOW_CARDS: NowCard[] = [{
 }, {
   id: "now2",
   userId: "u2",
-  name: "현준141",
+  name: "현준",
   photo: "",
   age: 29,
   location: "도톤보리1",
@@ -56,7 +56,7 @@ const DEMO_NOW_CARDS: NowCard[] = [{
   name: "Emma",
   photo: "",
   age: 24,
-  location: "홍대141",
+  location: "홍대",
   activity: "카페아는곳",
   expiresAt: Date.now() + 7200000,
   emoji: "☕",
@@ -68,7 +68,7 @@ const DEMO_NOW_CARDS: NowCard[] = [{
   name: "はる",
   photo: "",
   age: 27,
-  location: "강남141",
+  location: "강남",
   activity: "맛집같이가",
   expiresAt: Date.now() + 1200000,
   emoji: "🍣",
@@ -80,7 +80,7 @@ const DEMO_NOW_CARDS: NowCard[] = [{
   name: "Alex",
   photo: "",
   age: 31,
-  location: "이태원14",
+  location: "이태원",
   activity: "치맥같이해",
   expiresAt: Date.now() + 10800000,
   emoji: "🍺",
@@ -99,7 +99,7 @@ function useCountdown(expiresAt: number) {
   const totalMs = 7200000;
   const pct = Math.round(remaining / totalMs * 100);
   const m = Math.floor(remaining / 60000);
-  const label = remaining <= 0 ? "만료142" : m > 60 ? `${Math.floor(m / 60)}h` : `${m}m`;
+  const label = remaining <= 0 ? "만료" : m > 60 ? `${Math.floor(m / 60)}h` : `${m}m`;
   return {
     label,
     pct,
@@ -162,7 +162,7 @@ const StoryAvatar = ({
       </div>
 
       {/* 이름 */}
-      <p className="text-[10px] font-bold text-foreground truncate w-full text-center">{isMe ? "올리기14" : card.name}</p>
+      <p className="text-[10px] font-bold text-foreground truncate w-full text-center">{isMe ? "올리기" : card.name}</p>
 
       {/* 거리 or 타이머 */}
       {!isMe && <p className="text-[9px] font-semibold truncate w-full text-center" style={{
@@ -279,14 +279,14 @@ const NowDetailSheet = ({
         {/* 지도 버튼 */}
         {(mapsUrl || naverUrl) && <div className="grid grid-cols-2 gap-2 mb-3">
             {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-muted border border-border text-xs font-bold text-foreground">
-                <ExternalLink size={12} />{"길찾기14"}</a>}
+                <ExternalLink size={12} />{"길찾기"}</a>}
             {naverUrl && <a href={naverUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-muted border border-border text-xs font-bold text-foreground">
                 <Map size={12} />{"중간지점1"}</a>}
           </div>}
 
         {/* CTA */}
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-border text-sm font-semibold text-foreground">{"닫기142"}</button>
+          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-border text-sm font-semibold text-foreground">{"닫기"}</button>
           <motion.button whileTap={{
           scale: 0.97
         }} onClick={onMeet} className="flex-1 py-3 rounded-2xl text-white text-sm font-extrabold flex items-center justify-center gap-2" style={{
@@ -408,7 +408,7 @@ const NowMoments = ({
     setMyCard({
       id: `now_me_${Date.now()}`,
       userId: currentUserId || "me",
-      name: "나1434",
+      name: "나4",
       photo: "",
       location: data.location,
       activity: data.activity,
@@ -425,7 +425,7 @@ const NowMoments = ({
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-[11px] font-extrabold text-foreground">{"지금여기있"}</span>
           <span className="text-[10px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 ml-0.5">
-            {sortedCards.length}{"명1436"}</span>
+            {sortedCards.length}{"명6"}</span>
         </div>
         <span className="text-[9px] text-muted-foreground">{"가까운순1"}</span>
       </div>
@@ -439,7 +439,7 @@ const NowMoments = ({
         <StoryAvatar isMe card={{
         id: "me",
         userId: "me",
-        name: "올리기14",
+        name: "올리기",
         photo: "",
         location: "",
         activity: "",

@@ -246,7 +246,7 @@ const PaymentModal = ({
                         <Sparkles size={12} className="text-amber-500 shrink-0" />
                         <p className="text-[11px] text-amber-600">
                           <span className="font-bold">Migo Plus</span>{i18n.t("auto.z_구독시_45d511", {defaultValue:" - "})}
-                          <span className="font-extrabold">{getLocalizedPrice(Math.round(originalKrw * 0.5 / 100) * 100, i18n.language)}</span> {i18n.t("auto.z_으로50_78818a", {defaultValue:"(50% OFF)"})}
+                          <span className="font-extrabold">{getLocalizedPrice(Math.round(originalKrw * 0.5 / 100) * 100, i18n.language)}</span> {i18n.t("auto.z_으로_78818a", {defaultValue:"(50% OFF)"})}
                         </p>
                       </div>}
                   </div>
