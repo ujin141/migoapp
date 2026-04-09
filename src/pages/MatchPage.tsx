@@ -703,7 +703,6 @@ const MatchPage = () => {
 
       {/* Header */}
       <TopHeader
-        pageGuideType="match"
         activeCheckIn={activeCheckIn}
         onCheckInClick={() => setShowCheckInModal(true)}
         filterCount={totalActiveFilterCount}

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { App as CapApp } from "@capacitor/app";
@@ -122,12 +122,23 @@ const AppContent = () => {
   // EULA 동의 상태
   const [showEula, setShowEula] = useState(false);
   const [eulaScrolled, setEulaScrolled] = useState(false);
+  const eulaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user && !localStorage.getItem('migo_eula_agreed')) {
       setShowEula(true);
     }
   }, [user]);
+
+  // 콘텐츠가 스크롤 없이 다 보일 때 자동 활성화
+  useEffect(() => {
+    if (showEula && eulaRef.current) {
+      const el = eulaRef.current;
+      if (el.scrollHeight <= el.clientHeight + 10) {
+        setEulaScrolled(true);
+      }
+    }
+  }, [showEula]);
 
   useEffect(() => {
     if (showInitialSplash) {
@@ -322,6 +333,7 @@ const AppContent = () => {
             <h2 className="text-lg font-bold text-foreground">이용약관 동의</h2>
             <p className="text-sm text-muted-foreground">Migo를 이용하기 전에 아래 약관에 동의해주세요.</p>
             <div
+              ref={eulaRef}
               onScroll={(e) => {
                 const el = e.currentTarget;
                 if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) setEulaScrolled(true);

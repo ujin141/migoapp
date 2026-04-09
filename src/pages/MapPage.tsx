@@ -941,7 +941,6 @@ const MapPage = () => {
 
   return <div className="h-screen flex flex-col bg-background safe-bottom relative overflow-hidden text-foreground">
       <TopHeader
-        pageGuideType="map"
         filterCount={displayMode === "groups" ? groupDetailFilterCount : selectedTags.length}
         onFilterClick={() => {
           if (displayMode === "groups") {

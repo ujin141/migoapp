@@ -1,9 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Bell, MapPin, Navigation, ShoppingBag, SlidersHorizontal } from "lucide-react";
+import { Bell, MapPin, Navigation, Settings, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import siteLogo from "@/assets/site-logo.png";
-import PageGuide from "@/components/PageGuide";
 import { CheckIn } from "@/lib/checkInService";
 import { useNotifications } from "@/context/NotificationContext";
 
@@ -13,7 +12,6 @@ interface TopHeaderProps {
   onCheckInClick?: () => void;
   filterCount?: number;
   onFilterClick?: () => void;
-  pageGuideType: "match" | "map" | "community" | "chat" | "profile" | "admin" | "other";
 }
 
 export default function TopHeader({
@@ -22,7 +20,6 @@ export default function TopHeader({
   onCheckInClick,
   filterCount = 0,
   onFilterClick,
-  pageGuideType
 }: TopHeaderProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -32,7 +29,6 @@ export default function TopHeader({
     <header className={className}>
       <div className="flex items-center gap-1 sm:gap-2 pointer-events-auto shrink min-w-0 max-w-[50%]">
         <img src={siteLogo} alt="Migo" className="h-6 sm:h-8 object-contain shrink-0" loading="lazy" />
-        <PageGuide page={pageGuideType as any} />
         {/* GPS 체크인 필 */}
         <button
           onClick={onCheckInClick}
@@ -68,6 +64,10 @@ export default function TopHeader({
         <button onClick={onFilterClick} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-muted flex items-center justify-center relative transition-transform active:scale-90">
           <SlidersHorizontal size={13} className={filterCount > 0 ? "text-primary" : "text-muted-foreground"} />
           {filterCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full gradient-primary flex items-center justify-center text-[8px] font-bold text-primary-foreground">{filterCount}</span>}
+        </button>
+        {/* 설정 */}
+        <button onClick={() => navigate("/settings")} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-90">
+          <Settings size={13} className="text-muted-foreground" />
         </button>
       </div>
     </header>

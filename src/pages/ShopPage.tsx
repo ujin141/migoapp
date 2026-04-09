@@ -90,7 +90,12 @@ const ShopPage = () => {
     isPlus,
     isPremium,
     upgradePlus,
-    addBoosts
+    addBoosts,
+    addSuperLikes,
+    purchaseVerifiedBadge,
+    purchaseProfileTheme,
+    purchaseNearbyUnlock,
+    purchaseTravelPack,
   } = useSubscription();
   const [tab, setTab] = useState<"plans" | "items">("plans");
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -199,24 +204,40 @@ const ShopPage = () => {
     icon: <MapPin size={24} className="text-orange-400" />,
     color: "bg-orange-500/10 border-orange-400/30"
   }];
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     const name = selectedPlan?.name ?? selectedItem?.name ?? "";
-    setPurchaseSuccess(name);
-    if (selectedPlan?.id === "plus") {
-      upgradePlus("plus");
-    } else if (selectedPlan?.id === "premium") {
-      upgradePlus("premium");
-    } else if (selectedItem?.id === "boost_1") {
-      addBoosts(1);
-    } else if (selectedItem?.id === "boost_5") {
-      addBoosts(5);
+    try {
+      if (selectedPlan?.id === "plus") {
+        await upgradePlus("plus");
+      } else if (selectedPlan?.id === "premium") {
+        await upgradePlus("premium");
+      } else if (selectedItem?.id === "boost_1") {
+        await addBoosts(1);
+      } else if (selectedItem?.id === "boost_5") {
+        await addBoosts(5);
+      } else if (selectedItem?.id === "superlike_5") {
+        await addSuperLikes(5);
+      } else if (selectedItem?.id === "superlike_15") {
+        await addSuperLikes(15);
+      } else if (selectedItem?.id === "verified_badge") {
+        await purchaseVerifiedBadge();
+      } else if (selectedItem?.id === "profile_theme") {
+        await purchaseProfileTheme();
+      } else if (selectedItem?.id === "nearby_unlock") {
+        await purchaseNearbyUnlock();
+      } else if (selectedItem?.id === "travel_pack") {
+        await purchaseTravelPack();
+      }
+      setPurchaseSuccess(name);
+      toast({
+        title: t("auto.t_0022", `✅ ${name} 구매 완료!`),
+        description: i18n.t("auto.z_\uC2E4\uC81C\uACC4\uC815\uC774\uC5C5\uADF8\uB808\uC774\uB4DC_82", "\uC2E4\uC81C\uACC4\uC815\uC774\uC5C5\uADF8\uB808\uC774\uB4DC")
+      });
+    } catch (e) {
+      toast({ title: "구매 실패", variant: "destructive" });
     }
     setSelectedPlan(null);
     setSelectedItem(null);
-    toast({
-      title: t("auto.t_0022", `✅ ${name} 구매 완료!`),
-      description: i18n.t("auto.z_\uC2E4\uC81C\uACC4\uC815\uC774\uC5C5\uADF8\uB808\uC774\uB4DC_82", "\uC2E4\uC81C\uACC4\uC815\uC774\uC5C5\uADF8\uB808\uC774\uB4DC")
-    });
     setTimeout(() => setPurchaseSuccess(null), 3000);
   };
   return <div className="flex flex-col min-h-screen bg-background safe-bottom">

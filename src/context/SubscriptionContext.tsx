@@ -15,36 +15,49 @@ interface SubscriptionContextType {
   dailyDmCount: number;
   maxDailyDm: number;
   canSendDm: boolean;
+  // 아이템 구매 상태
+  hasVerifiedBadge: boolean;
+  hasProfileTheme: boolean;
+  nearbyUnlockedUntil: Date | null;
   upgradePlus: (plan?: 'plus' | 'premium') => void;
   startBoost: () => void;
   addBoosts: (amount: number) => void;
+  addSuperLikes: (amount: number) => Promise<void>;
   consumeSuperLike: (toUserId?: string) => Promise<boolean>;
   consumeDm: () => boolean;
+  purchaseVerifiedBadge: () => Promise<void>;
+  purchaseProfileTheme: () => Promise<void>;
+  purchaseNearbyUnlock: () => Promise<void>;
+  purchaseTravelPack: () => Promise<void>;
   // Plus 전용 기능 게이팅
-  canGlobalMatch: boolean;       // 글로벌 전세계 여행자 매칭
-  canViewLikers: boolean;        // 나를 좋아한 사람 목록 보기
-  canNowFeatured: boolean;       // 지금여기있어요 최상단 고정
-  canReadReceipts: boolean;      // 채팅 읽음 확인
-  canHideLocation: boolean;      // 위치 숨기기
-  canTravelDNAFull: boolean;     // 여행 DNA 상세 리포트
+  canGlobalMatch: boolean;
+  canViewLikers: boolean;
+  canNowFeatured: boolean;
+  canReadReceipts: boolean;
+  canHideLocation: boolean;
+  canTravelDNAFull: boolean;
   // Premium 전용 기능 게이팅
-  canJoinPremiumGroups: boolean; // 프리미엄 그룹 참여
-  canPriorityPassport: boolean;  // 여권 인증 자동 처리 우선순위
-  canUnlimitedAITrip: boolean;   // AI 여행 일정 생성 무제한
-  canHighlightReviewBadge: boolean; // 동행 완료 리뷰 뱃지 강조
-  canPremiumTheme: boolean;      // 프리미엄 프로필 테마
-  canDedicatedSupport: boolean;  // 전담 고객 지원
+  canJoinPremiumGroups: boolean;
+  canPriorityPassport: boolean;
+  canUnlimitedAITrip: boolean;
+  canHighlightReviewBadge: boolean;
+  canPremiumTheme: boolean;
+  canDedicatedSupport: boolean;
   // 채팅 열람 제한
-  maxChatThreads: number;        // 열람 가능 채팅방 수 (무료3/Plus20/Premium무제한)
-  openedThreadCount: number;     // 현재 열람한 채팅방 수
-  canOpenChat: (threadId: string) => boolean; // 해당 채팅방 열 수 있는지 확인
-  trackOpenedThread: (threadId: string) => void; // 채팅방 열람 추적
+  maxChatThreads: number;
+  openedThreadCount: number;
+  canOpenChat: (threadId: string) => boolean;
+  trackOpenedThread: (threadId: string) => void;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   isPlus: false, isPremium: false, boostActive: false, boostSecondsLeft: 0, boostsCount: 0,
   superLikesLeft: 0, maxSuperLikes: 0, dailyDmCount: 0, maxDailyDm: 10, canSendDm: true,
-  upgradePlus: () => {}, startBoost: () => {}, addBoosts: () => {}, consumeSuperLike: async () => false, consumeDm: () => false,
+  hasVerifiedBadge: false, hasProfileTheme: false, nearbyUnlockedUntil: null,
+  upgradePlus: () => {}, startBoost: () => {}, addBoosts: () => {},
+  addSuperLikes: async () => {}, consumeSuperLike: async () => false, consumeDm: () => false,
+  purchaseVerifiedBadge: async () => {}, purchaseProfileTheme: async () => {},
+  purchaseNearbyUnlock: async () => {}, purchaseTravelPack: async () => {},
   canGlobalMatch: false, canViewLikers: false, canNowFeatured: false,
   canReadReceipts: false, canHideLocation: false, canTravelDNAFull: false,
   canJoinPremiumGroups: false,
@@ -68,6 +81,10 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [boostsCount, setBoostsCount] = useState(0);
   const [superLikesLeft, setSuperLikesLeft] = useState(0);
   const [dailyDmCount, setDailyDmCount] = useState(0);
+  // 아이템 구매 상태
+  const [hasVerifiedBadge, setHasVerifiedBadge] = useState(false);
+  const [hasProfileTheme, setHasProfileTheme] = useState(false);
+  const [nearbyUnlockedUntil, setNearbyUnlockedUntil] = useState<Date | null>(null);
   // 열람한 채팅방 ID 목록 (localStorage 영속)
   const [openedThreads, setOpenedThreads] = useState<Set<string>>(() => {
     try {
@@ -102,13 +119,19 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   // ── DB에서 구독상태 + 아이템 잔량 로드 ──────────────────────────────────
   useEffect(() => {
     if (!user) return;
-    // profiles에서 구독 플랜 로드
+    // profiles에서 구독 플랜 + 아이템 구매 상태 로드
     supabase
       .from("profiles")
-      .select("is_plus, boosts_count, plan, plus_expires_at")
+      .select("is_plus, boosts_count, plan, plus_expires_at, has_badge, profile_theme, nearby_expires_at")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
+        if (data?.has_badge) setHasVerifiedBadge(true);
+        if (data?.profile_theme === 'premium') setHasProfileTheme(true);
+        if (data?.nearby_expires_at) {
+          const exp = new Date(data.nearby_expires_at);
+          if (exp > new Date()) setNearbyUnlockedUntil(exp);
+        }
         const now = new Date();
         const expiresAt = data?.plus_expires_at ? new Date(data.plus_expires_at) : null;
         const isExpired = expiresAt && expiresAt < now;
@@ -196,7 +219,6 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const addBoosts = useCallback(async (amount: number) => {
     setBoostsCount(prev => prev + amount);
     if (user) {
-      // 최신 boostsCount를 읽기 위해 DB에서 현재 값을 가져온 후 업데이트
       const { data: itemData } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
       const currentBoosts = itemData?.boosts ?? 0;
       await supabase.from("user_items").upsert({
@@ -204,6 +226,38 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       }, { onConflict: 'user_id' });
     }
   }, [user]);
+
+  const addSuperLikes = useCallback(async (amount: number) => {
+    setSuperLikesLeft(prev => prev + amount);
+    if (user) {
+      const { data: itemData } = await supabase.from("user_items").select("super_likes").eq("user_id", user.id).maybeSingle();
+      const current = itemData?.super_likes ?? 0;
+      await supabase.from("user_items").upsert({
+        user_id: user.id, super_likes: current + amount
+      }, { onConflict: 'user_id' });
+    }
+  }, [user]);
+
+  const purchaseVerifiedBadge = useCallback(async () => {
+    setHasVerifiedBadge(true);
+    if (user) await supabase.from("profiles").update({ has_badge: true }).eq("id", user.id);
+  }, [user]);
+
+  const purchaseProfileTheme = useCallback(async () => {
+    setHasProfileTheme(true);
+    if (user) await supabase.from("profiles").update({ profile_theme: 'premium' }).eq("id", user.id);
+  }, [user]);
+
+  const purchaseNearbyUnlock = useCallback(async () => {
+    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    setNearbyUnlockedUntil(expires);
+    if (user) await supabase.from("profiles").update({ nearby_expires_at: expires.toISOString() }).eq("id", user.id);
+  }, [user]);
+
+  const purchaseTravelPack = useCallback(async () => {
+    await addSuperLikes(10);
+    await addBoosts(1);
+  }, [addSuperLikes, addBoosts]);
 
   const boostIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -271,22 +325,21 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       isPlus, isPremium, boostActive, boostSecondsLeft, boostsCount,
       superLikesLeft, maxSuperLikes,
       dailyDmCount, maxDailyDm, canSendDm,
-      upgradePlus, startBoost, addBoosts, consumeSuperLike, consumeDm,
-      // Plus 전용 기능 (모두 isPlus에 연동)
+      hasVerifiedBadge, hasProfileTheme, nearbyUnlockedUntil,
+      upgradePlus, startBoost, addBoosts, addSuperLikes, consumeSuperLike, consumeDm,
+      purchaseVerifiedBadge, purchaseProfileTheme, purchaseNearbyUnlock, purchaseTravelPack,
       canGlobalMatch: isPlus,
       canViewLikers: isPlus,
       canNowFeatured: isPlus,
       canReadReceipts: isPlus,
       canHideLocation: isPlus,
       canTravelDNAFull: isPlus,
-      // Premium 전용 기능
       canJoinPremiumGroups: isPremium,
       canPriorityPassport: isPremium,
       canUnlimitedAITrip: isPremium,
       canHighlightReviewBadge: isPremium,
-      canPremiumTheme: isPremium,
+      canPremiumTheme: isPremium || hasProfileTheme,
       canDedicatedSupport: isPremium,
-      // 채팅 열람 제한
       maxChatThreads,
       openedThreadCount,
       canOpenChat,

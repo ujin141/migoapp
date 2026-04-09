@@ -75,7 +75,11 @@ CREATE TABLE IF NOT EXISTS profiles (
   admin_note            TEXT,
   is_banned             BOOLEAN DEFAULT false,
   ban_reason            TEXT,
-  banned_until          TIMESTAMPTZ
+  banned_until          TIMESTAMPTZ,
+  -- 쇼핑 아이템 구매 상태
+  has_badge             BOOLEAN DEFAULT false,
+  profile_theme         TEXT DEFAULT 'default',
+  nearby_expires_at     TIMESTAMPTZ
 );
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_select"     ON profiles;
@@ -1963,3 +1967,9 @@ SELECT cron.schedule(
 );
 */
 
+-- ============================================================
+-- ★ MIGRATION: 쇼핑 아이템 구매 상태 컬럼 추가 (기존 DB 적용)
+-- ============================================================
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_badge         BOOLEAN DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_theme     TEXT DEFAULT 'default';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nearby_expires_at TIMESTAMPTZ;
