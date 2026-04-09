@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">మిగో - ట్రావెల్ కంపానియన్ మ్యాచింగ్ యాప్</string>
+    <string name="title_activity_main">మిగో - ట్రావెల్ కంపానియన్ మ్యాచింగ్ యాప్</string>
+    <string name="package_name">com.migo.app</string>
+    <string name="custom_url_scheme">com.migo.app</string>
+</resources>

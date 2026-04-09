@@ -1,0 +1,115 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vercel
+
+# 환경 변수
+.env
+.env.local
+.env.*.local
+
+# Android 빌드 파일 (용량 큼)
+android/app/build/
+android/.gradle/
+android/build/
+android/capacitor-cordova-android-plugins/
+*.apk
+*.aab
+
+# iOS 빌드 파일
+ios/App/Pods/
+ios/App/build/
+
+# 인증서
+*.jks
+*.p8
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vercel
+
+# 환경 변수
+.env
+.env.local
+.env.*.local
+
+# Android 빌드 파일 (용량 큼)
+android/app/build/
+android/.gradle/
+android/build/
+android/capacitor-cordova-android-plugins/
+*.apk
+*.aab
+
+# iOS 빌드 파일
+ios/App/Pods/
+ios/App/build/
+
+# 인증서
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+google-services.json
+. e n v . v e r c e l . p r o d  
+ 
+.env*.local
+
+# Python 가상환경
+.venv/
+__pycache__/
+*.py[cod]
+
+# 임시 스크립트 (작업용)
+fix_*.js
+fix_*.py
+translate_*.py
+patch_*.mjs
+replace_emails.py
+
+# 백업 파일
+*.bak
+*.backup

@@ -1,0 +1,384 @@
+import i18n from "@/i18n";
+
+export type CountryTier = 1 | 2 | 3;
+
+const TIER_1_COUNTRIES = [
+  "KR", "US", "JP", "GB", "AU", "CA", "NZ", "CH", "SG", "TW", "HK", "AE", "SA", "QA",
+  "DE", "FR", "IT", "ES", "NL", "SE", "NO", "FI", "DK", "IE", "AT", "BE", "LU"
+];
+const TIER_2_COUNTRIES = [
+  "BR", "MX", "AR", "CO", "CL", "PE", "TR", "RU", "PL", "CZ", "HU", "RO", "GR", "PT",
+  "ZA", "EG", "MA"
+];
+// Default everything else to Tier 3
+
+const COUNTRY_CURRENCIES: Record<string, string> = {
+  KR: "KRW",
+  JP: "JPY",
+  GB: "GBP",
+  EU: "EUR", // Fallback for Eurozone
+  DE: "EUR", FR: "EUR", IT: "EUR", ES: "EUR", NL: "EUR", AT: "EUR", IE: "EUR", BE: "EUR", FI: "EUR", LU: "EUR",
+  AU: "AUD",
+  CA: "CAD",
+  SG: "SGD",
+  CH: "CHF"
+};
+
+const getCountryCode = (): string => {
+  // Try to extract from currently selected language (e.g. ko-KR -> KR, en-US -> US)
+  // Or fallback to checking browser timezone or navigator language
+  const navLang = i18n.language || navigator.language || "en-US";
+  const parts = navLang.split('-');
+  if (parts.length > 1) {
+    return parts[1].toUpperCase();
+  }
+
+  // Map 2-letter language codes to default country codes for pricing tier mapping
+  const langToCountry: Record<string, string> = {
+    ko: "KR",
+    ja: "JP",
+    zh: "TW",
+    en: "US",
+    fr: "FR",
+    de: "DE",
+    es: "ES",
+    it: "IT",
+    pt: "BR",
+    id: "ID",
+    th: "TH",
+    vi: "VN",
+    ru: "RU",
+    tr: "TR"
+  };
+  return langToCountry[navLang] || "US";
+};
+
+const getTier = (countryCode: string): CountryTier => {
+  if (TIER_1_COUNTRIES.includes(countryCode)) return 1;
+  if (TIER_2_COUNTRIES.includes(countryCode)) return 2;
+  return 3;
+};
+
+// Premium Subscription Pricing
+export const getMigoPlusPricing = () => {
+  const country = getCountryCode();
+  const tier = getTier(country);
+  const currency = COUNTRY_CURRENCIES[country] || "USD";
+
+  /**
+ * ══════════════════════════════════════════════════════
+ * MIGO 수익 모델 (순이익 공식 반영 가격)
+ * ══════════════════════════════════════════════════════
+ * 순이익 = 결제금액 - 앱스토어수수료(15%) - 운영비 - UAC상각
+ *
+ * 비용 상수:
+ *  앱스토어: 15% (Apple/Google 소규모 사업자)
+ *  광고 예산: Phase1 ₩500,000/월 → Phase2 ₩1,000,000 → Phase3 ₩2,000,000
+ *  예상 CPI: ₩1,884 (Meta 50% + TikTok 30% + Google UAC 20%)
+ *  월 신규 설치: 265건 (Phase1)
+ *  유료 전환율: 8% → 21명/월
+ *  블렌디드 CAC: ₩15,748 (유기 설치 포함)
+ *  UAC 상각: ₩15,748 ÷ 8개월 = ₩2,000/월  [이전 ₩5,000 → 수정]
+ *  운영비 Plus: ₩1,813/월 (Maps ₩1,200 + AI ₩80 + Infra ₩533)
+ *  운영비 Premium: ₩2,813/월
+ *
+ * 플랜별 검증 (수정된 UAC 반영):
+ *  Plus 월간  ₩14,900 → 순이익 ₩8,852  (59.4%) ✅✅
+ *  Plus 3개월 ₩34,900 → 순이익 ₩18,226 (52.2%) ✅✅
+ *  Plus 연간  ₩99,900 → 순이익 ₩47,411 (47.5%) ✅✅
+ *
+ * BEP: Phase1 광고비 기준 Month 5 달성 (유료 유저 78명)
+ */
+  if (currency === "KRW") {
+    return {
+      currency: "₩",
+      month1: 14900,
+      month3: 34900,   // ₩28,900 → ₩34,900 (UAC+운영비 반영)
+      month12: 99900,  // ₩79,900 → ₩99,900 (연간 UAC 총비용 반영)
+      format: (val: number) => `₩${val.toLocaleString()}`
+    };
+  }
+
+  // USD prices by tier (net margin validated)
+  const pricesUSD = {
+    1: { month1: 11.99, month3: 26.99, month12: 74.99 },
+    2: { month1: 7.99,  month3: 17.99, month12: 49.99 },
+    3: { month1: 4.99,  month3: 10.99, month12: 29.99 }
+  };
+
+  const p = pricesUSD[tier];
+
+  return {
+    currency: "$",
+    month1: p.month1,
+    month3: p.month3,
+    month12: p.month12,
+    format: (val: number) => `$${val.toFixed(2)}`
+  };
+};
+
+// ──────────────────────────────────────────────────────────────────
+// Group Join Fee (참여 비용 티어 시스템)
+// 만드는 비용 없음 → 참여 시 비용 부과
+// ──────────────────────────────────────────────────────────────────
+
+export type GroupPriceTier = "travel" | "party" | "premium";
+
+export interface GroupTierConfig {
+  tier: GroupPriceTier;
+  krw: number;           // KRW 기준 가격
+  emoji: string;
+  label: string;
+  sublabel: string;
+  tagline: string;       // 심리적 앵커 문구
+  color: string;         // tailwind color
+  gradient: string;
+  tags: string[];        // 자동 태그 키워드
+}
+
+export const GROUP_TIER_CONFIGS: GroupTierConfig[] = [
+  {
+    tier: "travel",
+    krw: 9900,
+    emoji: "✈️",
+    label: i18n.t("auto.g_0538", "여행"),
+    sublabel: i18n.t("auto.g_0539", "기본 참여"),
+    tagline: i18n.t("auto.g_0540", "'한 번 해볼까?' 하는 가격"),
+    color: "emerald",
+    gradient: "from-emerald-500 to-teal-500",
+    tags: [i18n.t("auto.g_0541", "투어"), i18n.t("auto.g_0542", "관광"), i18n.t("auto.g_0543", "카페"), i18n.t("auto.g_0544", "맛집")],
+  },
+  {
+    tier: "party",
+    krw: 19900,
+    emoji: "🎉",
+    label: i18n.t("auto.g_0545", "파티 / 클럽"),
+    sublabel: i18n.t("auto.g_0546", "놀러 가는 비용"),
+    tagline: i18n.t("auto.g_0547", "진짜 놀 사람만 들어와요"),
+    color: "pink",
+    gradient: "from-pink-500 to-rose-500",
+    tags: [i18n.t("auto.g_0548", "클럽"), i18n.t("auto.g_0549", "파티"), i18n.t("auto.g_0550", "나이트"), "bar"],
+  },
+  {
+    tier: "premium",
+    krw: 29900,
+    emoji: "👑",
+    label: i18n.t("auto.g_0551", "프리미엄"),
+    sublabel: i18n.t("auto.g_0552", "외국인 / 인기 그룹"),
+    tagline: i18n.t("auto.g_0553", "가치 있는 자리"),
+    color: "amber",
+    gradient: "from-amber-500 to-orange-500",
+    tags: [i18n.t("auto.g_0554", "외국인"), i18n.t("auto.g_0555", "인기"), i18n.t("auto.g_0556", "검증"), i18n.t("auto.g_0557", "프리미엄")],
+  },
+];
+
+/** 구독 할인 적용 가격 (isPlus=true → 50% 할인) */
+export function getJoinFeeAfterDiscount(krw: number, isPlus: boolean): number {
+  return isPlus ? Math.round(krw * 0.5 / 100) * 100 : krw;
+}
+
+/** tier 코드 → config 가져오기 */
+export function getTierConfig(tier: GroupPriceTier): GroupTierConfig {
+  const base = GROUP_TIER_CONFIGS.find(c => c.tier === tier) ?? GROUP_TIER_CONFIGS[0];
+  return {
+    ...base,
+    label: i18n.t(`tier.${tier}.label`, { defaultValue: base.label }),
+    sublabel: i18n.t(`tier.${tier}.sublabel`, { defaultValue: base.sublabel }),
+    tagline: i18n.t(`tier.${tier}.tagline`, { defaultValue: base.tagline }),
+  };
+}
+
+/** 그룹 태그/제목/분위기 → 가장 맞는 tier 자동 추천 */
+export function inferGroupTier(tags: string[], title: string, isPremium: boolean): GroupPriceTier {
+  if (isPremium) return "premium";
+  const all = [...tags, title].join(" ").toLowerCase();
+  const partyKws = [i18n.t("auto.g_0558", "클럽"), "party", i18n.t("auto.g_0559", "파티"), i18n.t("auto.g_0560", "나이트"), "night", "bar", i18n.t("auto.g_0561", "바"), "club"];
+  if (partyKws.some(k => all.includes(k))) return "party";
+  return "travel";
+}
+
+/** KRW → 다국어 가격 포맷 (getLocalizedPrice 위임) */
+export function formatJoinFee(krw: number, lang: string): string {
+  return getLocalizedPrice(krw, lang);
+}
+
+/**
+ * 성별 기반 참여 비용
+ *  - 여성: 무료 (성비 밸런스 인센티브)
+ *  - 남성/기타: 티어 정가, Plus 구독 시 50% 할인
+ */
+export function getJoinFeeByGender(
+  krw: number,
+  gender: "male" | "female" | "other",
+  isPlus: boolean
+): number {
+  if (gender === "female") return 0;
+  return getJoinFeeAfterDiscount(krw, isPlus);
+}
+
+
+
+/**
+ * Item Shop Pricing (full net profit formula applied)
+ *
+ * 아이템 비용 분석 — 기존 유저 upsell이므로 UAC 없음
+ * ┌──────────────┬──────────┬───────────┬────────┬─────────┐
+ * │ 아이템       │ 가격(KRW)│ 스토어% │ API비용│ 순마진  │
+ * ├──────────────┼──────────┼───────────┼────────┼─────────┤
+ * │ SuperLike x5 │  ₩4,900  │   ₩735    │   ₩7   │  84.9%  │
+ * │ SuperLike x15│ ₩12,900  │  ₩1,935   │  ₩20   │  84.8%  │
+ * │ Boost x1     │  ₩3,900  │   ₩585    │  ₩13   │  84.7%  │
+ * │ Boost x5     │ ₩15,900  │  ₩2,385   │  ₩67   │  84.6%  │
+ * │ 인증뱃지     │  ₩9,900  │  ₩1,485   │ ₩667   │  78.3%  │
+ * │ 프로필테마   │  ₩5,900  │   ₩885    │   ₩0   │  85.0%  │
+ * │ 트래블팩     │ ₩14,900  │  ₩2,235   │  ₩87   │  84.4%  │
+ * │ 근처언락 7일 │  ₩5,900  │   ₩885    │ ₩1,182 │  64.8%  │ ← Maps비용
+ * └──────────────┴──────────┴───────────┴────────┴─────────┘
+ * Maps API 비용(7일): 21 calls × ₩42.7 + 5 Places × ₩56.9 = ₩1,182
+ */
+export const getShopItemPricing = () => {
+  const country = getCountryCode();
+  const tier = getTier(country);
+  const currency = COUNTRY_CURRENCIES[country] || "USD";
+
+  // KRW (전체 비용 모델 반영 완료)
+  if (currency === "KRW") {
+    return {
+      currency: "₩",
+      format: (val: number) => `₩${val.toLocaleString()}`,
+      superlike_5: 4900,
+      superlike_15: 12900,
+      boost_1: 3900,
+      boost_5: 15900,
+      verified_badge: 9900,
+      profile_theme: 5900,
+      travel_pack: 14900,
+      nearby_unlock: 5900,  // ₩4,900 → ₩5,900 (Maps API ₩1,182 반영)
+    };
+  }
+
+  // USD prices by tier (margin optimized, net of app store 15%)
+  const pricesUSD: Record<string, [number, number, number]> = {
+    // id: [tier1, tier2, tier3]
+    superlike_5:     [3.99,  2.49, 1.49],
+    superlike_15:    [9.99,  6.99, 3.99],
+    boost_1:         [2.99,  1.99, 0.99],
+    boost_5:         [12.99, 8.99, 4.99],
+    verified_badge:  [7.99,  4.99, 2.99],
+    profile_theme:   [4.99,  2.99, 1.49],
+    travel_pack:     [11.99, 7.99, 4.99],
+    nearby_unlock:   [4.99,  2.99, 1.99],  // raised: maps cost
+  };
+
+  const idx = tier - 1;
+  const p: Record<string, number> = {};
+  for (const [id, vals] of Object.entries(pricesUSD)) {
+    p[id] = vals[idx];
+  }
+
+  return {
+    currency: "$",
+    format: (val: number) => `$${val.toFixed(2)}`,
+    ...p,
+  } as { currency: string; format: (v: number) => string } & typeof p;
+};
+
+/**
+ * Converts base KRW prices into localized currency formats.
+ * Applies approximate exchange rates and psychological pricing rules (e.g. .99).
+ */
+
+const RATES = {
+  USD: 0.00075,
+  EUR: 0.00069,
+  JPY: 0.11,
+  CNY: 0.0053,
+  GBP: 0.00059,
+  INR: 0.0625,    // Indian Rupee
+  IDR: 11.8,      // Indonesian Rupiah
+  BRL: 0.0038,    // Brazilian Real
+  THB: 0.027,     // Thai Baht
+  VND: 18.8,      // Vietnamese Dong
+  TRY: 0.024,     // Turkish Lira
+  MXN: 0.0130,    // Mexican Peso
+  AUD: 0.00115,   // Australian Dollar
+  CAD: 0.00103,   // Canadian Dollar
+  SGD: 0.00101,   // Singapore Dollar
+  CHF: 0.00068,   // Swiss Franc
+};
+
+const EUR_LANGS = ['fr', 'de', 'it', 'es', 'nl', 'el', 'fi', 'sv', 'da', 'sk', 'sl', 'ro', 'hr', 'lt', 'lv', 'et'];
+const GBP_LANGS = ['en-GB'];
+
+export function getLocalizedPrice(krwAmount: number, lang: string = 'ko'): string {
+  if (krwAmount === 0) {
+    return new Intl.NumberFormat(lang, {
+      style: 'currency',
+      currency: lang === 'ko' ? 'KRW' : 'USD',
+      maximumFractionDigits: 0,
+    }).format(0);
+  }
+
+  let currency = 'USD';
+  let rate = RATES.USD;
+  let fractionDigits = 2;
+
+  const baseLang = lang.split('-')[0];
+
+  if (lang === 'ko') {
+    currency = 'KRW'; rate = 1;
+  } else if (lang === 'ja') {
+    currency = 'JPY'; rate = RATES.JPY;
+  } else if (lang === 'zh') {
+    currency = 'CNY'; rate = RATES.CNY;
+  } else if (lang === 'hi' || baseLang === 'hi' || lang === 'bn' || lang === 'gu' || lang === 'mr') {
+    currency = 'INR'; rate = RATES.INR;
+  } else if (lang === 'id') {
+    currency = 'IDR'; rate = RATES.IDR;
+  } else if (lang === 'th') {
+    currency = 'THB'; rate = RATES.THB;
+  } else if (lang === 'vi') {
+    currency = 'VND'; rate = RATES.VND;
+  } else if (lang === 'tr') {
+    currency = 'TRY'; rate = RATES.TRY;
+  } else if (lang === 'pt-BR' || lang === 'pt') {
+    currency = 'BRL'; rate = RATES.BRL;
+  } else if (lang === 'en-AU' || lang === 'en-NZ') {
+    currency = 'AUD'; rate = RATES.AUD;
+  } else if (lang === 'en-CA' || lang === 'fr-CA') {
+    currency = 'CAD'; rate = RATES.CAD;
+  } else if (lang === 'en-SG' || lang === 'ms') {
+    currency = 'SGD'; rate = RATES.SGD;
+  } else if (lang === 'de-CH' || lang === 'fr-CH') {
+    currency = 'CHF'; rate = RATES.CHF;
+  } else if (GBP_LANGS.includes(lang)) {
+    currency = 'GBP'; rate = RATES.GBP;
+  } else if (EUR_LANGS.includes(baseLang) || EUR_LANGS.includes(lang)) {
+    currency = 'EUR'; rate = RATES.EUR;
+  }
+
+  let raw = krwAmount * rate;
+
+  if (currency === 'KRW' || currency === 'JPY' || currency === 'IDR' || currency === 'VND') {
+    raw = Math.round(raw / 100) * 100 || Math.round(raw);
+  } else {
+    // 모든 통화의 소수점을 없애고 깔끔하게 정수로 반올림
+    raw = Math.round(raw);
+  }
+
+  return new Intl.NumberFormat(lang, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(raw);
+}
+
+/** GroupCreateModal에서 사용하는 개설비 옵션 반환 */
+export function getGroupCreationFeeOptions() {
+  return {
+    options: [0, 1000, 3000, 5000] as number[],
+    format: (val: number) => val === 0 ? i18n.t("auto.g_0562", "무료") : i18n.t("auto.t_0018", `${val.toLocaleString('ko-KR')}원`),
+  };
+}
+

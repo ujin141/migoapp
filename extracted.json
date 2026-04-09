@@ -1,0 +1,10 @@
+{
+  "map.toast.traveler_found.title": "👥 실시간 주변 여행자 발견",
+  "map.toast.traveler_found.desc": "나와 불과 {{distance}} (도보 약 {{time}}분) 거리에 '{{name}}'님이 있습니다!",
+  "map.toast.hotplace_found.title": "{{emoji}} 주변 가장 가까운 {{category}} 발견!",
+  "map.toast.hotplace_found.desc": "현재 위치에서 {{distance}} (도보 약 {{time}}분) 거리의 '{{name}}' 주변에 사람들이 몰리고 있어요!",
+  "map.toast.group_found.title": "🍻 실시간 주변 모임 현황",
+  "map.toast.group_found.desc": "불과 {{distance}} 거리에서 '{{title}}' 모임이 열리고 있습니다!",
+  "map.toast.photo_found.title": "📸 실시간 현지 사진 피드",
+  "map.toast.photo_found.desc": "불과 {{distance}} 거리에서 방금 올라온 사진입니다!"
+}

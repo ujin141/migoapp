@@ -1,0 +1,449 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/old_ko.ts
+  1:0  error  Parsing error: File appears to be binary
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/old_ko2.ts
+  1:0  error  Parsing error: File appears to be binary
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/App.tsx
+  26:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/CheckInModal.tsx
+  12:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/GlobalFilter.tsx
+   11:36  error    Unexpected any. Specify a different type                                                                                                                                                               @typescript-eslint/no-explicit-any
+   88:27  error    Unexpected any. Specify a different type                                                                                                                                                               @typescript-eslint/no-explicit-any
+  113:25  error    Unexpected any. Specify a different type                                                                                                                                                               @typescript-eslint/no-explicit-any
+  114:23  error    Unexpected any. Specify a different type                                                                                                                                                               @typescript-eslint/no-explicit-any
+  122:28  error    Unexpected any. Specify a different type                                                                                                                                                               @typescript-eslint/no-explicit-any
+  257:6   warning  React Hook useEffect has missing dependencies: 'filters.dateRange.end', 'filters.dateRange.start', 'filters.destination', and 'filters.groupSize'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/GroupCreateModal.tsx
+   13:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   48:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/GroupDetailFilter.tsx
+  18:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  33:27  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  39:29  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  47:26  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  53:22  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  60:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/MatchModal.tsx
+  10:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ProfileDetailSheet.tsx
+   10:12   error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+   78:6    warning  React Hook useEffect has a missing dependency: 'bioTranslated'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  160:120  error    Unexpected control character(s) in regular expression: \x00                                                       no-control-regex
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ProfileViewsModal.tsx
+  48:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/SOSModal.tsx
+  73:6  warning  React Hook useEffect has a missing dependency: 'saveSOS'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/SwipeCard.tsx
+   77:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/TravelDNA.tsx
+   21:12  error    Unexpected any. Specify a different type                                                                                            @typescript-eslint/no-explicit-any
+   22:15  error    Unexpected any. Specify a different type                                                                                            @typescript-eslint/no-explicit-any
+   27:28  error    Unexpected any. Specify a different type                                                                                            @typescript-eslint/no-explicit-any
+  149:7   error    React Hook "useSubscription" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+  251:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components      react-refresh/only-export-components
+  251:20  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components      react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/TrustVerifyModal.tsx
+   31:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  134:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/TutorialOverlay.tsx
+  68:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ui/badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ui/button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ui/command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ui/form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ui/navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ui/sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ui/sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ui/textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/components/ui/toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/context/ChatContext.tsx
+   45:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+   74:36  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   86:38  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   92:43  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   96:48  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  100:42  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  112:41  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  142:37  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  217:6   warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array                          react-hooks/exhaustive-deps
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/context/GlobalFilterContext.tsx
+  76:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/context/NotificationContext.tsx
+  30:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  52:51  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  56:42  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  58:32  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/context/SubscriptionContext.tsx
+   49:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  194:6   warning  React Hook useCallback has a missing dependency: 'isPremium'. Either include it or remove the dependency array                  react-hooks/exhaustive-deps
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/hooks/useAuth.ts
+  31:11  error  Empty block statement  no-empty
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/i18n/checkinLocales.ts
+  1:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/i18n/filterLocales.ts
+  1:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/i18n/tierLocales.ts
+  1:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/lib/adService.ts
+  265:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  285:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/lib/adminService.ts
+   72:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  158:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  164:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  166:32   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:33   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  222:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  228:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  230:30   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  263:34   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  269:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  376:51   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  414:47   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  415:49   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  461:44   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  461:97   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  462:54   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  463:38   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  463:96   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  464:41   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  465:37   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  486:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  505:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  515:54   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  517:17   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  559:28   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  576:28   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  588:66   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  598:32   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  599:30   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  604:60   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  635:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  661:17   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  684:102  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/lib/checkInService.ts
+  12:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/lib/locationService.ts
+  55:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/lib/marketplaceService.ts
+  23:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/lib/pricing.ts
+  324:7  error  'fractionDigits' is never reassigned. Use 'const' instead  prefer-const
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/lib/supabaseClient.ts
+   13:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/ChatPage.tsx
+   58:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+   73:43  error    Unexpected any. Specify a different type                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  183:34  error    Unexpected any. Specify a different type                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  244:6   warning  React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array                                                                                                                                          react-hooks/exhaustive-deps
+  260:21  error    React Hook "useDm" is called in function "sendMessage" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word "use"  react-hooks/rules-of-hooks
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/DiscoverPage.tsx
+   157:40   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   157:58   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   254:55   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   354:6    warning  React Hook useEffect has missing dependencies: 'i18n', 't', and 'toast'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   395:56   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   423:17   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   488:40   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   516:58   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   518:46   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   535:32   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   597:13   error    Empty block statement                                                                                                        no-empty
+   625:53   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   634:51   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   646:21   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   657:6    warning  React Hook useEffect has a missing dependency: 'i18n'. Either include it or remove the dependency array                      react-hooks/exhaustive-deps
+   688:58   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   690:43   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   732:43   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   733:42   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+   983:21   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  1195:6    warning  React Hook useEffect has a missing dependency: 'i18n'. Either include it or remove the dependency array                      react-hooks/exhaustive-deps
+  2321:32   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  2321:137  error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  2350:34   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  2386:26   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  2386:59   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  2392:30   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  2392:72   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  2484:45   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+  2996:43   error    Unexpected any. Specify a different type                                                                                     @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/FindAccountPage.tsx
+   60:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/LoginPage.tsx
+  180:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  185:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  201:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  235:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  295:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/MapPage.tsx
+   56:64  error    Unexpected any. Specify a different type                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+   82:6   warning  React Hook useEffect has a missing dependency: 'pos'. Either include it or remove the dependency array                                                                                                                                 react-hooks/exhaustive-deps
+  134:60  error    Unexpected any. Specify a different type                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  135:54  error    Unexpected any. Specify a different type                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  140:46  error    Unexpected any. Specify a different type                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  157:63  error    Unexpected any. Specify a different type                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  286:6   warning  React Hook useEffect has a missing dependency: 'myLatLng'. Either include it or remove the dependency array. You can also replace multiple useState variables with useReducer if 'setTravelers' needs the current value of 'myLatLng'  react-hooks/exhaustive-deps
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/MarketplacePage.tsx
+  426:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/MatchPage.tsx
+   53:64  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+   57:68  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+   85:34  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+   86:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+   87:54  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+   91:45  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+   96:22  warning  The ref value 'matchTimersRef.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'matchTimersRef.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+  121:38  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  158:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  253:51  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  331:6   warning  React Hook useEffect has a missing dependency: 't'. Either include it or remove the dependency array                                                                                                                                                                         react-hooks/exhaustive-deps
+  333:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  341:66  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  346:60  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  381:9   warning  The 'withAds' array makes the dependencies of useCallback Hook (at line 437) change on every render. To fix this, wrap the initialization of 'withAds' in its own useMemo() Hook                                                                                             react-hooks/exhaustive-deps
+  381:18  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  414:14  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  478:49  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  518:6   warning  React Hook useCallback has missing dependencies: 't' and 'withAds'. Either include them or remove the dependency array                                                                                                                                                       react-hooks/exhaustive-deps
+  593:6   warning  React Hook useCallback has missing dependencies: 'isLoggedIn' and 't'. Either include them or remove the dependency array                                                                                                                                                    react-hooks/exhaustive-deps
+  613:6   warning  React Hook useCallback has missing dependencies: 'isLoggedIn' and 't'. Either include them or remove the dependency array                                                                                                                                                    react-hooks/exhaustive-deps
+  622:5   error    React Hook "useSuperLike" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function                                                                                                                       react-hooks/rules-of-hooks
+  662:6   warning  React Hook useCallback has missing dependencies: 't' and 'useSuperLike'. Either include them or remove the dependency array                                                                                                                                                  react-hooks/exhaustive-deps
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/MeetReviewPage.tsx
+  271:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  276:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/NearbyPage.tsx
+  176:56  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  208:6   warning  React Hook useEffect has a missing dependency: 'loadNearby'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  328:75  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/NotificationPage.tsx
+  38:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/ProfilePage.tsx
+   55:52  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+   56:42  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+   57:48  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+   58:42  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  207:9   error  'error' is never reassigned. Use 'const' instead  prefer-const
+  283:46  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  289:46  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  313:37  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  334:40  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  356:37  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/ProfileSetupPage.tsx
+   37:34  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  532:11  error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/ResetPasswordPage.tsx
+  45:6  warning  React Hook useEffect has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/ShopPage.tsx
+  139:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  165:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  180:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  195:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/TripCalendarPage.tsx
+   51:24  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+  226:42  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+  261:6   warning  React Hook useEffect has a missing dependency: 't'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  269:52  error    Unexpected any. Specify a different type                                                              @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/TripMatchPage.tsx
+   65:8   warning  React Hook useMemo has a missing dependency: 'i18n'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   83:8   warning  React Hook useMemo has a missing dependency: 'i18n'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   86:89  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  131:73  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  183:54  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  195:55  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  298:22  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  299:20  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  300:28  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  360:22  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+  361:20  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/VerificationPage.tsx
+   15:29  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  111:27  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  159:42  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  290:17  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  464:6   warning  React Hook React.useEffect has missing dependencies: 'supaUser?.email_confirmed_at' and 'supaUser?.phone'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  500:13  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  503:12  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  505:20  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  521:21  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  557:16  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  613:16  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+  954:28  error    Unexpected any. Specify a different type                                                                                                                       @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminAnalytics.tsx
+   12:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   13:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   14:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   16:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   17:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  166:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminChat.tsx
+   9:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  11:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  12:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminDashboard.tsx
+   12:4    error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   16:26   error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   35:50   error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   36:54   error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   37:54   error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   38:54   error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   67:51   error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   85:17   error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   94:6    warning  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  204:31   error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+  251:146  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+  269:142  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+  290:146  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminGroups.tsx
+  11:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminMarketing.tsx
+  363:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminNotifications.tsx
+  37:9  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminPosts.tsx
+  11:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminReports.tsx
+  35:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  69:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminRevenue.tsx
+   29:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   34:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   44:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  134:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminSafetyCheckins.tsx
+   9:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  12:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminUsers.tsx
+   12:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   17:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   26:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   55:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   72:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   91:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  114:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/src/pages/admin/AdminVerifications.tsx
+   51:11  error    'filtered' is never reassigned. Use 'const' instead                                                      prefer-const
+   65:6   warning  React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   96:17  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+  119:17  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/supabase/functions/send-otp/index.ts
+  37:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/supabase/functions/verify-otp/index.ts
+  39:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/tailwind.config.ts
+  108:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/Users/song-ujin/.gemini/antigravity/scratch/migoapp/temp_debug.js
+  2613:10  error  Parsing error: Unexpected token :
+
+✖ 297 problems (255 errors, 42 warnings)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.
+

@@ -1,0 +1,65 @@
+import fs from 'fs';
+import path from 'path';
+
+const localesDir = path.join(process.cwd(), 'src', 'i18n', 'locales');
+const files = fs.readdirSync(localesDir).filter(f => f.endsWith('.ts'));
+
+function parseTsObject(content) {
+  try {
+    const startIdx = content.indexOf('{');
+    const endIdx = content.lastIndexOf('}');
+    const jsonStr = content.substring(startIdx, endIdx + 1);
+    return (new Function(`return (${jsonStr})`))();
+  } catch (e) {
+    console.error("Parse Error:", e.message);
+    return null;
+  }
+}
+
+function stringifyTsObject(obj, varName) {
+  return `const ${varName} = ${JSON.stringify(obj, null, 2)};\nexport default ${varName};\n`;
+}
+
+let modifiedFiles = 0;
+
+for (const file of files) {
+  const content = fs.readFileSync(path.join(localesDir, file), 'utf8');
+  const obj = parseTsObject(content);
+  if (!obj) continue;
+  
+  let changed = false;
+  const newObj = {};
+  
+  // ensure auto object exists if we are going to add to it
+  if (obj.auto === undefined) {
+    obj.auto = {};
+  } else if (typeof obj.auto !== 'object') {
+    const oldVal = obj.auto;
+    obj.auto = { "": oldVal };
+  }
+
+  for (const [k, v] of Object.entries(obj)) {
+    if (k.startsWith('auto.') && k !== 'auto') {
+      const actualKey = k.substring(5); // remove 'auto.'
+      obj.auto[actualKey] = v;
+      changed = true;
+    } else if (k === 'auto' && typeof v === 'object') {
+        // already handled
+    } else {
+      newObj[k] = v;
+    }
+  }
+
+  // Check if auto object has any keys
+  if (Object.keys(obj.auto).length > 0) {
+      newObj.auto = obj.auto;
+  }
+  
+  if (changed) {
+    const lang = file.replace('.ts', '');
+    fs.writeFileSync(path.join(localesDir, file), stringifyTsObject(newObj, lang), 'utf8');
+    modifiedFiles++;
+  }
+}
+
+console.log(`Successfully grouped "auto.*" keys into auto namespace in ${modifiedFiles} locale files.`);

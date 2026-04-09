@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ಮಿಗೊ - ಟ್ರಾವೆಲ್ ಕಂಪ್ಯಾನಿಯನ್ ಮ್ಯಾಚಿಂಗ್ ಅಪ್ಲಿಕೇಶನ್</string>
+    <string name="title_activity_main">ಮಿಗೊ - ಟ್ರಾವೆಲ್ ಕಂಪ್ಯಾನಿಯನ್ ಮ್ಯಾಚಿಂಗ್ ಅಪ್ಲಿಕೇಶನ್</string>
+    <string name="package_name">com.migo.app</string>
+    <string name="custom_url_scheme">com.migo.app</string>
+</resources>
