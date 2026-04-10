@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search, Send, MapPin, Calendar, ArrowLeft, MoreVertical, X, Check, AlertTriangle, Lock, Crown, Users, Phone, Languages, ChevronDown, Map, ShieldAlert, Shield, CheckSquare, MessageCircle, Heart, SlidersHorizontal } from "lucide-react";
@@ -19,7 +19,6 @@ import ReportBlockActionSheet from "@/components/ReportBlockActionSheet";
 import { MeetProposalModal, ScheduleShareModal, ReportModal, DeleteConfirmModal } from "./chat/ChatModals";
 import { ChatThreadList } from "./chat/ChatThreadList";
 import { ChatRoom } from "./chat/ChatRoom";
-import PageGuide from "@/components/PageGuide";
 
 const getTime = () => {
   const now = new Date();
@@ -157,24 +156,38 @@ const ChatPage = () => {
       behavior: "smooth"
     });
   }, [messages]);
+  // ChatPage 언마운트 시 selectedChat 초기화 (다른 탭으로 이동 시 ChatRoom exit 잔존 방지)
+  useEffect(() => {
+    return () => {
+      setSelectedChat(null);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // nav 표시/숨김 — selectedChat 변경 시 동기 DOM 업데이트
+  useLayoutEffect(() => {
+    const nav = document.getElementById("migo-bottom-nav");
+    if (!nav) return;
+    nav.style.display = selectedChat ? "none" : "";
+    return () => {
+      // 컴포넌트 unmount 시 인라인 스타일 완전 제거로 CSS 기본값 복원
+      const el = document.getElementById("migo-bottom-nav");
+      if (el) el.style.display = "";
+    };
+  }, [selectedChat]);
+
+  // 열람/읽음 취리 — nav 조작과 분리
   useEffect(() => {
     if (selectedChat) {
       markRead(selectedChat);
       setOpenThread(selectedChat);
-      trackOpenedThread(selectedChat); // 열람 추적
-      const nav = document.getElementById("migo-bottom-nav");
-      if (nav) nav.style.display = "none";
+      trackOpenedThread(selectedChat);
     } else {
       setOpenThread(null);
-      const nav = document.getElementById("migo-bottom-nav");
-      if (nav) nav.style.display = "block";
     }
     return () => {
       setOpenThread(null);
-      const nav = document.getElementById("migo-bottom-nav");
-      if (nav) nav.style.display = "block";
     };
-  }, [selectedChat, markRead, setOpenThread, trackOpenedThread]);
+  }, [selectedChat]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Translate a single message ───────────────────────────
   const handleTranslate = useCallback(async (msgId: string, text: string) => {
@@ -494,10 +507,7 @@ const ChatPage = () => {
       {/* ── Header ── */}
       <div className="px-5 pb-4 pt-[max(env(safe-area-inset-top),24px)] bg-card/90 backdrop-blur-xl sticky top-0 z-10 border-b border-border/50">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-1.5">
             <h1 className="text-2xl font-black text-foreground tracking-tight">{t('chat.title')}</h1>
-            <PageGuide page="chat" />
-          </div>
           <div className="flex items-center gap-2">
             {!canSendDm && (
               <motion.button

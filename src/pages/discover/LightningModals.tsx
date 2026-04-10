@@ -177,7 +177,7 @@ export const LightningModals = ({
                 </button>
               </div>
 
-              <div className="flex gap-4 px-6 overflow-x-auto scrollbar-hide pb-4 snap-x truncate">
+              <div className="flex gap-4 px-6 overflow-x-auto scrollbar-hide pb-4 snap-x">
                 {lightningMultiResult.map(res => (
                   <div key={res.id} className="snap-center shrink-0 w-[240px] bg-muted/40 rounded-3xl p-5 border border-border relative">
                     <div className="absolute top-4 right-4 text-2xl opacity-40">{res.vibeIcon}</div>

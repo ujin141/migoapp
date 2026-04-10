@@ -135,7 +135,7 @@ export default function CheckInModal({
         damping: 28,
         stiffness: 300
       }}>
-            <div className="max-h-[75vh] overflow-y-auto px-6 pt-6 truncate">
+            <div className="max-h-[75vh] overflow-y-auto px-6 pt-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">

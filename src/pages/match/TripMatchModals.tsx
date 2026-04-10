@@ -146,7 +146,7 @@ export const InstantRecommendationModal = ({
                 {i18n.t("auto.ko_0429", "모임 장소 근처의 추천 스팟을 확인해 보세요!")}</p>
             </div>
 
-            <div className="p-4 overflow-y-auto space-y-3 bg-muted/30 truncate">
+            <div className="p-4 overflow-y-auto space-y-3 bg-muted/30">
               {getRecommendationsForHotplace(hotplace).map((place: PlaceRecommendation) => (
                 <div key={place.id} className="p-3 bg-card rounded-2xl border border-border shadow-sm flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">

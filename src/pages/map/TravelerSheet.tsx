@@ -80,8 +80,8 @@ export const TravelerSheet = ({
             {/* Content - scrollable */}
             <div className="px-5 pt-4 pb-8 space-y-4 overflow-y-auto flex-1">
               {/* Bio */}
-              <div className="bg-muted/30 p-4 rounded-2xl border border-border/50 truncate">
-                <p className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-wrap">{translatedBio || profileDetail.bio}</p>
+              <div className="bg-muted/30 p-4 rounded-2xl border border-border/50">
+                <p className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-wrap break-all md:break-normal">{translatedBio || profileDetail.bio}</p>
                 
                 {profileDetail.bio && (
                   <button 

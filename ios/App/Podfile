@@ -12,10 +12,10 @@ def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
   pod 'CapacitorDevice', :path => '../../node_modules/@capacitor/device'
   pod 'CapacitorGeolocation', :path => '../../node_modules/@capacitor/geolocation'
   pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
-  pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
 end
 
 target 'App' do
@@ -25,4 +25,22 @@ end
 
 post_install do |installer|
   assertDeploymentTarget(installer)
+
+  # ── BUG FIX: CopySwiftLibs .debug.dylib 에러 영구 수정 ──────────
+  # ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES 이면 Xcode가 없는
+  # .debug.dylib 파일을 찾으려다 "Build input file cannot be found" 에러 발생.
+  # Pods xcconfig 파일을 직접 패치해서 영구적으로 NO로 고정.
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'NO'
+    end
+  end
+
+  # xcconfig 파일도 직접 패치 (pod install 후 생성되는 파일 덮어쓰기)
+  Dir.glob(File.join(installer.sandbox.root, 'Target Support Files', '**', '*.xcconfig')).each do |xcconfig|
+    content = File.read(xcconfig)
+    if content.include?('ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES')
+      File.write(xcconfig, content.gsub('ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES', 'ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO'))
+    end
+  end
 end

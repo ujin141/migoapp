@@ -169,8 +169,10 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
   const [title, setTitle] = useState("");
   const [departure, setDeparture] = useState("");
   const [destination, setDestination] = useState("");
-  const [dates, setDates] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [description, setDescription] = useState("");
+  const [itinerary, setItinerary] = useState("");
   const [maxMembers, setMaxMembers] = useState(4);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
@@ -179,7 +181,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
 
   const reset = () => {
     setStep(0); setTitle(""); setDeparture(""); setDestination("");
-    setDates(""); setDescription(""); setMaxMembers(4);
+    setStartDate(""); setEndDate(""); setDescription(""); setItinerary(""); setMaxMembers(4);
     setSelectedStyle(null); setTags([]); setTagInput("");
   };
 
@@ -198,7 +200,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
 
   const canNext = () => {
     if (step === 0) return destination.trim().length > 0;
-    if (step === 1) return dates.trim().length > 0 && title.trim().length > 0;
+    if (step === 1) return startDate.length > 0 && endDate.length > 0 && title.trim().length > 0;
     return true;
   };
 
@@ -211,12 +213,16 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
     if (!user) { toast({ title: i18n.t("auto.g_0000", "로그인이 필요합니다."), variant: "destructive" }); return; }
     setSaving(true);
     const styleTag = selectedStyle ? [selectedStyle] : [];
+    const formattedDates = `${startDate} ~ ${endDate}`;
     const groupData = {
       title: title || i18n.t("auto.t_0002", `${destination} 여행 동행 구합니다`),
       departure: departure.trim(),
       destination: destination.trim(),
-      dates: dates.trim(),
+      dates: formattedDates,
+      start_date: startDate,
+      end_date: endDate,
       description: description.trim(),
+      itinerary: itinerary.trim(),
       max_members: maxMembers,
       tags: [...styleTag, ...tags],
       entry_fee: 0,
@@ -404,14 +410,26 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
                     {/* 날짜 */}
                     <div>
                       <p className="text-[13px] font-extrabold text-foreground mb-2 truncate">{i18n.t("auto.ko_0272", "여행 날짜")}</p>
-                      <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-card border border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-sm">
-                        <Calendar size={18} className="text-primary shrink-0" />
-                        <input
-                          value={dates}
-                          onChange={e => setDates(e.target.value)}
-                          placeholder={i18n.t("auto.ko_0423", "예: 5월 20일~25일 (5박6일)")}
-                          className="flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground/60 outline-none font-medium"
-                        />
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 flex items-center gap-2 px-3 py-3 rounded-2xl bg-card border border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-sm">
+                          <Calendar size={16} className="text-primary shrink-0" />
+                          <input
+                            type="date"
+                            value={startDate}
+                            onChange={e => setStartDate(e.target.value)}
+                            className="w-full bg-transparent text-[14px] text-foreground outline-none font-medium"
+                          />
+                        </div>
+                        <span className="text-muted-foreground font-bold">~</span>
+                        <div className="flex-1 flex items-center gap-2 px-3 py-3 rounded-2xl bg-card border border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-sm">
+                          <Calendar size={16} className="text-primary shrink-0" />
+                          <input
+                            type="date"
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            className="w-full bg-transparent text-[14px] text-foreground outline-none font-medium"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -440,6 +458,20 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
                       </div>
                     </div>
 
+                    {/* 일정 */}
+                    <div>
+                      <p className="text-[13px] font-extrabold text-foreground mb-2 flex items-center justify-between">
+                        <span className="truncate">{i18n.t("auto.ko_0427", "대략적인 일정 (선택)")}</span>
+                      </p>
+                      <textarea
+                        value={itinerary}
+                        onChange={e => setItinerary(e.target.value)}
+                        placeholder={i18n.t("auto.ko_0428", "1일차: 도착 후 00 관광\n2일차: 근교 투어 등")}
+                        rows={2}
+                        className="w-full px-4 py-3 rounded-2xl bg-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 text-[14px] text-foreground placeholder:text-muted-foreground/40 outline-none resize-none transition-all shadow-sm leading-relaxed"
+                      />
+                    </div>
+
                     {/* 소개 */}
                     <div>
                       <p className="text-[13px] font-extrabold text-foreground mb-2 flex items-center justify-between">
@@ -451,7 +483,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
                         onChange={e => setDescription(e.target.value)}
                         placeholder={i18n.t("auto.ko_0424", "어떤 동행을 원하시나요? 비용 관리나 여행 스타일 등을 적어두면 매칭률이 올라가요.")}
                         rows={3}
-                        className="w-full px-4 py-4 rounded-2xl bg-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 text-[14px] text-foreground placeholder:text-muted-foreground/50 outline-none resize-none transition-all shadow-sm leading-relaxed"
+                        className="w-full px-4 py-3 rounded-2xl bg-card border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 text-[14px] text-foreground placeholder:text-muted-foreground/40 outline-none resize-none transition-all shadow-sm leading-relaxed"
                       />
                     </div>
                   </motion.div>
@@ -474,7 +506,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
                         </div>
                         <p className="text-white font-black text-[16px] leading-snug truncate">{title || i18n.t("auto.t_0004", `${destination} 여행 동행 구합니다`)}</p>
                         <p className="text-white/80 text-[12px] font-medium mt-1.5 flex items-center gap-1 truncate">
-                          <Calendar size={12}/> {dates || i18n.t("auto.ko_0425", "날짜 미정")} · <Users size={12}/> {i18n.t("auto.ko_0278", "최대")}{maxMembers}{i18n.t("auto.ko_0279", "명")}</p>
+                          <Calendar size={12}/> {startDate ? `${startDate} ~ ${endDate}` : i18n.t("auto.ko_0425", "날짜 미정")} · <Users size={12}/> {i18n.t("auto.ko_0278", "최대")}{maxMembers}{i18n.t("auto.ko_0279", "명")}</p>
                       </div>
                     </div>
 

@@ -59,14 +59,22 @@ export const SmoothTravelerMarker = ({ t, isSelected, onClick }: { t: any, isSel
 export const HotplaceMarker = ({ h, isSelected, onClick }: { h: Hotplace, isSelected: boolean, onClick: () => void }) => {
   return (
     <OverlayView position={{ lat: h.lat, lng: h.lng }} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
-      <div className="flex flex-col items-center cursor-pointer group -translate-x-1/2 -translate-y-1/2 transition-transform truncate" onClick={onClick}>
-        <div className={`absolute w-12 h-12 rounded-full ${isSelected ? "bg-rose-500/40" : "bg-rose-500/20"} animate-pulse`} />
-        <div className={`relative w-11 h-11 rounded-full border-2 shadow-lg flex items-center justify-center bg-white transition-transform ${isSelected ? "border-rose-500 scale-125" : "border-rose-200"}`}>
-          <span className="text-xl">{h.emoji}</span>
+      <div className={`flex flex-col items-center cursor-pointer transition-transform ${isSelected ? 'scale-125 z-50' : 'scale-100 z-10 hover:scale-110'} -translate-x-1/2 -translate-y-[100%]`} onClick={onClick}>
+        <div className="relative">
+          <div className="w-12 h-12 rounded-xl border-2 border-white shadow-xl overflow-hidden bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center">
+            <span className="text-2xl drop-shadow-md">{h.emoji}</span>
+          </div>
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 transform origin-center border-b-2 border-r-2 border-transparent shadow-sm" />
+          
+          {isSelected && (
+             <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center border border-white shadow-sm">
+               <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+             </div>
+          )}
         </div>
         {!isSelected && (
-          <div className="mt-1 bg-white/90 backdrop-blur-sm rounded-xl px-2 py-0.5 shadow-md whitespace-nowrap">
-            <span className="text-[10px] font-bold text-gray-800 truncate">{h.name.split(' (')[0]}</span>
+          <div className="mt-1.5 bg-white/95 backdrop-blur-sm rounded-xl px-2 py-0.5 shadow-md whitespace-nowrap border border-black/5">
+            <span className="text-[10px] font-bold text-gray-800 truncate block">{h.name.split(' (')[0]}</span>
           </div>
         )}
       </div>

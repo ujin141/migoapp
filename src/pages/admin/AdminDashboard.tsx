@@ -274,7 +274,7 @@ export const AdminDashboard = () => {
               <Plus size={12} />
             </button>
           </div>
-          <div className="space-y-2 max-h-52 overflow-y-auto truncate">
+          <div className="space-y-2 max-h-52 overflow-y-auto">
             {announcements.length === 0 ? <p className="text-xs text-muted-foreground truncate">{t("auto.g_1096", "발행된공지")}</p> : announcements.map((a: any) => <div key={a.id} className={`p-3 rounded-xl border text-xs transition-all ${typeColors[a.type as AnnouncementType] || "bg-muted border-border"}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">

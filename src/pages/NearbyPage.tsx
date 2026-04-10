@@ -186,7 +186,7 @@ const NearbyPage = () => {
         </div>
 
         {/* Purpose Filter */}
-        <div className="flex gap-2.5 overflow-x-auto pb-2 px-1 mt-1 no-scrollbar truncate">
+        <div className="flex gap-2.5 overflow-x-auto pb-2 px-1 mt-1 no-scrollbar">
           {PURPOSES.map(p => <button key={p} onClick={() => setFilterPurpose(p)} className={`shrink-0 px-4 py-1.5 rounded-full text-[13px] font-extrabold transition-all shadow-sm ${filterPurpose === p ? "gradient-primary text-white shadow-md scale-105" : "bg-white dark:bg-card text-muted-foreground border border-border hover:bg-muted"}`}>
               {p === "all" ? t("auto.x4090") : p}
             </button>)}

@@ -173,7 +173,8 @@ const sl = {
     "filterAgePlus": "age filter",
     "filterLang": "preferred language",
     "filterLangPlus": "Multiple language selection",
-    "filterMBTI": "MBTI"
+    "filterMBTI": "MBTI",
+    "traveler": "Traveler"
   },
   "matchModal": {
     "success": "It's a Match!",
@@ -1689,8 +1690,40 @@ const sl = {
     "emptyDesc": "Ko prispejo nova obvestila, se takoj prikažejo tukaj."
   },
   "createTrip": {
-    "requiredFields": "Required input",
-    "requiredDesc": "Please fill in all fields correctly."
+    "requiredFields": "Required",
+    "requiredDesc": "Please fill in all required fields.",
+    "title": "Create a Trip",
+    "coverImage": "Cover Image",
+    "optional": " (Optional)",
+    "addPhoto": "Add Photo",
+    "tripTitle": "Group Title",
+    "titlePlaceholder": "e.g., Weekend Seoul Food Tour",
+    "destination": "Destination",
+    "destPlaceholder": "Where are you heading?",
+    "popularDest": "Popular Destinations",
+    "dates": "Dates",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "description": "Description",
+    "descPlaceholder": "What kind of trip is this? Who are you looking for? (Min. 10 chars)",
+    "travelStyle": "Travel Style",
+    "max5": " (Max 5)",
+    "schedule": "Schedule",
+    "optionalMax10": " (Optional, Max 10)",
+    "scheduleDayPlaceholder": "Day {{day}} itinerary",
+    "firstSchedule": "+ Add first schedule",
+    "addSchedule": "+ Add schedule",
+    "maxMembers": "Max Participants (Including you)",
+    "peopleCount": "people",
+    "visibility": "Joining Policy",
+    "public": "Public (Anyone)",
+    "anyoneCanJoin": "Users can join without approval",
+    "inviteOnly": "Needs Approval",
+    "joinAfterApproval": "Users must be approved by you",
+    "premiumGroupTitle": "Premium Group",
+    "premiumGroupDesc": "Only premium verified members can join this group",
+    "creating": "Creating...",
+    "createGroup": "Create Group"
   },
   "lang": {
     "ko": "korejščina"

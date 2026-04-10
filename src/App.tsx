@@ -260,51 +260,40 @@ const AppContent = () => {
 
   return (
     <div className="max-w-lg mx-auto relative">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={location.pathname}
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        >
-          <Suspense fallback={<PageLoader />}>
-            <Routes location={location}>
-              <Route path="/splash"         element={<SplashPage />} />
-              <Route path="/onboarding"     element={<OnboardingPage />} />
-              <Route path="/login"          element={<LoginPage />} />
-              <Route path="/"               element={<Index />} />
-              <Route path="/discover"       element={<DiscoverPage />} />
-              <Route path="/map"            element={<MapPage />} />
-              <Route path="/chat"           element={<ChatPage />} />
-              <Route path="/profile"        element={<ProfilePage />} />
-              <Route path="/notifications"  element={<NotificationPage />} />
-              <Route path="/create-trip"    element={<CreateTripPage />} />
-              <Route path="/verification"   element={<VerificationPage />} />
-              <Route path="/profile-setup"  element={<ProfileSetupPage />} />
-              <Route path="/trip-calendar"  element={<TripCalendarPage />} />
-              <Route path="/meet-review"    element={<MeetReviewPage />} />
-              <Route path="/marketplace"    element={<MarketplacePage />} />
-              <Route path="/voice-call"     element={<VoiceCallPage />} />
-              <Route path="/terms"          element={<TermsPage />} />
-              <Route path="/privacy"        element={<PrivacyPage />} />
-              <Route path="/auth/callback"  element={<AuthCallbackPage />} />
-              <Route path="/download"       element={<DownloadPage />} />
-              <Route path="/find-account"   element={<FindAccountPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/safety"         element={<SafetyCheckInPage />} />
-              <Route path="/shop"           element={<ShopPage />} />
-              <Route path="/nearby"         element={<NearbyPage />} />
-              <Route path="/trip-review"    element={<TripReviewPage />} />
-              <Route path="/trip-match"     element={<TripMatchPage />} />
-              <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
-              <Route path="/refund-policy"  element={<RefundPolicyPage />} />
-              <Route path="*"              element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </motion.div>
-      </AnimatePresence>
+      <Suspense fallback={<PageLoader />}>
+        <Routes location={location}>
+          <Route path="/splash"         element={<SplashPage />} />
+          <Route path="/onboarding"     element={<OnboardingPage />} />
+          <Route path="/login"          element={<LoginPage />} />
+          <Route path="/"               element={<Index />} />
+          <Route path="/discover"       element={<DiscoverPage />} />
+          <Route path="/map"            element={<MapPage />} />
+          <Route path="/chat"           element={<ChatPage />} />
+          <Route path="/profile"        element={<ProfilePage />} />
+          <Route path="/notifications"  element={<NotificationPage />} />
+          <Route path="/create-trip"    element={<CreateTripPage />} />
+          <Route path="/verification"   element={<VerificationPage />} />
+          <Route path="/profile-setup"  element={<ProfileSetupPage />} />
+          <Route path="/trip-calendar"  element={<TripCalendarPage />} />
+          <Route path="/meet-review"    element={<MeetReviewPage />} />
+          <Route path="/marketplace"    element={<MarketplacePage />} />
+          <Route path="/voice-call"     element={<VoiceCallPage />} />
+          <Route path="/terms"          element={<TermsPage />} />
+          <Route path="/privacy"        element={<PrivacyPage />} />
+          <Route path="/auth/callback"  element={<AuthCallbackPage />} />
+          <Route path="/download"       element={<DownloadPage />} />
+          <Route path="/find-account"   element={<FindAccountPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/safety"         element={<SafetyCheckInPage />} />
+          <Route path="/shop"           element={<ShopPage />} />
+          <Route path="/nearby"         element={<NearbyPage />} />
+          <Route path="/trip-review"    element={<TripReviewPage />} />
+          <Route path="/trip-match"     element={<TripMatchPage />} />
+          <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
+          <Route path="/refund-policy"  element={<RefundPolicyPage />} />
+          <Route path="*"              element={<NotFound />} />
+        </Routes>
+      </Suspense>
       {showNav && <BottomNav />}
       <AnimatePresence>
         {tutorialVisible && showTutorial && (
@@ -330,8 +319,8 @@ const AppContent = () => {
       {showEula && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-end justify-center">
           <div className="bg-background w-full max-w-lg rounded-t-3xl p-6 pb-10 flex flex-col gap-4 max-h-[85vh]">
-            <h2 className="text-lg font-bold text-foreground">이용약관 동의</h2>
-            <p className="text-sm text-muted-foreground">Migo를 이용하기 전에 아래 약관에 동의해주세요.</p>
+            <h2 className="text-lg font-bold text-foreground">{t("auto.c_1000", "이용약관 동의")}</h2>
+            <p className="text-sm text-muted-foreground">{t("auto.c_1001", "Migo를 이용하기 전에 아래 약관에 동의해주세요.")}</p>
             <div
               ref={eulaRef}
               onScroll={(e) => {
@@ -340,15 +329,15 @@ const AppContent = () => {
               }}
               className="flex-1 overflow-y-auto text-xs text-muted-foreground space-y-3 border border-border rounded-xl p-4 min-h-[200px]"
             >
-              <p className="font-semibold text-foreground">커뮤니티 가이드라인 및 이용약관</p>
-              <p>Migo는 여행자들이 안전하게 만날 수 있는 플랫폼입니다. 다음 규칙을 반드시 준수해야 합니다:</p>
-              <p>1. <strong>불쾌한 콘텐츠 금지:</strong> 폭력적, 성적, 혐오적 콘텐츠는 즉시 삭제되며 계정이 정지됩니다.</p>
-              <p>2. <strong>신고 및 차단:</strong> 부적절한 사용자는 즉시 신고하거나 차단할 수 있습니다. 신고된 콘텐츠는 24시간 내 검토됩니다.</p>
-              <p>3. <strong>개인정보 보호:</strong> 타인의 개인정보를 동의 없이 공유하는 것은 금지됩니다.</p>
-              <p>4. <strong>사기 및 스팸 금지:</strong> 허위 정보, 스팸, 사기 행위는 즉시 계정 정지 사유가 됩니다.</p>
-              <p>5. <strong>연령 제한:</strong> Migo는 17세 이상만 이용 가능합니다.</p>
-              <p>6. <strong>위치 정보:</strong> 위치 공유는 수동 체크인으로만 이루어지며, 자동 공유는 없습니다.</p>
-              <p>전체 이용약관은 설정 &gt; 이용약관에서 확인할 수 있습니다. 위반 시 콘텐츠 삭제 및 계정 정지 조치가 취해집니다.</p>
+              <p className="font-semibold text-foreground">{t("auto.c_1002", "커뮤니티 가이드라인 및 이용약관")}</p>
+              <p>{t("auto.c_1003", "Migo는 여행자들이 안전하게 만날 수 있는 플랫폼입니다. 다음 규칙을 반드시 준수해야 합니다:")}</p>
+              <p>1. <strong>{t("auto.c_1004", "불쾌한 콘텐츠 금지:")}</strong> {t("auto.c_1005", "폭력적, 성적, 혐오적 콘텐츠는 즉시 삭제되며 계정이 정지됩니다.")}</p>
+              <p>2. <strong>{t("auto.c_1006", "신고 및 차단:")}</strong> {t("auto.c_1007", "부적절한 사용자는 즉시 신고하거나 차단할 수 있습니다. 신고된 콘텐츠는 24시간 내 검토됩니다.")}</p>
+              <p>3. <strong>{t("auto.c_1008", "개인정보 보호:")}</strong> {t("auto.c_1009", "타인의 개인정보를 동의 없이 공유하는 것은 금지됩니다.")}</p>
+              <p>4. <strong>{t("auto.c_1010", "사기 및 스팸 금지:")}</strong> {t("auto.c_1011", "허위 정보, 스팸, 사기 행위는 즉시 계정 정지 사유가 됩니다.")}</p>
+              <p>5. <strong>{t("auto.c_1012", "연령 제한:")}</strong> {t("auto.c_1013", "Migo는 17세 이상만 이용 가능합니다.")}</p>
+              <p>6. <strong>{t("auto.c_1014", "위치 정보:")}</strong> {t("auto.c_1015", "위치 공유는 수동 체크인으로만 이루어지며, 자동 공유는 없습니다.")}</p>
+              <p>{t("auto.c_1016", "전체 이용약관은 설정 > 이용약관에서 확인할 수 있습니다. 위반 시 콘텐츠 삭제 및 계정 정지 조치가 취해집니다.")}</p>
             </div>
             <button
               disabled={!eulaScrolled}
@@ -362,7 +351,7 @@ const AppContent = () => {
                   : 'bg-muted text-muted-foreground cursor-not-allowed'
               }`}
             >
-              {eulaScrolled ? '동의하고 시작하기' : '아래로 스크롤하여 약관 확인'}
+              {eulaScrolled ? t("auto.c_1017", "동의하고 시작하기") : t("auto.c_1018", "아래로 스크롤하여 약관 확인")}
             </button>
           </div>
         </div>

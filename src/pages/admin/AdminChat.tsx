@@ -165,7 +165,7 @@ export const AdminChat = () => {
                 <ChevronRight size={16} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 truncate">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {msgLoading ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />

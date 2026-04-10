@@ -24,7 +24,7 @@ export const RefundPolicyModal = ({
             <button onClick={() => setShowRefundPolicyModal(false)} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center"><X size={18} /></button>
             <h2 className="text-lg font-extrabold text-foreground truncate">{i18n.t("auto.g_1446", "환불 정책 및 유료서비스 이용 안내")}</h2>
           </div>
-          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 text-sm text-foreground leading-relaxed pb-20 truncate">
+          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 text-sm text-foreground leading-relaxed pb-20">
             <p className="text-[13px] text-muted-foreground leading-relaxed truncate">{i18n.t("auto.g_1447", "만 18세 미만의 미성년자는 가입이 불가능합니다.")}</p>
 
             <div>

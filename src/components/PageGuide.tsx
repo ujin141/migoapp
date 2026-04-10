@@ -311,7 +311,7 @@ export default function PageGuide({ page, floating = true }: PageGuideProps) {
               </div>
 
               {/* Items list — extra bottom padding so last item clears the sheet corners */}
-              <div className="overflow-y-auto flex-1 px-4 pb-6 space-y-2 truncate">
+              <div className="overflow-y-auto flex-1 px-4 pb-6 space-y-2">
                 {guide.items.map((item, i) => (
                   <motion.button
                     key={i}

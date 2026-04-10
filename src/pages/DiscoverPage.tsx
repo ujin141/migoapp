@@ -17,8 +17,8 @@ import { getCurrentLocation } from "@/lib/locationService";
 import StoryViewer from "@/components/StoryViewer";
 import ReportBlockActionSheet from "@/components/ReportBlockActionSheet";
 
-const GOOGLE_MAPS_LIBRARIES: ("places")[] = ["places"];
 import { Loader2, Beer } from "lucide-react";
+const GOOGLE_MAPS_LIBRARIES: ("places")[] = ["places"];
 import { getLocalizedPrice, inferGroupTier, getTierConfig } from "@/lib/pricing";
 import GlobalFilter from "@/components/GlobalFilter";
 import { HOTPLACES } from "@/lib/placeRecommendations";
@@ -29,7 +29,6 @@ import GroupCreateModal from "@/components/GroupCreateModal";
 import { getMyCheckIn } from "@/lib/checkInService";
 import PaymentModal from "@/components/PaymentModal";
 import CheckInModal from "@/components/CheckInModal";
-import PageGuide from "@/components/PageGuide";
 import { LightningModals } from "./discover/LightningModals";
 import { GroupDetailModal } from "./discover/GroupDetailModal";
 import { PostDetailModal } from "./discover/PostDetailModal";
@@ -173,6 +172,7 @@ const DiscoverPage = () => {
   const [attachedImages, setAttachedImages] = useState<Array<{
     file: File;
     url: string;
+    id: string;
   }>>([]);
   const MAX_POST_PHOTOS = 1;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -751,16 +751,16 @@ const DiscoverPage = () => {
                 // Korean: t("auto.x4012") or t("auto.x4013")
                 const kor = rawEnd.match(/(\d+)월\s*(\d+)일/);
                 if (kor) {
-                  const t = new Date(new Date().getFullYear(), parseInt(kor[1]) - 1, parseInt(kor[2]));
-                  return Math.max(0, Math.ceil((t.getTime() - Date.now()) / 86400000));
+                  const dt = new Date(new Date().getFullYear(), parseInt(kor[1]) - 1, parseInt(kor[2]));
+                  return Math.max(0, Math.ceil((dt.getTime() - Date.now()) / 86400000));
                 }
                 // Slash: "4/25" or "2026/4/25"
                 const parts = rawEnd.split('/');
                 if (parts.length >= 2) {
                   const m = parseInt(parts[parts.length - 2]),
                     d = parseInt(parts[parts.length - 1]);
-                  const t = new Date(new Date().getFullYear(), m - 1, d);
-                  return Math.max(0, Math.ceil((t.getTime() - Date.now()) / 86400000));
+                  const dt = new Date(new Date().getFullYear(), m - 1, d);
+                  return Math.max(0, Math.ceil((dt.getTime() - Date.now()) / 86400000));
                 }
                 const parsed = new Date(rawEnd.replace(/\./g, '-'));
                 if (isNaN(parsed.getTime())) return 14;
@@ -858,7 +858,8 @@ const DiscoverPage = () => {
     const remaining = MAX_POST_PHOTOS - attachedImages.length;
     const toAdd = files.slice(0, remaining).map(file => ({
       file,
-      url: URL.createObjectURL(file)
+      url: URL.createObjectURL(file),
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())
     }));
     if (toAdd.length === 0) {
       toast({
@@ -1733,7 +1734,6 @@ const DiscoverPage = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-[10px] text-muted-foreground font-semibold hidden sm:inline truncate">{t("auto.ko_0002", "여행자 모집 중")}</span>
             </span>
-            <PageGuide page="discover" />
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => navigate("/notifications")} className="relative w-9 h-9 rounded-xl bg-card border border-border/60 flex items-center justify-center shadow-sm active:scale-95 transition-all">
@@ -1792,7 +1792,7 @@ const DiscoverPage = () => {
       }} transition={{
         duration: 0.2
       }} className="overflow-hidden">
-            <div className="flex gap-2 px-5 py-2 overflow-x-auto scrollbar-hide truncate">
+            <div className="flex gap-2 px-5 py-2 overflow-x-auto scrollbar-hide">
               {globalFilters.destination && <motion.button initial={{
             scale: 0.8,
             opacity: 0
@@ -1833,7 +1833,7 @@ const DiscoverPage = () => {
       {/* Filters (Groups only) */}
       {activeTab === "groups" && (
         <div className="px-4 pb-2">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide truncate">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {FILTER_LIST.map(f => (
               <button key={f} onClick={() => setActiveFilter(f)} className={`px-3.5 py-1.5 rounded-full text-[11px] font-extrabold whitespace-nowrap transition-all border shadow-sm ${activeFilter === f ? "bg-gradient-to-r from-teal-400 to-blue-500 text-white border-transparent" : "bg-card text-muted-foreground border-border/50 hover:bg-muted"}`}>
                 {FILTER_LABELS[f]}
@@ -1864,7 +1864,7 @@ const DiscoverPage = () => {
         height: 0,
         opacity: 0
       }} className="overflow-hidden">
-          <div className="flex gap-2 px-5 pb-2 overflow-x-auto scrollbar-hide truncate">
+          <div className="flex gap-2 px-5 pb-2 overflow-x-auto scrollbar-hide">
               {groupDetailFilter.departureKeyword.trim() && <motion.button initial={{ scale: 0.8 }} animate={{ scale: 1 }}
                 onClick={() => setGroupDetailFilter(p => ({ ...p, departureKeyword: "" }))}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-sky-500/15 border border-sky-500/30 text-xs font-semibold text-sky-600 shrink-0">
@@ -2311,7 +2311,7 @@ const DiscoverPage = () => {
                <h3 className="text-lg font-black text-foreground truncate">{t("auto.ko_0100", "좋아요한사")}</h3>
                <button onClick={() => setLikesPostId(null)} className="p-2 bg-muted rounded-full text-foreground"><X size={16} /></button>
              </div>
-             <div className="overflow-y-auto flex-1 space-y-3 truncate">
+             <div className="overflow-y-auto flex-1 space-y-3">
                {likesList.length === 0 ? <p className="text-center text-sm text-muted-foreground py-8 truncate">{t("auto.ko_0101", "아직좋아요")}</p> : likesList.map((usr, i) => <div key={i} className="flex items-center gap-3">
                    <img src={usr?.photo_url || "https://api.dicebear.com/9.x/notionists/svg?seed=" + i} alt="" className="w-10 h-10 rounded-full object-cover bg-muted" loading="lazy" />
                    <span className="text-sm font-bold text-foreground truncate">{usr?.name || t("auto.ko_0102", "알수없음4")}</span>
@@ -2354,7 +2354,7 @@ const DiscoverPage = () => {
       {/* ── [Feature 2] 지원자 심사 모달 (호스트용) ── */}
       {showApplicants && <div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" onClick={() => setShowApplicants(null)}>
           <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" />
-          <div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-12 max-h-[80vh] overflow-y-auto shadow-float truncate" onClick={e => e.stopPropagation()}>
+          <div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-12 max-h-[80vh] overflow-y-auto shadow-float" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
             <h3 className="font-extrabold text-foreground mb-1 truncate">{t("auto.ko_0109", "동행지원자")}</h3>
             <p className="text-xs text-muted-foreground mb-4 truncate">{t("auto.ko_0110", "지원자프로")}</p>

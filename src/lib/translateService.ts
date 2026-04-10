@@ -98,11 +98,26 @@ export function clearTranslateCache(): void {
 }
 
 /**
- * 무료 번역 API 사용 (fallback)
+ * 텍스트 내용 기반 소스 언어 간단 추론 (MyMemory auto 미지원 대응)
+ */
+function guessSourceLang(text: string): string {
+  if (/[\uAC00-\uD7A3]/.test(text)) return "ko";
+  if (/[\u3040-\u30FF\u31F0-\u31FF]/.test(text)) return "ja";
+  if (/[\u4E00-\u9FFF]/.test(text)) return "zh";
+  if (/[\u0E00-\u0E7F]/.test(text)) return "th";
+  if (/[\u0600-\u06FF]/.test(text)) return "ar";
+  return "en";
+}
+
+/**
+ * 무료 번역 API 사용 (fallback) — MyMemory는 auto 소스 미지원이므로 자동 감지
  */
 async function simulateTranslation(text: string, targetLang: SupportedLang): Promise<string> {
   try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`;
+    const src = guessSourceLang(text);
+    // 소스 == 타겟이면 번역 불필요
+    if (src === targetLang) return text;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${src}|${targetLang}`;
     const res = await fetch(url);
     if (!res.ok) return text;
     const data = await res.json();

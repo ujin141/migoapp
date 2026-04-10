@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Settings, ChevronLeft, ChevronRight, MapPin, Calendar, Globe, Camera, LogOut, Shield, Bell, HelpCircle, X, Check, Edit2, Plus, Heart, MessageCircle, Star, Users, Plane, Handshake, Crown, AlertTriangle, ShoppingBag, FileText, Eye, Zap, Navigation, Lock, Send } from "lucide-react";
@@ -20,7 +20,6 @@ import { HelpModal, TermsModal, PrivacyPolicyModal, LicenseModal } from "./profi
 import { SettingsModal, NotificationModal, PrivacyModal, LogoutConfirmModal, DeleteAccountConfirmModal } from "./profile/ProfileSettingsModals";
 import StreakBadge from "@/components/StreakBadge";
 import ActivityReport from "@/components/ActivityReport";
-import PageGuide from "@/components/PageGuide";
 import { checkInStreak } from "@/lib/streakService";
 import { getCurrentLocation } from "@/lib/locationService";
 import StoryViewer from "@/components/StoryViewer";
@@ -64,7 +63,16 @@ const ProfilePage = () => {
   const [myPosts, setMyPosts] = useState<any[]>([]);
   const [likers, setLikers] = useState<any[]>([]); // 나를 좋아한 사람들
   const [showMyPosts, setShowMyPosts] = useState(false);
-  const [selectedLiker, setSelectedLiker] = useState<any | null>(null); // 클릭한 라이커 프로필
+  const [selectedLiker, setSelectedLiker] = useState<any | null>(null);
+  const [selectedLikerIdx, setSelectedLikerIdx] = useState<number>(0);
+
+  // 풀스크린 뷰어 열릴 때 바텀 nav 숨기기 (stacking context 우회)
+  useLayoutEffect(() => {
+    const nav = document.getElementById('migo-bottom-nav');
+    if (!nav) return;
+    nav.style.display = selectedLiker ? 'none' : '';
+    return () => { nav.style.display = ''; };
+  }, [selectedLiker]);
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [readStories, setReadStories] = useState<Set<string>>(() => {
     try {
@@ -503,7 +511,7 @@ const ProfilePage = () => {
           const likerIds = likerData.map((r: any) => r.from_user);
           const { data: likerProfiles } = await supabase
             .from('profiles')
-            .select('id, name, photo_url, location, age')
+            .select('id, name, photo_url, location, age, bio, languages, interests, mbti, nationality')
             .in('id', likerIds);
           if (likerProfiles) {
             const uniqueLikers = Array.from(new Map(likerProfiles.map((p: any) => [p.id, p])).values());
@@ -513,6 +521,11 @@ const ProfilePage = () => {
               photo: p.photo_url || '',
               location: p.location || '',
               age: p.age || '',
+              bio: p.bio || '',
+              languages: p.languages || [],
+              interests: p.interests || [],
+              mbti: p.mbti || '',
+              nationality: p.nationality || '',
             })));
           }
         }
@@ -765,10 +778,7 @@ const ProfilePage = () => {
       <div className="absolute top-0 left-0 w-full h-[35vh] bg-gradient-to-b from-primary/10 via-primary/5 to-transparent z-0 pointer-events-none" />
       <div className="relative z-10 truncate">
       <header className="flex items-center justify-between px-5 pt-safe pb-2">
-        <div className="flex items-center gap-2">
           <h1 className="text-2xl font-extrabold text-foreground truncate">{t('profile.title')}</h1>
-          <PageGuide page="profile" />
-        </div>
         <div className="flex items-center gap-2">
           {isPlus && <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
               <Crown size={11} className="text-amber-500" />
@@ -921,94 +931,169 @@ const ProfilePage = () => {
 
       {/* ─── 나를 좋아한 사람들 섹션 ─── */}
       {likers.length > 0 && (
-        <div className="mx-5 mt-4 truncate">
-          <div className="flex items-center gap-2 mb-3 truncate">
-            <Heart size={15} className="text-rose-500" fill="currentColor" />
-            <h3 className="text-sm font-extrabold text-foreground truncate">{t("auto.g_0888", "나를 좋아한 사람")}</h3>
-            <span className="text-xs font-bold text-white bg-rose-500 px-2 py-0.5 rounded-full">
-              {canViewLikers ? likers.length : '?'}
-            </span>
-            {!canViewLikers && (
-              <span className="ml-auto text-[10px] text-amber-500 font-bold flex items-center gap-1 truncate">
-                <Crown size={11} /> {t("auto.g_0889", "Plus 전용")}</span>
-            )}
-          </div>
-          <div className="flex gap-3.5 overflow-x-auto pb-4 pt-1 px-1 -mx-1 truncate" style={{ scrollbarWidth: 'none' }}>
-            {likers.slice(0, canViewLikers ? 20 : 5).map((liker, idx) => (
+        <div className="mx-5 mt-6">
+          {/* 헤더 배너 */}
+        <motion.div
+            id="likers-section"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative rounded-3xl overflow-hidden mb-3 cursor-pointer active:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #ff2d55 0%, #ff6b35 50%, #ff9500 100%)' }}
+            onClick={() => {
+              if (canViewLikers) {
+                document.getElementById('likers-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              } else {
+                setShowPlusModal(true);
+              }
+            }}
+          >
+            {/* 배경 펄스 원 */}
+            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10 animate-pulse" />
+            <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/10 animate-pulse" style={{ animationDelay: '0.5s' }} />
+
+            <div className="relative z-10 px-5 py-4 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <motion.div
+                    animate={{ scale: [1, 1.25, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <Heart size={18} className="text-white" fill="white" />
+                  </motion.div>
+                  <span className="text-white font-black text-[15px] drop-shadow-sm">
+                    {t("auto.g_0888", "나를 좋아한 사람")}
+                  </span>
+                </div>
+                <p className="text-white/80 text-[11px] font-semibold">
+                  {canViewLikers
+                    ? t("auto.g_0888_sub", `${likers.length}명이 당신을 좋아해요 💘`)
+                    : t("auto.g_0888_sub_lock", "누군가 당신에게 빠졌어요 👀")}
+                </p>
+              </div>
+
+              {/* 겹치는 아바타 스택 */}
+              <div className="flex items-center">
+                {likers.slice(0, 4).map((liker, i) => (
+                  <div
+                    key={liker.id}
+                    className="relative w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg"
+                    style={{
+                      marginLeft: i === 0 ? 0 : '-10px',
+                      zIndex: 10 - i,
+                      filter: !canViewLikers ? 'blur(5px)' : 'none',
+                    }}
+                  >
+                    {liker.photo
+                      ? <img src={liker.photo} alt="" className="w-full h-full object-cover" />
+                      : <div className="w-full h-full bg-white/30 flex items-center justify-center text-white font-black text-sm">{liker.name[0]}</div>
+                    }
+                  </div>
+                ))}
+                {likers.length > 4 && (
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-black/40 backdrop-blur-sm flex items-center justify-center -ml-2.5 z-0 shadow-lg">
+                    <span className="text-white text-[10px] font-black">+{likers.length - 4}</span>
+                  </div>
+                )}
+                {!canViewLikers && (
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-black/50 backdrop-blur-sm flex items-center justify-center -ml-2.5 z-10 shadow-lg">
+                    <Lock size={14} className="text-white" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* 카드 그리드 */}
+          <div id="likers-grid" className="grid grid-cols-3 gap-2">
+            {likers.slice(0, canViewLikers ? 20 : 6).map((liker, idx) => (
               <motion.div
                 key={liker.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
-                  if (!canViewLikers) {
-                    setShowPlusModal(true);
-                  } else {
-                    setSelectedLiker(liker);
-                  }
+                  if (!canViewLikers) { setShowPlusModal(true); }
+                  else { setSelectedLiker(liker); setSelectedLikerIdx(idx); }
                 }}
-                className="relative shrink-0 w-[110px] aspect-[3/4] rounded-2xl overflow-hidden shadow-md border border-black/5 dark:border-white/10 cursor-pointer bg-card"
+                className="relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer shadow-lg"
               >
                 {/* Photo */}
                 {liker.photo ? (
                   <img
                     src={liker.photo}
                     alt={liker.name}
-                    className="w-full h-full object-cover transition-all duration-300"
-                    style={!canViewLikers ? { filter: 'blur(16px)', transform: 'scale(1.2)' } : {}}
+                    className="w-full h-full object-cover"
+                    style={!canViewLikers ? { filter: 'blur(12px)', transform: 'scale(1.15)' } : {}}
                   />
                 ) : (
                   <div
-                    className="w-full h-full bg-gradient-to-br from-primary/80 to-secondary/80 flex items-center justify-center transition-all duration-300"
-                    style={!canViewLikers ? { filter: 'blur(16px)', transform: 'scale(1.2)' } : {}}
+                    className="w-full h-full flex items-center justify-center"
+                    style={{
+                      background: `hsl(${(idx * 47) % 360}, 60%, 55%)`,
+                      filter: !canViewLikers ? 'blur(12px)' : 'none',
+                    }}
                   >
-                    <span className="text-white/40 text-4xl font-black">
-                      {liker.name[0]}
-                    </span>
+                    <span className="text-white text-3xl font-black opacity-60">{liker.name[0]}</span>
                   </div>
                 )}
-                
-                {/* Gradient Overlays */}
-                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
 
-                {/* Info Overlay */}
-                <div
-                  className="absolute bottom-2.5 left-2.5 right-2 flex flex-col gap-0.5 z-10"
-                  style={!canViewLikers ? { filter: 'blur(8px)', opacity: 0.8 } : {}}
-                >
-                  <h4 className="text-white font-extrabold text-[13px] tracking-tight leading-tight drop-shadow-md truncate">
-                    {liker.name}
-                    {liker.age && <span className="font-semibold text-[10px] text-white/80 ml-1">{liker.age}</span>}
-                  </h4>
-                  {liker.location && (
-                    <div className="flex items-center gap-0.5 text-emerald-300 font-bold text-[9px] drop-shadow-md truncate">
-                      <MapPin size={8} className="shrink-0" />
-                      <span className="truncate">{liker.location}</span>
-                    </div>
-                  )}
+                {/* Bottom gradient */}
+                <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+
+                {/* Heart badge */}
+                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center shadow-md">
+                  <Heart size={11} className="text-white" fill="white" />
                 </div>
 
-                {/* Non-subscriber Lock Overlay */}
-                {!canViewLikers && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/30 backdrop-blur-sm z-20 truncate">
-                    <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/20">
-                      <Lock size={18} className="text-white drop-shadow-md" />
-                    </div>
-                    {idx === 0 && (
-                      <span className="text-white text-[9px] font-extrabold text-center px-1.5 leading-tight tracking-wider bg-black/40 rounded-lg py-1 truncate">
-                        {t("auto.g_0890", "Plus 전용")}</span>
+                {/* Info */}
+                {canViewLikers && (
+                  <div className="absolute bottom-2 left-2 right-2 z-10">
+                    <p className="text-white font-extrabold text-[12px] leading-tight truncate drop-shadow-md">
+                      {liker.name}{liker.age && <span className="font-normal opacity-80 ml-1 text-[10px]">{liker.age}</span>}
+                    </p>
+                    {liker.location && (
+                      <div className="flex items-center gap-0.5 text-emerald-300 text-[9px] font-bold mt-0.5 truncate">
+                        <MapPin size={7} className="shrink-0" />
+                        <span className="truncate">{liker.location}</span>
+                      </div>
                     )}
+                  </div>
+                )}
+
+                {/* Lock overlay */}
+                {!canViewLikers && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/20 backdrop-blur-[2px] z-20">
+                    {idx === 0 && (
+                      <div className="bg-rose-500/90 rounded-xl px-2 py-1">
+                        <Lock size={14} className="text-white mx-auto" />
+                        <span className="text-white text-[8px] font-black block text-center mt-0.5">PLUS</span>
+                      </div>
+                    )}
+                    {idx > 0 && <Lock size={13} className="text-white/70" />}
                   </div>
                 )}
               </motion.div>
             ))}
           </div>
-          {/* 비구독자 CTA 배너 */}
+
+          {/* Plus CTA - 비구독자 */}
           {!canViewLikers && (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.97 }}
               onClick={() => setShowPlusModal(true)}
-              className="mt-2 w-full py-3 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold text-amber-600 bg-amber-500/10 border border-amber-500/30 active:scale-95 transition-transform"
+              className="mt-3 w-full py-4 rounded-2xl flex items-center justify-center gap-2.5 font-black text-white relative overflow-hidden shadow-xl active:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #ff2d55, #ff6b35)' }}
             >
-              <Crown size={15} className="text-amber-500" />
-              {t("auto.g_0891", "Migo Plus로 업그레이드하고 확인하기")}</button>
+              <div className="absolute inset-0 opacity-20"
+                style={{ background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)' }}
+              />
+              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1, repeat: Infinity }}>
+                <Heart size={18} fill="white" className="text-white" />
+              </motion.div>
+              <span className="text-[14px] relative z-10">{t("auto.g_0891", "지금 확인하기 — Migo Plus")}</span>
+              <Crown size={16} className="text-yellow-300 relative z-10" />
+            </motion.button>
           )}
         </div>
       )}
@@ -1096,102 +1181,190 @@ const ProfilePage = () => {
         />
       )}
 
-      {/* ─── 라이커 프로필 바텀시트 모달 (Plus 전용) ─── */}
+      {/* ─── 라이커 풀스크린 포토 뷰어 ─── */}
       <AnimatePresence>
         {selectedLiker && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-end justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black"
+            initial={{ opacity: 0, scale: 1.04 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.04 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
           >
-            {/* 배경 딤 */}
-            <div
-              className="absolute inset-0 bg-foreground/50 backdrop-blur-sm"
-              onClick={() => setSelectedLiker(null)}
-            />
-            <motion.div
-              className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float overflow-hidden"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            >
-              {/* 핸들 */}
-              <div className="w-10 h-1.5 bg-border rounded-full mx-auto mt-3" />
+            {/* 풀스크린 사진 */}
+            {selectedLiker.photo ? (
+              <img
+                src={selectedLiker.photo}
+                alt={selectedLiker.name}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                style={{ background: `hsl(${(selectedLiker.name?.charCodeAt(0) ?? 0) * 23 % 360}, 55%, 45%)` }}
+              >
+                <span className="text-white text-[120px] font-black opacity-30">{selectedLiker.name?.[0]}</span>
+              </div>
+            )}
 
-              {/* 닫기 버튼 */}
+            {/* 상단 그라디언트 + 닫기 */}
+            <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
+            <div className="absolute top-0 inset-x-0 flex items-center justify-between px-5 pt-safe pt-4">
+              {/* 좌우 탐색 인디케이터 */}
+              <div className="flex gap-1">
+                {canViewLikers && likers.slice(0, 20).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-0.5 rounded-full transition-all ${
+                      i === selectedLikerIdx ? 'bg-white w-6' : 'bg-white/40 w-3'
+                    }`}
+                  />
+                ))}
+              </div>
               <button
                 onClick={() => setSelectedLiker(null)}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted flex items-center justify-center"
+                className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center ml-auto"
               >
-                <X size={16} className="text-muted-foreground" />
+                <X size={18} className="text-white" />
               </button>
+            </div>
 
-              {/* 프로필 헤더 */}
-              <div className="flex items-center gap-4 px-6 pt-4 pb-5">
-                <div className="relative">
-                  {selectedLiker.photo ? (
-                    <img
-                      src={selectedLiker.photo}
-                      alt={selectedLiker.name}
-                      className="w-20 h-20 rounded-2xl object-cover"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center text-primary-foreground text-2xl font-black">
-                      {selectedLiker.name?.[0] || '?'}
-                    </div>
-                  )}
-                  {/* Heart 뱃지 */}
-                  <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-rose-500 flex items-center justify-center shadow-md">
-                    <Heart size={13} className="text-white" fill="white" />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-xl font-extrabold text-foreground truncate">
-                    {selectedLiker.name}
-                    {selectedLiker.age ? (
-                      <span className="text-sm font-normal text-muted-foreground ml-1">, {selectedLiker.age}</span>
-                    ) : null}
-                  </h3>
-                  {selectedLiker.location && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <MapPin size={12} className="text-primary shrink-0" />
-                      <span className="text-xs text-muted-foreground truncate">{selectedLiker.location}</span>
-                    </div>
-                  )}
-                  <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 w-fit">
-                    <Heart size={10} className="text-rose-500" fill="currentColor" />
-                    <span className="text-[10px] font-bold text-rose-500 truncate">{t("auto.g_0892", "나를 좋아해요")}</span>
-                  </div>
-                </div>
-              </div>
+            {/* 좌우 탐색 화살표 */}
+            {canViewLikers && likers.length > 1 && (
+              <>
+                {selectedLikerIdx > 0 && (
+                  <button
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center z-10"
+                    onClick={() => {
+                      const newIdx = selectedLikerIdx - 1;
+                      setSelectedLikerIdx(newIdx);
+                      setSelectedLiker(likers[newIdx]);
+                    }}
+                  >
+                    <ChevronLeft size={20} className="text-white" />
+                  </button>
+                )}
+                {selectedLikerIdx < Math.min(likers.length, 20) - 1 && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center z-10"
+                    onClick={() => {
+                      const newIdx = selectedLikerIdx + 1;
+                      setSelectedLikerIdx(newIdx);
+                      setSelectedLiker(likers[newIdx]);
+                    }}
+                  >
+                    <ChevronRight size={20} className="text-white" />
+                  </button>
+                )}
+              </>
+            )}
 
-              {/* 채팅 시작 버튼 */}
-              <div className="px-6 pb-10">
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => startChatWithLiker(selectedLiker.id)}
-                  disabled={startingChat}
-                  className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-base flex items-center justify-center gap-2.5 shadow-lg disabled:opacity-60"
+            {/* 하단 그라디언트 — 스크롤 영역 위에 */}
+            <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/95 via-black/70 to-transparent pointer-events-none" />
+            {/* 스크롤 가능한 정보 영역 */}
+            <div
+              className="absolute inset-x-0 bottom-0 overflow-y-auto px-6"
+              style={{ maxHeight: '65vh', paddingBottom: 'max(32px, env(safe-area-inset-bottom, 20px))' }}
+            >
+              {/* 나를 좋아해요 뱃지 */}
+              <div className="flex items-center gap-1.5 mb-3">
+                <motion.div
+                  animate={{ scale: [1, 1.25, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  {startingChat ? (
-                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Send size={18} />
-                  )}
-                  {startingChat ? t("auto.g_0904", "채팅방 연결 중...") : t("auto.g_0905", "채팅 보내기")}
-                </motion.button>
-                <p className="text-center text-xs text-muted-foreground mt-3 truncate">
-                  {t("auto.g_0893", "채팅방이 열리면 먼저 인사해보세요 👋")}</p>
+                  <Heart size={16} className="text-rose-400" fill="#fb7185" />
+                </motion.div>
+                <span className="text-rose-300 text-xs font-bold">{t("auto.g_0892", "나를 좋아해요")}</span>
               </div>
-            </motion.div>
+
+              {/* 이름/나이 */}
+              <h2 className="text-white text-3xl font-black leading-tight drop-shadow-lg">
+                {selectedLiker.name}
+                {selectedLiker.age && (
+                  <span className="text-white/70 text-xl font-semibold ml-2">{selectedLiker.age}</span>
+                )}
+              </h2>
+
+              {/* 위치 */}
+              {selectedLiker.location && (
+                <div className="flex items-center gap-1 mt-1.5">
+                  <MapPin size={13} className="text-emerald-400 shrink-0" />
+                  <span className="text-emerald-300 text-sm font-semibold">{selectedLiker.location}</span>
+                </div>
+              )}
+
+              {/* 태그 행 (MBTI + 국적) */}
+              {(selectedLiker.mbti || selectedLiker.nationality) && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {selectedLiker.mbti && (
+                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-violet-500/30 text-violet-200 border border-violet-400/30">
+                      {selectedLiker.mbti}
+                    </span>
+                  )}
+                  {selectedLiker.nationality && (
+                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/20">
+                      {selectedLiker.nationality}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* 자기소개 */}
+              {selectedLiker.bio && (
+                <p className="text-white/80 text-[13px] leading-relaxed mt-3 line-clamp-3">
+                  "{selectedLiker.bio}"
+                </p>
+              )}
+
+              {/* 언어 */}
+              {selectedLiker.languages?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  <Globe size={12} className="text-sky-300 shrink-0 mt-0.5" />
+                  {selectedLiker.languages.slice(0, 4).map((lang: string, i: number) => (
+                    <span key={i} className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-200 border border-sky-400/20">
+                      {lang}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* 관심사 */}
+              {selectedLiker.interests?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {selectedLiker.interests.slice(0, 5).map((tag: string, i: number) => (
+                    <span key={i} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white/80 border border-white/15">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* 채팅 버튼 */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => startChatWithLiker(selectedLiker.id)}
+                disabled={startingChat}
+                className="w-full py-4 rounded-2xl flex items-center justify-center gap-2.5 font-extrabold text-[15px] shadow-xl mt-4 disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+              >
+                {startingChat
+                  ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Send size={18} className="text-white" />
+                }
+                <span className="text-white">{startingChat ? t("auto.g_0904", "채팅방 연결 중...") : t("auto.g_0905", "채팅 보내기")}</span>
+              </motion.button>
+              <p className="text-center text-white/50 text-xs mt-2">
+                {t("auto.g_0893", "채팅방이 열리면 먼저 인사해보세요 👋")}
+              </p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* 활동 리포트 */}
-      <ActivityReport />
+      <div className="mt-5">
+        <ActivityReport />
+      </div>
 
       
       {/* Dashboard Menu Groups */}

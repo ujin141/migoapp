@@ -162,7 +162,7 @@ const CreateAdModal = ({
           </button>
         </div>
 
-        <div className="p-6 max-h-[70vh] overflow-y-auto truncate">
+        <div className="p-6 max-h-[70vh] overflow-y-auto">
           {/* Step 0: Slot selection */}
           {step === 0 && <div>
               <p className="text-sm font-bold text-foreground mb-4 truncate">{i18n.t("auto.g_1118", "광고를어디")}</p>

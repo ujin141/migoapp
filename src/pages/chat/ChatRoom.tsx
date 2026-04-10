@@ -1,7 +1,7 @@
 import i18n from "@/i18n";
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MoreVertical, ShieldAlert, Phone, CheckSquare, Shield, Crown, AlertTriangle, Languages, ChevronDown, Check, MapPin, Calendar, Map, Lock, Send } from "lucide-react";
+import { ArrowLeft, MoreVertical, ShieldAlert, Phone, CheckSquare, Shield, Crown, AlertTriangle, Languages, ChevronDown, Check, MapPin, Calendar, Map, Lock, Send, Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { LANG_NAMES, SupportedLang } from "@/lib/translateService";
@@ -104,8 +104,45 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  // ── 번역해서 보내기 상태 (Free: 하루 3회, Plus 무제한) ──
+  const [translateSending, setTranslateSending] = useState(false);
+  const FREE_DAILY_TRANSLATE_SEND = 3;
+  const todayKey = `migo_translate_send_${new Date().toISOString().slice(0, 10)}`;
+  const getTranslateSendCount = () => parseInt(localStorage.getItem(todayKey) || '0', 10);
+  const incrementTranslateSendCount = () => localStorage.setItem(todayKey, String(getTranslateSendCount() + 1));
+
+  const handleTranslateSend = useCallback(async () => {
+    if (!message.trim()) return;
+    if (!isPlus) {
+      const used = getTranslateSendCount();
+      if (used >= FREE_DAILY_TRANSLATE_SEND) {
+        setShowPlusModal(true);
+        return;
+      }
+    }
+    setTranslateSending(true);
+    try {
+      const { translateText } = await import('@/lib/translateService');
+      const translated = await translateText({ text: message, targetLang });
+      if (translated && translated !== message) {
+        // 번역된 텍스트로 message를 교체 후 전송
+        setMessage(translated);
+        // 짧은 딜레이 후 전송 (state 반영 대기)
+        await new Promise(r => setTimeout(r, 50));
+        sendMessage();
+        if (!isPlus) incrementTranslateSendCount();
+      } else {
+        sendMessage();
+      }
+    } catch {
+      sendMessage();
+    } finally {
+      setTranslateSending(false);
+    }
+  }, [message, targetLang, isPlus, sendMessage, setMessage]);
+
   return (
-    <div className="flex flex-col h-screen bg-background truncate">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Header (Backdrop Blur) */}
       <header className="sticky top-0 z-20 pt-safe bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
@@ -140,7 +177,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
               </button>
               <AnimatePresence>
                 {showMoreMenu && (
-                  <motion.div className="absolute right-0 top-11 bg-card/95 backdrop-blur-md border border-border/60 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-1.5 min-w-[170px] z-50 overflow-hidden" initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -4 }}>
+                  <motion.div className="absolute right-0 top-11 bg-card/95 backdrop-blur-md border border-border/60 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-1.5 min-w-[240px] z-[100]" initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -4 }}>
                     <div className="fixed inset-0 z-[-1]" onClick={() => setShowMoreMenu(false)} />
                     <button onClick={() => { setShowMoreMenu(false); navigate("/trip-review", { state: { partnerName: thread?.name, partnerPhoto: thread?.photo, threadId: selectedChat, destination: i18n.t("auto.x4007") } }); }} className="w-full text-left px-4 py-3 text-[13px] font-bold text-emerald-600 rounded-2xl hover:bg-emerald-500/10 transition-colors flex items-center gap-2.5">
                       <CheckSquare size={14} />{i18n.t("auto.x4006")}
@@ -208,7 +245,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 truncate">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((msg, idx) => {
           const isMe = msg.sender === "me";
           const isLastMine = isMe && messages.slice(idx + 1).every(m => m.sender !== "me");
@@ -322,6 +359,29 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
         <div className={`flex flex-col gap-2 rounded-[28px] px-2 py-2 transition-all shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-border bg-card/90 backdrop-blur-xl ${isLocked ? "opacity-70" : ""}`}>
           <div className={`flex items-center gap-2 px-2`}>
             <input type="text" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) sendMessage(); }} placeholder={isLocked ? i18n.t('chat.lockedPlaceholder') : isMuted ? i18n.t('chat.inputMuted') : i18n.t('chat.input')} disabled={isLocked} className="flex-1 min-w-0 bg-transparent text-[15px] font-medium text-foreground placeholder:text-muted-foreground outline-none disabled:cursor-not-allowed px-2 py-2.5" />
+            {/* 번역해서 보내기 */}
+            {!isLocked && message.trim() && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleTranslateSend}
+                disabled={translateSending}
+                title={isPlus ? `번역해서 보내기 (${LANG_NAMES[targetLang]})` : `번역해서 보내기 (무료 ${Math.max(0, FREE_DAILY_TRANSLATE_SEND - getTranslateSendCount())}회 남음)`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                  translateSending
+                    ? 'bg-indigo-400/30 text-indigo-400'
+                    : isPlus
+                      ? 'bg-indigo-500 text-white shadow-md'
+                      : getTranslateSendCount() >= FREE_DAILY_TRANSLATE_SEND
+                        ? 'bg-muted text-muted-foreground opacity-50'
+                        : 'bg-indigo-500/15 border border-indigo-500/40 text-indigo-500'
+                }`}
+              >
+                {translateSending
+                  ? <motion.div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }} />
+                  : <Globe size={15} />
+                }
+              </motion.button>
+            )}
             {isLocked ? (
               <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowPlusModal(true)} className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shrink-0">
                 <Crown size={18} className="text-white drop-shadow-sm" />

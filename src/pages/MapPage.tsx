@@ -2,7 +2,7 @@ import i18n from "@/i18n";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Navigation, Filter, X, Check, Heart, Calendar, Plane, Globe, Users, Plus, Zap } from "lucide-react";
+import { MapPin, Navigation, Filter, X, Check, Heart, Calendar, Globe, Users, Plus, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { AnimatePresence, motion } from "framer-motion";
@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { translateText } from "@/lib/translateService";
 import { TravelerSheet } from "./map/TravelerSheet";
 import { GroupSheet } from "./map/GroupSheet";
+import { HotplaceSheet } from "./map/HotplaceSheet";
 import { SmoothTravelerMarker, HotplaceMarker, RestaurantMarker } from "./map/MapMarkers";
 import { useLocationTracker } from "@/hooks/useLocationTracker";
 import { getCurrentLocation } from "@/lib/locationService";
@@ -25,45 +26,36 @@ import { SlidersHorizontal } from "lucide-react";
 import PageGuide from "@/components/PageGuide";
 import TopHeader from "@/components/TopHeader";
 const MAP_LIBRARIES: ("places")[] = ["places"];
-const mapStyles = [{
-  featureType: "poi",
-  stylers: [{
-    visibility: "off"
-  }]
-}, {
-  featureType: "transit",
-  stylers: [{
-    visibility: "off"
-  }]
-}, {
-  featureType: "road",
-  elementType: "geometry",
-  stylers: [{
-    color: "#ffffff"
-  }]
-}, {
-  featureType: "road",
-  elementType: "labels.text.fill",
-  stylers: [{
-    color: "#9ca3af"
-  }]
-}, {
-  featureType: "water",
-  stylers: [{
-    color: "#dbeafe"
-  }]
-}, {
-  featureType: "landscape",
-  stylers: [{
-    color: "#f9fafb"
-  }]
-}, {
-  featureType: "administrative",
-  elementType: "geometry.stroke",
-  stylers: [{
-    color: "#e5e7eb"
-  }]
-}];
+const mapStyles = [
+  // ── 도로 스타일 ──────────────────────────────────────
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  // ── 수계/지형 ─────────────────────────────────────────
+  { featureType: "water", stylers: [{ color: "#dbeafe" }] },
+  { featureType: "landscape", stylers: [{ color: "#f9fafb" }] },
+  // ── 행정 구역 ─────────────────────────────────────────
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#e5e7eb" }] },
+  // ── 대중교통 ─────────────────────────────────────────
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  // ── POI (관광지·음식점·카페 등) ────────────────────────
+  // [주의] visibility:"off" 이면 구글 지도의 모든 관광지/음식점 아이콘이 안 보임
+  // → 기본 레이블·아이콘은 유지하되, 앱 커스텀 마커와 겹치지 않도록만 한다.
+  { featureType: "poi.business", stylers: [{ visibility: "simplified" }] },
+  { featureType: "poi.attraction", stylers: [{ visibility: "on" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#d1fae5" }] },
+];
+
+// 맛집 탭 전용: 구글 POI 완전 표시 (커스텀 마커와 보완 관계)
+const mapStylesRestaurants = [
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+  { featureType: "water", stylers: [{ color: "#dbeafe" }] },
+  { featureType: "landscape", stylers: [{ color: "#f9fafb" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#e5e7eb" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  // 맛집 탭: POI 모두 표시 (구글 자체 아이콘이 탐색에 도움)
+];
+
 
 
 
@@ -463,6 +455,28 @@ const MapPage = () => {
       }));
     }).subscribe();
 
+    // 핫플레이스 동반자 구하기 "푸쉬 알람" (실시간 Toast)
+    const seekerChannel = supabase.channel("hotplace-seekers-alert");
+    seekerChannel.on("postgres_changes", { event: "INSERT", schema: "public", table: "hotplace_seekers" }, async (payload) => {
+      const newSeeker = payload.new as any;
+      if (newSeeker.user_id === user?.id) return; // 자기가 올린 건 알림 무시
+
+      const hp = HOTPLACES.find(h => h.id === newSeeker.hotplace_id);
+      if (hp) {
+        // 브라우저/기기 진동을 통한 푸시 체감 효과
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+           navigator.vibrate([200, 100, 200]);
+        }
+        
+        toast({
+          title: `🚩 ${hp.name.split(' (')[0]} - 새로운 깃발 동반자 구인!`,
+          description: newSeeker.message ? `"${newSeeker.message}"` : t("auto.ko_0222", "누군가 이곳에서 동반자를 구하고 있습니다 ⚡"),
+          duration: 8000,
+          className: "bg-gradient-to-br from-rose-500 to-orange-500 text-white border-0 shadow-2xl",
+        });
+      }
+    }).subscribe();
+
     let isMounted = true;
     // 내 위치를 DB에 영구 저장 (백업/크론 용도) - 1분 간격 (비용 대폭 절감)
     const saveLocationToDB = async () => {
@@ -505,6 +519,7 @@ const MapPage = () => {
       isMounted = false;
       clearInterval(interval);
       supabase.removeChannel(channel);
+      supabase.removeChannel(seekerChannel);
     };
   }, [user, locationSharing, t]);
 
@@ -937,6 +952,17 @@ const MapPage = () => {
     setSelectedPost(null);
     setSelectedGroup(null);
     setSelectedRestaurant(null);
+
+    // 핫플레이스 탭: 전 세계 핫플이 다 보이도록 줌아웃
+    if (mode === "hotplaces" && mapRef.current) {
+      mapRef.current.setZoom(2);
+      mapRef.current.panTo({ lat: 20, lng: 10 }); // 유라시아 중심 — 전 세계 핫플 분포에 맞게
+    }
+    // 여행자/모임/피드 탭: 내 위치 근처로 복귀
+    if (mode !== "hotplaces" && mode !== "restaurants" && mapRef.current && myLatLngRef.current) {
+      mapRef.current.setZoom(14);
+      mapRef.current.panTo(myLatLngRef.current);
+    }
   };
 
   return <div className="h-screen flex flex-col bg-background safe-bottom relative overflow-hidden text-foreground">
@@ -949,35 +975,29 @@ const MapPage = () => {
             setShowFilter(true);
           }
         }}
+        locationLabel={currentLocationName}
+        locationActive={locationSharing}
+        onCheckInClick={() => {
+          const next = !locationSharing;
+          setLocationSharing(next);
+          if (!next) setCurrentLocationName(t("map.locationShareOff"));
+        }}
       />
-      
-      {/* Map Mode Toggle & Location (Moved below the header for Map specifically) */}
-      <div className="z-30 w-full px-4 pt-3 pb-3 pointer-events-auto bg-gradient-to-b from-background via-background/95 to-transparent flex flex-col gap-3 shadow-sm border-b border-border/20">
-        
-        {/* Left: Location Sharing Pill */}
-        <button 
-          onClick={() => {
-            const next = !locationSharing;
-            setLocationSharing(next);
-            if (!next) setCurrentLocationName(t("map.locationShareOff"));
-          }}
-          className={`self-start bg-card/95 backdrop-blur-md border rounded-full px-3 py-1.5 shadow-sm flex items-center gap-1.5 max-w-full transition-all active:scale-95 ${locationSharing ? 'border-primary/40' : 'border-border/50 opacity-90'}`}
+
+      {/* GPS OFF 경고 */}
+      {!locationSharing && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="z-30 mx-4 mb-1 text-[10px] font-bold bg-destructive/10 text-destructive px-3 py-2 rounded-xl border border-destructive/20"
         >
-          <div className="relative shrink-0 flex items-center justify-center">
-            <MapPin size={14} className={locationSharing ? "text-primary" : "text-muted-foreground"} />
-            {!locationSharing && <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive border-2 border-card" />}
-          </div>
-          <span className="text-[12px] font-extrabold text-foreground truncate">{currentLocationName}</span>
-        </button>
+          {t("auto.ko_0119", "위치가 공유되지 않아 지도에 표시되지 않습니다")}
+        </motion.div>
+      )}
 
-        {/* Warning if GPS OFF */}
-        {!locationSharing && (
-          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="self-start text-[10px] font-bold bg-destructive/10 text-destructive px-3 py-1.5 rounded-xl border border-destructive/20 shadow-md">
-            {t("auto.ko_0119", "위치가 공유되지 않아 지도에 표시되지 않습니다")}
-          </motion.div>
-        )}
-
-        {/* Right: Map Type Toggles */}
+      {/* Map Mode Toggles */}
+      <div className="z-30 w-full px-4 pb-2 pointer-events-auto">
         <div className="w-full bg-card/90 backdrop-blur-md rounded-full border border-border/50 p-1 flex shadow-sm overflow-x-auto hide-scrollbar">
            <button onClick={() => handleModeChange("travelers")} className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${displayMode === "travelers" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}>{t("auto.ko_0120", "👥 여행자")}</button>
            <button onClick={() => handleModeChange("groups")} className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${displayMode === "groups" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}>{t("auto.ko_0121", "🍻 모임")}</button>
@@ -998,7 +1018,7 @@ const MapPage = () => {
         lat: 37.5665,
         lng: 126.9780
       }} zoom={14} onLoad={onMapLoad} options={{
-        styles: mapStyles,
+        styles: displayMode === 'restaurants' ? mapStylesRestaurants : mapStyles,
         disableDefaultUI: true,
         zoomControl: false,
         mapTypeControl: false,
@@ -1014,8 +1034,8 @@ const MapPage = () => {
               }} />;
             })}
 
-            {/* Hotplace markers */}
-            {displayMode === "hotplaces" && HOTPLACES.filter(h => hotplaceCategory === 'all' || h.category === hotplaceCategory).map(h => {
+            {/* Hotplace markers - 항상 보이게 하거나, 여행자 모드에서도 보이도록 수정 */}
+            {(displayMode === "hotplaces" || displayMode === "travelers") && HOTPLACES.filter(h => hotplaceCategory === 'all' || h.category === hotplaceCategory).map(h => {
               const isSelected = selectedHotplace?.id === h.id;
               return <HotplaceMarker key={h.id} h={h} isSelected={isSelected} onClick={() => {
                 setSelectedHotplace(h);
@@ -1139,11 +1159,11 @@ const MapPage = () => {
 
             {/* Flight Trends */}
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowFlightTrends(true)} className="w-10 h-10 bg-gradient-to-tr from-sky-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-sky-500/20 text-white relative">
-              <Plane size={18} />
+              <span className="text-lg leading-none">✈️</span>
             </motion.button>
-            
+
             {/* Lightning Match */}
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowRightNowModal(true)} className="w-10 h-10 bg-amber-500 border border-amber-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 text-white animate-pulse">
+            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowRightNowModal(true)} className="w-10 h-10 bg-amber-500 border border-amber-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 text-white">
               <Zap size={18} fill="currentColor" />
             </motion.button>
           </div>
@@ -1253,7 +1273,7 @@ const MapPage = () => {
 
         {/* Selected Traveler Card */}
         <AnimatePresence>
-          {selectedTraveler && <motion.div className="absolute left-4 right-4 z-30" style={{ bottom: "calc(95px + env(safe-area-inset-bottom, 0px))" }} initial={{
+          {selectedTraveler && <motion.div className="absolute left-3 right-3 z-30" style={{ bottom: "calc(68px + env(safe-area-inset-bottom, 0px))" }} initial={{
           y: 40,
           opacity: 0
         }} animate={{
@@ -1311,7 +1331,7 @@ const MapPage = () => {
           {selectedRestaurant && displayMode === 'restaurants' && (
             <motion.div
               className="absolute left-4 right-4 z-30"
-              style={{ bottom: 'calc(95px + env(safe-area-inset-bottom, 0px))' }}
+              style={{ bottom: 'calc(68px + env(safe-area-inset-bottom, 0px))' }}
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}
@@ -1453,75 +1473,23 @@ const MapPage = () => {
           )}
         </AnimatePresence>
 
-        {/* Selected Hotplace Card */}
-        <AnimatePresence>
-          {selectedHotplace && <motion.div className="absolute left-4 right-4 z-30" style={{ bottom: "calc(95px + env(safe-area-inset-bottom, 0px))" }} initial={{
-          y: 40,
-          opacity: 0
-        }} animate={{
-          y: 0,
-          opacity: 1
-        }} exit={{
-          y: 40,
-          opacity: 0
-        }} transition={{
-          type: "spring",
-          damping: 25,
-          stiffness: 300
-        }}>
-              <div className="bg-white dark:bg-zinc-900 rounded-3xl p-4 shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-black/5 dark:border-white/5 flex flex-col gap-3 transition-transform">
-                {/* Info Area */}
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <div className="w-[56px] h-[56px] rounded-full gradient-primary flex items-center justify-center text-white font-bold text-2xl shadow-sm cursor-pointer border-2 border-white dark:border-zinc-800" onClick={() => setSelectedHotplace(null)}>
-                      {selectedHotplace.emoji}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0 truncate" onClick={() => setSelectedHotplace(null)}>
-                    <h4 className="font-extrabold text-[15px] text-foreground leading-tight truncate">{selectedHotplace.name}</h4>
-                    <p className="text-[13px] text-muted-foreground truncate mt-0.5">{selectedHotplace.country} · {selectedHotplace.cities.join(", ")}</p>
-                    {(() => {
-                      if (!myLatLngRef.current) return null;
-                      const d = calcDist(myLatLngRef.current.lat, myLatLngRef.current.lng, selectedHotplace.lat, selectedHotplace.lng);
-                      const walkTime = Math.max(1, Math.ceil((d * 1000) / 75));
-                      return (
-                        <div className="flex items-center gap-1.5 text-[12px] font-bold text-teal-500 mt-1">
-                          <span>📍 {distLabel(d)}</span>
-                          <span className="truncate">{t("auto.ko_0131", "· 🚶 도보 약")}{walkTime}{t("auto.ko_0132", "분")}</span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                {/* Buttoons Area */}
-                <div className="flex gap-2.5 truncate">
-                  <button onClick={() => handleFlyToHotplace(selectedHotplace)} className="flex-[3] py-2.5 rounded-2xl bg-gradient-to-r from-teal-400 to-blue-500 text-white text-[13px] font-extrabold shadow-sm active:scale-95 transition-transform flex items-center justify-center">
-                    {t("auto.ko_0133", "가상 투입")}</button>
-                  {selectedHotplace.category === 'attraction' && (
-                    <a
-                      href={`https://www.klook.com/ko/search/result/?query=${encodeURIComponent(selectedHotplace.name)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-[2] py-2.5 rounded-2xl bg-purple-500 text-white text-[13px] font-extrabold shadow-sm flex items-center justify-center active:scale-95 transition-transform gap-1"
-                    >
-                      {t("auto.ko_0134", "🎫 예매")}</a>
-                  )}
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedHotplace.name)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-[2] py-2.5 rounded-2xl bg-orange-500 text-white text-[13px] font-extrabold shadow-sm flex items-center justify-center active:scale-95 transition-transform gap-1"
-                  >
-                    {t("auto.ko_0135", "🗺️ 지도")}</a>
-                </div>
-              </div>
-            </motion.div>}
-        </AnimatePresence>
+        {/* ── Hotplace Full Bottom Sheet ── */}
+        <HotplaceSheet
+          hotplace={selectedHotplace}
+          myLatLngRef={myLatLngRef}
+          calcDist={calcDist}
+          distLabel={distLabel}
+          onClose={() => setSelectedHotplace(null)}
+          onFlyTo={handleFlyToHotplace}
+          onProfileClick={(uid) => {
+            const found = travelers.find(t => t.id === uid);
+            if (found) setProfileDetail(found);
+          }}
+        />
 
         {/* Selected Community Post Card */}
         <AnimatePresence>
-          {selectedPost && <motion.div className="absolute left-4 right-4 z-30" style={{ bottom: "calc(95px + env(safe-area-inset-bottom, 0px))" }} initial={{
+          {selectedPost && <motion.div className="absolute left-3 right-3 z-30" style={{ bottom: "calc(68px + env(safe-area-inset-bottom, 0px))" }} initial={{
           y: 40,
           opacity: 0
         }} animate={{
@@ -1611,7 +1579,7 @@ const MapPage = () => {
         />
 
         {/* Default bottom card if none selected */}
-        {displayMode === "travelers" && !selectedTraveler && travelers.length > 0 && <div className="absolute left-4 right-4 z-30" style={{ bottom: "calc(95px + env(safe-area-inset-bottom, 0px))" }}>
+        {displayMode === "travelers" && !selectedTraveler && travelers.length > 0 && <div className="absolute left-3 right-3 z-30" style={{ bottom: "calc(68px + env(safe-area-inset-bottom, 0px))" }}>
             <div className="bg-card rounded-2xl p-4 shadow-float flex items-center gap-3">
               {travelers[0].photo ? <img src={travelers[0].photo} alt="" className="w-12 h-12 rounded-xl object-cover cursor-pointer" onClick={() => setProfileDetail(travelers[0])} onError={e => {
             (e.target as HTMLImageElement).style.display = 'none';
@@ -1630,8 +1598,10 @@ const MapPage = () => {
         <div 
           className="absolute right-4 z-30 flex flex-col gap-3 items-end transition-all duration-300 pointer-events-none"
           style={{ 
-            bottom: (selectedTraveler || selectedHotplace || selectedPost || selectedGroup || selectedRestaurant) 
-              ? "calc(250px + env(safe-area-inset-bottom, 0px))" 
+            bottom: selectedRestaurant 
+              ? "calc(420px + env(safe-area-inset-bottom, 0px))" 
+              : (selectedTraveler || selectedHotplace || selectedPost || selectedGroup) 
+              ? "calc(270px + env(safe-area-inset-bottom, 0px))" 
               : ((displayMode === "travelers" && travelers.length > 0) ? "calc(180px + env(safe-area-inset-bottom, 0px))" : "calc(85px + env(safe-area-inset-bottom, 0px))") 
           }}
         >
@@ -1790,7 +1760,7 @@ const MapPage = () => {
                   <X size={16} className="text-muted-foreground" />
                 </button>
               </div>
-              <div className="overflow-y-auto px-5 py-4 pb-12 space-y-3 truncate">
+              <div className="overflow-y-auto px-5 py-4 pb-12 space-y-3">
                  {HOTPLACES.map(h => (
                    <button key={`h_sel_${h.id}`} onClick={() => handleLightningMatch(h)} className="w-full bg-muted/30 border border-border/50 hover:bg-amber-500/10 hover:border-amber-500/30 p-4 rounded-2xl flex items-center gap-4 transition-all text-left">
                      <span className="text-3xl">{h.emoji}</span>
@@ -2028,7 +1998,7 @@ const MapPage = () => {
                     <button className="text-[11px] font-bold text-indigo-500">{t("auto.ko_0159", "모두 보기")}</button>
                   </div>
                   
-                  <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-6 px-6 pb-4 truncate">
+                  <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-6 px-6 pb-4">
                     {[
                       { dest: t("auto.ko_0234", "도쿄, 일본"), price: '₩185,000', img: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&q=80&w=400', date: '3.12 - 3.15' },
                       { dest: t("auto.ko_0235", "다낭, 베트남"), price: '₩210,000', img: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&q=80&w=400', date: '4.01 - 4.05' },
@@ -2049,7 +2019,7 @@ const MapPage = () => {
 
                 <div className="pb-10 pt-2">
                    <button onClick={() => toast({ title: t("auto.g_0038", "안내"), description: t("auto.g_0039", "스카이스캐너 연동 준비 중입니다.") })} className="w-full py-4 rounded-2xl bg-foreground text-background font-black text-[15px] shadow-lg shadow-foreground/20 active:scale-95 transition-transform flex justify-center items-center gap-2">
-                     <Plane size={18} /> {t("auto.ko_0160", "항공권 최저가 검색하기")}</button>
+                     <span>✈️</span> {t("auto.ko_0160", "항공권 최저가 검색하기")}</button>
                 </div>
 
               </div>
@@ -2114,7 +2084,7 @@ const MapPage = () => {
                     <button className="text-[11px] font-bold text-rose-500">{t("auto.ko_0169", "더 보기")}</button>
                   </div>
                   
-                  <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-6 px-6 pb-4 truncate">
+                  <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-6 px-6 pb-4">
                     {[
                       { type: t("auto.ko_0237", "에어비앤비"), name: t("auto.ko_0238", "자양동 루프탑 게스트하우스"), price: t("auto.ko_0239", "₩55,000 / 박"), img: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=400', rating: 4.8 },
                       { type: t("auto.ko_0240", "부티크 호텔"), name: t("auto.ko_0241", "스테이 Migo 오리지널스"), price: t("auto.ko_0242", "₩120,000 / 박"), img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=400', rating: 4.9 },

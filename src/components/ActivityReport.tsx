@@ -72,7 +72,7 @@ export default function ActivityReport() {
   }];
   return <div className="px-4 pb-2">
       {/* 한 줄 가로 스크롤 — 여백 없음 */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 truncate">
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
         {items.map((item, i) => <motion.div key={item.label} className="shrink-0 flex flex-col items-center justify-center gap-0.5 bg-card border border-border/40 rounded-xl px-2 py-2 min-w-[68px]" initial={{
         opacity: 0,
         scale: 0.85

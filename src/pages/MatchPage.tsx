@@ -707,6 +707,8 @@ const MatchPage = () => {
         onCheckInClick={() => setShowCheckInModal(true)}
         filterCount={totalActiveFilterCount}
         onFilterClick={() => setShowFilterModal(true)}
+        showNearby
+        showShop
       />
 
 
@@ -731,37 +733,11 @@ const MatchPage = () => {
           </span>
         </motion.div>}
 
-      {/* Match score + super like indicator */}
-      {topProfile && <div className="flex items-center justify-center gap-2 pb-1 relative">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-            <Zap size={12} className="text-primary" />
-            <span className="text-xs font-bold text-primary truncate">{t("auto.ko_0260", "매칭점수")}{topProfile.matchScore}{t("auto.ko_0261", "점")}</span>
-          </div>
-          <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-muted">
-            {isPlus ? <Crown size={11} className="text-amber-500" /> : Array.from({
-          length: 3
-        }).map((_, i) => <Star key={i} size={10} className={i < superLikesLeft ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground"} />)}
-            <span className="text-[10px] font-semibold text-muted-foreground ml-0.5 truncate">
-              {isPlus ? t("auto.ko_0262", "슈퍼라이크 무제한") : t("auto.t_0046", `슈퍼라이크 ${superLikesLeft}개 남음`)}
-            </span>
-          </div>
-          {/* Report/Block menu button */}
-          <button onClick={() => setActionSheetProfile(topProfile)} className="absolute right-5 w-7 h-7 flex items-center justify-center bg-card shadow-card rounded-full border border-border">
-            <MoreHorizontal size={14} className="text-muted-foreground" />
-          </button>
-        </div>}
 
-      {/* [비무제한] 남은 라이크 수 배지 */}
-      {!isPremium && <div className="flex justify-center mb-1 px-4">
-          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm border transition-all
-            ${dailyLikesUsed >= DAILY_LIKE_LIMIT ? 'bg-destructive/15 border-destructive/30 text-destructive' : dailyLikesUsed >= DAILY_LIKE_LIMIT - 3 ? 'bg-amber-500/15 border-amber-500/30 text-amber-500' : 'bg-muted border-border text-muted-foreground'}`}>
-            {dailyLikesUsed >= DAILY_LIKE_LIMIT ? <><Lock size={11} /><span className="truncate">{t("auto.j501")}</span></> : <><Heart size={11} fill="currentColor" /><span className="truncate">{t("match.likesLeft", { count: DAILY_LIKE_LIMIT - dailyLikesUsed, defaultValue: `오늘 ${DAILY_LIKE_LIMIT - dailyLikesUsed}개 남음` })}</span></>}
-          </div>
-        </div>}
 
       {/* Card Stack */}
-      <div className="flex-1 relative w-[calc(100%-1.5rem)] max-w-[420px] mx-auto my-1 truncate" style={{
-      minHeight: 0
+      <div className="flex-1 relative w-full px-4 mx-auto pb-4 truncate" style={{
+      minHeight: 0, maxWidth: "420px"
     }}>
         {remaining.length > 0 ? (
           <AnimatePresence>
@@ -805,7 +781,7 @@ const MatchPage = () => {
       </div>
 
       {/* Action Buttons */}
-      {remaining.length > 0 && <div className="space-y-3 pb-4 px-2">
+      {remaining.length > 0 && <div className="space-y-2 pb-4 px-2 mt-4">
           {/* Boost row */}
           <div className="flex justify-center">
              <motion.button whileTap={{
@@ -839,31 +815,31 @@ const MatchPage = () => {
             <motion.button
               whileTap={{ scale: 0.88, rotate: -8 }}
               onClick={handleSwipeLeft}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-card shadow-[0_4px_24px_rgba(244,63,94,0.25)] border-2 border-rose-400/40 flex items-center justify-center text-rose-500 active:bg-rose-50"
+              className="w-12 h-12 rounded-full bg-card shadow-[0_4px_20px_rgba(244,63,94,0.2)] border-2 border-rose-400/40 flex items-center justify-center text-rose-500 active:bg-rose-50"
             >
-              <X size={26} strokeWidth={3} className="sm:w-[30px] sm:h-[30px]" />
+              <X size={22} strokeWidth={3} />
             </motion.button>
 
             {/* Super like */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={openSuperLikeModal}
-              className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-float border-2 flex items-center justify-center transition-all ${
+              className={`w-10 h-10 rounded-full shadow-float border-2 flex items-center justify-center transition-all ${
                 superLikesLeft > 0
                   ? "bg-card border-blue-400/60 text-blue-500 shadow-[0_4px_18px_rgba(59,130,246,0.2)]"
                   : "bg-muted border-border opacity-40 text-muted-foreground"
               }`}
             >
-              <Star size={20} className={`sm:w-[22px] sm:h-[22px] ${superLikesLeft > 0 ? "fill-blue-500" : ""}`} />
+              <Star size={17} className={superLikesLeft > 0 ? "fill-blue-500" : ""} />
             </motion.button>
 
             {/* Like (Heart) */}
             <motion.button
               whileTap={{ scale: 0.88, rotate: 8 }}
               onClick={handleSwipeRight}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-card shadow-[0_4px_24px_rgba(16,185,129,0.3)] border-2 border-emerald-400/50 flex items-center justify-center text-emerald-500 active:bg-emerald-50"
+              className="w-12 h-12 rounded-full bg-card shadow-[0_4px_20px_rgba(16,185,129,0.25)] border-2 border-emerald-400/50 flex items-center justify-center text-emerald-500 active:bg-emerald-50"
             >
-              <Heart size={26} strokeWidth={2.5} className="fill-emerald-500 sm:w-[30px] sm:h-[30px]" />
+              <Heart size={22} strokeWidth={2.5} className="fill-emerald-500" />
             </motion.button>
           </div>
       </div>}

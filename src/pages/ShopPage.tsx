@@ -296,22 +296,28 @@ const ShopPage = () => {
               if (plan.id === "premium" && isPremium) return;
               setSelectedPlan(plan);
             }} className={`relative rounded-3xl border-2 bg-gradient-to-br ${plan.gradient} ${currentStatus ? "border-emerald-500/50" : plan.color} p-5 overflow-hidden cursor-pointer`}>
-                  {plan.badge && !currentStatus && <span className={`absolute top-4 right-4 text-[10px] font-black px-2.5 py-1 rounded-full ${plan.badgeColor}`}>
-                      {plan.badge}
-                    </span>}
-                  {currentStatus && <span className="absolute top-4 right-4 text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
-                      {currentStatus}
-                    </span>}
-                  <div className="flex items-center gap-3 mb-4 mt-2">
-                    <div className="w-10 h-10 rounded-2xl bg-background/50 backdrop-blur flex items-center justify-center">
+                  <div className="flex items-start gap-3 mb-3 mt-2 pr-2">
+                    <div className="w-10 h-10 rounded-2xl bg-background/50 backdrop-blur flex items-center justify-center shrink-0">
                       {plan.icon}
                     </div>
-                    <div>
-                      <p className="font-extrabold text-foreground text-base">{plan.name}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-extrabold text-foreground text-base">{plan.name}</p>
+                        {plan.badge && !currentStatus && (
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${plan.badgeColor}`}>
+                            {plan.badge}
+                          </span>
+                        )}
+                        {currentStatus && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
+                            {currentStatus}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">{plan.period}</p>
                     </div>
-                    <div className="ml-auto text-right">
-                      <p className="text-2xl font-black text-foreground truncate">{plan.price === 0 ? getLocalizedPrice(0, i18n.language) : subPricing.format(plan.price)}</p>
+                    <div className="text-right shrink-0">
+                      <p className="text-2xl font-black text-foreground">{plan.price === 0 ? getLocalizedPrice(0, i18n.language) : subPricing.format(plan.price)}</p>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 relative z-10">

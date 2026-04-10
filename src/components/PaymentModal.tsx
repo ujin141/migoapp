@@ -347,7 +347,7 @@ const PaymentModal = ({
 
             {/* ── CONFIRM ── */}
             {step === "confirm" && <>
-                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1 min-h-0 truncate">
+                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1 min-h-0">
                   {[[i18n.t("auto.g_0190", "그룹"), groupTitle], [i18n.t("auto.g_0191", "티어"), `${tierCfg.emoji} ${tierCfg.label}`], [i18n.t("auto.g_0192", "결제 수단"), PAYMENT_METHODS.find(m => m.id === method)?.label ?? method], [i18n.t("auto.g_0193", "원래 가격"), getLocalizedPrice(originalKrw, i18n.language)], ...(hasDiscount ? [[i18n.t("auto.g_0194", "Plus 할인 (-50%)"), `- ${getLocalizedPrice(originalKrw - discountedKrw, i18n.language)}`]] : []), [i18n.t("auto.g_0195", "최종 결제금액"), getLocalizedPrice(discountedKrw, i18n.language)]].map(([label, value], i, arr) => <div key={i} className={`flex items-center justify-between py-3 ${i < arr.length - 1 ? "border-b border-border/40" : ""}`}>
                       <span className="text-xs text-muted-foreground">{label}</span>
                       <span className={i18n.t("auto.t_0009", `text-xs font-bold ${label === i18n.t("auto.g_0196", "최종 결제금액") ? colors.text + " text-base" : "text-foreground"}`)}>{value}</span>

@@ -1,6 +1,7 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Star, Zap, Eye, Filter, Crown, Check, Sparkles,
@@ -146,11 +147,11 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
     (activePlan === "plus" && isPlus && !isPremium) ||
     (activePlan === "premium" && isPremium);
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[80] flex items-end justify-center"
+          className="fixed inset-0 z-[9999] flex items-end justify-center"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         >
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={handleClose} />
@@ -222,7 +223,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                 </div>
 
                 {/* 스크롤 영역 */}
-                <div className="flex-1 overflow-y-auto min-h-0 px-5 space-y-4 pb-4 truncate">
+                <div className="flex-1 overflow-y-auto min-h-0 px-5 space-y-4 pb-4">
 
                   {/* ═══ PLUS 플랜 ═══ */}
                   {activePlan === "plus" && (
@@ -237,7 +238,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                       {/* 기간 선택 */}
                       <div className="space-y-2">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest truncate">{t("auto.g_0088", "구독 기간")}</p>
-                        <div className="flex gap-2 truncate">
+                        <div className="flex gap-2">
                           {(["monthly", "quarterly", "yearly"] as const).map((cycle) => {
                             const p = plusPrices[cycle];
                             return (
@@ -273,7 +274,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                       {/* 기능 목록 */}
                       <div className="space-y-2">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest truncate">{t("auto.g_0090", "Plus 혜택")}</p>
-                        <div className="rounded-2xl border border-border overflow-hidden truncate">
+                        <div className="rounded-2xl border border-border overflow-hidden">
                           {/* 헤더 행 */}
                           <div className="grid grid-cols-3 bg-muted px-3 py-2">
                             <span className="text-[10px] font-bold text-muted-foreground truncate">{t("auto.g_0091", "기능")}</span>
@@ -318,7 +319,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                       {/* Plus 포함 안내 */}
                       <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                         <Check size={14} className="text-emerald-500 shrink-0" />
-                        <p className="text-xs font-bold text-emerald-600 truncate">{t("auto.g_0094", "Plus의 모든 기능 포함 + Premium 전용 혜택")}</p>
+                        <p className="text-xs font-bold text-emerald-600 whitespace-normal leading-relaxed">{t("auto.g_0094", "Plus의 모든 기능 포함 + Premium 전용 혜택")}</p>
                       </div>
 
                       {/* Premium 전용 기능 */}
@@ -332,7 +333,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-foreground">{f.label}</p>
-                                <p className="text-[10px] text-muted-foreground mt-0.5">{f.desc}</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 whitespace-normal leading-relaxed">{f.desc}</p>
                               </div>
                               <Crown size={12} className="text-amber-500 shrink-0" />
                             </div>
@@ -361,10 +362,10 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                 </div>
 
                 {/* ── 하단 CTA ── */}
-                <div className="px-5 py-4 border-t border-border bg-card shrink-0 truncate">
+                <div className="px-5 py-4 border-t border-border bg-card pb-safe-min shrink-0">
                   {alreadySubscribed ? (
                     <div className="w-full py-4 rounded-2xl bg-emerald-500/10 text-center">
-                      <p className="text-emerald-600 font-bold flex items-center justify-center gap-2 truncate">
+                      <p className="text-emerald-600 font-bold flex items-center justify-center gap-2">
                         <Crown size={16} />
                         {t("auto.g_0098", "현재")}{activePlan === "premium" ? "Premium" : "Plus"} {t("auto.g_0099", "구독 중")}</p>
                     </div>
@@ -404,7 +405,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                     {getLocalizedPrice(selectedKrw, i18n.language)}
                   </p>
                 </div>
-                <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4 space-y-2 truncate">
+                <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4 space-y-2">
                   {PAYMENT_METHODS.map((m) => (
                     <button
                       key={m.id}
@@ -419,7 +420,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                     </button>
                   ))}
                 </div>
-                <div className="px-5 py-4 border-t border-border bg-card shrink-0 flex gap-3">
+                <div className="px-5 py-4 border-t border-border bg-card shrink-0 flex gap-3 pb-safe-min">
                   <button
                     onClick={() => setStep("plan")}
                     className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground font-bold text-sm"
@@ -442,7 +443,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                 <div className="px-5 py-4 border-b border-border shrink-0">
                   <h2 className="text-base font-extrabold text-foreground truncate">{t("auto.g_0105", "결제 확인")}</h2>
                 </div>
-                <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4 space-y-0 truncate">
+                <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4 space-y-0">
                   {[
                     [t("auto.g_0159", "플랜"), activePlan === "premium" ? "👑 Migo Premium" : "✨ Migo Plus"],
                     [t("auto.g_0160", "구독 기간"), selectedLabel],
@@ -460,7 +461,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                     </div>
                   ))}
                 </div>
-                <div className="px-5 py-4 border-t border-border bg-card shrink-0 flex gap-3">
+                <div className="px-5 py-4 border-t border-border bg-card shrink-0 flex gap-3 pb-safe-min">
                   <button
                     onClick={() => setStep("method")}
                     className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground font-bold text-sm"
@@ -488,7 +489,8 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

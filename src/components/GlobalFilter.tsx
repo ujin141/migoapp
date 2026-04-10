@@ -385,7 +385,7 @@ const GlobalFilter: React.FC<GlobalFilterProps> = ({
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 truncate">
                   {destSearch ? t("gf.search_res") : t("gf.pop_city")}
                 </p>
-                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 truncate">
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                   {filteredPopular.map(dest => {
                 const sel = localDest === dest.city;
                 return <motion.button key={dest.city} whileTap={{

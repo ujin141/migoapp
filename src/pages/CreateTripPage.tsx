@@ -143,7 +143,7 @@ const CreateTripPage = ({ onClose }: CreateTripPageProps) => {
         tags: selectedTags.length > 0 ? selectedTags : null,
         schedule: schedule.filter(s => s.trim().length > 0),
         status: visibility === "public" ? "recruiting" : "invite",
-        
+        cover_image: coverImageUrl,
         is_premium: isPremiumGroup
       });
       if (error) {

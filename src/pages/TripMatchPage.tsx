@@ -36,6 +36,7 @@ const TripMatchPage: React.FC = () => {
     isPremium
   } = useSubscription();
   const {
+    t,
     i18n
   } = useTranslation();
 
@@ -148,6 +149,14 @@ const TripMatchPage: React.FC = () => {
 
   // ── Load profile data ──────────────────────
   useEffect(() => {
+    // Intercept location.state if navigated from external sheet (e.g. MapPage's GroupSheet)
+    if (location.state?.detailGroup) {
+      setDetailGroup(location.state.detailGroup);
+      const newState = { ...location.state };
+      delete newState.detailGroup;
+      window.history.replaceState({}, document.title, location.pathname);
+    }
+
     if (!user) return;
     supabase.from("profiles").select("gender").eq("id", user.id).maybeSingle().then(({
       data

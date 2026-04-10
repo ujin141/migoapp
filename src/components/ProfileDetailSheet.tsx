@@ -122,7 +122,7 @@ const ProfileDetailSheet = ({
             </div>
 
             {/* Scrollable content */}
-            <div className="overflow-y-auto flex-1 truncate">
+            <div className="overflow-y-auto flex-1">
 
               {/* ── Hero image with multi-photo slider ── */}
               <div className="relative h-72 w-full shrink-0 bg-muted overflow-hidden">
@@ -254,7 +254,7 @@ const ProfileDetailSheet = ({
                     <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest truncate">{i18n.t("auto.g_0197", "사진")}</span>
                     <span className="text-[10px] font-bold bg-primary/10 text-primary rounded-full px-1.5 py-0.5 truncate">{photos.length}{i18n.t("auto.g_0198", "장")}</span>
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-3 hide-scrollbar truncate">
+                  <div className="flex gap-2 overflow-x-auto pb-3 hide-scrollbar">
                     {photos.map((url, i) => (
                       <button
                         key={i}

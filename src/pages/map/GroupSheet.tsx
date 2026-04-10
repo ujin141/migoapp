@@ -1,7 +1,8 @@
 import i18n from "@/i18n";
 import { AnimatePresence, motion } from "framer-motion";
-import { Users } from "lucide-react";
+import { Users, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 interface GroupSheetProps {
   selectedGroup: any | null;
@@ -19,6 +20,7 @@ export const GroupSheet = ({
   distLabel
 }: GroupSheetProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   return (
     <AnimatePresence>
@@ -37,29 +39,33 @@ export const GroupSheet = ({
       stiffness: 300
     }}>
           <div className="bg-card rounded-3xl p-4 shadow-float border border-border/60 flex flex-col transition-all relative overflow-hidden">
-            <div className="flex items-start gap-3.5 relative z-10 w-full" onClick={() => setSelectedGroup(null)}>
+            {/* Close button for sheet */}
+             <button onClick={(e) => { e.stopPropagation(); setSelectedGroup(null); }} className="absolute top-3 right-3 w-7 h-7 rounded-full bg-muted/60 flex items-center justify-center z-20 hover:bg-muted">
+               <X size={14} className="text-muted-foreground" />
+             </button>
+            <div className="flex items-start gap-3.5 relative z-10 w-full pr-8">
               {/* 이미지 */}
               <div className="relative shrink-0 mt-0.5">
                 {selectedGroup.coverImage ? (
                   <img src={selectedGroup.coverImage} className="w-14 h-14 rounded-2xl object-cover shadow-sm cursor-pointer border border-border/50" onClick={() => setSelectedGroup(null)} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl shadow-sm border border-primary/20 cursor-pointer" onClick={() => setSelectedGroup(null)}>
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl shadow-sm border border-primary/20">
                     🛩️
                   </div>
                 )}
               </div>
               
               {/* 메인 정보 */}
-              <div className="flex-1 min-w-0 pb-1 cursor-pointer">
+              <div className="flex-1 min-w-0 pb-1">
                 <div className="flex items-center gap-1.5 mb-1.5">
-                   <span className="text-[10px] font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded-full whitespace-nowrap truncate">
+                   <span className="text-[10px] font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded-full whitespace-nowrap overflow-hidden text-ellipsis">
                      {selectedGroup.isPremiumGroup ? i18n.t("map.premium") : i18n.t("auto.g_1471", "동행 모집")}
                    </span>
                 </div>
-                <h4 className="font-extrabold text-[16px] text-foreground leading-tight truncate">{selectedGroup.title}</h4>
-                <p className="text-[12px] font-medium text-muted-foreground truncate mt-1.5 flex items-center gap-1">
-                  <Users size={12} className="inline text-muted-foreground" />
-                  {selectedGroup.currentMembers}/{selectedGroup.maxMembers}{i18n.t("auto.g_1465", "명 · 📍")}{selectedGroup.destination}
+                <h4 className="font-extrabold text-[16px] text-foreground leading-tight overflow-hidden text-ellipsis">{selectedGroup.title}</h4>
+                <p className="text-[12px] font-medium text-muted-foreground overflow-hidden text-ellipsis mt-1.5 flex items-center gap-1">
+                  <Users size={12} className="inline text-muted-foreground shrink-0" />
+                  <span className="overflow-hidden text-ellipsis">{selectedGroup.currentMembers}/{selectedGroup.maxMembers}{i18n.t("auto.g_1465", "명 · 📍")}{selectedGroup.destination}</span>
                 </p>
               </div>
             </div>
@@ -91,8 +97,12 @@ export const GroupSheet = ({
                   >
                     {i18n.t("auto.g_1469", "지도 검색")}</a>
                 )}
-                <button className="px-4 py-2 rounded-xl gradient-primary text-white text-[12px] font-extrabold shadow-md active:scale-95 transition-transform flex items-center">
-                  {i18n.t("auto.g_1470", "자세히 보기")}</button>
+                <button 
+                  onClick={() => navigate("/trip-match", { state: { detailGroup: selectedGroup } })}
+                  className="px-4 py-2 rounded-xl gradient-primary text-white text-[12px] font-extrabold shadow-md active:scale-95 transition-transform flex items-center"
+                >
+                  {i18n.t("auto.g_1470", "자세히 보기")}
+                </button>
               </div>
             </div>
           </div>

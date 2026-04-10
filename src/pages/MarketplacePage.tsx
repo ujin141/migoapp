@@ -463,7 +463,7 @@ const MarketplacePage = () => {
       </div>
 
       {/* Categories */}
-      <div className="flex gap-2 px-5 mb-4 overflow-x-auto scrollbar-none truncate">
+      <div className="flex gap-2 px-5 mb-4 overflow-x-auto scrollbar-none">
         {CATEGORIES.map(cat => (
           <button
             key={cat.id}

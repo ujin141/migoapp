@@ -76,7 +76,7 @@ export const TermsModal = ({ showTermsModal, setShowTermsModal }: { showTermsMod
             <button onClick={() => setShowTermsModal(false)} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center"><X size={18} /></button>
             <h2 className="text-lg font-extrabold text-foreground truncate">{t("profile.termsTitle")}</h2>
           </div>
-          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 text-sm text-foreground leading-relaxed pb-20 truncate">
+          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 text-sm text-foreground leading-relaxed pb-20">
             <p className="text-xs text-muted-foreground truncate">{t("profile.termsEffective")}</p>
 
             {[{
@@ -142,7 +142,7 @@ export const PrivacyPolicyModal = ({ showPrivacyPolicyModal, setShowPrivacyPolic
             <button onClick={() => setShowPrivacyPolicyModal(false)} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center"><X size={18} /></button>
             <h2 className="text-lg font-extrabold text-foreground truncate">{t("profilePage.privacyTitle")}</h2>
           </div>
-          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 text-sm text-foreground leading-relaxed pb-20 truncate">
+          <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 text-sm text-foreground leading-relaxed pb-20">
             <p className="text-xs text-muted-foreground truncate">{t("profile.privacyEffective")}</p>
             <p className="text-[13px] text-muted-foreground leading-relaxed truncate">{t("profile.privacyIntro")}</p>
 

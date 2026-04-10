@@ -169,7 +169,7 @@ const TrustVerifyModal = ({
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3 truncate">
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
               {/* Current status */}
               <div className="flex items-center gap-2 p-3 rounded-2xl bg-muted mb-4">
                 <Shield size={15} className="text-primary shrink-0" />
