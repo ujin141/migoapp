@@ -140,7 +140,7 @@ const AddTripModal = ({
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="flex flex-col gap-3 mb-4">
           <div>
             <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("trip.startDate")}</label>
             <input type="date" value={start} onChange={e => setStart(e.target.value)} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground outline-none" />

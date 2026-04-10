@@ -438,7 +438,7 @@ export const HotplaceSheet = ({
                       ) : (
                         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3.5">
                           {/* 모임 시간/인원 등 상세 정보 (옵션) */}
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-3">
                             <div className="space-y-1.5">
                               <p className="text-[11px] font-extrabold text-amber-700">{t("hotplace.meetDateLabel", "날짜 (선택)")}</p>
                               <input
