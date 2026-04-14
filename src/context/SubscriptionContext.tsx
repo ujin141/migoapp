@@ -1,6 +1,17 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  purchaseSubscription as iapPurchaseSubscription,
+  purchaseConsumable as iapPurchaseConsumable,
+  restoreIAPPurchases,
+  getSubscriptionPlanFromProductId,
+  SHOP_ITEM_PRODUCT_MAP,
+  PLUS_BILLING_CYCLE_MAP,
+  IAP_PRODUCT_IDS,
+  isNativeIOS,
+  type IAPProductId,
+} from "@/lib/iapService";
 
 export type PlanType = "free" | "plus" | "premium";
 
@@ -20,6 +31,10 @@ interface SubscriptionContextType {
   hasProfileTheme: boolean;
   nearbyUnlockedUntil: Date | null;
   upgradePlus: (plan?: 'plus' | 'premium') => void;
+  // StoreKit IAP
+  purchaseSubscriptionIAP: (productId: IAPProductId) => Promise<{ success: boolean; error?: string; cancelled?: boolean }>;
+  purchaseItemIAP: (shopItemId: string) => Promise<{ success: boolean; error?: string; cancelled?: boolean }>;
+  restorePurchasesIAP: () => Promise<{ restored: boolean; restoredPlan?: 'plus' | 'premium' }>;
   startBoost: () => void;
   addBoosts: (amount: number) => void;
   addSuperLikes: (amount: number) => Promise<void>;
@@ -58,6 +73,9 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   addSuperLikes: async () => {}, consumeSuperLike: async () => false, consumeDm: () => false,
   purchaseVerifiedBadge: async () => {}, purchaseProfileTheme: async () => {},
   purchaseNearbyUnlock: async () => {}, purchaseTravelPack: async () => {},
+  purchaseSubscriptionIAP: async () => ({ success: false }),
+  purchaseItemIAP: async () => ({ success: false }),
+  restorePurchasesIAP: async () => ({ restored: false }),
   canGlobalMatch: false, canViewLikers: false, canNowFeatured: false,
   canReadReceipts: false, canHideLocation: false, canTravelDNAFull: false,
   canJoinPremiumGroups: false,
@@ -80,7 +98,18 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [boostSecondsLeft, setBoostSecondsLeft] = useState(0);
   const [boostsCount, setBoostsCount] = useState(0);
   const [superLikesLeft, setSuperLikesLeft] = useState(0);
-  const [dailyDmCount, setDailyDmCount] = useState(0);
+  const [dailyDmCount, setDailyDmCount] = useState<number>(() => {
+    // BUG-02 fix: persist DM count across app restarts with daily reset
+    try {
+      const stored = localStorage.getItem('migo_dm_data');
+      if (stored) {
+        const { count, date } = JSON.parse(stored);
+        const today = new Date().toISOString().slice(0, 10);
+        if (date === today) return count as number;
+      }
+    } catch {}
+    return 0;
+  });
   // 아이템 구매 상태
   const [hasVerifiedBadge, setHasVerifiedBadge] = useState(false);
   const [hasProfileTheme, setHasProfileTheme] = useState(false);
@@ -119,15 +148,16 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   // ── DB에서 구독상태 + 아이템 잔량 로드 ──────────────────────────────────
   useEffect(() => {
     if (!user) return;
+
     // profiles에서 구독 플랜 + 아이템 구매 상태 로드
     supabase
       .from("profiles")
-      .select("is_plus, boosts_count, plan, plus_expires_at, has_badge, profile_theme, nearby_expires_at")
+      .select("is_plus, plan, plus_expires_at, has_badge, profile_theme, nearby_expires_at")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.has_badge) setHasVerifiedBadge(true);
-        if (data?.profile_theme === 'premium') setHasProfileTheme(true);
+        if (data?.profile_theme && data.profile_theme !== 'default') setHasProfileTheme(true);
         if (data?.nearby_expires_at) {
           const exp = new Date(data.nearby_expires_at);
           if (exp > new Date()) setNearbyUnlockedUntil(exp);
@@ -216,6 +246,101 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
+  // ── StoreKit IAP: 구독 구매 ──────────────────────────────────────────────
+  const purchaseSubscriptionIAP = useCallback(async (productId: IAPProductId) => {
+    const result = await iapPurchaseSubscription(productId);
+    if (result.success) {
+      const plan = getSubscriptionPlanFromProductId(productId);
+      if (plan && user) {
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const bonusBoosts = plan === 'premium' ? 5 : 1;
+        const bonusSuperLikes = plan === 'premium' ? 9999 : 5;
+        setIsPlus(true);
+        if (plan === 'premium') setIsPremium(true);
+        setBoostsCount(prev => prev + bonusBoosts);
+        setSuperLikesLeft(prev => prev + bonusSuperLikes);
+        const { data: itemData } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
+        const currentBoosts = itemData?.boosts ?? 0;
+        await Promise.all([
+          supabase.from("profiles").update({ is_plus: true, plan, plus_expires_at: expiresAt }).eq("id", user.id),
+          supabase.from("subscriptions").insert({
+            user_id: user.id, plan, status: 'active', expires_at: expiresAt,
+            price_krw: plan === 'premium' ? 99900 : 14900,
+            iap_product_id: productId,
+            iap_transaction_id: result.transactionId,
+          }),
+          supabase.from("user_items").upsert({
+            user_id: user.id, boosts: currentBoosts + bonusBoosts
+          }, { onConflict: 'user_id' }),
+        ]);
+      }
+    }
+    return result;
+  }, [user]);
+
+  // ── StoreKit IAP: 소비성 아이템 구매 ────────────────────────────────────
+  const purchaseItemIAP = useCallback(async (shopItemId: string) => {
+    const productId = SHOP_ITEM_PRODUCT_MAP[shopItemId];
+    if (!productId) return { success: false, error: 'unknown_item' };
+    const result = await iapPurchaseConsumable(productId);
+    if (result.success && user) {
+      // 아이템 종류별 처리 — 선언 순서 문제를 피하기 위해 setState + Supabase 직접 처리
+      if (shopItemId.startsWith('superlike_')) {
+        let amount = 0;
+        if (shopItemId === 'superlike_3') amount = 3;
+        else if (shopItemId === 'superlike_10') amount = 10;
+        else if (shopItemId === 'superlike_30') amount = 30;
+        setSuperLikesLeft(prev => prev + amount);
+        const { data } = await supabase.from("user_items").select("super_likes").eq("user_id", user.id).maybeSingle();
+        await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + amount }, { onConflict: 'user_id' });
+      } else if (shopItemId.startsWith('boost_')) {
+        let amount = 0;
+        if (shopItemId === 'boost_1') amount = 1;
+        else if (shopItemId === 'boost_5') amount = 5;
+        else if (shopItemId === 'boost_15') amount = 15;
+        setBoostsCount(prev => prev + amount);
+        const { data } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
+        await supabase.from("user_items").upsert({ user_id: user.id, boosts: (data?.boosts ?? 0) + amount }, { onConflict: 'user_id' });
+      } else if (shopItemId === 'travel_pack') {
+        setSuperLikesLeft(prev => prev + 10);
+        setBoostsCount(prev => prev + 1);
+        const { data } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", user.id).maybeSingle();
+        await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + 10, boosts: (data?.boosts ?? 0) + 1 }, { onConflict: 'user_id' });
+      } else if (shopItemId === 'verified_badge') {
+        setHasVerifiedBadge(true);
+        await supabase.from("profiles").update({ has_badge: true }).eq("id", user.id);
+      } else if (shopItemId === 'profile_theme') {
+        setHasProfileTheme(true);
+        await supabase.from("profiles").update({ profile_theme: 'aurora' }).eq("id", user.id); // default theme upon buying
+      } else if (shopItemId === 'nearby_unlock') {
+        const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        setNearbyUnlockedUntil(expires);
+        await supabase.from("profiles").update({ nearby_expires_at: expires.toISOString() }).eq("id", user.id);
+      }
+    }
+    return result;
+  }, [user]);
+
+  // ── StoreKit IAP: 구매 복원 ──────────────────────────────────────────────
+  const restorePurchasesIAP = useCallback(async () => {
+    const result = await restoreIAPPurchases();
+    let restoredPlan: 'plus' | 'premium' | undefined;
+    if (result.restored && result.activeSubscriptions.length > 0) {
+      for (const sub of result.activeSubscriptions) {
+        const plan = getSubscriptionPlanFromProductId(sub);
+        if (plan === 'premium') { restoredPlan = 'premium'; break; }
+        if (plan === 'plus') restoredPlan = 'plus';
+      }
+      if (restoredPlan && user) {
+        setIsPlus(true);
+        if (restoredPlan === 'premium') setIsPremium(true);
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        await supabase.from("profiles").update({ is_plus: true, plan: restoredPlan, plus_expires_at: expiresAt }).eq("id", user.id);
+      }
+    }
+    return { restored: result.restored, restoredPlan };
+  }, [user]);
+
   const addBoosts = useCallback(async (amount: number) => {
     setBoostsCount(prev => prev + amount);
     if (user) {
@@ -245,7 +370,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
 
   const purchaseProfileTheme = useCallback(async () => {
     setHasProfileTheme(true);
-    if (user) await supabase.from("profiles").update({ profile_theme: 'premium' }).eq("id", user.id);
+    if (user) await supabase.from("profiles").update({ profile_theme: 'aurora' }).eq("id", user.id);
   }, [user]);
 
   const purchaseNearbyUnlock = useCallback(async () => {
@@ -316,7 +441,15 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const consumeDm = useCallback((): boolean => {
     if (isPlus) return true;
     if (dailyDmCount >= MAX_FREE_DM) return false;
-    setDailyDmCount((n) => n + 1);
+    setDailyDmCount((n) => {
+      const next = n + 1;
+      // BUG-02 fix: persist to localStorage so count survives app restarts
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        localStorage.setItem('migo_dm_data', JSON.stringify({ count: next, date: today }));
+      } catch {}
+      return next;
+    });
     return true;
   }, [isPlus, dailyDmCount]);
 
@@ -328,6 +461,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       hasVerifiedBadge, hasProfileTheme, nearbyUnlockedUntil,
       upgradePlus, startBoost, addBoosts, addSuperLikes, consumeSuperLike, consumeDm,
       purchaseVerifiedBadge, purchaseProfileTheme, purchaseNearbyUnlock, purchaseTravelPack,
+      purchaseSubscriptionIAP, purchaseItemIAP, restorePurchasesIAP,
       canGlobalMatch: isPlus,
       canViewLikers: isPlus,
       canNowFeatured: isPlus,

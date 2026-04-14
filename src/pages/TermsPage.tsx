@@ -113,7 +113,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-5 space-y-1 text-xs">
               <li>{t("auto.g_1015", "모든 결제는 Apple 인앱결제(IAP)를 통해 처리됩니다.")}</li>
               <li>{t("auto.g_1016", "구독은 갱신일 24시간 전까지 취소하지 않으면 자동 갱신됩니다.")}</li>
-              <li><strong>{t("auto.g_1017", "환불 정책:")}</strong> {t("auto.g_1018", "Apple App Store 환불 정책을 따릅니다. 환불은")}<a href="https://reportaproblem.apple.com" className="text-purple-600 underline" target="_blank" rel="noreferrer">reportaproblem.apple.com</a>{t("auto.g_1019", "을 통해 신청하시기 바랍니다.")}</li>
+              <li><strong>{t("auto.g_1017", "환불 정책:")}</strong> {t("auto.g_1018", "Apple App Store 환불 정책을 따릅니다. 환불은")}<button onClick={() => {import('@capacitor/browser').then(m => m.Browser.open({url: 'https://reportaproblem.apple.com'}))}} className="text-purple-600 underline ml-1">reportaproblem.apple.com</button>{t("auto.g_1019", "을 통해 신청하시기 바랍니다.")}</li>
               <li>{t("auto.g_1020", "구독 취소: iOS 설정 &gt; Apple ID &gt; 구독에서 가능합니다.")}</li>
               <li>{t("auto.g_1021", "디지털 콘텐츠(부스트, 슈퍼라이크 등 소모성 상품) 특성상 사용된 아이템은 환불이 어려울 수 있습니다.")}</li>
             </ul>

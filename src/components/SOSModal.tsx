@@ -74,7 +74,8 @@ const SOSModal = ({
     }
     const t = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, countdown]);
+  }, [phase, countdown]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const saveSOS = async () => {
     if (!user) return;
     try {

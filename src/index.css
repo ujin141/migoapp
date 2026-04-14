@@ -68,7 +68,9 @@
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
     scrollbar-width: none;
-    overscroll-behavior-y: none; /* 고무줄 풀링 원천 차단 */
+    overscroll-behavior-y: none;
+    height: 100%;
+    overflow: hidden;
   }
 
   html::-webkit-scrollbar {
@@ -86,10 +88,17 @@
     -webkit-user-select: none;
     user-select: none;
     overscroll-behavior-y: none;
+    height: 100%;
+    overflow: hidden;
   }
 
   body::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
+  }
+
+  #root {
+    height: 100%;
+    overflow: hidden;
   }
 
   /* 텍스트 입력창은 선택 허용 및 iOS 줌 방지 */
@@ -147,9 +156,11 @@
   /* pt-safe, pb-safe, pb-safe-or, pt-safe-exact, mt-safe, mb-safe, px-safe 등은
      tailwind.config.ts 플러그인에서 단일 정의 — 여기 중복 정의 제거 */
 
-  /* 콘텐츠 페이지 하단: 네비바 높이 + 기기 홈바 여백 (Tailwind 미포함 커스텀 클래스) */
+  /* 콘텐츠 페이지 하단: 네비바 높이 + 기기 홈바 여백 (Tailwind 미포함 커스텀 클래스)
+     Guideline 4 fix: iPad Air 11-inch에서 탭바 뒤에 버튼이 절대 가려지지 않도록 3rem 버퍼
+     52px nav + safe-area + 48px(3rem) buffer = iPad Air에서 최소 100px 여백 확보 */
   .safe-bottom {
-    padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+    padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 20px) + 3rem);
   }
 
   /* Scrollbar hide utility */

@@ -31,8 +31,8 @@ interface MetUser {
 
 // Mock data removed
 
-const POSITIVE_TAGS = ["Punctual", "Great conversation", i18n.t("auto.g_0762", "배려깊음7"), i18n.t("auto.g_0763", "여행정보풍"), i18n.t("auto.g_0764", "안전한느낌"), "Would meet again", i18n.t("auto.g_0765", "현지맛집잘"), i18n.t("auto.g_0766", "사진잘찍어")];
-const CAUTION_TAGS = [i18n.t("auto.g_0767", "약속시간불"), i18n.t("auto.g_0768", "대화가불편"), i18n.t("auto.g_0769", "배려부족8")];
+const POSITIVE_TAGS = ["Punctual", "Great conversation", i18n.t("auto.g_0762", "Considerate"), i18n.t("auto.g_0763", "Knowledgeable"), i18n.t("auto.g_0764", "Felt safe"), "Would meet again", i18n.t("auto.g_0765", "Knows local spots"), i18n.t("auto.g_0766", "Great photographer")];
+const CAUTION_TAGS = [i18n.t("auto.g_0767", "Late / no-show"), i18n.t("auto.g_0768", "Uncomfortable conversation"), i18n.t("auto.g_0769", "Inconsiderate")];
 
 // ─── StarRating ───────────────────────────────────
 const StarRating = ({
@@ -98,7 +98,7 @@ const WriteReview = ({
     });
     onSubmit(user.id);
     toast({
-      title: i18n.t("auto.t_0021", `${user.name}님 후기 작성 완료!`)
+      title: i18n.t("auto.t_0021", "Review submitted!")
     });
     onClose();
   };
@@ -127,7 +127,7 @@ const WriteReview = ({
         <div className="flex items-center gap-3 mb-5">
           <img src={user.photo} alt={user.name} className="w-12 h-12 rounded-2xl object-cover" />
           <div>
-            <p className="font-extrabold text-foreground truncate">{user.name}{i18n.t("auto.g_0770", "님후기작성")}</p>
+            <p className="font-extrabold text-foreground truncate">{i18n.t("auto.g_0770", "Review: ")} {user.name}</p>
             <p className="text-xs text-muted-foreground">{user.destination} · {user.meetDate}</p>
           </div>
         </div>
@@ -154,7 +154,7 @@ const WriteReview = ({
               <motion.button whileTap={{
             scale: 0.97
           }} onClick={() => rating > 0 && setStep("tags")} className={`w-full py-3.5 rounded-2xl font-extrabold text-sm transition-all ${rating > 0 ? "gradient-primary text-primary-foreground shadow-float" : "bg-muted text-muted-foreground"}`}>
-                {i18n.t("auto.j528")}
+                {i18n.t("auto.j528", "Next")}
               </motion.button>
             </motion.div>}
 
@@ -228,7 +228,7 @@ const MeetReviewPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const CAUTION_TAGS = getArr("meetReview.cautionTags", [t("auto.g_0771", "연락두절8"), t("auto.g_0772", "약속불이행"), t("auto.g_0773", "불쾌한언행"), t("auto.g_0774", "금전요구9"), t("auto.g_0775", "과도한음주"), t("auto.g_0776", "불건전목적"), t("auto.g_0777", "프로필과다")]);
+  const CAUTION_TAGS = getArr("meetReview.cautionTags", [t("auto.g_0771", "Went silent"), t("auto.g_0772", "Broke promise"), t("auto.g_0773", "Disrespectful"), t("auto.g_0774", "Asked for money"), t("auto.g_0775", "Excessive drinking"), t("auto.g_0776", "Unwanted intentions"), t("auto.g_0777", "Mismatched profile")]);
   const navigate = useNavigate();
   const {
     user
@@ -247,12 +247,12 @@ const MeetReviewPage = () => {
       if (revData) {
         setReviews(revData.map(r => ({
           id: r.id,
-          reviewerName: r.profiles?.name || t("auto.g_0778", "익명"),
+          reviewerName: r.profiles?.name || t("auto.g_0778", "Anonymous"),
           reviewerPhoto: r.profiles?.photo_url || "",
           rating: r.rating,
           tags: r.tags || [],
           text: r.text || "",
-          date: new Intl.DateTimeFormat('ko-KR').format(new Date(r.created_at)),
+          date: new Intl.DateTimeFormat(i18n.language || 'en').format(new Date(r.created_at)),
           verified: true
         })));
       }
@@ -269,10 +269,10 @@ const MeetReviewPage = () => {
         if (partnerProfiles) {
           setUsers(partnerProfiles.map((p: any) => ({
             id: p.id,
-            name: p.name || t("auto.g_0779", "알수없음9"),
+            name: p.name || t("auto.g_0779", "Unknown"),
             photo: p.photo_url || "",
-            destination: p.location || t("auto.g_0780", "여행지"),
-            meetDate: new Intl.DateTimeFormat('ko-KR').format(new Date(p.created_at)),
+            destination: p.location || t("auto.g_0780", "Destination"),
+            meetDate: new Intl.DateTimeFormat(i18n.language || 'en').format(new Date(p.created_at)),
             reviewed: false
           })));
         }
@@ -290,7 +290,7 @@ const MeetReviewPage = () => {
       reviewed: true
     } : u));
   };
-  return <div className="min-h-screen bg-background safe-bottom">
+  return <div className="h-full overflow-y-auto bg-background safe-bottom">
       {/* Header */}
       <header className="flex items-center gap-3 px-5 pt-safe pb-4">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center active:scale-90">
@@ -335,7 +335,7 @@ const MeetReviewPage = () => {
           </button>)}
       </div>
 
-      <div className="px-5 space-y-3 truncate">
+      <div className="px-5 space-y-3">
         {/* Write tab */}
         {tab === "write" && users.length === 0 && <div className="text-center py-12">
             <p className="text-muted-foreground text-sm truncate">{t("review.noMatches")}</p>

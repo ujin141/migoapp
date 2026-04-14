@@ -116,6 +116,19 @@ const ProfileDetailSheet = ({
         damping: 28,
         stiffness: 300
       }}>
+            {/* ── Theme Border ── */}
+            {(() => {
+              if (profile.profileTheme && profile.profileTheme !== 'default') {
+                const THEME_STYLES: Record<string, string> = {
+                  aurora: "inset 0 0 0 4px rgba(168,85,247,0.8)",
+                  sunset: "inset 0 0 0 4px rgba(244,63,94,0.8)",
+                  neon: "inset 0 0 0 4px rgba(6,182,212,0.8)",
+                  midnight: "inset 0 0 0 4px rgba(30,41,59,0.9)"
+                };
+                return <div className="absolute inset-0 pointer-events-none rounded-3xl z-20" style={{ boxShadow: THEME_STYLES[profile.profileTheme] || THEME_STYLES.aurora }} />;
+              }
+              return null;
+            })()}
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
@@ -140,7 +153,10 @@ const ProfileDetailSheet = ({
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      onError={e => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        e.currentTarget.parentElement?.classList.add('gradient-primary');
+                      }}
                     />
                   ) : (
                     <div className="absolute inset-0 gradient-primary flex items-center justify-center">
@@ -149,7 +165,16 @@ const ProfileDetailSheet = ({
                   )}
                 </AnimatePresence>
 
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent pointer-events-none" />
+                {/* ── Theme custom bottom gradient ── */}
+                {(() => {
+                  let gradClass = "from-card via-card/20 to-transparent";
+                  if (profile.profileTheme === "aurora") gradClass = "from-purple-900/90 via-purple-900/30 to-transparent";
+                  if (profile.profileTheme === "sunset") gradClass = "from-pink-900/90 via-pink-900/30 to-transparent";
+                  if (profile.profileTheme === "neon") gradClass = "from-cyan-900/90 via-cyan-900/30 to-transparent";
+                  if (profile.profileTheme === "midnight") gradClass = "from-black/95 via-black/40 to-transparent";
+                  
+                  return <div className={`absolute inset-0 bg-gradient-to-t ${gradClass} pointer-events-none`} />;
+                })()}
 
                 {/* ── Invisible tap zones for swipe (left 40% / right 40%) ── */}
                 {photos.length > 1 && (
@@ -223,15 +248,15 @@ const ProfileDetailSheet = ({
                 </div>
 
                 {/* Name overlay */}
-                <div className="absolute bottom-4 left-5 right-5 z-10">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-2xl font-extrabold text-foreground flex items-center gap-1.5 flex-wrap">
-                      <span>{profile.name}</span>
-                      {profile.age && <span>, {profile.age}</span>}
-                      {profile.nationality && <span className="text-xl ml-1 drop-shadow-sm">{profile.nationality.match(/[^\x00-\x7F가-힣a-zA-Z]+/g)?.[0]?.trim() || profile.nationality}</span>}
-                      {profile.isPlus && <Crown size={18} className="text-amber-500 fill-amber-500 ml-0.5" />}
+                <div className="absolute bottom-4 left-5 right-5 z-10 min-w-0">
+                  <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
+                    <h2 className="text-2xl font-extrabold text-foreground flex items-center gap-1.5 flex-1 min-w-0">
+                      <span className="truncate">{profile.name}</span>
+                      <span className="text-xl font-medium text-foreground/80 shrink-0">{profile.age && `, ${profile.age}`}</span>
+                      {profile.nationality && <span className="text-xl ml-1 drop-shadow-sm shrink-0">{profile.nationality.match(/[^\x00-\x7F가-힣a-zA-Z]+/g)?.[0]?.trim() || profile.nationality}</span>}
+                      {profile.isPlus && <span className="shrink-0"><Crown size={18} className="text-amber-500 fill-amber-500 ml-0.5" /></span>}
+                      {profile.verified && <span className="shrink-0"><VerifyBadge level={profile.verifyLevel} /></span>}
                     </h2>
-                    {profile.verified && <VerifyBadge level={profile.verifyLevel} />}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                     <MapPin size={13} className="text-primary" />

@@ -390,20 +390,33 @@ export const LoginForm = ({ props }: any) => {
           whileTap={{ scale: 0.97 }}
           onClick={async () => {
             try {
-              const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: "apple",
-                options: {
-                  redirectTo: Capacitor.isNativePlatform()
-                    ? 'migoapp://login-callback'
-                    : `${window.location.origin}/auth/callback`,
-                  skipBrowserRedirect: true, // 수동으로 인앱 브라우저 열기
+              if (Capacitor.isNativePlatform()) {
+                const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+                const result = await SignInWithApple.authorize({
+                  clientId: 'com.migo.app',
+                  redirectURI: '',
+                  scopes: 'email name',
+                  state: '12345',
+                  nonce: 'nonce',
+                });
+                if (result?.response?.identityToken) {
+                  const { error } = await supabase.auth.signInWithIdToken({
+                    provider: 'apple',
+                    token: result.response.identityToken,
+                  });
+                  if (error) throw error;
                 }
-              });
-              if (error) {
-                toast({ title: i18n.t("login.apple"), description: error.message, variant: "destructive" });
-              } else if (data?.url) {
-                // SFSafariViewController (iOS) / Chrome Custom Tab (Android)
-                await Browser.open({ url: data.url, presentationStyle: 'popover' });
+              } else {
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                  provider: "apple",
+                  options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                    skipBrowserRedirect: false, 
+                  }
+                });
+                if (error) {
+                  toast({ title: i18n.t("login.apple"), description: error.message, variant: "destructive" });
+                }
               }
             } catch (e: any) {
               toast({ title: i18n.t("login.apple"), description: e?.message, variant: "destructive" });

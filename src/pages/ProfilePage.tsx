@@ -133,6 +133,8 @@ const ProfilePage = () => {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [userType, setUserType] = useState<string>("traveler");
+  const [profileTheme, setProfileTheme] = useState<string>("default");
 
   // 최대 5초 후 profileLoading 강제 해제 (무한 스켈레톤 방지)
   useEffect(() => {
@@ -268,7 +270,8 @@ const ProfilePage = () => {
           const {
             data
           } = supabase.storage.from("avatars").getPublicUrl(path);
-          uploadedUrls.push(`${data.publicUrl}?t=${Date.now()}`);
+          // BUG-11 fix: DB에는 클린 URL 저장 (timestamp 제거 → CDN 캐시 히트율 향상)
+          uploadedUrls.push(data.publicUrl);
         } else {
           console.error(t("auto.g_0897", "사진업로드"), upErr);
         }
@@ -284,7 +287,8 @@ const ProfilePage = () => {
         photo_urls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
         travel_mission: travelMission,
         visited_countries: visitedCountries,
-        updated_at: new Date().toISOString()
+        profile_theme: profileTheme,
+        // BUG-19 fix: updated_at은 DB 트리거가 자동 설정 (클라이언트 시계 불일치 방지)
       };
       const {
         error,
@@ -326,7 +330,9 @@ const ProfilePage = () => {
         let {
           data,
           error
-        } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        } = await supabase.from('profiles').select(
+          'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus'
+        ).eq('id', user.id).single();
 
         // DB에 이 유저 레코드가 없다면 (예: 트리거 실패, 레거시 계정) 빈 레코드 자동 생성으로 복구!
         if (error && error.code === 'PGRST116') {
@@ -336,7 +342,9 @@ const ProfilePage = () => {
             name: fbName,
             email: user.email
           }]);
-          const retry = await supabase.from('profiles').select('*').eq('id', user.id).single();
+          const retry = await supabase.from('profiles').select(
+            'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus'
+          ).eq('id', user.id).single();
           data = retry.data;
           error = retry.error;
         }
@@ -368,6 +376,8 @@ const ProfilePage = () => {
           if (data.notif_match !== undefined) setNotifMatch(data.notif_match);
           if (data.notif_chat !== undefined) setNotifChat(data.notif_chat);
           if (data.notif_group !== undefined) setNotifGroup(data.notif_group);
+          setUserType(data.user_type || "traveler");
+          setProfileTheme(data.profile_theme || "default");
         } else {
           if (!isMounted) return;
           setName(user?.name || user?.email?.split('@')[0] || "User");
@@ -382,7 +392,7 @@ const ProfilePage = () => {
             return;
           }
           const { lat, lng } = pos;
-          // 로컨스토리지에 GPS 좌표 저장 (매칭용)
+          // 로컨스토리지에 GPS 좌표 저장 (매칭용 — DB 자동 업데이트는 하지 않음, Apple 5.1.2)
           localStorage.setItem('migo_my_lat', String(lat));
           localStorage.setItem('migo_my_lng', String(lng));
             try {
@@ -397,14 +407,8 @@ const ProfilePage = () => {
               const locationStr = city ? `${city}, ${country}` : country;
               if (locationStr) {
                 setLocation(locationStr);
-                // DB에도 저장 (lat/lng 포함)
-                if (user) {
-                  await supabase.from('profiles').update({
-                    location: locationStr,
-                    lat,
-                    lng
-                  }).eq('id', user.id);
-                }
+                // ❌ Apple Guideline 5.1.2: 자동 위치 DB 업데이트 제거 (수동 체크인만 허용)
+                // await supabase.from('profiles').update({ location: locationStr, lat, lng }).eq('id', user.id);
               } else if (!data?.location) {
                 setLocation(t("map.locationUnknown", "Location unknown"));
               }
@@ -658,7 +662,7 @@ const ProfilePage = () => {
 
   if (authLoading || profileLoading) {
     return (
-      <div className="min-h-screen bg-background safe-bottom">
+      <div className="h-full bg-background safe-bottom overflow-y-auto">
         <header className="flex items-center justify-between px-5 pt-safe pb-2">
           <h1 className="text-2xl font-extrabold text-foreground truncate">{t('profile.title')}</h1>
         </header>
@@ -686,7 +690,7 @@ const ProfilePage = () => {
     );
   }
 
-  return <div className="min-h-screen bg-background safe-bottom relative">
+  return <div className="h-full bg-background safe-bottom relative overflow-y-auto">
       {/* ── 사진 라이트박스 ── */}
       <AnimatePresence>
         {galleryOpen && (() => {
@@ -700,7 +704,7 @@ const ProfilePage = () => {
               exit={{ opacity: 0 }}
             >
               {/* 닫기 + 카운터 */}
-              <div className="flex items-center justify-between px-4 pt-safe pt-4 pb-3">
+              <div className="flex items-center justify-between px-4 pt-safe pb-3">
                 <button
                   onClick={() => { setGalleryOpen(null); setGalleryIdx(0); }}
                   className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center"
@@ -754,7 +758,7 @@ const ProfilePage = () => {
 
               {/* 하단 썸네일 */}
               {photos.length > 1 && (
-                <div className="px-4 pt-3 pb-safe pb-6">
+                <div className="px-4 pt-3 pb-6">
                   <div className="flex gap-2 overflow-x-auto hide-scrollbar justify-center">
                     {photos.map((url, i) => (
                       <button
@@ -776,7 +780,7 @@ const ProfilePage = () => {
       </AnimatePresence>
       {/* Decorative Top Background */}
       <div className="absolute top-0 left-0 w-full h-[35vh] bg-gradient-to-b from-primary/10 via-primary/5 to-transparent z-0 pointer-events-none" />
-      <div className="relative z-10 truncate">
+      <div className="relative z-10">
       <header className="flex items-center justify-between px-5 pt-safe pb-2">
           <h1 className="text-2xl font-extrabold text-foreground truncate">{t('profile.title')}</h1>
         <div className="flex items-center gap-2">
@@ -848,7 +852,14 @@ const ProfilePage = () => {
 
         {/* Name & Basic Info */}
         <div className="text-center w-full px-4 mb-5">
-          <h2 className="text-2xl font-black text-foreground">{name}</h2>
+          <h2 className="text-2xl font-black text-foreground flex items-center justify-center gap-2">
+            {name}
+            {userType === "local" && (
+              <span className="bg-emerald-500 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full shadow-sm">
+                Local
+              </span>
+            )}
+          </h2>
           <div className="flex items-center justify-center gap-1.5 mt-1 text-sm text-muted-foreground font-medium">
             <span className="truncate">{location || t("auto.z_\uC704\uCE58\uAC10\uC9C0\uC911_126", "\uC704\uCE58\uAC10\uC9C0\uC911")}</span>
             <button onClick={async () => {
@@ -1173,10 +1184,10 @@ const ProfilePage = () => {
           onClose={() => setActiveStoryIndex(null)}
           onAuthorClick={() => setActiveStoryIndex(null)}
           onComment={() => {
-            toast({ title: t("profilePage.commentNotSupported", { defaultValue: "댓글 관리는 피드에서 가능합니다." }) });
+            toast({ title: t("profilePage.commentNotSupported", { defaultValue: "Comments can be managed in the feed." }) });
           }}
           onLike={() => {
-             toast({ title: t("profilePage.likeNotSupported", { defaultValue: "내 게시물입니다." }) });
+             toast({ title: t("profilePage.likeNotSupported", { defaultValue: "This is your own post." }) });
           }}
         />
       )}
@@ -1209,7 +1220,7 @@ const ProfilePage = () => {
 
             {/* 상단 그라디언트 + 닫기 */}
             <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-black/70 to-transparent pointer-events-none" />
-            <div className="absolute top-0 inset-x-0 flex items-center justify-between px-5 pt-safe pt-4">
+            <div className="absolute top-0 inset-x-0 flex items-center justify-between px-5 pt-safe">
               {/* 좌우 탐색 인디케이터 */}
               <div className="flex gap-1">
                 {canViewLikers && likers.slice(0, 20).map((_, i) => (
@@ -1461,6 +1472,8 @@ const ProfilePage = () => {
         newTag={newTag}
         setNewTag={setNewTag}
         addTag={addTag}
+        profileTheme={profileTheme}
+        setProfileTheme={setProfileTheme}
         saveProfile={saveProfile}
         saving={saving}
       />

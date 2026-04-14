@@ -6,6 +6,7 @@ import { X, Eye, Lock, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/context/SubscriptionContext";
+import { toast } from "@/hooks/use-toast";
 interface Viewer {
   id: string;
   name: string;
@@ -25,10 +26,13 @@ export default function ProfileViewsModal({
   const {
     user
   } = useAuth();
-  const {
-    isPlus,
-    upgradePlus
-  } = useSubscription();
+  const { isPlus } = useSubscription();
+  const handleUpgradeClick = () => {
+    toast({
+      title: t("profileViews.iapTitle", "🔒 IAP (In-App Purchase) Coming Soon"),
+      description: t("profileViews.iapDesc", "App Store In-App Purchase subscription will be available soon. Please stay tuned!"),
+    });
+  };
   const [viewers, setViewers] = useState<Viewer[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -89,7 +93,7 @@ export default function ProfileViewsModal({
               </button>
             </div>
 
-            <div className="space-y-4 truncate">
+            <div className="space-y-4">
               {loading ? <p className="text-center text-muted-foreground py-10 truncate">{t("auto.g_0200", "불러오는중")}</p> : viewers.length === 0 ? <div className="text-center py-10 text-muted-foreground">
                   <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center mb-3">
                     <Eye size={24} className="opacity-50" />
@@ -104,7 +108,7 @@ export default function ProfileViewsModal({
                         {isPlus ? <>
                             <p className="text-white font-bold text-sm truncate">{v.name || t("auto.g_0201", "비공개프로")}</p>
                             <p className="text-white/70 text-xs text-nowrap truncate">
-                              {new Intl.DateTimeFormat("ko-KR", {
+                              {new Intl.DateTimeFormat(i18n.language || 'en', {
                         month: "short",
                         day: "numeric"
                       }).format(new Date(v.created_at))}{" "}{t("auto.g_0202", "방문")}</p>
@@ -122,7 +126,13 @@ export default function ProfileViewsModal({
                       </div>
                       <h3 className="text-xl font-extrabold text-foreground mb-2">{"MigoP"}</h3>
                       <p className="text-sm text-muted-foreground mb-6 truncate">{t("auto.g_0204", "누가나를클")}</p>
-                      <button onClick={upgradePlus} className="w-full bg-primary text-primary-foreground font-bold py-3.5 rounded-2xl shadow-primaryButton">{t("auto.g_0205", "1일무료체")}</button>
+                      {/* IAP 준비 중 툴틑 (Guideline 3.1.1) */}
+                      <button
+                        onClick={handleUpgradeClick}
+                        className="w-full bg-muted text-muted-foreground font-bold py-3.5 rounded-2xl opacity-70 cursor-not-allowed"
+                      >
+                        🔒 {t("profileViews.iapInProgress", "IAP (In-App Purchase) Coming Soon")}
+                      </button>
                     </div>}
                 </div>}
             </div>

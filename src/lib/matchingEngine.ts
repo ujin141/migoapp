@@ -49,10 +49,10 @@ function inferGenderStats(group: TripGroup): GroupGenderStats {
     const male = group.memberGenders.filter(g => g === 'male').length;
     const female = group.memberGenders.filter(g => g === 'female').length;
     const other = group.memberGenders.filter(g => g === 'unknown').length;
-    return { maleCount: male, femaleCount: female, otherCount: other, label: i18n.t("auto.t_0016", `${male}남${female}여`) };
+    return { maleCount: male, femaleCount: female, otherCount: other, label: i18n.t("auto.t_0016", `${male}M ${female}F`) };
   }
   const total = group.currentMembers || 1;
-  return { maleCount: total, femaleCount: 0, otherCount: 0, label: i18n.t("auto.t_0017", `${total}남0여`) };
+  return { maleCount: total, femaleCount: 0, otherCount: 0, label: i18n.t("auto.t_0017", `${total}M 0F`) };
 }
 
 // ──────────────────────────────────────────────
@@ -88,7 +88,7 @@ function scoreGroup(group: TripGroup, input: MatchInput): number {
 
   // 목적지 / 핫플레이스 매칭
   if (input.isInstant && input.hotplace) {
-    if (group.destination.toLowerCase().includes("seoul") || group.destination.toLowerCase().includes(i18n.t("auto.g_0361", "서울")) || group.destination.toLowerCase().includes("tokyo")) {
+    if (group.destination.toLowerCase().includes("seoul") || group.destination.toLowerCase().includes("tokyo")) {
       score += 60; // 임시로 즉석 만남 타겟 도시 그룹에 보너스
     } else {
       score += 40; 
@@ -132,9 +132,9 @@ function scoreGroup(group: TripGroup, input: MatchInput): number {
   // 분위기 매칭
   if (input.vibe !== "any") {
     const VIBE_KWS: Record<TripVibe, string[]> = {
-      party:   [i18n.t("auto.g_0362", "클럽"), i18n.t("auto.g_0363", "파티"), i18n.t("auto.g_0364", "나이트"), "night", "bar"],
-      healing: [i18n.t("auto.g_0365", "힐링"), i18n.t("auto.g_0366", "편한"), i18n.t("auto.g_0367", "캐주얼"), i18n.t("auto.g_0368", "카페"), i18n.t("auto.g_0369", "자유")],
-      serious: [i18n.t("auto.g_0370", "진지"), i18n.t("auto.g_0371", "목적"), i18n.t("auto.g_0372", "계획"), i18n.t("auto.g_0373", "투어"), i18n.t("auto.g_0374", "관광")],
+      party:   [i18n.t("auto.g_0362", "club"), i18n.t("auto.g_0363", "party"), i18n.t("auto.g_0364", "night"), "night", "bar"],
+      healing: [i18n.t("auto.g_0365", "healing"), i18n.t("auto.g_0366", "relax"), i18n.t("auto.g_0367", "casual"), i18n.t("auto.g_0368", "cafe"), i18n.t("auto.g_0369", "free")],
+      serious: [i18n.t("auto.g_0370", "serious"), i18n.t("auto.g_0371", "goal"), i18n.t("auto.g_0372", "plan"), i18n.t("auto.g_0373", "tour"), i18n.t("auto.g_0374", "sightseeing")],
       any:     [],
     };
     const all = [...group.tags, group.title].join(" ").toLowerCase();
@@ -194,13 +194,13 @@ export function runMatchingEngine(
     // 매칭 이유 생성
     const reasons: string[] = [];
     if (group.destination.toLowerCase().includes(input.destination.toLowerCase()) && input.destination)
-      reasons.push(i18n.t("auto.g_0375", "📍 목적지 일치"));
-    if (avgRating >= 4.5) reasons.push(i18n.t("auto.g_0376", "⭐ 최고 평점"));
-    if (group.isPremiumGroup) reasons.push(i18n.t("auto.g_0377", "👑 검증 그룹"));
-    if (isFree) reasons.push(i18n.t("auto.g_0378", "🎁 여성 무료"));
-    if (group.daysLeft <= 3) reasons.push(i18n.t("auto.g_0379", "⚡ 마감 임박"));
-    if (group.currentMembers < group.maxMembers - 1) reasons.push(i18n.t("auto.g_0380", "✅ 여유 있음"));
-    if (input.isInstant) reasons.push(i18n.t("auto.g_0381", "⚡ 바로모임 가능"));
+      reasons.push(i18n.t("auto.g_0375", "📍 Same destination"));
+    if (avgRating >= 4.5) reasons.push(i18n.t("auto.g_0376", "⭐ Top rated"));
+    if (group.isPremiumGroup) reasons.push(i18n.t("auto.g_0377", "👑 Verified group"));
+    if (isFree) reasons.push(i18n.t("auto.g_0378", "🎁 Free entry"));
+    if (group.daysLeft <= 3) reasons.push(i18n.t("auto.g_0379", "⚡ Closing soon"));
+    if (group.currentMembers < group.maxMembers - 1) reasons.push(i18n.t("auto.g_0380", "✅ Spots available"));
+    if (input.isInstant) reasons.push(i18n.t("auto.g_0381", "⚡ Instant meetup"));
 
     results.push({
       group,

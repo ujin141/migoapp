@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CreditCard, RefreshCw, Apple, HelpCircle, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Browser } from "@capacitor/browser";
 
 export default function RefundPolicyPage() {
   const navigate = useNavigate();
@@ -74,9 +75,14 @@ export default function RefundPolicyPage() {
                 <li>{t("auto.g_0946", "Migo 구독 선택 → '구독 취소'")}</li>
               </ol>
             </div>
-            <div className="bg-gray-50 rounded-2xl p-4">
-              <p className="font-semibold text-gray-800 mb-2 truncate">{t("auto.g_0947", "💻 데스크탑에서 취소")}</p>
-              <p className="text-sm text-gray-600 truncate">{t("auto.g_0948", "iTunes 또는")}<a href="https://appleid.apple.com" className="text-blue-500 underline" target="_blank" rel="noreferrer">appleid.apple.com</a> {t("auto.g_0949", "→ 구독 관리에서 취소")}</p>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold">1</div>
+              <div>
+                <h3 className="font-bold text-gray-900 mb-1">{t("auto.g_0947", "자동 결제 설정 변경")}</h3>
+                <p className="text-sm text-gray-600 truncate">{t("auto.g_0948", "iTunes 또는")}
+                <button onClick={() => Browser.open({ url: "https://appleid.apple.com" })} className="text-blue-500 underline ml-1">appleid.apple.com</button> 
+                {t("auto.g_0949", "→ 구독 관리에서 취소")}</p>
+              </div>
             </div>
           </div>
           <p className="text-xs text-gray-400 mt-2 truncate">{t("auto.g_0950", "취소 후에도 현재 구독 기간이 끝날 때까지 프리미엄 기능을 계속 이용할 수 있습니다.")}</p>
@@ -91,15 +97,16 @@ export default function RefundPolicyPage() {
             <p className="text-sm text-amber-800 truncate">
               <strong>{t("auto.g_0952", "중요:")}</strong> {t("auto.g_0953", "Migo의 모든 결제는 Apple 인앱결제를 통해 이루어지며,")}<strong>{t("auto.g_0954", "환불은 Apple의 정책에 따라 처리됩니다.")}</strong> {t("auto.g_0955", "회사는 Apple을 통하지 않고 직접 환불할 수 없습니다.")}</p>
           </div>
-          <div className="bg-gray-50 rounded-2xl p-4">
-            <p className="font-semibold text-gray-800 mb-2 truncate">{t("auto.g_0956", "환불 신청 방법:")}</p>
-            <ol className="list-decimal pl-5 text-sm text-gray-600 space-y-2">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <p className="text-sm text-gray-600 font-semibold mb-2">{t("auto.g_0956", "환불 신청 방법:")}</p>
+            <ul className="list-decimal pl-5 text-sm text-gray-600 space-y-2">
               <li>
-                <a href="https://reportaproblem.apple.com" className="text-blue-500 underline font-semibold" target="_blank" rel="noreferrer">reportaproblem.apple.com</a> {t("auto.g_0957", "접속")}</li>
+                <button onClick={() => Browser.open({ url: "https://reportaproblem.apple.com" })} className="text-blue-500 underline font-semibold">reportaproblem.apple.com</button> {t("auto.g_0957", "접속")}
+              </li>
               <li>{t("auto.g_0958", "Apple ID로 로그인")}</li>
-              <li>{t("auto.g_0959", "환불할 항목 선택 → '문제 신고'")}</li>
-              <li>{t("auto.g_0960", "'구입이 실수였습니다' 또는 해당 사유 선택")}</li>
-            </ol>
+              <li>{t("auto.g_0959", "'환불 요청' 선택 후 사유 입력")}</li>
+              <li>{t("auto.g_0960", "항목 선택 후 제출")}</li>
+            </ul>
           </div>
           <div className="mt-3 space-y-2 text-sm text-gray-600">
             <p className="font-semibold text-gray-800 truncate">{t("auto.g_0961", "환불 가능 여부 기준 (Apple 정책):")}</p>

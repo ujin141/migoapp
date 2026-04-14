@@ -1,5 +1,6 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
+import { Browser } from "@capacitor/browser"; // Apple Guideline 3.2: 인앱 브라우저로 외부 URL 처리
 /**
  * NowMoments - "지금 여기있어요" Stories형 아바타 스트립
  * 인스타그램 스토리처럼 작은 원형 아바타 + 이름 + 거리
@@ -276,12 +277,18 @@ const NowDetailSheet = ({
             </div>
           </div>}
 
-        {/* 지도 버튼 */}
+        {/* 지도 버튼 - Apple Guideline 3.2: Browser.open()으로 인앱 처리 */}
         {(mapsUrl || naverUrl) && <div className="grid grid-cols-2 gap-2 mb-3 truncate">
-            {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-muted border border-border text-xs font-bold text-foreground">
-                <ExternalLink size={12} />{t("auto.g_0176", "길찾기")}</a>}
-            {naverUrl && <a href={naverUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-muted border border-border text-xs font-bold text-foreground">
-                <Map size={12} />{t("auto.g_0177", "중간지점")}</a>}
+            {mapsUrl && <button
+              onClick={() => Browser.open({ url: mapsUrl, presentationStyle: 'fullscreen' })}
+              className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-muted border border-border text-xs font-bold text-foreground">
+              <ExternalLink size={12} />{t("auto.g_0176", "길찾기")}
+            </button>}
+            {naverUrl && <button
+              onClick={() => Browser.open({ url: naverUrl, presentationStyle: 'fullscreen' })}
+              className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl bg-muted border border-border text-xs font-bold text-foreground">
+              <Map size={12} />{t("auto.g_0177", "중간지점")}
+            </button>}
           </div>}
 
         {/* CTA */}

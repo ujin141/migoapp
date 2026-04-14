@@ -1,0 +1,22 @@
+# Android 릴리즈 서명 키 설정
+#
+# ⚠️  이 파일은 절대 git에 올리지 마세요!
+# ⚠️  비밀번호를 안전한 곳에 보관하세요 (분실 시 앱 업데이트 불가)
+#
+# ──────────────────────────────────────────────
+# 키스토어 생성 방법:
+#
+# keytool -genkey -v \
+#   -keystore android/release/migo-release.jks \
+#   -keyalg RSA -keysize 2048 \
+#   -validity 10000 \
+#   -alias migo \
+#   -dname "CN=Migo, OU=LunaticsGroup, O=LunaticsGroup, L=Seoul, S=Seoul, C=KR"
+#
+# 생성 후 아래 값을 채워주세요:
+# ──────────────────────────────────────────────
+
+storePassword=ENTER_YOUR_STORE_PASSWORD
+keyPassword=ENTER_YOUR_KEY_PASSWORD
+keyAlias=migo
+storeFile=release/migo-release.jks

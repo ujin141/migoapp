@@ -107,7 +107,12 @@ const MapPage = () => {
   const [liked, setLiked] = useState<string[]>([]);
   const [travelers, setTravelers] = useState<any[]>([]);
   const [currentLocationName, setCurrentLocationName] = useState(t("mapPage.locating"));
-  const [locationSharing, setLocationSharing] = useState(true);
+  // Apple Guideline 5.1.2: 위치 공유 기본값은 false — 사용자 명시 동의 후에만 활성화
+  const [locationSharing, setLocationSharing] = useState(false);
+  // Apple Guideline 5.1.2(i): 위치 공유 동의 다이얼로그 상태
+  // 명시적 동의 없이는 지도에 내 위치가 표시되지 않아야 함
+  const [showLocationConsent, setShowLocationConsent] = useState(false);
+
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [myProfilePhoto, setMyProfilePhoto] = useState<string>("");
 
@@ -274,10 +279,12 @@ const MapPage = () => {
       const {
         data: me
       } = await supabase.from('profiles').select('lat, lng').eq('id', user.id).single();
-      const {
-        data,
-        error
-      } = await supabase.from('profiles').select('id,name,photo_url,age,gender,nationality,location,lat,lng,languages,interests,mbti,verified,bio').neq('id', user?.id ?? '').order('id').limit(30);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id,name,photo_url,age,gender,nationality,location,lat,lng,languages,interests,mbti,verified,bio')
+        .neq('id', user?.id ?? '')
+        .order('id')
+        .limit(30);
       if (!error && data) {
         const haversine = (lat1: number, lng1: number, lat2: number, lng2: number) => {
           const R = 6371;
@@ -361,7 +368,7 @@ const MapPage = () => {
             lng: parseFloat(parts[2]),
             locationName: parts.slice(3).join(":"),
             locationTag: { name: parts.slice(3).join(":") },
-            time: new Date(p.created_at).toLocaleDateString("ko-KR"),
+            time: new Date(p.created_at).toLocaleDateString(i18n.language || 'en'),
             likes: p.post_likes?.[0]?.count || 0,
             comments: p.comments?.length || 0,
             liked: likedSet.has(p.id),
@@ -478,15 +485,14 @@ const MapPage = () => {
     }).subscribe();
 
     let isMounted = true;
-    // 내 위치를 DB에 영구 저장 (백업/크론 용도) - 1분 간격 (비용 대폭 절감)
+    // ── Apple Guideline 5.1.2: 위치 자동 업데이트는 locationSharing=true일 때만 허용 ──
+    // 사용자가 명시적으로 위치 공유를 동의한 경우에만 DB에 저장
     const saveLocationToDB = async () => {
-      if (!isMounted || !user || !locationSharing) return;
+      if (!isMounted || !user || !locationSharing) return; // locationSharing이 false면 완전 차단
       
       let pos = await getCurrentLocation(false);
       if (!isMounted) return;
       
-      // 만약 1회성 GPS 조회가 타임아웃/오류로 실패하더라도, 
-      // 실시간 트래킹(useLocationTracker) 좌표가 있다면 그걸로 위치를 렌더링합니다.
       if (!pos && myLatLngRef.current) {
         pos = myLatLngRef.current;
       }
@@ -507,17 +513,24 @@ const MapPage = () => {
         const country = data.address?.country || "";
         const locationName = city ? `${city}, ${country}` : country || t("map.locationUnknown");
         setCurrentLocationName(locationName);
-        await supabase.from("profiles").update({ lat, lng, location: locationName }).eq("id", user.id);
+        // Guideline 5.1.2: locationSharing=true일 때만 DB 저장 (수동 체크인 원칙 준수)
+        if (locationSharing) {
+          await supabase.from("profiles").update({ lat, lng, location: locationName }).eq("id", user.id);
+        }
       } catch (e) {
         console.error("Geocoding error", e);
         setCurrentLocationName(t("map.locationUnknown"));
       }
     };
-    saveLocationToDB();
-    const interval = setInterval(saveLocationToDB, 60_000);
+
+    // locationSharing이 true일 때만 초기 호출 + 1분 인터벌 실행
+    if (locationSharing) {
+      saveLocationToDB();
+    }
+    const interval = locationSharing ? setInterval(saveLocationToDB, 60_000) : null;
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       supabase.removeChannel(channel);
       supabase.removeChannel(seekerChannel);
     };
@@ -601,7 +614,7 @@ const MapPage = () => {
         }
       });
     });
-  }, []);
+  }, [t]);
 
   // ―― Nearest Traveler Auto-Select (딱 한 번만) ――
   useEffect(() => {
@@ -632,7 +645,7 @@ const MapPage = () => {
       }
       searchNearbyRestaurants(restaurantFilter);
     }
-  }, [displayMode, isLoaded, restaurantFilter]);
+  }, [displayMode, isLoaded, restaurantFilter, searchNearbyRestaurants]);
 
   // 맛집 선택 시 상세 정보 로드 (사진 포함)
   const loadPlaceDetail = useCallback((place: any) => {
@@ -979,8 +992,15 @@ const MapPage = () => {
         locationActive={locationSharing}
         onCheckInClick={() => {
           const next = !locationSharing;
-          setLocationSharing(next);
-          if (!next) setCurrentLocationName(t("map.locationShareOff"));
+          // Apple Guideline 5.1.2(i): 위치 코공 전 명시적 동의 필수
+          if (next && !localStorage.getItem('migo_location_consent')) {
+            // 위치 코공을 켜려는데 동의 기록이 없으면 다이얼로그 표시
+            setShowLocationConsent(true);
+          } else {
+            // 동의 이미 한 경우 또는 끄는 경우 직접 토글
+            setLocationSharing(next);
+            if (!next) setCurrentLocationName(t("map.locationShareOff"));
+          }
         }}
       />
 
@@ -1437,7 +1457,7 @@ const MapPage = () => {
                       <span className="flex items-center gap-1 text-[11px] font-extrabold text-amber-500 truncate">
                         ⭐ {selectedRestaurant.rating}
                         {selectedRestaurant.user_ratings_total && (
-                          <span className="text-[10px] text-muted-foreground font-normal truncate">({selectedRestaurant.user_ratings_total.toLocaleString()}{t("auto.ko_0129", "개 리뷰)")}</span>
+                          <span className="text-[10px] text-muted-foreground font-normal truncate">({selectedRestaurant.user_ratings_total.toLocaleString()} {t("auto.ko_0129", "reviews")})</span>
                         )}
                       </span>
                     )}
@@ -1731,7 +1751,7 @@ const MapPage = () => {
               setShowFilter(false);
               toast({
                 title: t("map.filterApplied"),
-                description: t("auto.t_0016", `${maxDistance}km 반경 필터 적용됨`)
+                description: t("auto.t_0016", `Filter applied: within ${maxDistance}km`)
               });
             }} className="flex-1 py-3 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-card flex items-center justify-center gap-2">
                   <Check size={16} />{t("map.apply")}</button>
@@ -2115,6 +2135,74 @@ const MapPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Apple Guideline 5.1.2(i): 위치 공유 동의 다이얼로그 ───────────────────
+           사용자가 명시적으로 동의해야만 지도에 위치가 표시됨
+           거부 옵션 반드시 포함 / 자동 공유 없음 */}
+      <AnimatePresence>
+        {showLocationConsent && (
+          <motion.div
+            className="fixed inset-0 z-[300] flex items-center justify-center px-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <motion.div
+              className="relative z-10 w-full max-w-sm bg-card rounded-3xl p-6 shadow-float"
+              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 26, stiffness: 320 }}
+            >
+              {/* 아이콘 */}
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Navigation size={30} className="text-primary" />
+              </div>
+
+              <h2 className="text-xl font-extrabold text-foreground text-center mb-2">
+                📍 위치 공유 동의
+              </h2>
+              <p className="text-sm text-muted-foreground text-center leading-relaxed mb-1">
+                내 위치를 지도에 표시하면 <strong>주변 여행자들이 나를 볼 수 있습니다.</strong>
+              </p>
+              <p className="text-xs text-muted-foreground text-center leading-relaxed mb-5">
+                위치는 <strong>수동으로 켤 때만</strong> 공유되며, 자동 공유는 없습니다.
+                언제든지 끄기 버튼으로 공유를 중단할 수 있습니다.
+              </p>
+
+              {/* 동의 / 거부 버튼 */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    // 거부: 다이얼로그 닫기, 위치 공유 비활성화 유지
+                    setShowLocationConsent(false);
+                  }}
+                  className="flex-1 py-3.5 rounded-2xl border-2 border-border text-muted-foreground font-bold text-sm"
+                >
+                  {t("common.deny", { defaultValue: "Deny" })}
+                </button>
+                <button
+                  onClick={() => {
+                    // 동의: localStorage에 기록 후 위치 공유 활성화
+                    localStorage.setItem('migo_location_consent', '1');
+                    setShowLocationConsent(false);
+                    setLocationSharing(true);
+                  }}
+                  className="flex-1 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm shadow-lg"
+                >
+                  {t("map.locationConsentAgree", { defaultValue: "Allow & Start" })}
+                </button>
+              </div>
+
+              <p className="text-[10px] text-muted-foreground text-center mt-3">
+                {t("map.locationConsentPrivacy", { defaultValue: "By agreeing, your location will be processed according to Migo's Privacy Policy." })}
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>;
+
 };
 export default MapPage;

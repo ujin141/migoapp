@@ -65,7 +65,7 @@ export const useRealtimeChat = ({ threadId, onMessage }: UseRealtimeChatOptions)
     if (!isSupabaseConfigured || !threadId) return [];
     const { data } = await supabase
       .from("messages")
-      .select("*")
+      .select("id, thread_id, sender_id, text, created_at")
       .eq("thread_id", threadId)
       .order("created_at", { ascending: true })
       .limit(50);

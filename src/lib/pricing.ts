@@ -246,10 +246,12 @@ export const getShopItemPricing = () => {
     return {
       currency: "₩",
       format: (val: number) => `₩${val.toLocaleString()}`,
-      superlike_5: 4900,
-      superlike_15: 12900,
+      superlike_3: 3300,
+      superlike_10: 8900,
+      superlike_30: 24900,
       boost_1: 3900,
       boost_5: 15900,
+      boost_15: 39900,
       verified_badge: 9900,
       profile_theme: 5900,
       travel_pack: 14900,
@@ -260,10 +262,12 @@ export const getShopItemPricing = () => {
   // USD prices by tier (margin optimized, net of app store 15%)
   const pricesUSD: Record<string, [number, number, number]> = {
     // id: [tier1, tier2, tier3]
-    superlike_5:     [3.99,  2.49, 1.49],
-    superlike_15:    [9.99,  6.99, 3.99],
+    superlike_3:     [2.99,  1.99, 0.99],
+    superlike_10:    [7.99,  4.99, 2.99],
+    superlike_30:    [19.99, 12.99, 7.99],
     boost_1:         [2.99,  1.99, 0.99],
     boost_5:         [12.99, 8.99, 4.99],
+    boost_15:        [29.99, 19.99, 12.99],
     verified_badge:  [7.99,  4.99, 2.99],
     profile_theme:   [4.99,  2.99, 1.49],
     travel_pack:     [11.99, 7.99, 4.99],

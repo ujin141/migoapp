@@ -101,7 +101,8 @@ const ProfileSetupPage = () => {
   }]);
   const navigate = useNavigate();
   const {
-    user
+    user,
+    refreshPhotoUrl
   } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(0);
@@ -226,6 +227,11 @@ const ProfileSetupPage = () => {
           } : {}),
           setup_complete: true
         }).eq("id", user.id);
+        
+        if (refreshPhotoUrl) {
+          await refreshPhotoUrl();
+        }
+
         toast({
           title: t("profileSetup.doneTitle"),
           description: t("profileSetup.doneDesc")

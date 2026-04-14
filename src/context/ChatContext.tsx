@@ -113,10 +113,10 @@ export const ChatProvider = ({
       if (!thread.is_group) {
         const p = others[0]?.profiles;
         if (p) {
-          name = p.name || i18n.i18n.t("chat.unknownUser") || i18n.t("auto.g_0318", "알 수 없음");
+          name = p.name || i18n.t("chat.unknownUser", "Unknown User");
           photo = p.photo_url || "";
         } else {
-          name = i18n.i18n.t("chat.unknownUser") || i18n.t("auto.g_0319", "알 수 없음");
+          name = i18n.t("chat.unknownUser", "Unknown User");
         }
       } else {
         memberPhotos = members.map((mb: any) => mb.profiles?.photo_url).filter(Boolean);
@@ -127,7 +127,7 @@ export const ChatProvider = ({
         name,
         photo,
         lastMessage: lastMsg?.text ?? "New conversation",
-        time: lastMsg ? new Intl.DateTimeFormat('ko-KR', {
+        time: lastMsg ? new Intl.DateTimeFormat(i18n.language || 'en', {
           hour: 'numeric',
           minute: 'numeric'
         }).format(new Date(lastMsg.created_at)) : "",
@@ -159,7 +159,7 @@ export const ChatProvider = ({
           return {
             ...th,
             lastMessage: newMsg.text,
-            time: new Intl.DateTimeFormat('ko-KR', {
+            time: new Intl.DateTimeFormat(i18n.language || 'en', {
               hour: 'numeric',
               minute: 'numeric'
             }).format(new Date(newMsg.created_at)),
@@ -234,7 +234,7 @@ export const ChatProvider = ({
       const {
         data: thread
       } = await supabase.from('chat_threads').insert({
-        name: group.title || i18n.t("auto.g_0320", "그룹 채팅"),
+        name: group.title || i18n.t("auto.g_0320", "Group Chat"),
         is_group: true,
         photo_url: group.hostPhoto
       }).select('id').single();

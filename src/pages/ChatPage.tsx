@@ -1,5 +1,6 @@
 import i18n from "@/i18n";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import { Browser } from "@capacitor/browser"; // Apple Guideline 3.2: 인앱 브라우저로 외부 URL 쳐리
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search, Send, MapPin, Calendar, ArrowLeft, MoreVertical, X, Check, AlertTriangle, Lock, Crown, Users, Phone, Languages, ChevronDown, Map, ShieldAlert, Shield, CheckSquare, MessageCircle, Heart, SlidersHorizontal } from "lucide-react";
@@ -54,7 +55,13 @@ const ChatPage = () => {
   } = useSubscription();
   const [showPlusModal, setShowPlusModal] = useState(false);
   const [showSOS, setShowSOS] = useState(false);
-  const [mutedChats, setMutedChats] = useState<string[]>([]);
+  const [mutedChats, setMutedChats] = useState<string[]>(() => {
+    // BUG-12 fix: localStorage에서 음소거 설정 읽기
+    try {
+      const stored = localStorage.getItem('migo_muted_chats');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
   const [selectedChat, setSelectedChat] = useState<string | null>((location.state as {
     chatId?: string;
     threadId?: string;
@@ -70,49 +77,9 @@ const ChatPage = () => {
   // ─── 자동 채팅방 폭파 체크는 백엔드(Edge/Cron)로 이관됨 ───
 
 
-  useEffect(() => {
-    if (!selectedChat || !user) return;
-    const fetchMessages = async () => {
-      const {
-        data,
-        error
-      } = await supabase.from('messages').select('*').eq('thread_id', selectedChat).order('created_at', {
-        ascending: false
-      }).limit(100);
-      if (!error && data) {
-        setMessages(data.reverse().map(m => ({
-          id: m.id,
-          text: m.text,
-          sender: m.sender_id === user.id ? "me" : "other",
-          time: new Intl.DateTimeFormat(i18n.language, {
-            hour: 'numeric',
-            minute: 'numeric'
-          }).format(new Date(m.created_at))
-        })));
-      }
-    };
-    fetchMessages();
-    const channel = supabase.channel(`room:${selectedChat}`).on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'messages',
-      filter: `thread_id=eq.${selectedChat}`
-    }, payload => {
-      const newMsg = payload.new;
-      setMessages(prev => [...prev, {
-        id: newMsg.id,
-        text: newMsg.text,
-        sender: newMsg.sender_id === user?.id ? "me" : "other",
-        time: new Intl.DateTimeFormat(i18n.language, {
-          hour: 'numeric',
-          minute: 'numeric'
-        }).format(new Date(newMsg.created_at))
-      }]);
-    }).subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedChat, user]);
+  // BUG-03/06 fix: message fetching은 ChatRoom 내부 useRealtimeChat에서 담당
+  // ChatPage에서 별도 fetch하면 이중 DB hit 발생 → 제거
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterUnread, setFilterUnread] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -237,7 +204,7 @@ const ChatPage = () => {
     const last = messages[messages.length - 1];
     if (!last || last.sender === "me" || translateMap[last.id]) return;
     handleTranslate(last.id, last.text);
-  }, [messages, autoTranslate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [messages, autoTranslate, handleTranslate]); // BUG-16 fix: handleTranslate dep 추가
 
   const sendMessage = async () => {
     if (!message.trim() || !selectedChat || !user) return;
@@ -344,7 +311,10 @@ const ChatPage = () => {
       toast({
         title: isMuted ? t('chat.mutedOff', { name }) : t('chat.mutedOn', { name })
       });
-      return isMuted ? prev.filter(id => id !== chatId) : [...prev, chatId];
+      const next = isMuted ? prev.filter(id => id !== chatId) : [...prev, chatId];
+      // BUG-12 fix: localStorage에 음소거 설정 영속화
+      try { localStorage.setItem('migo_muted_chats', JSON.stringify(next)); } catch {}
+      return next;
     });
     setShowMoreMenu(false);
   };
@@ -356,10 +326,15 @@ const ChatPage = () => {
       });
       return;
     }
-    if (user && selectedChat) {
+    // BUG-01/14 fix: capture values immediately to prevent stale closure
+    const capturedChat = selectedChat;
+    const capturedThread = threads.find(c => c.id === capturedChat);
+    const opponentId = capturedThread?.opponentId;
+    if (user && capturedChat && opponentId) {
       await supabase.from('reports').insert({
         reporter_id: user.id,
-        reported_user_id: selectedChat,
+        reported_user_id: opponentId,   // ✅ 실제 상대방 user_id
+        thread_id: capturedChat,         // 참고용으로 thread_id 별도 저장
         reason: reportReason,
         type: 'chat_room'
       });
@@ -387,11 +362,11 @@ const ChatPage = () => {
         setShowMoreMenu(false);
         setSwipedChatId(null);
         toast({
-          title: t("chat.leaveRoomSuccess", { defaultValue: "채팅방을 나갔습니다." })
+          title: t("chat.leaveRoomSuccess", { defaultValue: "Left the chat room." })
         });
       } catch (err) {
         console.error(err);
-        toast({ title: t("common.error", { defaultValue: "오류가 발생했습니다." }), variant: "destructive" });
+        toast({ title: t("common.error", { defaultValue: "An error occurred." }), variant: "destructive" });
       }
     }
   };
@@ -502,7 +477,7 @@ const ChatPage = () => {
 
   // ─── Chat list ────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background safe-bottom">
+    <div className="h-full bg-background safe-bottom overflow-y-auto">
 
       {/* ── Header ── */}
       <div className="px-5 pb-4 pt-[max(env(safe-area-inset-top),24px)] bg-card/90 backdrop-blur-xl sticky top-0 z-10 border-b border-border/50">
@@ -526,9 +501,9 @@ const ChatPage = () => {
                   const nextVal = !prev;
                   setTimeout(() => {
                     if (nextVal) {
-                      toast({ title: t("chat.filterUnreadOnly", { defaultValue: "안 읽은 메시지만 모아보기" }), duration: 2000 });
+                      toast({ title: t("chat.filterUnreadOnly", { defaultValue: "Showing unread messages only" }), duration: 2000 });
                     } else {
-                      toast({ title: t("chat.filterAll", { defaultValue: "모든 메시지 보기" }), duration: 2000 });
+                      toast({ title: t("chat.filterAll", { defaultValue: "Showing all messages" }), duration: 2000 });
                     }
                   }, 0);
                   return nextVal;
@@ -569,7 +544,11 @@ const ChatPage = () => {
                 key={ad.id}
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                onClick={() => { recordAdClick(ad.id, null); if (ad.cta_url) window.open(ad.cta_url, "_blank"); }}
+                onClick={() => {
+                  recordAdClick(ad.id, null);
+                  // Apple Guideline 3.2: 인앱 브라우저 사용 (Safari 앱 전환 방지)
+                  if (ad.cta_url) Browser.open({ url: ad.cta_url, presentationStyle: 'fullscreen' });
+                }}
                 onViewportEnter={() => recordAdImpression(ad.id, null)}
                 className="w-full bg-card rounded-2xl overflow-hidden shadow-card cursor-pointer relative border border-border/30"
               >

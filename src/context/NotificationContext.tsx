@@ -72,10 +72,10 @@ export const NotificationProvider = ({
           id: n.id,
           type: n.type,
           actorId: n.actor_id,
-          actor: profileMap[n.actor_id]?.name || i18n.t("auto.g_0321", "익명"),
+          actor: profileMap[n.actor_id]?.name || i18n.t("auto.g_0321", "Anonymous"),
           actorPhoto: profileMap[n.actor_id]?.photo_url || '',
           target: n.target_text || undefined,
-          time: new Intl.DateTimeFormat('ko-KR', {
+          time: new Intl.DateTimeFormat(i18n.language || 'en', {
             hour: 'numeric',
             minute: 'numeric'
           }).format(new Date(n.created_at)),
@@ -101,10 +101,10 @@ export const NotificationProvider = ({
           id: newNotif.id,
           type: newNotif.type,
           actorId: newNotif.actor_id,
-          actor: actorProfile?.name || i18n.t("auto.g_0322", "익명"),
+          actor: actorProfile?.name || i18n.t("auto.g_0322", "Anonymous"),
           actorPhoto: actorProfile?.photo_url || "",
           target: newNotif.target_text || undefined,
-          time: new Intl.DateTimeFormat('ko-KR', {
+          time: new Intl.DateTimeFormat(i18n.language || 'en', {
             hour: 'numeric',
             minute: 'numeric'
           }).format(new Date(newNotif.created_at)),
@@ -126,7 +126,7 @@ export const NotificationProvider = ({
           actor: '',
           actorPhoto: '',
           target: n.message || undefined,
-          time: new Intl.DateTimeFormat('ko-KR', {
+          time: new Intl.DateTimeFormat(i18n.language || 'en', {
             hour: 'numeric',
             minute: 'numeric'
           }).format(new Date(n.created_at || Date.now())),

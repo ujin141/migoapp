@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, Camera, Plus, Check } from "lucide-react";
 import { RefObject } from "react";
 import { useTranslation } from "react-i18next";
+import { useSubscription } from "@/context/SubscriptionContext";
+import { Sparkles, Lock } from "lucide-react";
 
 interface EditProfileModalProps {
   showEditModal: boolean;
@@ -28,6 +30,8 @@ interface EditProfileModalProps {
   newTag: string;
   setNewTag: (val: string) => void;
   addTag: () => void;
+  profileTheme: string;
+  setProfileTheme: (val: string) => void;
   saveProfile: () => Promise<void>;
   saving: boolean;
 }
@@ -56,10 +60,21 @@ export const EditProfileModal = ({
   newTag,
   setNewTag,
   addTag,
+  profileTheme,
+  setProfileTheme,
   saveProfile,
   saving
 }: EditProfileModalProps) => {
   const { t, i18n } = useTranslation();
+  const { canPremiumTheme } = useSubscription();
+
+  const THEMES = [
+    { id: 'default', name: 'Default', gradient: 'bg-muted border-border' },
+    { id: 'aurora', name: 'Aurora', gradient: 'bg-gradient-to-br from-emerald-500/20 to-purple-500/20 border-purple-500/50 text-purple-600' },
+    { id: 'sunset', name: 'Sunset', gradient: 'bg-gradient-to-br from-orange-500/20 to-pink-500/20 border-pink-500/50 text-pink-600' },
+    { id: 'neon', name: 'Neon Cyber', gradient: 'bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-cyan-500/50 text-cyan-600' },
+    { id: 'midnight', name: 'Midnight', gradient: 'bg-gradient-to-br from-slate-800 to-black border-slate-700 text-slate-300' }
+  ];
 
   return (
     <AnimatePresence>
@@ -184,6 +199,35 @@ export const EditProfileModal = ({
                     </button>
                   </div>}
               </div>
+              
+              <div className="pt-2 border-t border-border/50">
+                <label className="text-sm font-bold text-foreground mb-3 flex items-center gap-1.5">
+                  <Sparkles size={16} className="text-primary" /> {i18n.t("auto.z_\uD504\uB85C\uD544\uD14C\uB9C8_123", "\uD504\uB85C\uD544\uD14C\uB9C8")} {!canPremiumTheme && <Lock size={12} className="text-muted-foreground ml-1" />}
+                </label>
+                <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+                  {THEMES.map(th => {
+                    const isSelected = profileTheme === th.id;
+                    return (
+                      <button
+                        key={th.id}
+                        onClick={() => {
+                          if (canPremiumTheme || th.id === 'default') setProfileTheme(th.id);
+                        }}
+                        className={`relative shrink-0 flex flex-col items-center gap-2 ${!canPremiumTheme && th.id !== 'default' ? 'opacity-50 grayscale' : ''}`}
+                      >
+                        <div className={`w-14 h-14 rounded-full border-2 ${th.gradient} flex items-center justify-center transition-all ${isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-card shadow-lg scale-105' : 'ring-0 opacity-80'}`} />
+                        <span className={`text-[10px] font-extrabold ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>{th.name}</span>
+                        {!canPremiumTheme && th.id !== 'default' && (
+                          <div className="absolute inset-0 bg-background/20 rounded-full flex items-center justify-center pb-5">
+                            <Lock size={14} className="text-foreground shadow-sm drop-shadow-md" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <button onClick={saveProfile} disabled={saving} className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-card flex items-center justify-center gap-2 disabled:opacity-60">
                 {saving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Check size={16} /> {"Save"}</>}
               </button>

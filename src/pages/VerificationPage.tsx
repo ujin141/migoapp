@@ -477,6 +477,9 @@ const VerificationPage = () => {
     setDbTrustScore(score);
   };
   const [showIdModal, setShowIdModal] = useState(false);
+  // iOS: window.prompt 차단 대신 커스텀 모달 사용 (Apple HIG 준수)
+  const [showSnsModal, setShowSnsModal] = useState(false);
+  const [snsHandleInput, setSnsHandleInput] = useState("");
   const [emailStep, setEmailStep] = useState<"idle" | "sent" | "done">("idle");
   const [emailCode, setEmailCode] = useState("");
 
@@ -695,24 +698,9 @@ const VerificationPage = () => {
       return;
     }
     if (id === "sns") {
-      const handle = window.prompt('verif.sns.prompt');
-      if (!handle?.trim()) return;
-      if (!user) return;
-      await supabase.from('profiles').update({
-        sns_handle: handle.trim(),
-        sns_connected: true
-      }).eq('id', user.id);
-      await recalcTrustScore(user.id);
-      setStatuses(s => ({
-        ...s,
-        sns: 'done'
-      }));
-      toast({
-        title: t('verif.sns.done'),
-        description: t('verif.sns.doneDesc', {
-          handle: handle.trim()
-        })
-      });
+      // iOS: window.prompt 대신 커스텀 모달 시표
+      setSnsHandleInput("");
+      setShowSnsModal(true);
       return;
     }
     if (id === "review") {
@@ -960,6 +948,65 @@ const VerificationPage = () => {
         });
       }} />}
       </AnimatePresence>
+      {/* SNS 항다 입력 모달 (window.prompt 대체 — iOS WKWebView 차단 대응) */}
+      {showSnsModal && (
+        <div className="fixed inset-0 z-[200] flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSnsModal(false)} />
+          <motion.div
+            className="relative z-10 w-full max-w-lg bg-card rounded-t-3xl p-6 pb-10 flex flex-col gap-4"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+          >
+            <div className="w-10 h-1 bg-border rounded-full mx-auto mb-2" />
+            <div className="w-11 h-11 rounded-2xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center mx-auto">
+              <Instagram size={20} className="text-pink-400" />
+            </div>
+            <h3 className="text-base font-extrabold text-foreground text-center">
+              {t("verif.sns.title", "SNS 계정 연동")}
+            </h3>
+            <p className="text-xs text-muted-foreground text-center">
+              {t("verif.sns.desc", "Instagram 또는 다른 SNS 항다를 입력하세요 (@없이)")}
+            </p>
+            <div className="flex gap-2">
+              <span className="flex items-center px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-muted-foreground shrink-0">@</span>
+              <input
+                type="text"
+                value={snsHandleInput}
+                onChange={e => setSnsHandleInput(e.target.value.replace(/^@/, "").trim())}
+                placeholder={t("verif.sns.placeholder", "username")}
+                className="flex-1 bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none font-mono"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSnsModal(false)}
+                className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm"
+              >
+                {t("common.cancel", "취소")}
+              </button>
+              <button
+                disabled={!snsHandleInput.trim()}
+                onClick={async () => {
+                  if (!snsHandleInput.trim() || !user) return;
+                  const handle = snsHandleInput.trim();
+                  await supabase.from('profiles').update({ sns_handle: handle, sns_connected: true }).eq('id', user.id);
+                  await recalcTrustScore(user.id);
+                  setStatuses(s => ({ ...s, sns: 'done' }));
+                  setShowSnsModal(false);
+                  toast({ title: t('verif.sns.done'), description: t('verif.sns.doneDesc', { handle }) });
+                }}
+                className="flex-1 py-3 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm disabled:opacity-50"
+              >
+                {t("verif.sns.connect", "연동하기")}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
     </div>;
 };
 export default VerificationPage;

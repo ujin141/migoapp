@@ -5,6 +5,8 @@ PODS:
     - Capacitor
   - CapacitorBrowser (6.0.6):
     - Capacitor
+  - CapacitorCommunityAppleSignIn (6.0.0):
+    - Capacitor
   - CapacitorCordova (6.2.1)
   - CapacitorDevice (6.0.0):
     - Capacitor
@@ -12,15 +14,19 @@ PODS:
     - Capacitor
   - CapacitorPreferences (6.0.4):
     - Capacitor
+  - CapgoNativePurchases (6.0.42):
+    - Capacitor
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorBrowser (from `../../node_modules/@capacitor/browser`)"
+  - "CapacitorCommunityAppleSignIn (from `../../node_modules/@capacitor-community/apple-sign-in`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorDevice (from `../../node_modules/@capacitor/device`)"
   - "CapacitorGeolocation (from `../../node_modules/@capacitor/geolocation`)"
   - "CapacitorPreferences (from `../../node_modules/@capacitor/preferences`)"
+  - "CapgoNativePurchases (from `../../node_modules/@capgo/native-purchases`)"
 
 EXTERNAL SOURCES:
   Capacitor:
@@ -29,6 +35,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/app"
   CapacitorBrowser:
     :path: "../../node_modules/@capacitor/browser"
+  CapacitorCommunityAppleSignIn:
+    :path: "../../node_modules/@capacitor-community/apple-sign-in"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
   CapacitorDevice:
@@ -37,16 +45,20 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/geolocation"
   CapacitorPreferences:
     :path: "../../node_modules/@capacitor/preferences"
+  CapgoNativePurchases:
+    :path: "../../node_modules/@capgo/native-purchases"
 
 SPEC CHECKSUMS:
   Capacitor: c95400d761e376be9da6be5a05f226c0e865cebf
   CapacitorApp: a19ccb4f5f32d2534be5c6f524d5a9b614a1e8a7
   CapacitorBrowser: 825163a1d6adce944ac7b9e3cab101146b5a9df8
+  CapacitorCommunityAppleSignIn: c9c2541ee7580618055a91b3516c3f0313fe2544
   CapacitorCordova: 8d93e14982f440181be7304aa9559ca631d77fff
   CapacitorDevice: 38ad323d74e3a86b56253680538ac23a2c9b4a68
   CapacitorGeolocation: ef657a46a125be74010f4ce57caae173c23204d2
   CapacitorPreferences: 5848e0691b36b4bb4acc98e481ab56d451578d30
+  CapgoNativePurchases: 260513c14dadae1e5b32e885adb63e8cb19f9d7a
 
-PODFILE CHECKSUM: 69a8b3b72f1e38df6bd8c790786149a186d89c0b
+PODFILE CHECKSUM: 41c96cd534b52587f309d7b8b0f626741c473c93
 
 COCOAPODS: 1.16.2

@@ -271,7 +271,7 @@ const SafetyCheckInPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock size={14} className="text-primary" />
-                  <p className="text-sm font-semibold text-foreground">{new Date(meetingTime).toLocaleString('ko-KR')}</p>
+                  <p className="text-sm font-semibold text-foreground">{new Date(meetingTime).toLocaleString(i18n.language || undefined)}</p>
                 </div>
               </div>
 

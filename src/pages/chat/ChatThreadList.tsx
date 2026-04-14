@@ -37,7 +37,7 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="px-0 pb-28 pt-2 truncate">
+    <div className="px-0 pb-28 pt-2">
       {filteredThreads.length === 0 ? (
         /* Empty State */
         <motion.div
@@ -56,8 +56,8 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
           </h3>
           <p className="text-[13px] font-medium text-muted-foreground mb-8 leading-relaxed max-w-[200px] truncate">
             {searchQuery
-              ? i18n.t("auto.g_1391", "다른 키워드로 검색해보세요")
-              : '마음에 드는 여행자에게\n먼저 인사를 건네보세요 ✈️'}
+              ? i18n.t("auto.g_1391", "Try a different keyword")
+              : i18n.t("auto.g_1394", "Say hi to a traveler you like ✈️")}
           </p>
           {!searchQuery && (
             <motion.button
@@ -65,7 +65,7 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
               onClick={() => { window.location.hash = '/'; }}
               className="px-6 py-3.5 rounded-full bg-foreground text-background font-bold text-[13px] shadow-md flex items-center gap-2 hover:opacity-90 transition-opacity"
             >
-              {i18n.t("auto.g_1385", "여행자 둘러보기")}</motion.button>
+              {i18n.t("auto.g_1385", "Browse Travelers")}</motion.button>
           )}
         </motion.div>
       ) : (
@@ -79,12 +79,12 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
               <div key={chat.id} className="relative w-full overflow-hidden bg-background">
                 {/* Underlay Left (Swipe Right actions) */}
                 <div className="absolute inset-y-0 left-0 flex items-stretch">
-                  <button onClick={() => { setSwipedChatId(null); handleDeleteChat(chat.id); }} className="px-5 bg-red-500 text-white font-extrabold text-[13px] flex items-center justify-center transition-opacity hover:opacity-90">{i18n.t("auto.g_1386", "나가기")}</button>
-                  <button onClick={() => { setSwipedChatId(null); setSelectedChat(chat.id); setShowReportModal(true); }} className="px-5 bg-orange-500 text-white font-extrabold text-[13px] flex items-center justify-center transition-opacity hover:opacity-90">{i18n.t("auto.g_1387", "신고")}</button>
+                  <button onClick={() => { setSwipedChatId(null); handleDeleteChat(chat.id); }} className="px-5 bg-red-500 text-white font-extrabold text-[13px] flex items-center justify-center transition-opacity hover:opacity-90">{i18n.t("auto.g_1386", "Leave")}</button>
+                  <button onClick={() => { setSwipedChatId(null); setSelectedChat(chat.id); setShowReportModal(true); }} className="px-5 bg-orange-500 text-white font-extrabold text-[13px] flex items-center justify-center transition-opacity hover:opacity-90">{i18n.t("auto.g_1387", "Report")}</button>
                 </div>
                 {/* Underlay Right (Swipe Left action feedback) */}
                 <div className="absolute inset-y-0 right-0 flex items-stretch">
-                  <div className="px-6 bg-emerald-500 text-white font-extrabold text-[13px] flex items-center justify-center truncate">{i18n.t("auto.g_1388", "읽음 처리")}</div>
+                  <div className="px-6 bg-emerald-500 text-white font-extrabold text-[13px] flex items-center justify-center truncate">{i18n.t("auto.g_1388", "Mark Read")}</div>
                 </div>
 
                 <motion.div
@@ -104,7 +104,7 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
                         setSwipedChatId(chat.id);
                       } else if (info.offset.x < -50) {
                         markRead(chat.id);
-                        toast({ title: i18n.t("auto.g_0051", "읽음 처리되었습니다.") });
+                        toast({ title: i18n.t("auto.g_0051", "Marked as read.") });
                         setSwipedChatId(null);
                       }
                     }
@@ -168,7 +168,7 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
                           <span className={`text-[11px] font-bold shrink-0 ${chat.unread > 0 ? "text-primary" : "text-muted-foreground/60"}`}>{chat.time}</span>
                         </div>
                         <p className={`text-[13px] truncate leading-tight ${chat.unread > 0 ? "font-bold text-foreground" : "font-medium text-muted-foreground line-clamp-2 white-space-normal"}`}>
-                          {isLocked ? i18n.t("auto.g_1392", "🔒 수신된 메시지가 있습니다. Plus로 확인하세요") : chat.lastMessage}
+                          {isLocked ? i18n.t("auto.g_1392", "🔒 You have a message. Upgrade to Plus to view.") : chat.lastMessage}
                         </p>
                       </div>
 

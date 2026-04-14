@@ -365,7 +365,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                 whileTap={{ scale: 0.9 }}
                 onClick={handleTranslateSend}
                 disabled={translateSending}
-                title={isPlus ? `번역해서 보내기 (${LANG_NAMES[targetLang]})` : `번역해서 보내기 (무료 ${Math.max(0, FREE_DAILY_TRANSLATE_SEND - getTranslateSendCount())}회 남음)`}
+                title={isPlus ? t('chat.translateSend', `Translate & Send (${LANG_NAMES[targetLang]})`) : t('chat.translateSendFree', `Translate & Send (${Math.max(0, FREE_DAILY_TRANSLATE_SEND - getTranslateSendCount())} free left)`)}
                 className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
                   translateSending
                     ? 'bg-indigo-400/30 text-indigo-400'

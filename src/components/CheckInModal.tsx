@@ -56,7 +56,7 @@ export default function CheckInModal({
     setStep("locating");
     const pos = await getCurrentLocation(false);
     if (!pos) {
-      setError(i18n.t("checkin.perm_req", { defaultValue: "위치 권한이 필요합니다." }));
+      setError(i18n.t("checkin.perm_req", { defaultValue: "Location permission is required." }));
       setStep("idle");
       return;
     }
@@ -123,7 +123,7 @@ export default function CheckInModal({
       if (e.target === e.currentTarget) onClose();
     }}>
           <motion.div className="w-full max-w-md bg-card rounded-3xl mb-4 sm:mb-8 shadow-2xl overflow-hidden" style={{
-        paddingBottom: "max(env(safe-area-inset-bottom), 80px)"
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + var(--nav-height) + 1rem)"
       }} initial={{
         y: "100%"
       }} animate={{

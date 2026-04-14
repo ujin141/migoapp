@@ -31,7 +31,7 @@ export const GroupDetailModal = ({
           <div className="px-5 pt-12 pb-32 truncate">
             {/* Back */}
             <button onClick={() => setDetailGroup(null)} className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-              <ArrowLeft size={16} />{i18n.t("discover.backToList", { defaultValue: "목록으로" })}
+              <ArrowLeft size={16} />{i18n.t("discover.backToList", { defaultValue: "Back to list" })}
             </button>
 
             {/* Host */}
@@ -73,10 +73,10 @@ export const GroupDetailModal = ({
                   >
                     <Languages size={12} className={loadingMap[`groupDesc_${currentDetail.id}`] ? "animate-pulse" : ""} />
                     {loadingMap[`groupDesc_${currentDetail.id}`] 
-                      ? i18n.t("auto.z_번역중_000", { defaultValue: "번역 중..." }) 
+                      ? i18n.t("auto.z_번역중_000", { defaultValue: "Translating..." }) 
                       : translateMap[`groupDesc_${currentDetail.id}`] 
-                        ? i18n.t("auto.z_원문보기_001", { defaultValue: "원문 보기" }) 
-                        : i18n.t("auto.z_번역보기_002", { defaultValue: "번역 보기" })
+                        ? i18n.t("auto.z_원문보기_001", { defaultValue: "View original" }) 
+                        : i18n.t("auto.z_번역보기_002", { defaultValue: "Translate" })
                     }
                   </button>
                 </div>
@@ -130,7 +130,7 @@ export const GroupDetailModal = ({
             {/* Schedule */}
             {currentDetail.schedule && currentDetail.schedule.length > 0 && (
               <div className="bg-card rounded-2xl p-4 shadow-card mb-4">
-                <h3 className="text-sm font-extrabold text-foreground mb-3 truncate">{i18n.t("discover.scheduleDetail", { defaultValue: "상세 일정" })}</h3>
+                <h3 className="text-sm font-extrabold text-foreground mb-3">{i18n.t("discover.scheduleDetail", { defaultValue: "Schedule Details" })}</h3>
                 <div className="space-y-3 relative before:absolute before:inset-0 before:ml-3 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
                   {currentDetail.schedule.map((item, idx) => (
                     <div key={idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
@@ -149,7 +149,7 @@ export const GroupDetailModal = ({
             {/* Members */}
             <div className="bg-card rounded-2xl p-4 shadow-card mb-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-extrabold text-foreground truncate">{i18n.t("discover.members", { defaultValue: "참여 멤버" })}</h3>
+                <h3 className="text-sm font-extrabold text-foreground">{i18n.t("discover.members", { defaultValue: "Members" })}</h3>
                 <span className="text-xs font-bold text-primary truncate">{currentDetail.currentMembers}/{currentDetail.maxMembers}{i18n.t("auto.g_1398", "명")}</span>
               </div>
               <div className="w-full h-2 bg-muted rounded-full mb-4">

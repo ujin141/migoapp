@@ -39,7 +39,7 @@ export const MatchDetailModal = ({ showMatchDetail, setShowMatchDetail, matchedU
                 count: matchedUsers.length
               })}</span>
               </div>
-              <div className="space-y-3 truncate">
+              <div className="space-y-3">
                 {matchedUsers.length === 0 && <p className="text-xs text-muted-foreground text-center py-6 truncate">{t("profile.noMatches")}</p>}
                 {matchedUsers.map((u: any) => <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl bg-muted">
                     <div className="relative">
@@ -115,7 +115,7 @@ export const TripDetailModal = ({ showTripDetail, setShowTripDetail, myTrips }: 
                 count: myTrips.length
               })}</span>
               </div>
-              <div className="space-y-3 truncate">
+              <div className="space-y-3">
                 {myTrips.map((trip: any) => <div key={trip.id} className="flex items-center gap-3 p-3 rounded-2xl bg-muted">
                     <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl shrink-0 truncate">
                       {trip.title.split(' ')[0]}
@@ -184,7 +184,7 @@ export const MeetingDetailModal = ({ showMeetingDetail, setShowMeetingDetail, my
                 count: myMeetings.length
               })}</span>
               </div>
-              <div className="space-y-3 truncate">
+              <div className="space-y-3">
                 {myMeetings.map((meet: any) => <div key={meet.id} className="flex items-center gap-3 p-3 rounded-2xl bg-muted">
                     {meet.photo ? <img src={meet.photo} alt="" className="w-12 h-12 rounded-2xl object-cover" /> : <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">
                         <span className="text-white font-extrabold text-lg">{meet.name?.[0] ?? '?'}</span>

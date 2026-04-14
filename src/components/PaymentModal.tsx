@@ -1,7 +1,7 @@
 import i18n from "@/i18n";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Lock, AlertCircle, Tag, Crown, ChevronRight, Sparkles } from "lucide-react";
+import { X, Check, AlertCircle, Tag, Crown, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,7 @@ interface PaymentModalProps {
   priceTier?: GroupPriceTier;
   onPaymentSuccess: () => void;
 }
+
 const TIER_COLORS: Record<GroupPriceTier, {
   bg: string;
   border: string;
@@ -48,22 +49,6 @@ const TIER_COLORS: Record<GroupPriceTier, {
     badge: "bg-amber-500"
   }
 };
-const PAYMENT_METHODS = [{
-  id: "kakao",
-  label: i18n.t("auto.z_\uCE74\uCE74\uC624\uD398_2c3691", "\uCE74\uCE74\uC624\uD398"),
-  emoji: "💛",
-  color: "bg-yellow-400/10 border-yellow-400/30 text-yellow-600"
-}, {
-  id: "toss",
-  label: i18n.t("auto.z_\uD1A0\uC2A4\uD398\uC774_4dd8bf", "\uD1A0\uC2A4\uD398\uC774"),
-  emoji: "🔵",
-  color: "bg-blue-500/10 border-blue-500/30 text-blue-600"
-}, {
-  id: "card",
-  label: i18n.t("auto.z_\uC2E0\uC6A9\uCE74\uB4DC_9499b9", "\uC2E0\uC6A9\uCE74\uB4DC"),
-  emoji: "💳",
-  color: "bg-muted border-border text-foreground"
-}];
 
 // ──────────────────────────────────────────────
 // Component
@@ -78,63 +63,33 @@ const PaymentModal = ({
   priceTier,
   onPaymentSuccess
 }: PaymentModalProps) => {
-  const {
-    i18n
-  } = useTranslation();
-  const {
-    user
-  } = useAuth();
-  const {
-    isPlus
-  } = useSubscription();
+  const { i18n } = useTranslation();
+  const { user } = useAuth();
+  const { isPlus } = useSubscription();
+
   const resolvedTier: GroupPriceTier = priceTier ?? inferGroupTier(groupTags, groupTitle, isPremiumGroup);
   const tierCfg = getTierConfig(resolvedTier);
   const colors = TIER_COLORS[resolvedTier];
   const originalKrw = tierCfg.krw;
   const discountedKrw = getJoinFeeAfterDiscount(originalKrw, isPlus);
   const hasDiscount = isPlus && discountedKrw < originalKrw;
-  const [method, setMethod] = useState<string>("kakao");
-  const [step, setStep] = useState<"info" | "select" | "confirm" | "done">("info");
+
+  // Guideline 3.1.1: 제3자 결제 수단 제거 — info → iapNotice → done
+  const [step, setStep] = useState<"info" | "iapNotice" | "done">("info");
   const [loading, setLoading] = useState(false);
-  const handlePay = async () => {
+
+  const handleJoin = async () => {
     if (!user) {
       toast({
-        title: i18n.t("auto.z_\uB85C\uADF8\uC778\uC774_c49092", "\uB85C\uADF8\uC778\uC774"),
+        title: i18n.t("auto.z_로그인이_c49092", "로그인이 필요해요"),
         variant: "destructive"
       });
       return;
     }
-    setLoading(true);
-    try {
-      const {
-        error
-      } = await supabase.from("payments").insert({
-        user_id: user.id,
-        group_id: groupId,
-        amount: discountedKrw,
-        original_amount: originalKrw,
-        method,
-        price_tier: resolvedTier,
-        is_plus_discount: hasDiscount,
-        status: "pending",
-        created_at: new Date().toISOString()
-      });
-      if (error) throw error;
-      setStep("done");
-      setTimeout(() => {
-        onPaymentSuccess();
-        onClose();
-        setStep("info");
-      }, 1800);
-    } catch {
-      toast({
-        title: i18n.t("auto.z_\uACB0\uC81C\uC5D0\uC2E4_21683e", "\uACB0\uC81C\uC5D0\uC2E4"),
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    // Apple 심사 대응: 외부 결제 대신 안내 화면을 표시하고 그룹 참여를 일시 중지
+    setStep("iapNotice");
   };
+
   const reset = () => {
     setStep("info");
     onClose();
@@ -155,8 +110,11 @@ const PaymentModal = ({
         </button>
       </div>
     </>;
+
   return <AnimatePresence>
-      {isOpen && <motion.div className="fixed inset-0 z-[90] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
+      {isOpen && <motion.div className="fixed inset-0 z-[90] flex items-end justify-center px-safe" style={{
+      paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + var(--nav-height) + 0.5rem)"
+    }} initial={{
       opacity: 0
     }} animate={{
       opacity: 1
@@ -165,8 +123,8 @@ const PaymentModal = ({
     }}>
           <div className="absolute inset-0 bg-foreground/60 backdrop-blur-md" onClick={reset} />
 
-          <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl shadow-float flex flex-col mb-2 sm:mb-6" style={{
-        maxHeight: "85dvh"
+          <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl shadow-float flex flex-col" style={{
+        maxHeight: "calc(85dvh - env(safe-area-inset-bottom, 0px) - var(--nav-height))"
       }} initial={{
         y: "100%"
       }} animate={{
@@ -181,25 +139,48 @@ const PaymentModal = ({
             <ModalHeader />
 
             {/* ── DONE ── */}
-            {step === "done" && <motion.div className="flex flex-col items-center py-12 gap-4 px-5" initial={{
-          scale: 0.8,
-          opacity: 0
-        }} animate={{
-          scale: 1,
-          opacity: 1
-        }}>
-                <motion.div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center" animate={{
-            scale: [1, 1.1, 1]
-          }} transition={{
-            duration: 0.5
-          }}>
+            {step === "done" && <motion.div className="flex flex-col items-center py-12 gap-4 px-5" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                <motion.div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 0.5 }}>
                   <Check size={40} className="text-emerald-500" strokeWidth={3} />
                 </motion.div>
                 <div className="text-center">
-                  <p className="text-xl font-extrabold text-foreground truncate">{i18n.t("auto.z_\uACB0\uC81C\uC644\uB8CC_0f4cb5", "\uACB0\uC81C\uC644\uB8CC")}</p>
-                  <p className="text-sm text-muted-foreground mt-1 truncate">{groupTitle}{i18n.t("auto.z_\uC5D0\uCC38\uC5EC\uC911_55fe95", "\uC5D0\uCC38\uC5EC\uC911")}</p>
+                  <p className="text-xl font-extrabold text-foreground truncate">{i18n.t("auto.z_결제완료_0f4cb5", "결제 완료")}</p>
+                  <p className="text-sm text-muted-foreground mt-1 truncate">{groupTitle}{i18n.t("auto.z_에참여중_55fe95", "에 참여 중")}</p>
                 </div>
               </motion.div>}
+
+            {/* ── IAP NOTICE ── */}
+            {step === "iapNotice" && (
+              <motion.div className="flex flex-col items-center px-6 py-10 gap-5" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                <motion.div className="w-20 h-20 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-indigo-500" animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}>
+                  <Tag size={36} className="text-white" strokeWidth={2} />
+                </motion.div>
+                <div className="text-center space-y-2">
+                  <p className="text-lg font-extrabold text-foreground">
+                    {i18n.t("payment.iapTitle", { defaultValue: "Payment System Integrating" })}
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {i18n.t("payment.iapDesc", { defaultValue: "We are integrating Apple In-App Purchase for a more secure payment experience. Please check back soon! 🙏" })}
+                  </p>
+                </div>
+                <div className="w-full p-4 rounded-2xl bg-muted/60 border border-border space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Check size={14} className="text-emerald-500 shrink-0" />
+                    <p className="text-xs text-foreground font-medium">{i18n.t("payment.iapPoint1", { defaultValue: "Introducing Apple's secure payment system" })}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check size={14} className="text-emerald-500 shrink-0" />
+                    <p className="text-xs text-foreground font-medium">{i18n.t("payment.iapPoint2", { defaultValue: "Preparing for an even better experience" })}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setStep("info")}
+                  className="w-full py-4 mt-2 rounded-2xl border-2 border-border font-bold text-sm text-muted-foreground"
+                >
+                  {i18n.t("common.back", { defaultValue: "Back" })}
+                </button>
+              </motion.div>
+            )}
 
             {/* ── INFO ── */}
             {step === "info" && <>
@@ -245,8 +226,8 @@ const PaymentModal = ({
                     {!isPlus && <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/5 border-t border-amber-500/20">
                         <Sparkles size={12} className="text-amber-500 shrink-0" />
                         <p className="text-[11px] text-amber-600 truncate">
-                          <span className="font-bold">Migo Plus</span>{i18n.t("auto.z_구독시_45d511", {defaultValue:" - "})}
-                          <span className="font-extrabold">{getLocalizedPrice(Math.round(originalKrw * 0.5 / 100) * 100, i18n.language)}</span> {i18n.t("auto.z_으로_78818a", {defaultValue:"(50% OFF)"})}
+                          <span className="font-bold">Migo Plus</span>{i18n.t("auto.z_\uAD6C\uB3C5\uC2DC_45d511", {defaultValue:" - "})}
+                          <span className="font-extrabold">{getLocalizedPrice(Math.round(originalKrw * 0.5 / 100) * 100, i18n.language)}</span> {i18n.t("auto.z_\uC73C\uB85C_78818a", {defaultValue:"(50% OFF)"})}
                         </p>
                       </div>}
                   </div>
@@ -262,7 +243,7 @@ const PaymentModal = ({
                           <div className="flex-1">
                             <div className={`text-xs font-bold ${isCurrent ? tc_colors.text : "text-muted-foreground"}`}>
                               {TIER_LOCALES[i18n.language.split("-")[0] || "en"]?.tier?.[tc.tier]?.label || tc.label}
-                              {isCurrent && <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded-full bg-primary text-white truncate">{i18n.t("auto.z_현재_e7755c", {defaultValue: "Current"})}</span>}
+                              {isCurrent && <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded-full bg-primary text-white truncate">{i18n.t("auto.z_\uD604\uC7AC_e7755c", {defaultValue: "Current"})}</span>}
                             </div>
                             <div className="text-[10px] text-muted-foreground truncate">{TIER_LOCALES[i18n.language.split("-")[0] || "en"]?.tier?.[tc.tier]?.tagline || tc.tagline}</div>
                           </div>
@@ -287,9 +268,12 @@ const PaymentModal = ({
 
                 {/* Sticky CTA */}
                 <div className="px-5 py-4 border-t border-border/30 bg-card shrink-0">
-                  <motion.button whileTap={{
-              scale: 0.97
-            }} onClick={() => setStep("select")} className="w-full py-4 rounded-2xl gradient-primary text-white font-extrabold flex items-center justify-center gap-2 shadow-float relative overflow-hidden">
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    disabled={loading}
+                    onClick={handleJoin}
+                    className="w-full py-4 rounded-2xl gradient-primary text-white font-extrabold flex items-center justify-center gap-2 shadow-float relative overflow-hidden disabled:opacity-60"
+                  >
                     <motion.div className="absolute inset-0 bg-white/10" animate={{
                 x: ["-100%", "100%"]
               }} transition={{
@@ -300,69 +284,16 @@ const PaymentModal = ({
                 skewX: -20
               }} />
                     <span className="relative z-10 flex items-center gap-2 truncate">
-                      <Lock size={14} />
-                      {i18n.t("auto.z_결제하기_61cb91", {defaultValue: "Make payment: "})}{getLocalizedPrice(discountedKrw, i18n.language)}{hasDiscount && <Tag size={12} />}
+                      {loading
+                        ? <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                        : <><Check size={14} />
+                          {i18n.t("auto.z_\uC2E0\uCCAD\uD558\uAE30_61cb91", {defaultValue: "Join: "})}{getLocalizedPrice(discountedKrw, i18n.language)}{hasDiscount && <Tag size={12} />}</>
+                      }
                     </span>
                   </motion.button>
                 </div>
               </>}
 
-            {/* ── SELECT METHOD ── */}
-            {step === "select" && <>
-                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
-                  <div className={`flex items-center justify-between p-3.5 rounded-2xl ${colors.bg} border ${colors.border}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{tierCfg.emoji}</span>
-                      <span className="text-sm font-bold text-foreground truncate">
-                        {TIER_LOCALES[i18n.language.split("-")[0] || "en"]?.tier?.[tierCfg.tier]?.label || tierCfg.label}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      {hasDiscount && <div className="text-xs line-through text-muted-foreground">{getLocalizedPrice(originalKrw, i18n.language)}</div>}
-                      <span className={`text-lg font-extrabold ${colors.text}`}>
-                        {getLocalizedPrice(discountedKrw, i18n.language)}
-                        {hasDiscount && <Crown size={11} className="inline ml-1 text-amber-500" />}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs font-bold text-muted-foreground truncate">{i18n.t("auto.z_\uACB0\uC81C\uC218\uB2E8_4963ee", "\uACB0\uC81C\uC218\uB2E8")}</p>
-                  <div className="space-y-2 truncate">
-                    {PAYMENT_METHODS.map(m => <button key={m.id} onClick={() => setMethod(m.id)} className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border transition-all ${method === m.id ? m.color + " ring-1 ring-primary/30" : "bg-muted border-border text-muted-foreground"}`}>
-                        <span className="text-lg">{m.emoji}</span>
-                        <span className="text-sm font-bold flex-1 text-left">{m.label}</span>
-                        {method === m.id && <Check size={14} className="text-primary" />}
-                      </button>)}
-                  </div>
-                </div>
-
-                <div className="px-5 py-4 border-t border-border/30 bg-card shrink-0 flex gap-3">
-                  <button onClick={() => setStep("info")} className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground font-bold text-sm">{i18n.t("auto.z_\uC774\uC804_cb1dc9", "\uC774\uC804")}</button>
-                  <motion.button whileTap={{
-              scale: 0.97
-            }} onClick={() => setStep("confirm")} className="flex-1 py-3.5 rounded-2xl gradient-primary text-white font-extrabold text-sm flex items-center justify-center gap-1.5">{i18n.t("auto.z_\uD655\uC778_3ce813", "\uD655\uC778")}<ChevronRight size={14} />
-                  </motion.button>
-                </div>
-              </>}
-
-            {/* ── CONFIRM ── */}
-            {step === "confirm" && <>
-                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1 min-h-0">
-                  {[[i18n.t("auto.g_0190", "그룹"), groupTitle], [i18n.t("auto.g_0191", "티어"), `${tierCfg.emoji} ${tierCfg.label}`], [i18n.t("auto.g_0192", "결제 수단"), PAYMENT_METHODS.find(m => m.id === method)?.label ?? method], [i18n.t("auto.g_0193", "원래 가격"), getLocalizedPrice(originalKrw, i18n.language)], ...(hasDiscount ? [[i18n.t("auto.g_0194", "Plus 할인 (-50%)"), `- ${getLocalizedPrice(originalKrw - discountedKrw, i18n.language)}`]] : []), [i18n.t("auto.g_0195", "최종 결제금액"), getLocalizedPrice(discountedKrw, i18n.language)]].map(([label, value], i, arr) => <div key={i} className={`flex items-center justify-between py-3 ${i < arr.length - 1 ? "border-b border-border/40" : ""}`}>
-                      <span className="text-xs text-muted-foreground">{label}</span>
-                      <span className={i18n.t("auto.t_0009", `text-xs font-bold ${label === i18n.t("auto.g_0196", "최종 결제금액") ? colors.text + " text-base" : "text-foreground"}`)}>{value}</span>
-                    </div>)}
-                </div>
-
-                <div className="px-5 py-4 border-t border-border/30 bg-card shrink-0 flex gap-3">
-                  <button onClick={() => setStep("select")} className="flex-1 py-3.5 rounded-2xl bg-muted text-foreground font-bold text-sm">{i18n.t("auto.z_\uC774\uC804_cb1dc9", "\uC774\uC804")}</button>
-                  <motion.button whileTap={{
-              scale: 0.97
-            }} disabled={loading} onClick={handlePay} className="flex-1 py-3.5 rounded-2xl gradient-primary text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-float disabled:opacity-60">
-                    {loading ? <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />{i18n.t("auto.z_\uACB0\uC81C\uC911_ce536a", "\uACB0\uC81C\uC911")}</> : <><Check size={14} strokeWidth={3} />{getLocalizedPrice(discountedKrw, i18n.language)}{i18n.t("auto.z_\uACB0\uC81C_a4ba01", "\uACB0\uC81C")}</>}
-                  </motion.button>
-                </div>
-              </>}
           </motion.div>
         </motion.div>}
     </AnimatePresence>;

@@ -115,7 +115,7 @@ const TravelDNA = ({
   const overallMatch = myDNA ? Math.round(dimensions.reduce((sum, d) => sum + getMatchPct(d.myScore, d.theirScore), 0) / dimensions.length) : Math.round(dimensions.reduce((sum, d) => sum + d.theirScore, 0) / dimensions.length);
   if (compact) {
     // SwipeCard 압축 모드: 총점 + 3개 바만
-    return <div className="space-y-1 truncate">
+    return <div className="space-y-1">
         {/* 한 줄 요약 */}
         <div className="flex items-center gap-1.5 mb-1.5">
           <span className="text-[10px] font-extrabold text-white/70 uppercase tracking-wider truncate">{i18n.t("auto.g_0272", "여행DNA")}</span>
@@ -175,7 +175,7 @@ const TravelDNA = ({
       </div>
     </div>;
   }
-  return <div className="rounded-2xl p-4 border border-white/10 bg-white/5 truncate">
+  return <div className="rounded-2xl p-4 border border-white/10 bg-white/5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <span className="text-sm">🧬</span>
@@ -245,7 +245,7 @@ const TravelDNA = ({
       })}
       </div>
 
-      {myDNA && <p className="text-[9px] text-muted-foreground text-center mt-3 truncate">{i18n.t("auto.g_0278", "흰색선나컬")}</p>}
+      {myDNA && <p className="text-[9px] text-muted-foreground text-center mt-3">{i18n.t("auto.g_0278", "White line = you, color bar = them")}</p>}
     </div>;
 };
 export default TravelDNA;

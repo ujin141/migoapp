@@ -38,7 +38,7 @@ export const PostDetailModal = ({
         <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="fixed inset-0 z-50 bg-background overflow-y-auto">
           <div className="px-5 pt-12 pb-32 truncate">
             <button onClick={() => setDetailPost(null)} className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-              <ArrowLeft size={16} />{i18n.t("discover.backToList", { defaultValue: "목록으로" })}
+              <ArrowLeft size={16} />{i18n.t("discover.backToList", { defaultValue: "Back to list" })}
             </button>
 
             <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={(e) => handleProfileClick(e, detailPost.authorId)}>

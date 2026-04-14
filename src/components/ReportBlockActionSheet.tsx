@@ -30,7 +30,7 @@ const ReportBlockActionSheet: React.FC<Props> = ({
   const {
     user
   } = useAuth();
-  const [mode, setMode] = useState<"menu" | "report">("menu");
+  const [mode, setMode] = useState<"menu" | "report" | "blockConfirm">("menu");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset mode when opened
@@ -46,9 +46,12 @@ const ReportBlockActionSheet: React.FC<Props> = ({
       return;
     }
     if (!authorId) return;
-    if (!window.confirm(i18n.t("auto.t_0010", `${targetName}님을 차단하시겠습니까?\n서로의 게시물과 프로필이 보이지 않게 됩니다.`))) {
-      return;
-    }
+    // iOS: window.confirm 차단 → 시트 내부 2단계 확인으로 교체
+    setMode("blockConfirm");
+  };
+
+  const confirmBlock = async () => {
+    if (!user || !authorId) return;
     setIsSubmitting(true);
     // Ignore error if already blocked (unique constraint)
     await supabase.from("user_blocks").insert({
@@ -155,6 +158,36 @@ const ReportBlockActionSheet: React.FC<Props> = ({
                       </div>
                     </button>}
                 </div>}
+
+              {/* BLOCK CONFIRM MODE — window.confirm 대체 (iOS WKWebView 차단 대응) */}
+              {mode === "blockConfirm" && (
+                <div className="space-y-4">
+                  <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 text-center">
+                    <UserMinus size={28} className="text-red-500 mx-auto mb-2" />
+                    <p className="text-sm font-extrabold text-foreground mb-1">
+                      {i18n.t("auto.t_0011", `${targetName} 관리`)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {i18n.t("auto.t_0010", `${targetName}님을 차단하시겠습니까?`)}
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setMode("menu")}
+                      className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm"
+                    >
+                      {i18n.t("common.cancel", "취소")}
+                    </button>
+                    <button
+                      onClick={confirmBlock}
+                      disabled={isSubmitting}
+                      className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-extrabold text-sm disabled:opacity-60"
+                    >
+                      {i18n.t("auto.g_0210", "차단하기")}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* REPORT MODE */}
               {mode === "report" && <div className="space-y-3 mt-2">

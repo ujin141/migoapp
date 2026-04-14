@@ -24,192 +24,192 @@ function buildGuides(): Record<PageId, PageGuideData> {
   const t = i18n.t.bind(i18n);
   return {
     match: {
-      title: t("guide.match.title", "💜 매칭 화면 사용법"),
-      subtitle: t("guide.match.subtitle", "카드를 스와이프해서 마음에 드는 여행자를 찾아보세요!"),
+      title: t("guide.match.title", "💜 How to Use Matching"),
+      subtitle: t("guide.match.subtitle", "Swipe cards to find travelers you like!"),
       items: [
         {
           icon: "👈",
-          label: t("guide.match.pass.label", "패스"),
-          desc: t("guide.match.pass.desc", "카드를 왼쪽으로 스와이프하거나 ✕ 버튼을 누르면 패스합니다."),
+          label: t("guide.match.pass.label", "Pass"),
+          desc: t("guide.match.pass.desc", "Swipe left or tap the X button to pass."),
         },
         {
           icon: "❤️",
-          label: t("guide.match.like.label", "좋아요"),
-          desc: t("guide.match.like.desc", "카드를 오른쪽으로 스와이프하거나 ♥ 버튼을 누르면 좋아요를 보냅니다. 상대방도 좋아요를 누르면 매칭!"),
+          label: t("guide.match.like.label", "Like"),
+          desc: t("guide.match.like.desc", "Swipe right or tap the heart to like. When both like each other — it's a match!"),
         },
         {
           icon: "⭐",
-          label: t("guide.match.superlike.label", "슈퍼라이크"),
-          desc: t("guide.match.superlike.desc", "별 버튼으로 특별한 메시지와 함께 슈퍼라이크를 보낼 수 있어요. 상대방에게 더 강하게 어필됩니다."),
+          label: t("guide.match.superlike.label", "Super Like"),
+          desc: t("guide.match.superlike.desc", "Tap the star button to Super Like with a special message. You'll stand out more!"),
         },
         {
           icon: "⚡",
-          label: t("guide.match.boost.label", "부스트"),
-          desc: t("guide.match.boost.desc", "부스트를 사용하면 30분간 내 프로필이 최상단에 노출됩니다."),
+          label: t("guide.match.boost.label", "Boost"),
+          desc: t("guide.match.boost.desc", "Boost puts your profile at the top for 30 minutes."),
         },
         {
           icon: "📍",
-          label: t("guide.match.checkin.label", "GPS 체크인"),
-          desc: t("guide.match.checkin.desc", "현재 여행 중인 도시를 체크인하면 같은 도시의 여행자들이 우선 표시됩니다."),
+          label: t("guide.match.checkin.label", "GPS Check-in"),
+          desc: t("guide.match.checkin.desc", "Check in to your current city to see same-city travelers first."),
         },
         {
           icon: "🎯",
-          label: t("guide.match.mission.label", "오늘의 목적"),
-          desc: t("guide.match.mission.desc", "오늘의 여행 목적(맛집 탐방, 관광, 파티 등)을 설정하면 비슷한 목적의 여행자와 더 잘 연결됩니다."),
+          label: t("guide.match.mission.label", "Today's Goal"),
+          desc: t("guide.match.mission.desc", "Set today's travel goal (food, sightseeing, party, etc.) to connect with like-minded travelers."),
         },
         {
           icon: "🔔",
-          label: t("guide.match.notif.label", "알림"),
-          desc: t("guide.match.notif.desc", "상단 벨 아이콘을 눌러 좋아요, 매칭, 메시지 알림을 확인하세요."),
+          label: t("guide.match.notif.label", "Notifications"),
+          desc: t("guide.match.notif.desc", "Tap the bell icon to check likes, matches, and messages."),
         },
         {
           icon: "🎛️",
-          label: t("guide.match.filter.label", "필터"),
-          desc: t("guide.match.filter.desc", "상단 필터 아이콘으로 나이, 성별, 거리, MBTI, 여행 스타일 등을 필터링할 수 있습니다."),
+          label: t("guide.match.filter.label", "Filter"),
+          desc: t("guide.match.filter.desc", "Filter by age, gender, distance, MBTI, and travel style."),
         },
       ],
     },
     discover: {
-      title: t("guide.discover.title", "🧭 탐색 화면 사용법"),
-      subtitle: t("guide.discover.subtitle", "여행 그룹, 커뮤니티 피드, 실시간 벙개 모임을 탐색하세요!"),
+      title: t("guide.discover.title", "🧭 How to Use Discover"),
+      subtitle: t("guide.discover.subtitle", "Browse travel groups, community feed, and live meetups!"),
       items: [
         {
           icon: "👥",
-          label: t("guide.discover.groups.label", "여행 그룹"),
-          desc: t("guide.discover.groups.desc", "목적지, 날짜, 스타일이 맞는 여행 그룹을 찾고 신청해보세요."),
+          label: t("guide.discover.groups.label", "Travel Groups"),
+          desc: t("guide.discover.groups.desc", "Find and apply to travel groups matching your destination, dates, and style."),
         },
         {
           icon: "📸",
-          label: t("guide.discover.feed.label", "피드"),
-          desc: t("guide.discover.feed.desc", "다른 여행자들의 실시간 여행 사진과 후기를 스크롤하며 즐겨보세요."),
+          label: t("guide.discover.feed.label", "Feed"),
+          desc: t("guide.discover.feed.desc", "Scroll through real-time travel photos and stories from other travelers."),
         },
         {
           icon: "⚡",
-          label: t("guide.discover.lightning.label", "번개 모임"),
-          desc: t("guide.discover.lightning.desc", "지금 당장 근처에서 열리는 즉석 모임에 바로 참여할 수 있습니다."),
+          label: t("guide.discover.lightning.label", "Flash Meetup"),
+          desc: t("guide.discover.lightning.desc", "Join spontaneous meetups happening nearby right now."),
         },
         {
           icon: "➕",
-          label: t("guide.discover.create.label", "그룹 만들기"),
-          desc: t("guide.discover.create.desc", "오른쪽 하단 + 버튼으로 나만의 여행 그룹을 직접 만들어보세요."),
+          label: t("guide.discover.create.label", "Create Group"),
+          desc: t("guide.discover.create.desc", "Tap + at the bottom right to create your own travel group."),
         },
         {
           icon: "❤️",
-          label: t("guide.discover.like.label", "피드 좋아요"),
-          desc: t("guide.discover.like.desc", "마음에 드는 게시물에 하트를 눌러 좋아요를 보낼 수 있습니다."),
+          label: t("guide.discover.like.label", "Feed Like"),
+          desc: t("guide.discover.like.desc", "Tap the heart on posts to send a like."),
         },
         {
           icon: "💬",
-          label: t("guide.discover.comment.label", "댓글"),
-          desc: t("guide.discover.comment.desc", "게시물에 댓글을 달아 여행자와 소통해보세요."),
+          label: t("guide.discover.comment.label", "Comment"),
+          desc: t("guide.discover.comment.desc", "Leave a comment to connect with other travelers."),
         },
       ],
     },
     map: {
-      title: t("guide.map.title", "📍 지도 화면 사용법"),
-      subtitle: t("guide.map.subtitle", "실시간으로 주변 여행자, 핫플, 모임을 지도에서 확인하세요!"),
+      title: t("guide.map.title", "📍 How to Use Map"),
+      subtitle: t("guide.map.subtitle", "Find nearby travelers, hotplaces, and meetups on the live map!"),
       items: [
         {
           icon: "🧑‍🤝‍🧑",
-          label: t("guide.map.travelers.label", "주변 여행자"),
-          desc: t("guide.map.travelers.desc", "하단 '여행자' 탭에서 현재 근처에 있는 여행자들을 지도 위에서 볼 수 있습니다."),
+          label: t("guide.map.travelers.label", "Nearby Travelers"),
+          desc: t("guide.map.travelers.desc", "Switch to the Travelers tab to see nearby travelers on the map."),
         },
         {
           icon: "🔥",
-          label: t("guide.map.hotplace.label", "핫플 탐색"),
-          desc: t("guide.map.hotplace.desc", "'핫플' 탭에서 클럽, 명소, 맛집 등 카테고리별로 주변 인기 장소를 탐색하세요."),
+          label: t("guide.map.hotplace.label", "Hotplaces"),
+          desc: t("guide.map.hotplace.desc", "Browse clubs, landmarks, and restaurants by category in the Hotplace tab."),
         },
         {
           icon: "🍻",
-          label: t("guide.map.groups.label", "주변 모임"),
-          desc: t("guide.map.groups.desc", "'모임' 탭에서 지금 근처에서 진행 중인 벙개 모임을 지도에서 확인하고 참여하세요."),
+          label: t("guide.map.groups.label", "Nearby Groups"),
+          desc: t("guide.map.groups.desc", "Check active flash meetups near you in the Groups tab."),
         },
         {
           icon: "📷",
-          label: t("guide.map.community.label", "현지 피드"),
-          desc: t("guide.map.community.desc", "'사진' 탭에서 근처 여행자들이 방금 올린 사진을 실시간으로 볼 수 있습니다."),
+          label: t("guide.map.community.label", "Local Feed"),
+          desc: t("guide.map.community.desc", "See photos posted by nearby travelers in real time in the Photos tab."),
         },
         {
           icon: "🍽️",
-          label: t("guide.map.restaurants.label", "주변 맛집"),
-          desc: t("guide.map.restaurants.desc", "'맛집' 탭에서 지금 위치 기준으로 근처 맛집을 찾아볼 수 있습니다."),
+          label: t("guide.map.restaurants.label", "Nearby Restaurants"),
+          desc: t("guide.map.restaurants.desc", "Find nearby restaurants based on your current location in the Food tab."),
         },
         {
           icon: "📡",
-          label: t("guide.map.realtime.label", "실시간 알림"),
-          desc: t("guide.map.realtime.desc", "새로운 여행자가 근처에 나타나거나 모임이 생기면 자동으로 팝업 알림이 뜹니다."),
+          label: t("guide.map.realtime.label", "Live Alerts"),
+          desc: t("guide.map.realtime.desc", "Get pop-up alerts when a new traveler or meetup appears nearby."),
         },
       ],
     },
     chat: {
-      title: t("guide.chat.title", "💬 채팅 화면 사용법"),
-      subtitle: t("guide.chat.subtitle", "매칭된 여행자와 채팅하고 만남을 약속해보세요!"),
+      title: t("guide.chat.title", "💬 How to Use Chat"),
+      subtitle: t("guide.chat.subtitle", "Chat with matched travelers and plan meetups!"),
       items: [
         {
           icon: "💬",
-          label: t("guide.chat.threads.label", "채팅 목록"),
-          desc: t("guide.chat.threads.desc", "매칭된 여행자들과의 대화 목록이 여기에 표시됩니다. 탭하면 대화창으로 이동합니다."),
+          label: t("guide.chat.threads.label", "Chat List"),
+          desc: t("guide.chat.threads.desc", "Your matched travelers' conversations appear here. Tap to open a chat."),
         },
         {
           icon: "📅",
-          label: t("guide.chat.schedule.label", "일정 공유"),
-          desc: t("guide.chat.schedule.desc", "채팅창 하단 + 버튼에서 날짜와 장소를 포함한 일정 카드를 공유할 수 있습니다."),
+          label: t("guide.chat.schedule.label", "Share Schedule"),
+          desc: t("guide.chat.schedule.desc", "Tap + in the chat to share a schedule card with date and location."),
         },
         {
           icon: "🤝",
-          label: t("guide.chat.meet.label", "만남 제안"),
-          desc: t("guide.chat.meet.desc", "만남 제안 버튼으로 실제 만남 날짜와 장소를 정식으로 제안하세요."),
+          label: t("guide.chat.meet.label", "Propose Meetup"),
+          desc: t("guide.chat.meet.desc", "Use the meetup button to formally propose a meeting date and place."),
         },
         {
           icon: "🔒",
-          label: t("guide.chat.safe.label", "안전 만남"),
-          desc: t("guide.chat.safe.desc", "만남 전 체크리스트와 안전 시스템을 통해 안심하고 만날 수 있습니다."),
+          label: t("guide.chat.safe.label", "Safe Meeting"),
+          desc: t("guide.chat.safe.desc", "Use the pre-meeting checklist and safety system to meet with confidence."),
         },
         {
           icon: "⭐",
-          label: t("guide.chat.review.label", "만남 후기"),
-          desc: t("guide.chat.review.desc", "만남 후 상대방에 대한 후기를 남기면 신뢰 점수가 올라갑니다."),
+          label: t("guide.chat.review.label", "Post-Meet Review"),
+          desc: t("guide.chat.review.desc", "Leave a review after meeting — it boosts your trust score."),
         },
       ],
     },
     profile: {
-      title: t("guide.profile.title", "✨ 프로필 화면 사용법"),
-      subtitle: t("guide.profile.subtitle", "내 프로필을 완성하고 설정을 관리하세요!"),
+      title: t("guide.profile.title", "✨ How to Use Profile"),
+      subtitle: t("guide.profile.subtitle", "Complete your profile and manage settings!"),
       items: [
         {
           icon: "📝",
-          label: t("guide.profile.edit.label", "프로필 편집"),
-          desc: t("guide.profile.edit.desc", "프로필 카드를 탭하면 사진, 이름, 자기소개, 여행 스타일 등을 편집할 수 있습니다."),
+          label: t("guide.profile.edit.label", "Edit Profile"),
+          desc: t("guide.profile.edit.desc", "Tap your profile card to edit photos, name, bio, and travel style."),
         },
         {
           icon: "🛡️",
-          label: t("guide.profile.safety.label", "안전 시스템"),
-          desc: t("guide.profile.safety.desc", "안전 CTA 버튼으로 만남 전 체크리스트를 확인하고 안전하게 만남을 준비하세요."),
+          label: t("guide.profile.safety.label", "Safety System"),
+          desc: t("guide.profile.safety.desc", "Use the Safety button to check the pre-meeting checklist and prepare safely."),
         },
         {
           icon: "🗓️",
-          label: t("guide.profile.trips.label", "내 여행 일정"),
-          desc: t("guide.profile.trips.desc", "나의 여행 계획을 등록하면 같은 날짜, 같은 목적지의 사람들과 자동으로 연결됩니다."),
+          label: t("guide.profile.trips.label", "My Trips"),
+          desc: t("guide.profile.trips.desc", "Register travel plans to auto-connect with people at the same destination and time."),
         },
         {
           icon: "👥",
-          label: t("guide.profile.matches.label", "매칭 현황"),
-          desc: t("guide.profile.matches.desc", "지금까지 매칭된 사람들을 한눈에 볼 수 있습니다."),
+          label: t("guide.profile.matches.label", "Matches"),
+          desc: t("guide.profile.matches.desc", "See all your matched travelers at a glance."),
         },
         {
           icon: "🌏",
-          label: t("guide.profile.language.label", "언어 설정"),
-          desc: t("guide.profile.language.desc", "설정 > 언어에서 앱 언어를 49개국 중 원하는 언어로 변경할 수 있습니다."),
+          label: t("guide.profile.language.label", "Language"),
+          desc: t("guide.profile.language.desc", "Go to Settings > Language to switch the app language among 49 options."),
         },
         {
           icon: "💎",
           label: t("guide.profile.plus.label", "Migo Plus"),
-          desc: t("guide.profile.plus.desc", "Migo Plus로 업그레이드하면 무제한 좋아요, 슈퍼라이크, 고급 필터 등을 사용할 수 있습니다."),
+          desc: t("guide.profile.plus.desc", "Upgrade to Migo Plus for unlimited likes, super likes, advanced filters, and more."),
         },
         {
           icon: "🔔",
-          label: t("guide.profile.notif.label", "알림 설정"),
-          desc: t("guide.profile.notif.desc", "매칭, 채팅, 그룹 알림을 개별적으로 켜고 끌 수 있습니다."),
+          label: t("guide.profile.notif.label", "Notifications"),
+          desc: t("guide.profile.notif.desc", "Toggle match, chat, and group notifications individually."),
         },
       ],
     },
@@ -256,7 +256,7 @@ export default function PageGuide({ page, floating = true }: PageGuideProps) {
           onClick={() => setOpen(true)}
           whileTap={{ scale: 0.9 }}
           className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm"
-          aria-label={t("guide.openButton", "도움말")}
+          aria-label={t("guide.openButton", "Help")}
         >
           <HelpCircle size={15} className="text-primary" />
         </motion.button>
@@ -266,7 +266,7 @@ export default function PageGuide({ page, floating = true }: PageGuideProps) {
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
         >
           <HelpCircle size={12} />
-          <span className="truncate">{t("guide.openButton", "도움말")}</span>
+          <span className="truncate">{t("guide.openButton", "Help")}</span>
         </button>
       )}
 

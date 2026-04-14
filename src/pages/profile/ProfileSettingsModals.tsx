@@ -42,7 +42,7 @@ export const NotificationModal = ({
               <h3 className="text-lg font-extrabold text-foreground truncate">{i18n.t("profilePage.settings.notif.label") || "Notifications"}</h3>
               <button className="shrink-0" onClick={() => setShowNotifModal(false)}><X size={20} className="text-muted-foreground" /></button>
             </div>
-            <div className="space-y-4 truncate">
+            <div className="space-y-4 overflow-y-auto" style={{ maxHeight: '60vh' }}>
               {[{
             label: i18n.t("profilePage.settings.notif.label"),
             desc: i18n.t("profilePage.settings.notif.desc"),
@@ -66,9 +66,9 @@ export const NotificationModal = ({
                   <button onClick={() => {
               item.setter(!item.value);
               toast({
-                title: `${item.label} ${!item.value ? "On" : "Off"}`
+                title: `${item.label} ${!item.value ? t('common.on', 'On') : t('common.off', 'Off')}`
               });
-            }} className={`w-12 h-6 rounded-full transition-colors ${item.value ? "gradient-primary" : "bg-border"} relative`}>
+          }} className={`w-12 h-6 rounded-full transition-colors ${item.value ? "gradient-primary" : "bg-border"} relative`}>
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${item.value ? "translate-x-6" : "translate-x-0.5"}`} />
                   </button>
                 </div>)}
@@ -163,7 +163,6 @@ export const PrivacyModal = ({
               <button onClick={async () => {
             if (user) {
               await supabase.from("profiles").update({
-                privacy_mode: profileVisible,
                 // Use matching columns or standard names
                 location_share: locationShare
               }).eq("id", user.id);
@@ -269,10 +268,23 @@ export const DeleteAccountConfirmModal = ({ showDeleteConfirm, setShowDeleteConf
             <div className="flex flex-col gap-2">
               <button onClick={async () => {
             if (user) {
-              await supabase.rpc('delete_user');
+              const { error } = await supabase.functions.invoke('delete-account');
+              if (error) {
+                console.error("Delete account function error:", error);
+                
+                toast({
+                  title: t("profilePage.delete.fail") || "Failed to withdraw account",
+                  description: error.message,
+                  variant: "destructive"
+                });
+                return;
+              }
               await signOut();
             }
+            // 계정 삭제 시 모든 로컬 상태 초기화 (재로그인 시 온보딩부터 시작하도록)
             localStorage.removeItem("migo_logged_in");
+            localStorage.removeItem("migo_onboarding_done");
+            localStorage.removeItem("migo_eula_agreed");
             setShowDeleteConfirm(false);
             toast({
               title: t("profilePage.delete.success")
@@ -380,10 +392,10 @@ export const SettingsModal = ({
             desc: "v1.0.0"
           }, {
             label: t('settings.terms'),
-            desc: t("settings.terms")
+            desc: ''
           }, {
             label: t('settings.privacy'),
-            desc: t("settings.privacy")
+            desc: ''
           }, {
             label: t("profilePage.refundPolicy"),
             desc: ""

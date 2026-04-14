@@ -89,7 +89,7 @@ export const TravelerSheet = ({
                     className={`mt-2 flex items-center gap-1.5 text-xs font-bold transition-colors ${translatedBio ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                   >
                     <span className={isTranslating ? "animate-pulse" : ""}>
-                       🌍 {isTranslating ? i18n.t("auto.z_번역중_000", { defaultValue: "번역 중..." }) : translatedBio ? i18n.t("auto.z_원문보기_001", { defaultValue: "원문 보기" }) : i18n.t("auto.z_번역보기_002", { defaultValue: "번역 보기" })}
+                       🌍 {isTranslating ? i18n.t("auto.z_번역중_000", { defaultValue: "Translating..." }) : translatedBio ? i18n.t("auto.z_원문보기_001", { defaultValue: "View original" }) : i18n.t("auto.z_번역보기_002", { defaultValue: "Translate" })}
                     </span>
                   </button>
                 )}

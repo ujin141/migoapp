@@ -50,22 +50,22 @@ const TripMatchPage: React.FC = () => {
     id: "any",
     emoji: "✨",
     label: i18n.t("instant.styles.any"),
-    desc: i18n.t("auto.db_desc_상관없음", { defaultValue: "상관없어요" })
+    desc: i18n.t("auto.db_desc_상관없음", { defaultValue: "No preference" })
   }, {
     id: "party",
     emoji: "🎉",
     label: i18n.t("instant.styles.party"),
-    desc: i18n.t("auto.db_desc_즐기기2", { defaultValue: "신나게 즐기기" })
+    desc: i18n.t("auto.db_desc_즐기기2", { defaultValue: "Have a great time!" })
   }, {
     id: "healing",
     emoji: "😊",
     label: i18n.t("instant.styles.healing"),
-    desc: i18n.t("auto.db_desc_여유", { defaultValue: "여유롭게 쉬기" })
+    desc: i18n.t("auto.db_desc_여유", { defaultValue: "Relax and unwind" })
   }, {
     id: "serious",
     emoji: "🎯",
     label: i18n.t("instant.styles.serious"),
-    desc: i18n.t("auto.db_desc_목적여행2", { defaultValue: "목적 있는 여행" })
+    desc: i18n.t("auto.db_desc_목적여행2", { defaultValue: "Travel with purpose" })
   }]), [i18n]);
 
   const GENDER_PREFS = useMemo<{ id: GenderRatioPref; label: string; icon: string; }[]>(() => ([{

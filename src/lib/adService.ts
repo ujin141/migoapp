@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { supabase, isSupabaseConfigured, getCached, setCache } from "@/lib/supabaseClient";
 import { compressImage } from "@/lib/imageCompression";
 export type AdStatus = "draft" | "active" | "paused" | "completed";
 export type AdFormat = "banner" | "card" | "interstitial" | "native";
@@ -278,6 +278,12 @@ export async function recordAdImpression(adId: string, userId: string | null): P
 /** 특정 앱 화면에 맞는 활성 광고 가져오기 (게재중, 예산 남음, 기간 내) */
 export async function fetchActiveAdsForScreen(appScreen: string): Promise<any[]> {
   if (!isSupabaseConfigured) return [];
+
+  // 10분 캐시 — 광고 데이터는 실시간성 불필요, 트래픽 절감
+  const CACHE_KEY = `ads:screen:${appScreen}`;
+  const cached = getCached<any[]>(CACHE_KEY);
+  if (cached) return cached;
+
   const today = new Date().toISOString().split("T")[0];
 
   // 1) Get the enabled slots for this screen
@@ -288,18 +294,23 @@ export async function fetchActiveAdsForScreen(appScreen: string): Promise<any[]>
   if (slotErr || !slots || slots.length === 0) return [];
   const slotIds = slots.map(s => s.id);
 
-  // 2) Get active ads for these slots that have not exhausted budget
+  // 2) Get active ads — only rendering-relevant columns (no analytics, no budget internals)
   const {
     data: ads,
     error: adErr
-  } = await supabase.from("ads").select("*").eq("status", "active").in("slot_id", slotIds).lte("start_date", today).gte("end_date", today);
+  } = await supabase
+    .from("ads")
+    .select("id, title, advertiser, slot_id, image_url, cta_url, cta_text, headline, body_text, budget, budget_spent, status, start_date, end_date")
+    .eq("status", "active")
+    .in("slot_id", slotIds)
+    .lte("start_date", today)
+    .gte("end_date", today);
   if (adErr || !ads) return [];
 
   // 3) Filter budget in memory and map format
   const validAds = (ads as any[]).filter(a => a.budget_spent < a.budget);
 
-  // Bind slot info dynamically (for format rendering in frontend)
-  return validAds.map(a => {
+  const result = validAds.map(a => {
     const s = slots.find(x => x.id === a.slot_id);
     return {
       ...a,
@@ -307,4 +318,7 @@ export async function fetchActiveAdsForScreen(appScreen: string): Promise<any[]>
       max_active: s?.max_active
     };
   });
+
+  setCache(CACHE_KEY, result, 10 * 60 * 1000); // 10분 캐시
+  return result;
 }

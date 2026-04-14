@@ -1,5 +1,6 @@
 import i18n from "@/i18n";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { Browser } from "@capacitor/browser"; // w3 Guideline 3.2: 인앱 브라우저로 외부 URL 쳐리
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -126,6 +127,7 @@ const MatchPage = () => {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [pendingLikers, setPendingLikers] = useState<any[]>([]); // 나를 라이크한 사람
   const [dailyLikesUsed, setDailyLikesUsed] = useState(0); // 오늘 보낸 라이크 수
+  const [hasMyGps, setHasMyGps] = useState(true); // 내 위치 정보가 있는지 여부
   const DAILY_LIKE_LIMIT = isPremium ? Infinity : isPlus ? 50 : 10;
   
   const matchTimersRef = useRef<{ timeouts: any[] }>({ timeouts: [] });
@@ -181,8 +183,9 @@ const MatchPage = () => {
 
       if (!data) {
         const res = await supabase.from('profiles')
-          .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type')
-          .neq('id', user.id).limit(50);
+          .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type,profile_theme')
+          .neq('id', user.id)
+          .limit(50);
         data = res.data;
         error = res.error;
         if (data) setCache(CACHE_KEY, data, 2 * 60 * 1000); // 2 min
@@ -236,6 +239,7 @@ const MatchPage = () => {
         // localStorage GPS fallback: DB lat/lng 없으면 앱 시작 시 저장된 좌표 사용
         const myLat = me?.lat || parseFloat(localStorage.getItem('migo_my_lat') || '0') || null;
         const myLng = me?.lng || parseFloat(localStorage.getItem('migo_my_lng') || '0') || null;
+        setHasMyGps(!!(myLat && myLng));
         const mapped = filtered.map(p => {
           const distKm = myLat && myLng && p.lat && p.lng ? haversine(myLat, myLng, p.lat, p.lng) : null;
           const score = calcScore(p);
@@ -247,7 +251,7 @@ const MatchPage = () => {
             nationality: p.nationality || '',
             gender: p.gender || '',
             location: p.location || t("match.noLocation"),
-            distanceKm: distKm ?? 999,
+            distanceKm: distKm,
             distance: distKm !== null ? `${distKm.toFixed(1)}km` : t("map.distanceUnknown"),
             bio: p.bio || t("auto.ko_0247", "안녕하세요"),
             photo: p.photo_url || "",
@@ -256,7 +260,7 @@ const MatchPage = () => {
             dates: p.travel_dates || t("auto.ko_0249", "미정"),
             tags: p.interests || [],
             travelMission: p.travel_mission || undefined,
-            userType: p.user_type || 'traveler',
+            userType: p.user_type || 'traveler', profileTheme: p.profile_theme,
             visitedCountries: p.visited_countries || [],
             matchScore: isBoosted ? score + 1000 : score,
             // 부스트 유저는 최상단 배치
@@ -282,14 +286,21 @@ const MatchPage = () => {
       }
 
       // 나를 라이크했지만 내가 아직 스와이프 안 한 사람 조회
+      // BUG-15 fix: 이미 매칭된 유저를 matchedIds로 별도 추적해 liker 목록에서도 제외
+      const matchedIds = new Set<string>();
+      (matchData || []).forEach((m: any) => {
+        matchedIds.add(m.user1_id === user.id ? m.user2_id : m.user1_id);
+      });
       const {
         data: likersData
       } = await supabase.from('likes').select('from_user').eq('to_user', user.id);
-      const likerIds = (likersData || []).map((r: any) => r.from_user).filter((id: string) => !swipedIds.has(id) && id !== user.id);
+      const likerIds = (likersData || []).map((r: any) => r.from_user).filter((id: string) =>
+        !swipedIds.has(id) && !matchedIds.has(id) && id !== user.id  // BUG-15: 이미 매칭된 유저 제외
+      );
       if (likerIds.length > 0) {
         const {
           data: likerProfiles
-        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type').in('id', likerIds);
+        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme').in('id', likerIds);
         if (likerProfiles) {
           const { data: likerReviews } = await supabase.from('meet_reviews').select('target_id, rating').in('target_id', likerIds);
           if (likerReviews) {
@@ -307,7 +318,7 @@ const MatchPage = () => {
             nationality: p.nationality || '',
             gender: p.gender || '',
             location: p.location || t("match.noLocation"),
-            distanceKm: 999,
+            distanceKm: null,
             distance: t("map.distanceUnknown"),
             bio: p.bio || t("auto.ko_0251", "안녕하세요"),
             photo: p.photo_url || '',
@@ -316,7 +327,7 @@ const MatchPage = () => {
             dates: p.travel_dates || t("auto.ko_0253", "미정"),
             tags: p.interests || [],
             travelMission: p.travel_mission || undefined,
-            userType: p.user_type || 'traveler',
+            userType: p.user_type || 'traveler', profileTheme: p.profile_theme,
             visitedCountries: p.visited_countries || [],
             matchScore: 999,
             // 최상단 우선
@@ -382,8 +393,8 @@ const MatchPage = () => {
   // 통합 필터 적용 (useMemo로 메모이제이션 — 매 render 재계산 방지)
   const withAds = useMemo(() => {
     const filteredTravelers = profiles.filter(p => {
-      const hasNoCoords = p.distanceKm === null || p.distanceKm >= 999;
-      const distOk = filterDistance >= 9999 ? true : hasNoCoords ? true : p.distanceKm <= filterDistance;
+      const hasNoCoords = p.distanceKm === null;
+      const distOk = (filterDistance >= 9999 || !hasMyGps) ? true : (hasNoCoords ? false : p.distanceKm <= filterDistance);
       const genderOk = filterGender === 'all' || p.gender === (filterGender === 'male' ? t("auto.ko_0254", "남성") : t("auto.ko_0255", "여성")) || p.gender === filterGender;
       const ageOk = !isPlus || !p.age || (p.age >= filterAge[0] && p.age <= filterAge[1]);
       const langOk = !isPlus || filterLanguages.length === 0 || filterLanguages.some(l => p.languages.includes(l));
@@ -526,7 +537,8 @@ const MatchPage = () => {
     if (!profile) return;
     if (profile.isAd) {
       recordAdClick(profile.originalAd.id, null);
-      if (profile.adUrl) window.open(profile.adUrl, "_blank");
+      // Apple Guideline 3.2: window.open 대신 인앱 브라우저(SFSafariViewController) 사용
+      if (profile.adUrl) Browser.open({ url: profile.adUrl, presentationStyle: 'fullscreen' });
       setCurrentIndex(i => i + 1);
       return;
     }
@@ -618,7 +630,10 @@ const MatchPage = () => {
     // decrease sub-counter
     consumeSuperLike();
 
-    // DB 저장
+    // DB 저장 + 매칭 확인 전에 이전 타이머 초기화 (연속 액션 꼬임 방지)
+    matchTimersRef.current.timeouts.forEach(clearTimeout);
+    matchTimersRef.current.timeouts = [];
+
     saveLikeAndCheckMatch(profile.id, 'superlike', superMsg || undefined).then(isMatch => {
       const tSuperLike = setTimeout(() => {
         setSuperLikedId(null);
@@ -687,7 +702,8 @@ const MatchPage = () => {
   // Ad impression tracking
   useEffect(() => {
     if (topProfile?.isAd) {
-      recordAdImpression(topProfile.originalAd.id, null);
+      // BUG-20 fix: user?.id 전달 (null 하드코딩 제거 → 광고 분석 데이터 정확성 향상)
+      recordAdImpression(topProfile.originalAd.id, user?.id ?? null);
     }
   }, [topProfile]);
   return <div className="flex flex-col h-screen bg-background safe-bottom truncate">
@@ -765,16 +781,16 @@ const MatchPage = () => {
                 className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-primary/40 blur-sm inline-block"
               />
             </div>
-            <h3 className="text-xl font-extrabold text-foreground mb-2 truncate">{t("auto.j502", { defaultValue: "모든 여행자를 확인했어요!" })}</h3>
-            <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-[240px] truncate">
-              {t("auto.j503", { defaultValue: "주변의 새로운 친구들이\n곧 찾아올 거예요 ✨" })}
+            <h3 className="text-xl font-extrabold text-foreground mb-2 text-center">{t("auto.j502", { defaultValue: "You've seen all travelers!" })}</h3>
+            <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-[240px] text-center whitespace-pre-line">
+              {t("auto.j503", { defaultValue: "New friends nearby\nwill show up soon ✨" })}
             </p>
             <motion.button 
               whileTap={{ scale: 0.96 }}
               onClick={() => setShowFilterModal(true)} 
               className="px-8 py-3.5 rounded-full gradient-primary text-primary-foreground text-[13px] font-extrabold shadow-float flex items-center gap-2"
             >
-              <span className="text-lg">✨</span> {t("auto.j504", { defaultValue: "필터 다시 설정하기" })}
+              <span className="text-lg">✨</span> {t("auto.j504", { defaultValue: "Reset filters" })}
             </motion.button>
           </motion.div>
         )}

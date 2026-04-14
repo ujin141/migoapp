@@ -12,12 +12,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AnimatePresence, motion } from "framer-motion";
 import BottomNav from "./components/BottomNav";
 import TutorialOverlay, { useTutorial } from "./components/TutorialOverlay";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { ChatProvider } from "./context/ChatContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { SubscriptionProvider } from "./context/SubscriptionContext";
 import { GlobalFilterProvider } from "./context/GlobalFilterContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useToast } from "@/hooks/use-toast";
 import { getCurrentLocation } from "@/lib/locationService";
 import { checkInStreak } from "@/lib/streakService";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -80,13 +83,16 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000,
       gcTime:    30 * 60 * 1000,
-      retry: 1,
+      // 안정화: 지수백오프 retry (1실패 → 0s, 2실패 → 1s, 3실패 → 4s)
+      retry: 2,
+      retryDelay: (attempt: number) => Math.min(1000 * 2 ** (attempt - 1), 8000),
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
       networkMode: "online",
     },
     mutations: {
-      retry: 0,
+      retry: 1,
+      retryDelay: 1000,
       networkMode: "online",
     },
   },
@@ -156,11 +162,30 @@ const AppContent = () => {
   const showTutorial = !noTutorialRoutes.some((r) => location.pathname.startsWith(r));
   const { show: tutorialVisible, complete: completeTutorial } = useTutorial();
 
+  // ── 네트워크 상태 감지 (오프라인 배너) ───────────────────────────────
+  useNetworkStatus();
+
   // ── 네이티브 푸시 권한 및 토큰 레지스터 (백그라운드 알림용) ──
   usePushNotifications(user?.id);
 
   // ── (iOS 전용) 앱 추적 투명성(ATT) 권한 요청 ──
   useATT();
+
+  // ── Supabase 세션 만료 감지: TOKEN_REFRESH_FAILED → 로그인으로 이동 ——————————
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'TOKEN_REFRESHED') return; // 정상 갱신
+      if (event === 'SIGNED_OUT') {
+        // 세션 업코드를 포함한 조용한 SIGNED_OUT 코드 처리
+        const isPublic = PUBLIC_ROUTES.some(r => window.location.hash.includes(r));
+        if (!isPublic) {
+          navigate('/login', { replace: true });
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
 
   // ── 인증 상태 중앙 감지: 미로그인 시 스플래시/로그인으로 자동 이동 등 ──
   useEffect(() => {
@@ -169,8 +194,15 @@ const AppContent = () => {
     if (!user && !isPublicRoute) {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
-    } else if (user && (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding')) {
-      navigate('/', { replace: true });
+    } else if (user) {
+      // If user hasn't completed setup (setupComplete is false), force them to the profile setup page
+      if (user.setupComplete === false && location.pathname !== '/profile-setup') {
+        navigate('/profile-setup', { replace: true });
+      } 
+      // If setup is complete (or not explicitly false) and they are on auth/onboarding/setup pages, send them home
+      else if (user.setupComplete !== false && (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding' || location.pathname === '/profile-setup')) {
+        navigate('/', { replace: true });
+      }
     }
   }, [user, loading, location.pathname, navigate]);
 
@@ -204,6 +236,33 @@ const AppContent = () => {
       };
     }
   }, []);
+
+  // ── Android 하드웨어 백버튼 처리 ──────────────────────────────
+  const { toast } = useToast();
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return;
+
+    const backHandler = CapApp.addListener('backButton', ({ canGoBack }) => {
+      const isHome = window.location.hash === '#/' || window.location.hash === '#';
+      if (isHome) {
+        if ((window as any).__backPressedOnce) {
+          CapApp.exitApp();
+        } else {
+          (window as any).__backPressedOnce = true;
+          toast({ title: t('app.exitConfirm'), duration: 2000 });
+          setTimeout(() => { (window as any).__backPressedOnce = false; }, 2000);
+        }
+      } else if (canGoBack) {
+        window.history.back();
+      } else {
+        navigate(-1);
+      }
+    });
+
+    return () => {
+      backHandler.then(h => h.remove());
+    };
+  }, [navigate, toast]);
 
   // 체크인 스트리크: user 세션 시작 시 1회만 실행
   useEffect(() => {
@@ -259,7 +318,9 @@ const AppContent = () => {
   }
 
   return (
-    <div className="max-w-lg mx-auto relative">
+    <div className="max-w-lg mx-auto relative h-screen overflow-hidden">
+      {/* 라운트별 ErrorBoundary: 페이지 크래시가 앱 전체로 파급되지 않도록 격리 */}
+      <ErrorBoundary pageBoundary={true}>
       <Suspense fallback={<PageLoader />}>
         <Routes location={location}>
           <Route path="/splash"         element={<SplashPage />} />
@@ -294,6 +355,7 @@ const AppContent = () => {
           <Route path="*"              element={<NotFound />} />
         </Routes>
       </Suspense>
+      </ErrorBoundary>
       {showNav && <BottomNav />}
       <AnimatePresence>
         {tutorialVisible && showTutorial && (

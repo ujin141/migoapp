@@ -50,8 +50,8 @@ export const MissionModal = ({
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 border border-primary/20">
               <span className="text-2xl animate-bounce">🎯</span>
             </div>
-            <h3 className="text-xl font-extrabold text-foreground mb-1 truncate">{i18n.t("match.missionTitle", { defaultValue: "오늘, 어떤 동행을 원하세요?" })}</h3>
-            <p className="text-sm text-muted-foreground mb-6 truncate">{i18n.t("match.missionDesc", { defaultValue: "설정한 목적에 맞는 여행자를 우선 보여드려요!" })}</p>
+            <h3 className="text-xl font-extrabold text-foreground mb-1">{i18n.t("match.missionTitle", { defaultValue: "What kind of companion do you want today?" })}</h3>
+            <p className="text-sm text-muted-foreground mb-6">{i18n.t("match.missionDesc", { defaultValue: "We'll show travelers that match your goal first!" })}</p>
             
             <div className="grid grid-cols-2 gap-2 mb-6 truncate">
               {[
@@ -81,7 +81,7 @@ export const MissionModal = ({
               }} 
               className="text-xs text-muted-foreground underline underline-offset-4 font-semibold active:opacity-70"
             >
-              {i18n.t("auto.g_1472", "다음에 설정할게요")}</button>
+              {i18n.t("auto.g_1472", "Not now")}</button>
           </motion.div>
         </motion.div>
       )}
@@ -167,7 +167,7 @@ export const LikePopupModal = ({
                   {likePopupProfile.name?.[0] ?? "?"}
                 </div>
               )}
-              <p className="text-base font-extrabold text-foreground truncate">{likePopupProfile.name}{i18n.t("auto.g_1473", "님께 좋아요")}</p>
+              <p className="text-base font-extrabold text-foreground">{likePopupProfile.name}{i18n.t("auto.g_1473", " — Liked!")}</p>
             </div>
 
             <p className="text-sm text-muted-foreground mb-3 truncate">{i18n.t("auto.j505")}</p>
@@ -175,7 +175,7 @@ export const LikePopupModal = ({
             {/* Match probability pill */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30">
               <Zap size={11} className="text-rose-400" />
-              <span className="text-xs font-bold text-rose-400 truncate">{i18n.t("auto.g_1474", "매칭확률")}{Math.round(Math.max(0.3, (likePopupProfile.matchScore ?? 50) / 100) * 100)}%</span>
+              <span className="text-xs font-bold text-rose-400">{i18n.t("auto.g_1474", "Match rate")}{Math.round(Math.max(0.3, (likePopupProfile.matchScore ?? 50) / 100) * 100)}%</span>
             </div>
 
             {/* Auto-close progress bar */}
@@ -301,7 +301,7 @@ export const SuperLikeModal = ({
                   </motion.div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-white truncate">{pendingSuperProfile.name}{i18n.t("auto.g_1475", "님께")}</h3>
+                  <h3 className="text-lg font-extrabold text-white">{pendingSuperProfile.name}{i18n.t("auto.g_1475", " — Super Like")}</h3>
                   <p className="text-sm font-bold truncate" style={{
                 background: "linear-gradient(90deg, #60a5fa, #a78bfa)",
                 WebkitBackgroundClip: "text",
@@ -322,13 +322,13 @@ export const SuperLikeModal = ({
               }).map((_, i) => <Star key={i} size={13} className={i < superLikesLeft ? "text-blue-400 fill-blue-400" : "text-white/20 fill-white/10"} />)}
                 </div>
                 <span className="text-xs font-bold text-blue-300 truncate">
-                  {isPlus ? i18n.t("auto.g_1502", "슈퍼라이크 무제한") : i18n.t("auto.t_0049", `슈퍼라이크 ${superLikesLeft}개 남음`)}
+                  {isPlus ? i18n.t("auto.g_1502", "Unlimited Super Likes") : i18n.t("auto.t_0049", `${superLikesLeft} Super Like(s) left`)}
                 </span>
               </div>
 
               {/* Message input */}
               <div className="mb-3">
-                <label className="text-xs font-bold text-white/60 mb-2 block">{i18n.t("auto.j507")}<span className="text-white/30 font-normal truncate">{i18n.t("auto.j508")}</span></label>
+                <label className="text-xs font-bold text-white/60 mb-2 block">{i18n.t("auto.j507")}<span className="text-white/30 font-normal">{i18n.t("auto.j508")}</span></label>
                 <div className="relative">
                   <textarea value={superMsg} onChange={e => setSuperMsg(e.target.value)} maxLength={80} rows={2} placeholder={i18n.t("auto.g_1503", "여행에 대한 진심을 전해보세요...")} className="w-full px-4 py-3 pr-12 rounded-2xl text-white text-sm placeholder:text-white/30 outline-none resize-none transition-all" style={{
                 background: "rgba(255,255,255,0.06)",
@@ -340,7 +340,7 @@ export const SuperLikeModal = ({
               </div>
 
               {/* Quick message chips */}
-              <div className="flex flex-wrap gap-1.5 mb-5 truncate">
+              <div className="flex flex-wrap gap-1.5 mb-5">
                 {[pendingSuperProfile?.destination ? i18n.t("auto.t_0050", `${pendingSuperProfile.destination}로 여행 가나요?`) : i18n.t("auto.g_1504", "여행 같이 가요!"), i18n.t("auto.g_1505", "같이 여행해요!"), i18n.t("auto.g_1506", "관심사가 비슷해요"), i18n.t("auto.g_1507", "맛집 같이 탐방해요")].map(q => <button key={q} onClick={() => setSuperMsg(q)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${superMsg === q ? "text-white" : "text-white/50"}`} style={{
               background: superMsg === q ? "linear-gradient(135deg,#3b82f6,#6366f1)" : "rgba(255,255,255,0.06)",
               border: "1px solid rgba(99,102,241,0.25)"
@@ -512,7 +512,7 @@ export const FilterModal = ({
                 <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest mb-3 truncate">
                   {i18n.t("match.filterGender")}
                 </p>
-                <div className="flex gap-2 truncate">
+                <div className="flex gap-2">
                   {(['all', 'male', 'female'] as const).map(g => (
                     <button
                       key={g}
@@ -534,7 +534,7 @@ export const FilterModal = ({
                 <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest mb-3 truncate">
                   {i18n.t("auto.j513")}
                 </p>
-                <div className="flex flex-wrap gap-2 truncate">
+                <div className="flex flex-wrap gap-2">
                   {TRAVEL_STYLES.map(tag => (
                     <button
                       key={tag.i18nKey}
@@ -552,12 +552,12 @@ export const FilterModal = ({
               </div>
 
               {/* 나이대 */}
-              <div className="bg-muted/50 rounded-2xl p-4 relative truncate">
+              <div className="bg-muted/50 rounded-2xl p-4 relative">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest truncate">
                     {i18n.t("match.filterAge")}
                     {filterAge[0] !== 18 || filterAge[1] !== 45
-                      ? <span className="ml-2 text-primary normal-case font-bold truncate">{filterAge[0]}~{filterAge[1]}{i18n.language === 'ko' ? t("auto.x4057", "세") : ""}</span>
+                      ? <span className="ml-2 text-primary normal-case font-bold truncate">{filterAge[0]}~{filterAge[1]}{i18n.language === 'ko' ? "세" : ""}</span>
                       : null}
                   </p>
                   {!isPlus && <span className="flex items-center gap-1 text-[10px] font-bold text-amber-500"><Crown size={11} className="text-amber-500" />Plus</span>}
@@ -573,7 +573,7 @@ export const FilterModal = ({
                           : 'bg-card text-muted-foreground border border-border'
                       }`}
                     >
-                      {s}~{e}{i18n.language === 'ko' ? t("auto.x4058", "세") : ""}</button>
+                      {s}~{e}{i18n.language === 'ko' ? "세" : ""}</button>
                   ))}
                 </div>
                 {!isPlus && (
@@ -597,7 +597,7 @@ export const FilterModal = ({
                   </p>
                   {!canGlobalMatch && <span className="flex items-center gap-1 text-[10px] font-bold text-amber-500"><Crown size={11} />Plus</span>}
                 </div>
-                <div className="flex gap-2 truncate">
+                <div className="flex gap-2">
                   {[10, 30, 50, 100, 9999].map(d => (
                     <button
                       key={d}
@@ -622,7 +622,7 @@ export const FilterModal = ({
               </div>
 
               {/* 선호 언어 */}
-              <div className="bg-muted/50 rounded-2xl p-4 relative truncate">
+              <div className="bg-muted/50 rounded-2xl p-4 relative">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest truncate">
                     {i18n.t("match.filterLang")}
@@ -695,13 +695,13 @@ export const FilterModal = ({
                   if (totalActiveFilterCount > 0) {
                     toast({
                       title: i18n.t("auto.p527"),
-                      description: i18n.t("auto.t_0023", `${totalActiveFilterCount}개 필터 적용됨`)
+                      description: i18n.t("auto.t_0023", `${totalActiveFilterCount} filter(s) applied`)
                     });
                   }
                 }}
                 className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm shadow-float"
               >
-                {totalActiveFilterCount > 0 ? i18n.t("auto.t_0051", `${i18n.t("auto.j522")} (${totalActiveFilterCount}개 적용)`) : i18n.t("auto.j522")}
+                {totalActiveFilterCount > 0 ? i18n.t("auto.t_0051", `${i18n.t("auto.j522")} (${totalActiveFilterCount} applied)`) : i18n.t("auto.j522")}
               </motion.button>
             </div>
           </motion.div>

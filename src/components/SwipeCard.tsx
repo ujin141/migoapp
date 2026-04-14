@@ -208,7 +208,10 @@ const SwipeCard = ({
 
         {/* Full Screen Image */}
         {currentPhoto ? <>
-            <img src={currentPhoto} alt="Profile" className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${isBlurTarget ? 'blur-2xl scale-110 brightness-75' : ''}`} draggable="false" />
+            <img src={currentPhoto} alt="Profile" className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${isBlurTarget ? 'blur-2xl scale-110 brightness-75' : ''}`} draggable="false" onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              e.currentTarget.parentElement?.classList.add('gradient-primary');
+            }} />
             {isBlurTarget && <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center z-10 pointer-events-none">
                 <Crown size={48} className="text-amber-400 mb-4 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
                 <p className="text-white font-black text-xl drop-shadow-lg text-center px-4 truncate">{i18n.t("auto.z_\uB098\uB97C\uC88B\uC544\uC694\uD588\uC5B4\uC694_1223", "\uB098\uB97C\uC88B\uC544\uC694\uD588\uC5B4\uC694")}</p>
@@ -241,12 +244,31 @@ const SwipeCard = ({
           </>
         )}
 
-        {/* ── 현지인 테두리 / 프리미엄 테두리 ── */}
-        {profile.isPremium ? <div className="absolute inset-0 pointer-events-none rounded-3xl" style={{
-          boxShadow: "inset 0 0 0 4px rgba(251,191,36,0.8), 0 0 20px rgba(251,191,36,0.3)"
-        }} /> : isLocal ? <div className="absolute inset-0 pointer-events-none rounded-3xl" style={{
-          boxShadow: "inset 0 0 0 3px rgba(34,197,94,0.7)"
-        }} /> : null}
+        {/* ── 현지인 테두리 / 프리미엄 테두리 / 프로필 테마 ── */}
+        {(() => {
+          if (profile.profileTheme && profile.profileTheme !== 'default') {
+            const THEME_STYLES: Record<string, string> = {
+              aurora: "inset 0 0 0 5px rgba(168,85,247,0.8), 0 0 30px rgba(168,85,247,0.5)",
+              sunset: "inset 0 0 0 5px rgba(244,63,94,0.8), 0 0 30px rgba(244,63,94,0.5)",
+              neon: "inset 0 0 0 5px rgba(6,182,212,0.8), 0 0 30px rgba(6,182,212,0.5)",
+              midnight: "inset 0 0 0 5px rgba(30,41,59,0.9), 0 0 30px rgba(15,23,42,0.8)"
+            };
+            return <div className="absolute inset-0 pointer-events-none rounded-3xl z-10" style={{
+              boxShadow: THEME_STYLES[profile.profileTheme] || THEME_STYLES.aurora
+            }} />;
+          }
+          if (profile.isPremium) {
+            return <div className="absolute inset-0 pointer-events-none rounded-3xl z-10" style={{
+              boxShadow: "inset 0 0 0 4px rgba(251,191,36,0.8), 0 0 20px rgba(251,191,36,0.3)"
+            }} />;
+          }
+          if (isLocal) {
+            return <div className="absolute inset-0 pointer-events-none rounded-3xl z-10" style={{
+              boxShadow: "inset 0 0 0 3px rgba(34,197,94,0.7)"
+            }} />;
+          }
+          return null;
+        })()}
 
         {/* Like/Nope indicators */}
         <motion.div className="absolute top-8 right-6 border-4 border-primary rounded-xl px-4 py-2 rotate-12 z-50 backdrop-blur-sm bg-background/50" style={{
@@ -285,21 +307,28 @@ const SwipeCard = ({
         </AnimatePresence>
 
         {/* Gradient Overlay for Text */}
-        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none" />
+        {(() => {
+          let gradClass = "from-black/95 via-black/50 to-transparent";
+          if (profile.profileTheme === "aurora") gradClass = "from-purple-950/95 via-purple-900/60 to-transparent";
+          if (profile.profileTheme === "sunset") gradClass = "from-rose-950/95 via-rose-900/60 to-transparent";
+          if (profile.profileTheme === "neon") gradClass = "from-cyan-950/95 via-cyan-900/60 to-transparent";
+          if (profile.profileTheme === "midnight") gradClass = "from-slate-950/95 via-slate-900/60 to-transparent";
+          return <div className={`absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t ${gradClass} pointer-events-none`} />;
+        })()}
 
         {/* Profile Info */}
         <div className="absolute bottom-0 left-0 right-0 p-6 pt-12 flex flex-col gap-2 pointer-events-none">
-          <div className="flex justify-between items-end">
-             <div className="flex flex-col truncate">
-                <h2 className="text-2xl font-black text-white drop-shadow-lg flex items-center gap-2">
-                   {profile.name}
-                   <span className="text-xl font-medium text-white/80">{profile.age && `, ${profile.age}`}</span>
-                   {profile.verified && <VerifyBadge level={profile.verifyLevel} />}
+          <div className="flex justify-between items-end gap-2">
+             <div className="flex flex-col flex-1 min-w-0">
+                <h2 className="text-2xl font-black text-white drop-shadow-lg flex items-center gap-2 truncate">
+                   <span className="truncate">{profile.name}</span>
+                   <span className="text-xl font-medium text-white/80 shrink-0">{profile.age && `, ${profile.age}`}</span>
+                   {profile.verified && <span className="shrink-0"><VerifyBadge level={profile.verifyLevel} /></span>}
                 </h2>
                 
                 {/* ── 배지 ── */}
                 <div className="flex items-center gap-2 mt-2 truncate">
-                   {isLocal && !profile.isPremium && <div className="flex items-center gap-1 bg-emerald-500 px-2.5 py-1 rounded shadow-sm">
+                   {isLocal && <div className="flex items-center gap-1 bg-emerald-500 px-2.5 py-1 rounded shadow-sm">
                          <Home size={11} className="text-white" />
                          <span className="text-white text-[10px] font-extrabold uppercase tracking-wide truncate">{i18n.t("auto.z_\uD604\uC9C0\uC778_1226", "\uD604\uC9C0\uC778")}</span>
                       </div>}

@@ -206,6 +206,8 @@ const DiscoverPage = () => {
   // 프리미엄 전용 V.I.P 상태
   const [showVipLightningFilter, setShowVipLightningFilter] = useState(false);
   const [vipFilter, setVipFilter] = useState({ age: "20s", language: "ko", vibe: "party" });
+  // iOS에서 window.confirm/window.prompt 차단 → 커스텀 확인 모달 (Apple HIG 준수)
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; desc: string; onConfirm: () => void } | null>(null);
   const [lightningMultiResult, setLightningMultiResult] = useState<Array<{
     id: string; title: string; barName: string; members: { photo: string, name: string }[]; vibeIcon: string;
   }> | null>(null);
@@ -311,14 +313,11 @@ const DiscoverPage = () => {
   const [interestedSnapshot, setInterestedSnapshot] = useState<Record<string, number>>({}); // groupId → memberCount at interest time
   const [myTravelDates, setMyTravelDates] = useState<string>(''); // 내 여행 날짜
 
-  // [Feature 1] 브라우저 푸시 알림 권한 요청
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
+  // BUG-08 fix: Web Push Notification API는 iOS WKWebView 미지원
+  // Push 알림은 Capacitor PushNotifications 플러그인으로 처리
 
-  // [Feature 1] 30초마다 관심 그룹 자리 변화 감지 → 푸시 알림
+
+  // [Feature 1] 30초마다 관심 그룹 자리 변화 감지 → 인앱 toast 알림
   useEffect(() => {
     if (interestedGroups.size === 0) return;
     const interval = setInterval(() => {
@@ -328,13 +327,8 @@ const DiscoverPage = () => {
         if (prev === undefined) return;
         const left = g.maxMembers - g.currentMembers;
         if (left === 1 && g.currentMembers > prev) {
-          // 자리 줄었고 1개 남음
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('Migo ✈️', {
-              body: t("auto.t_0027", `⚠️ '${g.title}' 정원이 1자리만 남았습니다!`),
-              icon: '/favicon.ico'
-            });
-          }
+          // BUG-08 fix: Notification API 제거 (iOS WKWebView 미지원)
+          // 인앱 toast만 사용
           toast({
             title: t("auto.t_0001", `⚠️ '${g.title}' 정원 1자리 남음!`),
             description: t("auto.g_0015", "지금지원하")
@@ -518,7 +512,9 @@ const DiscoverPage = () => {
     if (!authorId) return;
     const {
       data
-    } = await supabase.from('profiles').select('*').eq('id', authorId).single();
+    } = await supabase.from('profiles').select(
+      'id, name, photo_url, photo_urls, age, bio, gender, nationality, location, languages, interests, mbti, verified, plan, is_plus, travel_dates, user_type, profile_theme'
+    ).eq('id', authorId).single();
     if (data) setViewProfileData(data);
   };
   const handleLikeListClick = async (e: React.MouseEvent, postId: string) => {
@@ -667,7 +663,7 @@ const DiscoverPage = () => {
             author: p.profiles?.name || t("auto.ko_0022", "알수없음"),
             photo: p.profiles?.photo_url || "",
             content: p.content || "",
-            time: new Date(p.created_at).toLocaleDateString("ko-KR"),
+            time: new Date(p.created_at).toLocaleDateString(i18n.language || 'en'),
             likes: p.post_likes?.[0]?.count || 0,
             comments: p.comments?.length || 0,
             liked: likedSet.has(p.id),
@@ -676,7 +672,7 @@ const DiscoverPage = () => {
               author: c.profiles?.name || t("auto.ko_0023", "알수없음"),
               photo: c.profiles?.photo_url || "",
               text: c.text,
-              time: new Date(c.created_at).toLocaleDateString("ko-KR")
+              time: new Date(c.created_at).toLocaleDateString(i18n.language || 'en')
             })),
             imageUrl: p.image_url,
             images: p.image_urls || [],
@@ -1229,11 +1225,8 @@ const DiscoverPage = () => {
         if (!prev) return null;
         const updatedGenders = [...prev.genders, randGender];
         const updatedCount = prev.newCount + 1;
-        setTripGroups(pg => pg.map(g => g.id === group.id ? {
-          ...g,
-          currentMembers: updatedCount,
-          memberGenders: updatedGenders
-        } : g));
+        // BUG-10 fix: setTripGroups 제거 — 시뮬레이션은 팝업 오버레이만 업데이트
+        // 실제 DB 인원 수(tripGroups)를 바꾸면 탭 이동 후 원복되어 혼란 발생
         return { ...prev, newCount: updatedCount, genders: updatedGenders };
       });
     }, 3500);
@@ -1279,42 +1272,38 @@ const DiscoverPage = () => {
   // ── 삭제 ──────────────────────────────────────
   const deletePost = async (postId: string) => {
     if (!user) return;
-    
-    // iOS/Capacitor에서 touch 이벤트 종료 전 window.confirm이 호출되면 즉시 닫히는 버그 우회
-    setTimeout(async () => {
-      if (!window.confirm(t("alert.c53Confirm"))) return;
-      const {
-        error
-      } = await supabase.from("posts").delete().eq("id", postId).eq("author_id", user.id);
-      if (error) {
-        toast({
-          title: t("alert.t49Title")
-        });
-        return;
-      }
-      setPosts(prev => prev.filter(p => p.id !== postId));
-      if (detailPost?.id === postId) setDetailPost(null);
-      toast({
-        title: t("alert.t50Title")
-      });
-    }, 50);
+    // iOS: window.confirm 대신 커스텀 모달 사용 (Apple HIG / WKWebView 차단 대응)
+    setConfirmDialog({
+      title: t("alert.c53Confirm"),
+      desc: t("alert.c53Desc", "이 게시글을 삭제하면 복구할 수 없습니다."),
+      onConfirm: async () => {
+        const { error } = await supabase.from("posts").delete().eq("id", postId).eq("author_id", user.id);
+        if (error) {
+          toast({ title: t("alert.t49Title") });
+          return;
+        }
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        if (detailPost?.id === postId) setDetailPost(null);
+        toast({ title: t("alert.t50Title") });
+      },
+    });
   };
   const deleteGroup = async (groupId: string) => {
     if (!user) return;
-    if (!window.confirm(t("alert.c54Confirm"))) return;
-    const {
-      error
-    } = await supabase.from("trip_groups").delete().eq("id", groupId).eq("host_id", user.id);
-    if (error) {
-      toast({
-        title: t("alert.t51Title")
-      });
-      return;
-    }
-    setTripGroups(prev => prev.filter(g => g.id !== groupId));
-    if (detailGroup?.id === groupId) setDetailGroup(null);
-    toast({
-      title: t("alert.t52Title")
+    // iOS: window.confirm 대신 커스텀 모달 사용
+    setConfirmDialog({
+      title: t("alert.c54Confirm"),
+      desc: t("alert.c54Desc", "그룹을 삭제하면 모든 멤버가 내보내집니다."),
+      onConfirm: async () => {
+        const { error } = await supabase.from("trip_groups").delete().eq("id", groupId).eq("host_id", user.id);
+        if (error) {
+          toast({ title: t("alert.t51Title") });
+          return;
+        }
+        setTripGroups(prev => prev.filter(g => g.id !== groupId));
+        if (detailGroup?.id === groupId) setDetailGroup(null);
+        toast({ title: t("alert.t52Title") });
+      },
     });
   };
 
@@ -1556,7 +1545,7 @@ const DiscoverPage = () => {
     return { male: Math.round((maleCount / total) * 100), female: Math.round((femaleCount / total) * 100), unknown: Math.round(((total - maleCount - femaleCount) / total) * 100), maleCount, femaleCount };
   };
 
-  return <div className="min-h-screen bg-background pb-24 truncate">
+  return <div className="min-h-screen bg-background safe-bottom truncate">
       {/* ── 카운트다운 알림 팝업 (1시간 전 / 30분 전 / 마감) ── */}
       <AnimatePresence>
         {countdownAlert && (() => {
@@ -2161,7 +2150,7 @@ const DiscoverPage = () => {
       }} className="fixed inset-0 z-50 bg-background overflow-y-auto">
             <div className="px-5 pt-12 pb-32">
               <button onClick={() => setDetailPost(null)} className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-                <ArrowLeft size={16} />{t("discover.backToList", { defaultValue: "목록으로" })}</button>
+                <ArrowLeft size={16} />{t("discover.backToList", { defaultValue: "Back to list" })}</button>
               
               <div className="bg-card rounded-2xl p-4 shadow-card mb-4 border border-border">
                 <div className="flex items-center gap-3 mb-4 cursor-pointer" onClick={e => handleProfileClick(e, detailPost.authorId)}>
@@ -2263,38 +2252,8 @@ const DiscoverPage = () => {
           </motion.div>}
       </AnimatePresence>
 
-      {/* ── Payment Modal ── */}
-      <AnimatePresence>
-        {paymentGroup && <motion.div initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} exit={{
-        opacity: 0
-      }} className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center px-safe pb-safe pt-safe" onClick={() => setPaymentGroup(null)}>
-            <motion.div initial={{
-          y: "100%"
-        }} animate={{
-          y: 0
-        }} exit={{
-          y: "100%"
-        }} onClick={e => e.stopPropagation()} className="w-full bg-card rounded-3xl mb-20 sm:mb-24 px-5 pt-6 pb-8">
-              <div className="text-center mb-6">
-                <Ticket size={36} className="text-primary mx-auto mb-3" />
-                <h2 className="text-lg font-black text-foreground mb-2 truncate">{t("auto.ko_0095", "참가비결제")}</h2>
-                <p className="text-2xl font-black text-primary">{getLocalizedPrice(paymentGroup.entryFee ?? 0, i18n.language)}</p>
-                <p className="text-sm text-muted-foreground mt-1">{paymentGroup.title}</p>
-              </div>
-              <div className="space-y-3 truncate">
-                {[t("auto.ko_0096", "카카오페이"), t("auto.ko_0097", "토스페이4"), t("auto.ko_0098", "신용카드4")].map(method => <button key={method} onClick={() => {
-              joinGroup(paymentGroup);
-              setPaymentGroup(null);
-            }} className="w-full py-3.5 rounded-2xl bg-muted text-foreground text-sm font-bold">
-                    {method}{t("auto.ko_0099", "로결제")}</button>)}
-              </div>
-            </motion.div>
-          </motion.div>}
-      </AnimatePresence>
+
+
           <AnimatePresence>
         {viewProfileData && <ProfileDetailSheet profile={viewProfileData} onClose={() => setViewProfileData(null)} />}
       </AnimatePresence>
@@ -2400,6 +2359,31 @@ const DiscoverPage = () => {
         setLightningMultiResult={setLightningMultiResult}
         confirmLightningMatch={confirmLightningMatch}
       />
+
+      {/* ── 커스텀 확인 모달 (window.confirm 대체 — iOS WKWebView 차단 대응) ── */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmDialog(null)} />
+          <div className="relative z-10 w-full max-w-sm bg-card rounded-3xl p-6 shadow-float border border-border/50">
+            <h3 className="text-base font-extrabold text-foreground mb-2 text-center">{confirmDialog.title}</h3>
+            <p className="text-sm text-muted-foreground text-center mb-6">{confirmDialog.desc}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="flex-1 py-3 rounded-2xl border border-border text-foreground font-semibold text-sm active:scale-95 transition-transform"
+              >
+                {t("common.cancel", "취소")}
+              </button>
+              <button
+                onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }}
+                className="flex-1 py-3 rounded-2xl bg-destructive text-destructive-foreground font-extrabold text-sm active:scale-95 transition-transform"
+              >
+                {t("common.delete", "삭제")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>;
 };

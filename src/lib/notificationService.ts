@@ -31,7 +31,7 @@ export function showLocalNotification(title: string, body: string, iconPath = "/
 
 /** 매치 알림 */
 export function notifyMatch(matchedName: string) {
-  showLocalNotification(i18n.t("auto.g_0382", "매칭성공"), i18n.i18n.t("notif.matchSuccess", {
+  showLocalNotification(i18n.t("auto.g_0382", "It's a Match! 🎉"), i18n.t("notif.matchSuccess", {
     name: matchedName,
     defaultValue: `You matched with {{name}}! Start chatting now.`
   }));
@@ -44,7 +44,7 @@ export function notifyMessage(senderName: string, preview: string) {
 
 /** 그룹 새 멤버 알림 */
 export function notifyGroupJoin(groupTitle: string, memberName: string) {
-  showLocalNotification(i18n.t("auto.g_0383", "새멤버왔"), i18n.i18n.t("notif.groupJoin", {
+  showLocalNotification(i18n.t("auto.g_0383", "New Member Joined"), i18n.t("notif.groupJoin", {
     name: memberName,
     title: groupTitle,
     defaultValue: `{{name}} joined '{{title}}'!`
@@ -54,7 +54,7 @@ export function notifyGroupJoin(groupTitle: string, memberName: string) {
 /** 스트릭 리마인더 (오후 8시 체크 후 미접속 시) */
 export function notifyStreakReminder(currentStreak: number) {
   if (currentStreak < 1) return;
-  showLocalNotification(i18n.t("auto.z_스트릭이끊어질위기_1072", "스트릭이끊어질위기"), i18n.t("notif.streak", {
+  showLocalNotification(i18n.t("auto.z_스트릭이끊어질위기_1072", "🔥 Streak at Risk!"), i18n.t("notif.streak", {
     streak: currentStreak,
     defaultValue: `You're on a {{streak}}-day streak! Check in on Migo today.`
   }));

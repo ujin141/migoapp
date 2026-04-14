@@ -24,8 +24,11 @@ interface NearbyProfile {
   online_at?: string;
   bio?: string;
   nationality?: string;
-  trust_score?: number;
+  trustScore?: number;
   verified?: boolean;
+  lat?: number;
+  lng?: number;
+  profileTheme?: string;
   user_type?: string;
 }
 const NearbyPage = () => {
@@ -60,8 +63,10 @@ const NearbyPage = () => {
 
   // Update online_status heartbeat
   useEffect(() => {
-    if (!user || !myPos) return;
+    if (!user || !myPos) return;  // BUG-05 fix: null 체크 강화
     const upsertOnline = async () => {
+      if (!myPos) return;  // defensive guard for stale closure
+      // BUG-18 fix: 오류 처리 추가
       await supabase.from("online_status").upsert({
         user_id: user.id,
         is_online: true,
@@ -70,6 +75,8 @@ const NearbyPage = () => {
         lng: myPos.lng
       }, {
         onConflict: "user_id"
+      }).then(({ error }) => {
+        if (error) console.warn("[NearbyPage] heartbeat error:", error.message);
       });
     };
     upsertOnline();
@@ -78,17 +85,29 @@ const NearbyPage = () => {
       clearInterval(heartbeat);
       supabase.from("online_status").update({
         is_online: false
-      }).eq("user_id", user.id);
+      }).eq("user_id", user.id).then(({ error }) => {
+        if (error) console.warn("[NearbyPage] offline update error:", error.message);
+      });
     };
   }, [user, myPos]);
   const loadNearby = async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);else setLoading(true);
     try {
       if (myPos) {
-        const {
-          data,
-          error
-        } = await supabase.from("profiles").select("id,name,age,photo_url,location,user_type,interests,bio,nationality,trust_score,verified,lat,lng").neq("id", user?.id ?? "").limit(200);
+        // BUG-09 fix: Bounding box로 DB에서 사전 필터링 → 최대 200개 → 50개로 절감
+        // 위도/경도 ±범위 계산 (5km 반경의 bounding box)
+        const KM_RADIUS = 5;
+        const LAT_DELTA = KM_RADIUS / 111; // 1도 ≈ 111km
+        const LNG_DELTA = KM_RADIUS / (111 * Math.cos(myPos.lat * Math.PI / 180));
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id,name,age,photo_url,location,user_type,interests,bio,nationality,trust_score,verified,lat,lng,profile_theme")
+          .neq("id", user?.id ?? "")
+          .gte("lat", myPos.lat - LAT_DELTA)
+          .lte("lat", myPos.lat + LAT_DELTA)
+          .gte("lng", myPos.lng - LNG_DELTA)
+          .lte("lng", myPos.lng + LNG_DELTA)
+          .limit(50);
         
         if (!error && data) {
           const { data: onlineData } = await supabase.from("online_status").select("user_id, is_online, last_seen");
@@ -107,7 +126,7 @@ const NearbyPage = () => {
               const dist = p.lat && p.lng ? haversine(myPos.lat, myPos.lng, p.lat, p.lng) : null;
               return { ...p, distance_km: dist };
             })
-            .filter((p: any) => p.distance_km !== null && p.distance_km <= 5)
+            .filter((p: any) => p.distance_km !== null && p.distance_km <= KM_RADIUS)
             .sort((a, b) => a.distance_km! - b.distance_km!);
 
           const uniqueUsers = Array.from(new Map(nearbyUsers.map((p: any) => [p.id, p])).values());
@@ -126,8 +145,11 @@ const NearbyPage = () => {
                 distance_km: r.distance_km,
                 bio: r.bio,
                 nationality: r.nationality,
-                trust_score: r.trust_score,
-                verified: r.verified,
+                trustScore: r.trust_score,
+                verified: !!r.verified,
+                lat: r.lat,
+                lng: r.lng,
+                profileTheme: r.profile_theme,
                 user_type: r.user_type,
                 online_at: (os as any)?.last_seen
               };

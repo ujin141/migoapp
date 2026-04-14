@@ -8,14 +8,20 @@ export interface AuthUser {
   name?: string;
   photoUrl?: string;
   verified?: boolean;
+  setupComplete?: boolean;
 }
 
 // profiles.photo_url 을 DB에서 가져와 user.photoUrl에 반영 (캐시 버스팅 포함)
-async function enrichWithProfilePhoto(user: AuthUser): Promise<AuthUser> {
+async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<AuthUser> {
   try {
-    const {
-      data
-    } = await supabase.from("profiles").select("photo_url, photo_urls, name, verified").eq("id", user.id).single();
+    const { data, error } = await supabase.from("profiles").select("photo_url, photo_urls, name, verified, setup_complete").eq("id", user.id).single();
+    
+    // DB 트리거(handle_new_user)가 아직 완료되지 않아 프로필이 없는 경우 재시도 (Race Condition 방지)
+    if (error && error.code === 'PGRST116' && retries > 0) {
+      await new Promise(r => setTimeout(r, 1000));
+      return enrichWithProfilePhoto(user, retries - 1);
+    }
+
     if (data) {
       const bestPhoto = (data.photo_urls && data.photo_urls.length > 0) ? data.photo_urls[0] : data.photo_url;
       // 표시용으로만 캐시 버스팅 추가 (DB에는 클린 URL 저장)
@@ -25,11 +31,15 @@ async function enrichWithProfilePhoto(user: AuthUser): Promise<AuthUser> {
         ...user,
         photoUrl: bustedUrl || user.photoUrl || "",
         name: data.name || user.name,
-        verified: data.verified ?? user.verified
+        verified: data.verified ?? user.verified,
+        setupComplete: data.setup_complete ?? false
       };
     }
-  } catch {}
-  return user;
+  } catch (err) {
+    console.error("enrichWithProfilePhoto error:", err);
+  }
+  // 최종적으로 데이터를 못 가져오더라도 setupComplete를 undefined가 아닌 false로 설정하여 온보딩을 건너뛰지 않도록 수정
+  return { ...user, setupComplete: false };
 }
 let globalSession: Session | null = null;
 let globalUser: AuthUser | null = null;
@@ -57,12 +67,13 @@ if (!isSupabaseConfigured) {
           const base = mapUser(session.user);
           globalSession = session;
           globalUser = base;
-          globalLoading = false;
+          globalLoading = true;
           notifyAuthListeners();
           
           const enriched = await enrichWithProfilePhoto(base);
           if (globalUser?.id === enriched.id) { // 세션이 유지된 상태일 때만
             globalUser = enriched;
+            globalLoading = false;
             notifyAuthListeners();
           }
         }
@@ -94,18 +105,25 @@ if (!isSupabaseConfigured) {
 
     if (session?.user) {
       const base = mapUser(session.user);
-      // 🔥 토큰 만료시 빈 프로필로 나오는 현상(계정 연결 안됨)을 방지하기 위해 
-      // 기존에 로드된 프로필 데이터가 있으면 합쳐서 보존
-      globalUser = globalUser ? { ...globalUser, ...base } : base;
-      globalLoading = false;
-      notifyAuthListeners();
-
-      // INITIAL_SESSION: 앱 강제종료 후 다시 켰을 때
-      // TOKEN_REFRESHED: 백그라운드에서 토큰 만료 후 갱신 성공했을 때
-      // SIGNED_IN: 새로 로그인 했을 때
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+      // 토큰 갱신 시에는 로딩 걸지 않음
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        globalUser = globalUser ? { ...globalUser, ...base } : base;
+        notifyAuthListeners();
         const enriched = await enrichWithProfilePhoto(base);
         globalUser = enriched;
+        notifyAuthListeners();
+      } else if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        globalLoading = true; // Wait for profile enrichment to prevent flashing home screen for new users
+        globalUser = globalUser ? { ...globalUser, ...base } : base;
+        notifyAuthListeners();
+        
+        const enriched = await enrichWithProfilePhoto(base);
+        globalUser = enriched;
+        globalLoading = false;
+        notifyAuthListeners();
+      } else {
+        globalUser = globalUser ? { ...globalUser, ...base } : base;
+        globalLoading = false;
         notifyAuthListeners();
       }
     }
