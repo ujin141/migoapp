@@ -117,7 +117,7 @@ export const TravelerSheet = ({
               <div>
                 <p className="text-xs font-bold text-muted-foreground mb-2 truncate">{i18n.t("map.travelStyle")}</p>
                 <div className="flex flex-wrap gap-2">
-                  {profileDetail.tags.map((tag: string) => <span key={tag} className="px-3 py-1.5 rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                  {(profileDetail.tags || []).map((tag: string) => <span key={tag} className="px-3 py-1.5 rounded-full bg-muted text-xs font-semibold text-muted-foreground">
                       {tag}
                     </span>)}
                 </div>

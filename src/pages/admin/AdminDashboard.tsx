@@ -118,32 +118,28 @@ export const AdminDashboard = () => {
     icon: Users,
     color: "from-violet-500 to-purple-600"
   }, {
-    label: t("auto.g_1077", "활성그룹8"),
+    label: "활성 그룹",
     value: stats.groups.toLocaleString(),
     icon: Plane,
     color: "from-blue-500 to-cyan-500"
   }, {
-    label: t("auto.g_1078", "총게시글8"),
+    label: "총 게시글",
     value: stats.posts.toLocaleString(),
     icon: FileText,
     color: "from-orange-500 to-amber-500"
   }, {
-    label: t("auto.g_1079", "대기중신고"),
+    label: "대기중 신고",
     value: stats.reports.toLocaleString(),
     icon: Flag,
     color: "from-red-500 to-rose-600"
   }, {
-    label: t("auto.g_1080", "게재중광고"),
-    value: t("auto.t5001", {
-          v0: stats.activeAds
-    }),
+    label: "게재중 광고",
+    value: String(stats.activeAds),
     icon: TrendingUp,
     color: "from-emerald-500 to-green-500"
   }, {
-    label: t("auto.g_1081", "공지사항8"),
-    value: t("auto.t5002", {
-          v0: announcements.length
-    }),
+    label: "공지사항",
+    value: String(announcements.length),
     icon: Megaphone,
     color: "from-pink-500 to-rose-500"
   }];
@@ -157,14 +153,14 @@ export const AdminDashboard = () => {
       )}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground truncate">{t("auto.g_1082", "대시보드8")}</h1>
-          <p className="text-sm text-muted-foreground truncate">{t("auto.g_1083", "Migo앱")}</p>
+          <h1 className="text-2xl font-extrabold text-foreground truncate">대시보드</h1>
+          <p className="text-sm text-muted-foreground truncate">Migo 앱 관리 콘솔</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowAnnounce(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors">
-            <Megaphone size={14} />{t("auto.g_1084", "공지발행8")}</button>
+            <Megaphone size={14} />공지 발행</button>
           <button onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-sm hover:text-foreground transition-colors">
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{t("auto.g_1085", "새로고침8")}</button>
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />새로고침</button>
         </div>
       </div>
 
@@ -240,7 +236,7 @@ export const AdminDashboard = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-xs text-foreground truncate font-semibold">{r.reason}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{t("auto.g_1090", "신고자")}{r.reporterName || t("auto.g_1091", "알수없음8")}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{t("auto.g_1090", "신고자")}{r.reporterName || t("auto.g_1091", "알수없음")}</p>
                   </div>
                 </div>)}
           </div>
@@ -257,7 +253,7 @@ export const AdminDashboard = () => {
             {recentUsers.length === 0 ? <p className="text-xs text-muted-foreground truncate">{t("auto.g_1093", "유저가없습")}</p> : recentUsers.map((u: any) => <div key={u.id} className="flex items-center gap-3 py-1.5 border-b border-border/30 last:border-0">
                   {u.photo_url ? <img src={u.photo_url} className="w-7 h-7 rounded-lg object-cover shrink-0" /> : <div className="w-7 h-7 bg-muted rounded-lg shrink-0 flex items-center justify-center text-xs font-bold">{u.name?.[0]?.toUpperCase() || "?"}</div>}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-foreground font-semibold truncate">{u.name || t("auto.g_1094", "이름없음8")}</p>
+                    <p className="text-xs text-foreground font-semibold truncate">{u.name || t("auto.g_1094", "이름없음")}</p>
                     <p className="text-[10px] text-muted-foreground">{new Date(u.created_at).toLocaleDateString("ko-KR")}</p>
                   </div>
                   {u.verified ? <Check size={11} className="text-emerald-400 shrink-0" /> : <Clock size={11} className="text-amber-400 shrink-0" />}
@@ -300,12 +296,12 @@ export const AdminDashboard = () => {
             </div>
             <div className="space-y-3">
               <div className="flex gap-2 truncate">
-                {(["info", "warning", "update"] as AnnouncementType[]).map(t => <button key={t} onClick={() => setAnnType(t)} className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${annType === t ? typeColors[t] : "bg-muted border-border text-muted-foreground"}`}>
-                    {typeIcons[t]} {t === "info" ? t("auto.g_1098", "일반") : t === "warning" ? t("auto.g_1099", "경고") : t("auto.g_1100", "업데이트9")}
+                {(["info", "warning", "update"] as AnnouncementType[]).map(aType => <button key={aType} onClick={() => setAnnType(aType)} className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${annType === aType ? typeColors[aType] : "bg-muted border-border text-muted-foreground"}`}>
+                    {typeIcons[aType]} {aType === "info" ? "일반" : aType === "warning" ? "경고" : "업데이트"}
                   </button>)}
               </div>
-              <input value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder={t("auto.g_1101", "공지제목9")} className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
-              <textarea value={annContent} onChange={e => setAnnContent(e.target.value)} rows={3} placeholder={t("auto.g_1102", "공지내용9")} className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors resize-none" />
+              <input value={annTitle} onChange={e => setAnnTitle(e.target.value)} placeholder="공지 제목" className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
+              <textarea value={annContent} onChange={e => setAnnContent(e.target.value)} rows={3} placeholder="공지 내용" className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors resize-none" />
               <button onClick={handleCreateAnnouncement} disabled={savingAnn || !annTitle || !annContent} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-extrabold text-sm disabled:opacity-40 transition-opacity">
                 {savingAnn ? t("auto.g_1103", "발행중") : t("auto.g_1104", "공지발행하")}
               </button>

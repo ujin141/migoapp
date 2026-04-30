@@ -1,19 +1,37 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
-// import { PushNotifications } from "@capacitor/push-notifications";
+import { PushNotifications } from "@capacitor/push-notifications";
 import { supabase } from "@/lib/supabaseClient";
 
-export const usePushNotifications = (userId: string | undefined) => {
-  useEffect(() => {
-    /*
-    if (!userId) return;
-    // 브라우저에서는 동작하지 않음 (오직 네이티브 iOS/Android)
-    if (!Capacitor.isNativePlatform()) return;
+/**
+ * usePushNotifications
+ * iOS / Android 네이티브 푸시 알림 등록 훅
+ *
+ * 동작:
+ * 1. 푸시 권한 요청
+ * 2. APNs/FCM 토큰을 profiles.fcm_token에 저장
+ * 3. 포그라운드 수신 → onForegroundNotif 콜백 호출
+ * 4. 알림 탭(딥링크) → onNotificationAction 콜백 호출
+ */
+export const usePushNotifications = (
+  userId: string | undefined,
+  onForegroundNotif?: (title: string, body: string, data?: Record<string, string>) => void,
+  onNotificationAction?: (data: Record<string, string>) => void,
+) => {
+  const registeredRef = useRef(false);
 
-    let isRegistered = false;
+  useEffect(() => {
+    if (!userId) return;
+    // 웹(브라우저)에서는 네이티브 푸시 미지원 — Notification API는 notificationService.ts 참조
+    if (!Capacitor.isNativePlatform()) return;
+    // 이미 등록됐으면 재등록 방지
+    if (registeredRef.current) return;
+
+    let cleanup: (() => void) | null = null;
 
     const registerPush = async () => {
       try {
+        // ── 권한 확인 ──
         let permStatus = await PushNotifications.checkPermissions();
 
         if (permStatus.receive === "prompt") {
@@ -21,51 +39,61 @@ export const usePushNotifications = (userId: string | undefined) => {
         }
 
         if (permStatus.receive !== "granted") {
-          console.log("User denied push notification permissions");
+          console.log("[Push] 권한 거부됨");
           return;
         }
 
-        // Add listeners
+        // ── 리스너 등록 ──
+
+        // 토큰 등록 완료 → DB 저장
         await PushNotifications.addListener("registration", async (token) => {
-          console.log("FCM Token:", token.value);
-          // DB에 토큰 저장
-          await supabase
-            .from("profiles")
-            .update({ fcm_token: token.value })
-            .eq("id", userId);
+          try {
+            await supabase
+              .from("profiles")
+              .update({ fcm_token: token.value })
+              .eq("id", userId);
+          } catch {
+            // 토큰 저장 실패는 조용히 무시 (앱 동작에 영향 없음)
+          }
         });
 
-        await PushNotifications.addListener("registrationError", (err) => {
-          console.error("Registration error:", err.error);
+        // 등록 에러
+        await PushNotifications.addListener("registrationError", (_err) => {
+          // 보안: 에러 상세 노출 금지
+          console.warn("[Push] 등록 실패");
         });
 
+        // 포그라운드 수신 (앱이 켜져 있을 때)
         await PushNotifications.addListener("pushNotificationReceived", (notification) => {
-          console.log("Push received:", notification);
-          // Foreground 앱 활성화 중일때의 동작 (이미 in-app notification이 뜨므로 무시하거나 별도 처리 가능)
+          const title = notification.title ?? "";
+          const body = notification.body ?? "";
+          const data = (notification.data ?? {}) as Record<string, string>;
+          onForegroundNotif?.(title, body, data);
         });
 
-        await PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
-          console.log("Push action performed:", notification.actionId);
-          // 앱 꺼져 있을 때 푸시 터치해서 들어온 경우 -> 특정 채팅방 리다이렉트 등 딥링킹 로직
-          const data = notification.notification.data;
-          // 예: if (data.url) window.location.href = data.url;
+        // 알림 탭 (백그라운드/종료 상태에서 탭)
+        await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+          const data = (action.notification.data ?? {}) as Record<string, string>;
+          onNotificationAction?.(data);
         });
 
-        // Register with Apple / Google
+        // APNs / FCM 에 등록 요청
         await PushNotifications.register();
-        isRegistered = true;
-      } catch (error) {
-        console.error("Failed to setup push notifications", error);
+        registeredRef.current = true;
+
+        cleanup = () => {
+          PushNotifications.removeAllListeners();
+          registeredRef.current = false;
+        };
+      } catch {
+        console.warn("[Push] 초기화 실패");
       }
     };
 
     registerPush();
 
     return () => {
-      if (isRegistered) {
-        PushNotifications.removeAllListeners();
-      }
+      cleanup?.();
     };
-    */
   }, [userId]);
 };

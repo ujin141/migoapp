@@ -10,6 +10,7 @@ import MigoPlusModal from "@/components/MigoPlusModal";
 import SOSModal from "@/components/SOSModal";
 import ProfileDetailSheet from "@/components/ProfileDetailSheet";
 import ReportBlockActionSheet from "@/components/ReportBlockActionSheet";
+import { triggerHaptic } from "@/lib/haptics";
 
 export interface ChatRoomProps {
   // State from parent
@@ -124,22 +125,22 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     try {
       const { translateText } = await import('@/lib/translateService');
       const translated = await translateText({ text: message, targetLang });
-      if (translated && translated !== message) {
-        // 번역된 텍스트로 message를 교체 후 전송
-        setMessage(translated);
-        // 짧은 딜레이 후 전송 (state 반영 대기)
-        await new Promise(r => setTimeout(r, 50));
+      const textToSend = (translated && translated !== message) ? translated : message;
+      // stale closure 판위: setMessage로 다음 렌더링에 sendMessage를 호출하는 대신
+      // 번역된 텍스트를 먼저 설정한 후 멀티프림 렀더 후에 전송 (플리플-플롭 회피)
+      setMessage(textToSend);
+      // queueMicrotask로 React state flush 후 sendMessage 호출 보장
+      queueMicrotask(() => {
         sendMessage();
-        if (!isPlus) incrementTranslateSendCount();
-      } else {
-        sendMessage();
-      }
+      });
+      if (!isPlus && translated && translated !== message) incrementTranslateSendCount();
     } catch {
       sendMessage();
     } finally {
       setTranslateSending(false);
     }
   }, [message, targetLang, isPlus, sendMessage, setMessage]);
+
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
@@ -165,7 +166,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
           </div>
           <div className="flex items-center gap-1.5">
             {/* 신고/차단 버튼 — Guideline 1.2 직접 노출 */}
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setActionSheetTarget(thread)} className="w-9 h-9 flex items-center justify-center rounded-full text-red-400 bg-red-500/10 transition-colors hover:bg-red-500/20 border border-red-500/20">
+            <motion.button whileTap={{ scale: 0.9 }} onClick={() => { triggerHaptic("warning"); setActionSheetTarget(thread); }} className="w-9 h-9 flex items-center justify-center rounded-full text-red-400 bg-red-500/10 transition-colors hover:bg-red-500/20 border border-red-500/20">
               <ShieldAlert size={16} />
             </motion.button>
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate("/voice-call", { state: { contactId: thread?.id ?? "u1" } })} className="w-9 h-9 flex items-center justify-center rounded-full text-white bg-indigo-500 transition-colors hover:bg-indigo-600 shadow-md">
@@ -355,7 +356,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       </div>
 
       {/* Floating Input Area */}
-      <div className="px-3 pb-safe pt-2 mb-3 bg-gradient-to-t from-background via-background to-transparent relative z-20">
+      <div className="px-3 pt-2 bg-gradient-to-t from-background via-background to-transparent relative z-20" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 8px) + 12px)', marginBottom: 0, transition: 'padding-bottom 0.2s' }}>
         <div className={`flex flex-col gap-2 rounded-[28px] px-2 py-2 transition-all shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-border bg-card/90 backdrop-blur-xl ${isLocked ? "opacity-70" : ""}`}>
           <div className={`flex items-center gap-2 px-2`}>
             <input type="text" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) sendMessage(); }} placeholder={isLocked ? i18n.t('chat.lockedPlaceholder') : isMuted ? i18n.t('chat.inputMuted') : i18n.t('chat.input')} disabled={isLocked} className="flex-1 min-w-0 bg-transparent text-[15px] font-medium text-foreground placeholder:text-muted-foreground outline-none disabled:cursor-not-allowed px-2 py-2.5" />
@@ -387,7 +388,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                 <Crown size={18} className="text-white drop-shadow-sm" />
               </motion.button>
             ) : (
-              <button onClick={sendMessage} disabled={!message.trim()} className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center transition-transform active:scale-90 disabled:opacity-30 shrink-0">
+              <button onClick={() => { triggerHaptic("medium"); sendMessage(); }} disabled={!message.trim()} className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center transition-transform active:scale-90 disabled:opacity-30 shrink-0">
                 <Send size={18} className="text-white ml-0.5" />
               </button>
             )}

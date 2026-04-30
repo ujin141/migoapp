@@ -44,11 +44,15 @@ const HostRegistrationModal = ({
     setSaving(true);
     const catItem = CATEGORIES.find(c => c.id === form.category);
     const catLabel = catItem?.labelKey ? i18n.t(catItem.labelKey) : (catItem?.label ?? form.category);
+    // 전화번호 마스킹 저장 (평문 노우 방지)
+    const maskedPhone = form.phone.length > 7
+      ? form.phone.slice(0, 3) + '****' + form.phone.slice(-4)
+      : '***-****-****';
     await supabase.from("reports").insert({
       reporter_id: userId,
       target_id: userId,
-      target_type: "other",
-      reason: i18n.t("auto.t_0041", `호스트 신청\n카테고리: ${catLabel}\n연락처: ${form.phone}\n소개: ${form.intro}`),
+      type: "other", // 🚨 [Fix] DB Column Name mismatch (target_type -> type)
+      reason: i18n.t("auto.t_0041", `호스트 신청\n카테고리: ${catLabel}\n연락처: ${maskedPhone}\n소개: ${form.intro}`),
     });
     setSaving(false);
     toast({
@@ -153,7 +157,7 @@ const BookingModal = ({ pkg, onClose, userId }: BookingModalProps) => {
       const { error } = await supabase.from("reports").insert({
         reporter_id: userId,
         target_id: pkg.id,
-        target_type: "other",
+        type: "other", // 🚨 [Fix] DB Column Name mismatch (target_type -> type)
         reason: t("auto.t_0042", `예약 신청\n상품: ${pkg.title}\n인원: ${count}명\n금액: ${getLocalizedPrice(pkg.price * count, i18n.language)}`)
       });
       if (error) {
@@ -267,9 +271,8 @@ const BookingModal = ({ pkg, onClose, userId }: BookingModalProps) => {
             <PaymentModal
               isOpen={showPayment}
               onClose={() => setShowPayment(false)}
-              groupTitle={pkg.title}
+              groupTitle={`${pkg.title} × ${count}명`}
               groupId={pkg.id}
-              entryFee={pkg.price * count}
               onPaymentSuccess={handlePaymentSuccess}
             />
           )}
@@ -416,10 +419,12 @@ const MarketplacePage = () => {
     const isLiked = likedIds.includes(id);
     if (isLiked) {
       setLikedIds(prev => prev.filter(i => i !== id));
-      await supabase.from("marketplace_likes").delete().eq("user_id", user.id).eq("item_id", id);
+      const { error } = await supabase.from("marketplace_likes").delete().eq("user_id", user.id).eq("item_id", id);
+      if (error) setLikedIds(prev => [...prev, id]); // 실패 시 롤백
     } else {
       setLikedIds(prev => [...prev, id]);
-      await supabase.from("marketplace_likes").insert({ user_id: user.id, item_id: id });
+      const { error } = await supabase.from("marketplace_likes").insert({ user_id: user.id, item_id: id });
+      if (error) setLikedIds(prev => prev.filter(i => i !== id)); // 실패 시 롤백
     }
   };
 

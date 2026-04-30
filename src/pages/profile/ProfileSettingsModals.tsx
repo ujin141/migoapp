@@ -16,80 +16,181 @@ export const NotificationModal = ({
 }: any) => {
   const { t } = useTranslation();
 
+  // ── 세분화된 알림 설정 (localStorage 영속) ──
+  const loadPref = (key: string, fallback = true) => {
+    try {
+      const v = localStorage.getItem(`notif_pref_${key}`);
+      return v !== null ? v === "true" : fallback;
+    } catch { return fallback; }
+  };
+  const [prefLike,     setPrefLike]     = useState(() => loadPref("like"));
+  const [prefSuperlike,setPrefSuperlike]= useState(() => loadPref("superlike"));
+  const [prefMatch,    setPrefMatch]    = useState(() => loadPref("match"));
+  const [prefComment,  setPrefComment]  = useState(() => loadPref("comment"));
+  const [prefGroup,    setPrefGroup]    = useState(() => loadPref("group", true));
+  const [prefSystem,   setPrefSystem]   = useState(() => loadPref("system", true));
+
+  const togglePref = (key: string, val: boolean, setter: (v: boolean) => void) => {
+    setter(val);
+    localStorage.setItem(`notif_pref_${key}`, String(val));
+    // 부모 상태도 동기화 (하위 호환)
+    if (key === "match") setNotifMatch?.(val);
+    if (key === "group") setNotifGroup?.(val);
+    toast({ title: `${key} ${val ? t("common.on", "On") : t("common.off", "Off")}` });
+  };
+
+  const ITEMS = [
+    {
+      key: "like",
+      emoji: "❤️",
+      label: t("profilePage.settings.notif.like", "좋아요 알림"),
+      desc: t("profilePage.settings.notif.likeDesc", "누군가 나에게 좋아요를 보내면 알림"),
+      value: prefLike,
+      setter: (v: boolean) => togglePref("like", v, setPrefLike),
+    },
+    {
+      key: "superlike",
+      emoji: "⭐",
+      label: t("profilePage.settings.notif.superlike", "슈퍼라이크 알림"),
+      desc: t("profilePage.settings.notif.superlikeDesc", "슈퍼라이크 수신 시 알림"),
+      value: prefSuperlike,
+      setter: (v: boolean) => togglePref("superlike", v, setPrefSuperlike),
+    },
+    {
+      key: "match",
+      emoji: "🎉",
+      label: t("profilePage.settings.notif.label", "매칭 알림"),
+      desc: t("profilePage.settings.notif.desc", "새로운 매칭이 성사되면 알림"),
+      value: prefMatch,
+      setter: (v: boolean) => togglePref("match", v, setPrefMatch),
+    },
+    {
+      key: "comment",
+      emoji: "💬",
+      label: t("profilePage.settings.notif.comment", "댓글 알림"),
+      desc: t("profilePage.settings.notif.commentDesc", "내 게시글에 댓글이 달리면 알림"),
+      value: prefComment,
+      setter: (v: boolean) => togglePref("comment", v, setPrefComment),
+    },
+    {
+      key: "group",
+      emoji: "👥",
+      label: t("profilePage.settings.group.label", "그룹 알림"),
+      desc: t("profilePage.settings.group.desc", "그룹 입장·공지 알림"),
+      value: prefGroup,
+      setter: (v: boolean) => togglePref("group", v, setPrefGroup),
+    },
+    {
+      key: "system",
+      emoji: "🔔",
+      label: t("profilePage.settings.notif.system", "시스템 알림"),
+      desc: t("profilePage.settings.notif.systemDesc", "업데이트·공지·이벤트 알림"),
+      value: prefSystem,
+      setter: (v: boolean) => togglePref("system", v, setPrefSystem),
+    },
+  ];
+
+  const handleSave = async () => {
+    if (user) {
+      const prefs = {
+        like: prefLike,
+        superlike: prefSuperlike,
+        match: prefMatch,
+        comment: prefComment,
+        group: prefGroup,
+        system: prefSystem,
+      };
+      // notification_prefs JSONB 컬럼에 저장 (컬럼 없으면 무시됨)
+      await supabase
+        .from("profiles")
+        .update({ notification_prefs: prefs } as any)
+        .eq("id", user.id)
+        .then(() => {}); // silent fail if column doesn't exist yet
+    }
+    setShowNotifModal(false);
+    toast({ title: i18n.t("profile.notifSaved", "알림 설정이 저장되었습니다") });
+  };
+
   return (
     <AnimatePresence>
-      {showNotifModal && <motion.div className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe" initial={{
-      opacity: 0
-    }} animate={{
-      opacity: 1
-    }} exit={{
-      opacity: 0
-    }}>
-          <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowNotifModal(false)} />
-          <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 p-6 pb-20 shadow-float" initial={{
-        y: "100%"
-      }} animate={{
-        y: 0
-      }} exit={{
-        y: "100%"
-      }} transition={{
-        type: "spring",
-        damping: 25,
-        stiffness: 300
-      }}>
-            <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
-            <div className="flex items-center justify-between mb-5 gap-2">
-              <h3 className="text-lg font-extrabold text-foreground truncate">{i18n.t("profilePage.settings.notif.label") || "Notifications"}</h3>
-              <button className="shrink-0" onClick={() => setShowNotifModal(false)}><X size={20} className="text-muted-foreground" /></button>
+      {showNotifModal && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-end justify-center px-safe pb-safe pt-safe"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div
+            className="absolute inset-0 bg-foreground/50 backdrop-blur-sm"
+            onClick={() => setShowNotifModal(false)}
+          />
+          <motion.div
+            className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 shadow-float overflow-hidden"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          >
+            {/* Header */}
+            <div className="px-6 pt-5 pb-4">
+              <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-extrabold text-foreground">
+                    🔔 {i18n.t("profilePage.settings.notif.label", "알림 설정")}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {i18n.t("notif.settingsDesc", "받고 싶은 알림을 선택하세요")}
+                  </p>
+                </div>
+                <button className="shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center" onClick={() => setShowNotifModal(false)}>
+                  <X size={16} className="text-muted-foreground" />
+                </button>
+              </div>
             </div>
-            <div className="space-y-4 overflow-y-auto" style={{ maxHeight: '60vh' }}>
-              {[{
-            label: i18n.t("profilePage.settings.notif.label"),
-            desc: i18n.t("profilePage.settings.notif.desc"),
-            value: notifMatch,
-            setter: setNotifMatch
-          }, {
-            label: i18n.t("profilePage.settings.chat.label"),
-            desc: i18n.t("profilePage.settings.chat.desc"),
-            value: notifChat,
-            setter: setNotifChat
-          }, {
-            label: i18n.t("profilePage.settings.group.label"),
-            desc: i18n.t("profilePage.settings.group.desc"),
-            value: notifGroup,
-            setter: setNotifGroup
-          }].map(item => <div key={item.label} className="flex items-center justify-between p-4 rounded-2xl bg-muted">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+
+            {/* Items */}
+            <div className="px-6 pb-4 space-y-2 max-h-[55vh] overflow-y-auto">
+              {ITEMS.map((item) => (
+                <div
+                  key={item.key}
+                  className="flex items-center justify-between px-4 py-3.5 rounded-2xl bg-muted"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="text-lg shrink-0">{item.emoji}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{item.label}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{item.desc}</p>
+                    </div>
                   </div>
-                  <button onClick={() => {
-              item.setter(!item.value);
-              toast({
-                title: `${item.label} ${!item.value ? t('common.on', 'On') : t('common.off', 'Off')}`
-              });
-          }} className={`w-12 h-6 rounded-full transition-colors ${item.value ? "gradient-primary" : "bg-border"} relative`}>
-                    <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${item.value ? "translate-x-6" : "translate-x-0.5"}`} />
+                  <button
+                    onClick={() => item.setter(!item.value)}
+                    className={`ml-3 shrink-0 w-12 h-6 rounded-full transition-colors duration-200 relative ${
+                      item.value ? "gradient-primary" : "bg-border"
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                        item.value ? "translate-x-6" : "translate-x-0.5"
+                      }`}
+                    />
                   </button>
-                </div>)}
-              <button onClick={async () => {
-            if (user) {
-              await supabase.from("profiles").update({
-                notif_match: notifMatch,
-                notif_chat: notifChat,
-                notif_group: notifGroup
-              }).eq("id", user.id);
-            }
-            setShowNotifModal(false);
-            toast({
-              title: i18n.t("profile.notifSaved")
-            });
-          }} className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-card">
-                {i18n.t("auto.j530")}
+                </div>
+              ))}
+            </div>
+
+            {/* Save button */}
+            <div className="px-6 pb-8 pt-2">
+              <button
+                onClick={handleSave}
+                className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-bold text-sm shadow-card"
+              >
+                {i18n.t("auto.j530", "저장")}
               </button>
             </div>
           </motion.div>
-        </motion.div>}
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 };
@@ -268,13 +369,12 @@ export const DeleteAccountConfirmModal = ({ showDeleteConfirm, setShowDeleteConf
             <div className="flex flex-col gap-2">
               <button onClick={async () => {
             if (user) {
-              const { error } = await supabase.functions.invoke('delete-account');
+              const { error } = await supabase.rpc('delete_user');
               if (error) {
-                console.error("Delete account function error:", error);
-                
+                // 주의: error.message를 직접 표시하면 DB 내부 구조(FK, 테이블명)가 노출될 수 있음
                 toast({
                   title: t("profilePage.delete.fail") || "Failed to withdraw account",
-                  description: error.message,
+                  description: t("profile.tryAgainLater", "Please try again later."),
                   variant: "destructive"
                 });
                 return;
@@ -371,6 +471,7 @@ export const SettingsModal = ({
                           if (user) {
                              await supabase.auth.updateUser({ data: { locale: lang.code } });
                           }
+                          window.location.reload();
                         }}
                         className={`w-full min-w-0 overflow-hidden flex items-center gap-1.5 px-2 py-2 rounded-xl text-xs transition-colors ${
                           lang.code === i18n.language

@@ -446,7 +446,7 @@ const LoginPage = () => {
         const {
           data: signUpData,
           error: signupErr
-        } = await withRetry(() => supabase.auth.signUp({
+        } = await withRetry<import('@supabase/supabase-js').AuthResponse['data']>(() => supabase.auth.signUp({
           email,
           password
         }));
@@ -459,7 +459,7 @@ const LoginPage = () => {
             password
           }));
           if (loginErr) throw new Error(i18n.t("auto.z_\uC774\uBBF8\uB2E4\uB978\uBC29\uC2DD\uB610\uB294\uC18C\uC15C_328", "\uC774\uBBF8\uB2E4\uB978\uBC29\uC2DD\uB610\uB294\uC18C\uC15C"));
-          userId = loginData?.user?.id ?? "";
+          userId = (loginData as any)?.user?.id ?? "";
         } else if (signupErr) {
           throw signupErr;
         } else {
@@ -472,9 +472,9 @@ const LoginPage = () => {
               password
             }));
             if (extraAuthErr) throw extraAuthErr;
-            userId = loginData2?.user?.id ?? "";
+            userId = (loginData2 as any)?.user?.id ?? "";
           } else {
-            userId = signUpData.session.user.id;
+            userId = (signUpData as any)?.session?.user?.id ?? signUpData?.user?.id ?? "";
           }
         }
         if (!userId) throw new Error(t("auto.g_0719", "계정을 정상적으로 생성하지 못했습니다."));
@@ -532,7 +532,7 @@ const LoginPage = () => {
         toast({
           title: t('login.signupDone')
         });
-        setTimeout(() => navigate("/"), 800);
+        setTimeout(() => navigate("/profile-setup"), 800);
       }
     } catch (e: unknown) {
       let msg = e instanceof Error ? e.message : t("auto.g_0720", "알 수 없는 오류가 발생했습니다.");
@@ -607,8 +607,8 @@ const LoginPage = () => {
         <button onClick={async () => {
         if (isSignup && signupStep > 0) {
           if (signupStep === 2 && !otpVerified) {
-            // 이메일만 가입되고 번호 인증 안 된 가계정은 뒤로가기 시 무조건 광역 삭제 처리
-            await supabase.rpc('delete_user');
+            // 이메일만 가입되고 번호 인증 안 된 가계정: 등록 취소
+            try { await supabase.rpc('delete_user'); } catch { /* 이미 없는 번호일 수 있음 */ }
             await supabase.auth.signOut();
           }
           setSignupStep(signupStep - 1);
@@ -773,7 +773,7 @@ const LoginPage = () => {
       <div className="text-[10px] text-center text-muted-foreground pb-6 pt-1 flex justify-center gap-1.5">
         <a href="#/terms" className="underline underline-offset-2 hover:text-foreground transition-colors">{t('login.terms')}</a>
         <span>·</span>
-        <a href="/privacy#/privacy" className="underline underline-offset-2 hover:text-foreground transition-colors">{t('login.privacy')}</a>
+        <a href="#/privacy" className="underline underline-offset-2 hover:text-foreground transition-colors">{t('login.privacy')}</a>
         <span>·</span>
         <button onClick={() => setShowRefundPolicyModal(true)} className="underline underline-offset-2 hover:text-foreground transition-colors">{t('login.refundPolicy')}</button>
       </div>

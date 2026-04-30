@@ -50,11 +50,11 @@ interface Props {
 }
 
 // ─── category style map ───────────────────────────────────────────
-const CATEGORY_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  city:       { color: "text-blue-600",    bg: "bg-blue-50",    label: "🏙️ 도심/시내" },
-  nature:     { color: "text-emerald-600", bg: "bg-emerald-50", label: "🌊 바다/자연" },
-  attraction: { color: "text-purple-600",  bg: "bg-purple-50",  label: "🎡 관광/테마파크" },
-  club:       { color: "text-pink-600",    bg: "bg-pink-50",    label: "🪩 클럽/라운지" },
+const CATEGORY_STYLES: Record<string, { color: string; bg: string }> = {
+  city:       { color: "text-blue-600",    bg: "bg-blue-50" },
+  nature:     { color: "text-emerald-600", bg: "bg-emerald-50" },
+  attraction: { color: "text-purple-600",  bg: "bg-purple-50" },
+  club:       { color: "text-pink-600",    bg: "bg-pink-50" },
 };
 
 // ─── Component ───────────────────────────────────────────────────
@@ -90,13 +90,19 @@ export const HotplaceSheet = ({
       const { data, error } = await supabase
         .from("hotplace_seekers")
         .select(`
-          id, user_id, hotplace_id, message, created_at,
+          id, user_id, hotplace_id, message, meet_date, meet_time, max_members, created_at,
           profiles (name, photo_url, age, nationality, bio)
         `)
         .eq("hotplace_id", hotplace.id)
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
+      if (error) {
+        // 테이블이 아직 생성되지 않은 경우 등 — 조용히 실패
+        console.warn("[HotplaceSheet] hotplace_seekers load failed:", error.message);
+        setSeekers([]);
+        return;
+      }
+      if (data) {
         setSeekers(data as Seeker[]);
         const mine = data.find((s: any) => s.user_id === user?.id);
         setMySeekerId(mine ? mine.id : null);
@@ -223,7 +229,14 @@ export const HotplaceSheet = ({
     }
   };
 
-  const catConfig = hotplace ? (CATEGORY_CONFIG[hotplace.category] ?? { color: "text-primary", bg: "bg-primary/10", label: hotplace.category }) : null;
+  const catStyles = hotplace ? (CATEGORY_STYLES[hotplace.category] ?? { color: "text-primary", bg: "bg-primary/10" }) : null;
+  const catLabel = hotplace ? (
+    hotplace.category === "city" ? `🏙️ ${t("auto.ko_0202", "City center")}` :
+    hotplace.category === "nature" ? `🌊 ${t("auto.ko_0203", "Beach / Nature")}` :
+    hotplace.category === "attraction" ? `🎡 ${t("auto.ko_0204", "Theme park / Attraction")}` :
+    hotplace.category === "club" ? `🪩 ${t("auto.ko_0205", "Club / Lounge")}` :
+    hotplace.category
+  ) : null;
 
   const distInfo = (() => {
     if (!myLatLngRef.current || !hotplace) return null;
@@ -274,9 +287,9 @@ export const HotplaceSheet = ({
                     {hotplace.country} · {hotplace.cities[0]}
                   </p>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                    {catConfig && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${catConfig.bg} ${catConfig.color}`}>
-                        {catConfig.label}
+                    {catStyles && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${catStyles.bg} ${catStyles.color}`}>
+                        {catLabel}
                       </span>
                     )}
                     {distInfo && (
@@ -472,7 +485,7 @@ export const HotplaceSheet = ({
                               className="w-full accent-amber-500"
                             />
                             <div className="flex justify-between text-[9px] text-amber-500/70 font-bold px-1">
-                              <span>2명</span><span>10명</span>
+                              <span>2</span><span>10</span>
                             </div>
                           </div>
 
@@ -505,7 +518,7 @@ export const HotplaceSheet = ({
                           <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                             <p className="text-[13px] font-extrabold text-green-700">{t("hotplace.myPostActive", "내 동반자 모집 진행 중")}</p>
                             <span className="text-[9px] font-bold bg-green-200/50 text-green-700 px-1.5 py-0.5 rounded flex items-center gap-1">
-                              <Users size={10} /> 최대 {myMaxMembers}명
+                              <Users size={10} /> {t("hotplace.upTo", "최대")} {myMaxMembers}{t("hotplace.membersUnit", "명")}
                             </span>
                           </div>
                           {(myMeetDate || myMeetTime) && (
@@ -542,10 +555,10 @@ export const HotplaceSheet = ({
                         const timeAgo = (() => {
                           const diff = Date.now() - new Date(seeker.created_at).getTime();
                           const min = Math.floor(diff / 60000);
-                          if (min < 60) return `${min}분 전`;
+                          if (min < 60) return `${min}${t("auto.g_time_min", " min ago")}`;
                           const h = Math.floor(min / 60);
-                          if (h < 24) return `${h}시간 전`;
-                          return `${Math.floor(h / 24)}일 전`;
+                          if (h < 24) return `${h}${t("auto.g_time_hour", "h ago")}`;
+                          return `${Math.floor(h / 24)}${t("auto.g_time_day", "d ago")}`;
                         })();
 
                         return (
@@ -583,7 +596,7 @@ export const HotplaceSheet = ({
                               <div className="mt-1.5 flex flex-wrap gap-1.5">
                                 <div className="bg-muted px-2 py-1 rounded border border-border/50 flex items-center gap-1.5">
                                   <Users size={10} className="text-muted-foreground" />
-                                  <span className="text-[10px] font-extrabold text-foreground">{t("auto.ko_0174", "최대")} {seeker.max_members || 4}{t("auto.ko_0175", "명")}</span>
+                                  <span className="text-[10px] font-extrabold text-foreground">{t("hotplace.upTo", "Up to")} {seeker.max_members || 4} {t("hotplace.membersUnit", " people")}</span>
                                 </div>
                                 {(seeker.meet_date || seeker.meet_time) && (
                                   <div className="bg-primary/5 px-2 py-1 rounded border border-primary/20 flex items-center gap-1.5">

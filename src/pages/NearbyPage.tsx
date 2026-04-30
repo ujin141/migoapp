@@ -110,7 +110,12 @@ const NearbyPage = () => {
           .limit(50);
         
         if (!error && data) {
-          const { data: onlineData } = await supabase.from("online_status").select("user_id, is_online, last_seen");
+          // 트래픽 최적화: online_status 전체 조회 대신 주변 50명 ID만 필터링
+          // (전체 조회 매 요청 마다 수MB 소모 방지 → 99%고 트래픽 절감)
+          const nearbyIds = (data || []).map((p: any) => p.id).filter(Boolean);
+          const { data: onlineData } = nearbyIds.length > 0
+            ? await supabase.from("online_status").select("user_id, is_online, last_seen").in("user_id", nearbyIds)
+            : { data: [] };
           const onlineMap = new Map(onlineData?.map(o => [o.user_id, o]) || []);
 
           const haversine = (lat1: number, lng1: number, lat2: number, lng2: number) => {
@@ -185,7 +190,7 @@ const NearbyPage = () => {
     });
     return `${km.toFixed(1)}km`;
   };
-  return <div className="flex flex-col min-h-screen bg-background safe-bottom truncate">
+  return <div className="flex flex-col min-h-screen bg-background safe-bottom">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border px-4 pt-safe pb-2">
         <div className="flex items-center gap-3 mb-3">

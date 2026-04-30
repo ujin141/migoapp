@@ -56,12 +56,14 @@ const AuthCallbackPage = () => {
         });
       } else {
         // 세션이 아직 없으면 onAuthStateChange로 대기
+        let timeoutId: ReturnType<typeof setTimeout>;
         const {
           data: {
             subscription
           }
         } = supabase.auth.onAuthStateChange((_event, session) => {
           if (session) {
+            clearTimeout(timeoutId); // 성공 시 타임아웃 취소 (레이스 콘디션 방지)
             subscription.unsubscribe();
             // OAuth 완료 후 인앱 브라우저 닫기
             Browser.close().catch(() => {});
@@ -71,12 +73,18 @@ const AuthCallbackPage = () => {
           }
         });
         // 5초 타임아웃 — 실패 시 로그인 페이지로
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           subscription.unsubscribe();
           navigate("/login", {
             replace: true
           });
         }, 5000);
+
+        // 💡 컴포넌트 언마운트 시 발생할 수 있는 메모리 누수 및 좀비 라우팅 방지
+        return () => {
+          clearTimeout(timeoutId);
+          subscription.unsubscribe();
+        };
       }
     });
   }, [navigate]);

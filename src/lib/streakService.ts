@@ -69,10 +69,17 @@ export function checkInStreak(): { data: StreakData; isNew: boolean; leveledUp: 
     return { data: prev, isNew: false, leveledUp: false };
   }
 
-  const prevDate = prev.lastVisit ? new Date(prev.lastVisit) : null;
-  const todayDate = new Date(today);
-  const diffDays = prevDate
-    ? Math.round((todayDate.getTime() - prevDate.getTime()) / 86400000)
+  // new Date('YYYY-MM-DD')는 UTC 자정으로 파싱됨 → 로컨 타임존에 따라 diffDays가 0이나 2로 잘못 계산될 수 있음
+  // UTC 날짜 문자열 직접 비교하여 타임존 영향 제거
+  const prevDateStr = prev.lastVisit; // 'YYYY-MM-DD' 형식
+  const diffDays = prevDateStr
+    ? (() => {
+        const [py, pm, pd] = prevDateStr.split('-').map(Number);
+        const [ty, tm, td] = today.split('-').map(Number);
+        const prevMs = Date.UTC(py, pm - 1, pd);
+        const todayMs = Date.UTC(ty, tm - 1, td);
+        return Math.round((todayMs - prevMs) / 86400000);
+      })()
     : 99;
 
   const newStreak = diffDays === 1 ? prev.currentStreak + 1 : 1;

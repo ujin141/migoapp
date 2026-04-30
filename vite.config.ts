@@ -6,8 +6,10 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: mode === "production" ? "./" : "/",
   esbuild: {
-    drop: ["console", "debugger"],
+    // 프로덕션 빌드에서 console.log/debug 완전 제거 (번들 크기 절감 + 정보 보호)
+    drop: mode === "production" ? ["console", "debugger"] : [],
     // 불필요한 주석 제거
     legalComments: "none",
   },
@@ -39,13 +41,16 @@ export default defineConfig(({ mode }) => ({
   build: {
     sourcemap: false,
     minify: "esbuild",
-    // es2020: 더 나은 tree-shaking + 모던 브라우저 지원
-    // target: "es2020",
-    // chunking strategies and rollupOptions removed to let Vite handle it natively
-    // to fix createContext undefined chunk issues.
-    chunkSizeWarningLimit: 1000,
+    target: "es2020",           // 모던 브라우저: 더 나은 tree-shaking
+    chunkSizeWarningLimit: 800,
     cssCodeSplit: true,
-    // 롤업 빌드 병렬화
-    reportCompressedSize: false, // 빌드 속도 개선 (크기 보고 생략)
+    reportCompressedSize: false, // 빌드 속도 개선
+    rollupOptions: {
+      output: {
+        // 청크 파일명에 해시 포함 (캐시 버스팅)
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
+    },
   },
 }));

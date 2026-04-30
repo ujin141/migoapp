@@ -43,8 +43,8 @@ export const DiscoverPosts = ({
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
               <MessageCircle size={24} className="text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground text-sm truncate">{i18n.t("auto.g_1393", "첫게시글을")}</p>
-          </div> : <div className="flex flex-col gap-5 px-1 truncate">
+            <p className="text-muted-foreground text-sm text-center">{i18n.t("auto.g_1393", "Be the first to post!")}</p>
+          </div> : <div className="flex flex-col gap-5 px-1">
             {sortedPosts.map((post: any, index: number) => {
               const isRead = readStories.has(post.id);
               return (

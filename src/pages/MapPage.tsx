@@ -434,8 +434,8 @@ const MapPage = () => {
     };
     fetchTripGroups();
 
-    // Broadcast Listener 역방향 (상대방 움직임 캐치)
-    const channel = supabase.channel("public-map");
+    // BUG-05 fix: 채널명을 고유하게 하여 useLocationTracker("public-map")과 충돌 방지
+    const channel = supabase.channel(`map-listener:${user?.id ?? 'anon'}`);
     channel.on("broadcast", { event: "location_update" }, (payload) => {
       const { user_id, lat, lng, rightNowMessage } = payload.payload;
       if (user_id === user?.id) return; // 내 위치는 무시 (이미 프론트엔드에서 처리)
@@ -718,66 +718,67 @@ const MapPage = () => {
     if (likingRef.current.has(id)) return;
     likingRef.current.add(id);
     try {
-      setLiked(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]);
+      // BUG-07 fix: isLiking을 setLiked 호출 전에 스냅샷으로 확정 (낙관적 업데이트 후 state반전 방지)
       const isLiking = !liked.includes(id);
-    if (isLiking) {
-      // 1. 내 좋아요 저장
-      await supabase.from('likes').upsert({
-        from_user: user.id,
-        to_user: id,
-        kind: 'like'
-      }, {
-        onConflict: 'from_user,to_user'
-      });
-
-      // 2. 상대방도 나를 좋아요 했는지 확인 (상호 매칭)
-      const {
-        data: mutual
-      } = await supabase.from('likes').select('id').eq('from_user', id).eq('to_user', user.id).eq('kind', 'like').maybeSingle();
-      if (mutual) {
-        toast({
-          title: t("auto.t_0010", `🎉 ${name}님과 매칭성공!`)
+      setLiked(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]);
+      if (isLiking) {
+        // 1. 내 좋아요 저장
+        await supabase.from('likes').upsert({
+          from_user: user.id,
+          to_user: id,
+          kind: 'like'
+        }, {
+          onConflict: 'from_user,to_user'
         });
 
-        // 매칭 성사 시 채팅방(trip_groups) 생성
+        // 2. 상대방도 나를 좋아요 했는지 확인 (상호 매칭)
         const {
-          data: group
-        } = await supabase.from('trip_groups').insert({
-          name: `${user.name} & ${name}`,
-          created_by: user.id
-        }).select().single();
-        if (group) {
-          await supabase.from('trip_group_members').insert([{
-            group_id: group.id,
-            user_id: user.id
-          }, {
-            group_id: group.id,
-            user_id: id
-          }]);
-        }
-        await supabase.from('in_app_notifications').insert({
-          user_id: id,
-          type: 'match',
-          title: t("map.matchSuccess"),
-          content: t("auto.t_0037", `${user.name}님이 회원님에게 매칭 신청을 보냈습니다`)
-        });
+          data: mutual
+        } = await supabase.from('likes').select('id').eq('from_user', id).eq('to_user', user.id).eq('kind', 'like').maybeSingle();
+        if (mutual) {
+          toast({
+            title: t("auto.t_0010", `🎉 ${name}님과 매칭성공!`)
+          });
 
-        // 약간의 딜레이 후 채팅으로 이동
-        setTimeout(() => navigate('/chat'), 1500);
+          // 매칭 성사 시 채팅방(trip_groups) 생성
+          const {
+            data: group
+          } = await supabase.from('trip_groups').insert({
+            name: `${user.name} & ${name}`,
+            created_by: user.id
+          }).select().single();
+          if (group) {
+            await supabase.from('trip_group_members').insert([{
+              group_id: group.id,
+              user_id: user.id
+            }, {
+              group_id: group.id,
+              user_id: id
+            }]);
+          }
+          await supabase.from('in_app_notifications').insert({
+            user_id: id,
+            type: 'match',
+            title: t("map.matchSuccess"),
+            content: t("auto.t_0037", `${user.name}님이 회원님에게 매칭 신청을 보냈습니다`)
+          });
+
+          // 약간의 딜레이 후 채팅으로 이동
+          setTimeout(() => navigate('/chat'), 1500);
+        } else {
+          toast({
+            title: t("auto.t_0011", `❤️ ${name}님에게 충심 전달!`)
+          });
+          await supabase.from('in_app_notifications').insert({
+            user_id: id,
+            type: 'like',
+            title: t("map.newVibe"),
+            content: t("auto.t_0038", `${user.name}님이 회원님의 프로필에 충심행습니다`)
+          });
+        }
       } else {
-        toast({
-          title: t("auto.t_0011", `❤️ ${name}님에게 충심 전달!`)
-        });
-        await supabase.from('in_app_notifications').insert({
-          user_id: id,
-          type: 'like',
-          title: t("map.newVibe"),
-          content: t("auto.t_0038", `${user.name}님이 회원님의 프로필에 충심행습니다`)
-        });
+        await supabase.from('likes').delete().eq('from_user', user.id).eq('to_user', id);
       }
-    } else {
-      await supabase.from('likes').delete().eq('from_user', user.id).eq('to_user', id);
-    }
     } finally {
       likingRef.current.delete(id);
     }
@@ -1168,26 +1169,7 @@ const MapPage = () => {
               </OverlayView>}
           </GoogleMap>}
 
-        {/* Floating action icons for Map Features */}
-        <div className={`absolute right-4 z-30 pointer-events-none transition-all duration-300 ${displayMode === 'restaurants' || displayMode === 'hotplaces' ? 'top-[100px]' : 'top-4'}`}>
-          <div className="flex flex-col gap-2 pointer-events-auto">
-            {/* Lodging Trends */}
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowLodgingTrends(true)} className="w-10 h-10 bg-gradient-to-tr from-rose-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 text-white relative">
-              <span className="text-lg leading-none">🛏️</span>
-              <div className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-white animate-pulse shadow-sm" />
-            </motion.button>
 
-            {/* Flight Trends */}
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowFlightTrends(true)} className="w-10 h-10 bg-gradient-to-tr from-sky-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-sky-500/20 text-white relative">
-              <span className="text-lg leading-none">✈️</span>
-            </motion.button>
-
-            {/* Lightning Match */}
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowRightNowModal(true)} className="w-10 h-10 bg-amber-500 border border-amber-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 text-white">
-              <Zap size={18} fill="currentColor" />
-            </motion.button>
-          </div>
-        </div>
 
         {/* Restore structure for Sub-Filters and FAB */}
         <div className="absolute inset-0 pointer-events-none">
@@ -1614,33 +1596,46 @@ const MapPage = () => {
             </div>
           </div>}
 
-        {/* FAB Container */}
-        <div 
-          className="absolute right-4 z-30 flex flex-col gap-3 items-end transition-all duration-300 pointer-events-none"
-          style={{ 
-            bottom: selectedRestaurant 
-              ? "calc(420px + env(safe-area-inset-bottom, 0px))" 
-              : (selectedTraveler || selectedHotplace || selectedPost || selectedGroup) 
-              ? "calc(270px + env(safe-area-inset-bottom, 0px))" 
-              : ((displayMode === "travelers" && travelers.length > 0) ? "calc(180px + env(safe-area-inset-bottom, 0px))" : "calc(85px + env(safe-area-inset-bottom, 0px))") 
+        {/* ── 우측 버튼 전체 (카드 없을 때만 표시) ── */}
+        <div
+          className="absolute right-4 z-30 flex flex-col items-end pointer-events-none"
+          style={{
+            top: displayMode === 'restaurants' || displayMode === 'hotplaces' ? '100px' : '16px',
+            visibility: (selectedRestaurant || selectedTraveler || selectedHotplace || selectedPost || selectedGroup) ? 'hidden' : 'visible',
           }}
         >
-          {/* Create Group FAB - absolute right bottom right above re-center */}
-          <AnimatePresence>
-            {displayMode === "groups" && (
-              <motion.button
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                onClick={() => setShowGroupCreate(true)}
-                className="bg-amber-500 rounded-full p-3.5 shadow-float border-2 border-white transition-transform active:scale-90 pointer-events-auto"
-              >
-                <Plus size={24} className="text-white" />
-              </motion.button>
-            )}
-          </AnimatePresence>
+          {/* 🛏️ Lodging Trends */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowLodgingTrends(true)}
+            style={{ marginBottom: '12px' }}
+            className="w-10 h-10 bg-gradient-to-tr from-rose-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 text-white relative pointer-events-auto"
+          >
+            <span className="text-lg leading-none">🛏️</span>
+            <div className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-white animate-pulse shadow-sm" />
+          </motion.button>
 
-          {/* Re-center FAB - right bottom fixed */}
+          {/* ✈️ Flight Trends */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowFlightTrends(true)}
+            style={{ marginBottom: '12px' }}
+            className="w-10 h-10 bg-gradient-to-tr from-sky-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-sky-500/20 text-white pointer-events-auto"
+          >
+            <span className="text-lg leading-none">✈️</span>
+          </motion.button>
+
+          {/* ⚡ Lightning Match */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowRightNowModal(true)}
+            style={{ marginBottom: '16px' }}
+            className="w-10 h-10 bg-amber-500 border border-amber-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 text-white pointer-events-auto"
+          >
+            <Zap size={18} fill="currentColor" />
+          </motion.button>
+
+          {/* 🧭 Re-center — 구분선 역할의 여백 후 배치 */}
           <button
             onClick={handleReCenter}
             className="bg-card rounded-2xl p-3 shadow-float border border-border transition-transform active:scale-90 pointer-events-auto"
@@ -1648,6 +1643,22 @@ const MapPage = () => {
             <Navigation size={18} className={`text-primary ${centerAnim ? 'animate-pulse' : ''}`} />
           </button>
         </div>
+
+        {/* ── 모임 만들기 FAB (bottom 고정, groups 모드 전용) ── */}
+        <AnimatePresence>
+          {displayMode === "groups" && (
+            <motion.button
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              onClick={() => setShowGroupCreate(true)}
+              className="absolute right-4 z-30 bg-amber-500 rounded-full p-3.5 shadow-float border-2 border-white transition-transform active:scale-90 pointer-events-auto"
+              style={{ bottom: "calc(85px + env(safe-area-inset-bottom, 0px))" }}
+            >
+              <Plus size={24} className="text-white" />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ─── Profile Detail Bottom Sheet ─── */}
@@ -2161,14 +2172,14 @@ const MapPage = () => {
               </div>
 
               <h2 className="text-xl font-extrabold text-foreground text-center mb-2">
-                📍 위치 공유 동의
+                {t("map.locationConsentTitle", "📍 Share My Location")}
               </h2>
               <p className="text-sm text-muted-foreground text-center leading-relaxed mb-1">
-                내 위치를 지도에 표시하면 <strong>주변 여행자들이 나를 볼 수 있습니다.</strong>
+                {t("map.locationConsentDesc1", "When your location is shown on the map,")} <strong>{t("map.locationConsentDesc1b", "nearby travelers can see you.")}</strong>
               </p>
               <p className="text-xs text-muted-foreground text-center leading-relaxed mb-5">
-                위치는 <strong>수동으로 켤 때만</strong> 공유되며, 자동 공유는 없습니다.
-                언제든지 끄기 버튼으로 공유를 중단할 수 있습니다.
+                {t("map.locationConsentDesc2", "Location is only shared")}&nbsp;<strong>{t("map.locationConsentDesc2b", "when you manually turn it on")}</strong>{t("map.locationConsentDesc2c", " — no automatic sharing.")}
+                {" "}{t("map.locationConsentDesc3", "You can stop sharing at any time with the Off button.")}
               </p>
 
               {/* 동의 / 거부 버튼 */}

@@ -459,7 +459,7 @@ const MatchPage = () => {
   }, [currentIndex, withAds]);
   const saveLikeAndCheckMatch = useCallback(async (toUserId: string, kind: 'like' | 'superlike' = 'like', message?: string) => {
     if (!user) return false;
-    // 1. like 저장
+    // 1. like 저장 → DB 트리거(trg_notify_on_like)가 자동으로 notifications INSERT
     await supabase.from('likes').upsert({
       from_user: user.id,
       to_user: toUserId,
@@ -487,7 +487,7 @@ const MatchPage = () => {
           thread_id: thread.id,
           user_id: toUserId
         }]);
-        // 4. matches 테이블 저장
+        // 4. matches 테이블 저장 → DB 트리거(trg_notify_on_match)가 자동으로 양쪽 notifications INSERT
         const [u1, u2] = [user.id, toUserId].sort();
         await supabase.from('matches').upsert({
           user1_id: u1,
@@ -496,30 +496,14 @@ const MatchPage = () => {
         }, {
           onConflict: 'user1_id,user2_id'
         });
-        // 5. 알림 (앱 내 + 웹 푸시)
+        // 5. 로컬 Web Push 알림 (포그라운드 시)
         const matchedProfile = withAds.find((p: any) => p.id === toUserId);
         if (matchedProfile?.name) notifyMatch(matchedProfile.name);
-        await supabase.from('notifications').insert({
-          user_id: toUserId,
-          type: 'match',
-          actor_id: user.id
-        });
-        await supabase.from('in_app_notifications').insert({
-          user_id: toUserId,
-          type: 'match',
-          title: t("auto.p524"),
-          content: t("auto.t_0043", `${user.name}님과 매칭되었습니다!`)
-        });
       }
       return thread?.id ?? true; // matched! (thread.id 또는 true)
     }
-    // 상대방도 liked 알림
-    await supabase.from('notifications').insert({
-      user_id: toUserId,
-      type: kind === 'superlike' ? 'superlike' : 'like',
-      actor_id: user.id,
-      target_text: message
-    });
+    // 좋아요/슈퍼라이크: DB 트리거가 notifications 처리함 → 클라이언트 중복 INSERT 제거
+    // in_app_notifications는 채팅 없이 즉각적인 Realtime 배너 표시 목적으로 유지
     await supabase.from('in_app_notifications').insert({
       user_id: toUserId,
       type: kind,
@@ -686,12 +670,12 @@ const MatchPage = () => {
   // 프로필 조회 알림 (카드 탭 시 해당 유저에게 전송)
   const sendProfileViewNotif = async (targetUserId: string) => {
     if (!user || targetUserId === user.id) return; // 자기 자신 제외
-    await supabase.from('notifications').insert({
+    // upsert: 5분 내 동일 사용자 조회 중복 알림 방지 (DB 커엔 없으면 insert로 fallback)
+    await supabase.from('notifications').upsert({
       user_id: targetUserId,
-      // 알림 받는 사람 (카드 주인)
       type: 'profile_view',
-      actor_id: user.id // 조회한 사람 (나)
-    });
+      actor_id: user.id
+    }, { onConflict: 'user_id,actor_id,type', ignoreDuplicates: true });
   };
   const toggleTag = (tag: string) => {
     setFilterTravelStyle(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
@@ -857,6 +841,20 @@ const MatchPage = () => {
             >
               <Heart size={22} strokeWidth={2.5} className="fill-emerald-500" />
             </motion.button>
+          </div>
+
+          {/* Trust micro-badges */}
+          <div className="flex items-center justify-center gap-3 pt-2 pb-1 opacity-70">
+            {[
+              { emoji: "🛡️", text: t("match.safeVerified", "인증 회원") },
+              { emoji: "✅", text: t("match.realTraveler", "실제 여행자") },
+              { emoji: "🔒", text: t("match.safeChat", "안전 채팅") },
+            ].map(({ emoji, text }) => (
+              <div key={text} className="flex items-center gap-1">
+                <span className="text-[10px]">{emoji}</span>
+                <span className="text-[9px] font-semibold text-muted-foreground">{text}</span>
+              </div>
+            ))}
           </div>
       </div>}
 

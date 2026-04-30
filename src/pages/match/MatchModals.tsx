@@ -50,10 +50,10 @@ export const MissionModal = ({
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 border border-primary/20">
               <span className="text-2xl animate-bounce">🎯</span>
             </div>
-            <h3 className="text-xl font-extrabold text-foreground mb-1">{i18n.t("match.missionTitle", { defaultValue: "What kind of companion do you want today?" })}</h3>
-            <p className="text-sm text-muted-foreground mb-6">{i18n.t("match.missionDesc", { defaultValue: "We'll show travelers that match your goal first!" })}</p>
+            <h3 className="text-lg font-extrabold text-foreground mb-1 break-keep leading-tight">{i18n.t("match.missionTitle", { defaultValue: "오늘 어떤 동반자를 원하세요?" })}</h3>
+            <p className="text-sm text-muted-foreground mb-6">{i18n.t("match.missionDesc", { defaultValue: "목표에 맞는 여행자를 우선 보여드려요!" })}</p>
             
-            <div className="grid grid-cols-2 gap-2 mb-6 truncate">
+            <div className="grid grid-cols-2 gap-2 mb-6">
               {[
                 { id: i18n.t("auto.g_1490", "맛집/카페 탐방 ☕"), icon: '☕', label: i18n.t("auto.g_1491", "맛집/카페") },
                 { id: i18n.t("auto.g_1492", "야경/인생샷 📸"), icon: '📸', label: i18n.t("auto.g_1493", "야경/스냅") },
@@ -65,10 +65,10 @@ export const MissionModal = ({
                 <button
                   key={m.id}
                   onClick={() => selectDailyMission(m.id)}
-                  className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 transition-colors active:scale-95"
+                  className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 transition-colors active:scale-95 min-w-0 overflow-hidden"
                 >
-                  <span className="text-2xl">{m.icon}</span>
-                  <span className="text-xs font-bold text-foreground">{m.label}</span>
+                  <span className="text-2xl leading-none">{m.icon}</span>
+                  <span className="text-xs font-bold text-foreground text-center leading-tight break-keep w-full max-w-full truncate px-0.5">{m.label}</span>
                 </button>
               ))}
             </div>

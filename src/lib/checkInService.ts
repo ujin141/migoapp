@@ -18,7 +18,8 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{
   country: string;
 }> {
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`, {
+    const lang = i18n.language?.split('-')[0] || 'en';
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${lang}`, {
       headers: {
         "User-Agent": "MigoApp/1.0"
       }
@@ -72,15 +73,20 @@ export async function checkIn(userId: string, lat: number, lng: number): Promise
 export async function getMyCheckIn(userId: string): Promise<CheckIn | null> {
   const {
     data
-  } = await supabase.from("travel_check_ins").select("*").eq("user_id", userId).gt("expires_at", new Date().toISOString()).maybeSingle();
+  } = await supabase.from("travel_check_ins")
+    .select("id, user_id, city, country, lat, lng, checked_in_at, expires_at")
+    .eq("user_id", userId).gt("expires_at", new Date().toISOString()).maybeSingle();
   return data;
 }
 
 // ── 같은 도시 여행자 목록 ─────────────────────────────────────
 export async function fetchCityTravelers(city: string, myUserId: string): Promise<CheckIn[]> {
-  const {
-    data
-  } = await supabase.from("travel_check_ins").select("*, profile:profiles(*)").ilike("city", `%${city}%`).gt("expires_at", new Date().toISOString()).neq("user_id", myUserId);
+  const { data } = await supabase.from("travel_check_ins")
+    .select("id, user_id, city, country, lat, lng, checked_in_at, expires_at, profile:profiles(id, name, photo_url, age, nationality)")
+    .ilike("city", `%${city}%`)
+    .gt("expires_at", new Date().toISOString())
+    .neq("user_id", myUserId)
+    .limit(50); // 도시 전체 조회 막기 (트래픽 최적화)
   return data || [];
 }
 

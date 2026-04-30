@@ -209,8 +209,12 @@ const CreateTripPage = ({ onClose }: CreateTripPageProps) => {
               <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={e => {
             const file = e.target.files?.[0];
             if (file) {
+              // 이전 preview URL revoke (메모리 누수 방지)
+              setCoverPreview(prev => {
+                if (prev) URL.revokeObjectURL(prev);
+                return URL.createObjectURL(file);
+              });
               setCoverImage(file);
-              setCoverPreview(URL.createObjectURL(file));
             }
             e.target.value = "";
           }} />

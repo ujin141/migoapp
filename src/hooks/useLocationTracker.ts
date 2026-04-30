@@ -88,7 +88,11 @@ export const useLocationTracker = (userId: string | undefined, enabled: boolean 
           }
         },
         (error) => {
-          console.error("WatchPosition error:", error);
+          // code 1 = PERMISSION_DENIED: 사용자가 의도적으로 거부 → 에러로 기록하지 않음
+          if ((error as any)?.code !== 1) {
+            // 타임아웃 등 실제 오류만 warn
+            console.warn("[GPS WatchPosition]", error?.message || error);
+          }
         },
         {
           enableHighAccuracy: true,

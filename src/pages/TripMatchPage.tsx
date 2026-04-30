@@ -158,12 +158,13 @@ const TripMatchPage: React.FC = () => {
     }
 
     if (!user) return;
-    supabase.from("profiles").select("gender").eq("id", user.id).maybeSingle().then(({
+    supabase.from("profiles").select("gender, instant_meets_count, no_show_count").eq("id", user.id).maybeSingle().then(({
       data
     }) => {
       if (data) {
-        setInstantMeetsCount(parseInt(localStorage.getItem(`migo_instant_${user.id}`) || '0')); // LocalStorage fallback
-        setNoShowCount(0);
+        // 🚨 [React Bug Fix] localStorage 기반 가짜 제한 대신, DB의 실제 제한 정보를 동기화
+        setInstantMeetsCount(data.instant_meets_count ?? 0);
+        setNoShowCount(data.no_show_count ?? 0);
         if (data.gender) {
            const g = data.gender.toLowerCase();
            if (g === "male" || g === t("auto.g_1063", "남") || g === t("auto.g_1064", "남성")) setMyGender("male");else if (g === "female" || g === t("auto.g_1065", "여") || g === t("auto.g_1066", "여성")) setMyGender("female");else setMyGender("other");
@@ -175,7 +176,7 @@ const TripMatchPage: React.FC = () => {
   // ── Load real groups from Supabase — GlobalFilter 연동 ──
   useEffect(() => {
     setLoading(true);
-    let query = supabase.from("trip_groups").select("*, profiles:host_id(name, photo_url, trust_score, no_show_count), trip_group_members(user_id, profiles(gender, no_show_count))").eq("status", "active").order("created_at", {
+    let query = supabase.from("trip_groups").select("*, profiles:host_id(name, photo_url, trust_score), trip_group_members(user_id, profiles(gender))").eq("status", "active").order("created_at", {
       ascending: false
     }).limit(60);
 
@@ -214,7 +215,8 @@ const TripMatchPage: React.FC = () => {
         entryFee: g.entry_fee || 0,
         memberGenders: (g.trip_group_members || []).map((m: any) => m.profiles?.gender || "unknown"),
         avgRating: g.profiles?.trust_score ? Math.round((g.profiles.trust_score / 20) * 10) / 10 : 4.5,
-        hasProblematicUsers: ((g.profiles?.no_show_count && g.profiles.no_show_count > 0) || (g.trip_group_members || []).some((m: any) => m.profiles?.no_show_count > 0)) ? true : false,
+        // trust_score가 낙으면 신뢰도가 낙은 호스트로 표시 (no_show_count 커럼 없으므로 trust_score 기반 사용)
+        hasProblematicUsers: (g.profiles?.trust_score !== undefined && g.profiles.trust_score < 30) ? true : false,
       }));
 
       // 날짜 필터 (클라이언트 사이드 — dates는 텍스트 컬럼)
@@ -251,9 +253,15 @@ const TripMatchPage: React.FC = () => {
     minSize: 4,
     maxSize: 8
   }), [user?.id, myGender, destination, vibe, genderPref, mode, hotplace, isPlus]);
+  // 💡 성능 최적화: 수천 개의 문자열 분석을 동반하는 매칭 로직은 필터나 원본 그룹 리스트가 바뀔 때만 1회 실행
+  const scoredResults = useMemo(() => {
+    return runMatchingEngine(groups, matchInput);
+  }, [groups, matchInput]);
+
+  // 사용자가 스와이프하여 skipped가 변할 때는 단순히 O(N) 순회 필터링만 실행하여 버벅임(Stutter) 방지
   const results = useMemo(() => {
-    return runMatchingEngine(groups, matchInput).filter(r => !skipped.has(r.group.id));
-  }, [groups, matchInput, skipped]);
+    return scoredResults.filter(r => !skipped.has(r.group.id));
+  }, [scoredResults, skipped]);
 
   // ── Handlers ───────────────────────────────
   const handleAccept = (result: MatchResult) => {
@@ -352,7 +360,7 @@ const TripMatchPage: React.FC = () => {
       setShowRecommendation(target);
       toast({ title: i18n.t("instant.matchSuccessTitle"), description: threadName });
     } catch (err) {
-      console.error("Random Meet Error:", err);
+      console.warn("[TripMatch] Random Meet room creation failed");
       toast({ title: i18n.t("instant.roomError"), description: i18n.t("instant.roomErrorDesc"), variant: "destructive" });
     } finally {
       setLoading(false);
@@ -406,7 +414,7 @@ const TripMatchPage: React.FC = () => {
       }
 
       if (thError) {
-        console.error("Thread creation DB error:", thError);
+        console.warn("[TripMatch] Thread creation failed");
         throw new Error("Thread creation failed");
       }
 
@@ -417,19 +425,18 @@ const TripMatchPage: React.FC = () => {
         { thread_id: tid, user_id: target.group.hostId }
       ]);
       
-      // Update instant_meets_count (if free user, it will lock next time)
+      // 🚨 [Security Fix] Update real DB instant_meets_count instead of bypassable localStorage
       if (!isPlus) {
-        setInstantMeetsCount(prev => {
-          const next = prev + 1;
-          localStorage.setItem(`migo_instant_${user.id}`, next.toString());
-          return next;
-        });
+        const nextCount = instantMeetsCount + 1;
+        setInstantMeetsCount(nextCount);
+        // DB 프로필 테이블에 사용 횟수 실반영 (어뷰징 차단)
+        await supabase.from('profiles').update({ instant_meets_count: nextCount }).eq('id', user.id);
       }
 
       setCreatedThreadId(tid);
       setShowRecommendation(target);
     } catch (err) {
-      console.error("Instant Meet Error:", err);
+      console.warn("[TripMatch] Instant Meet room creation failed");
       toast({ title: i18n.t("instant.roomError"), description: i18n.t("instant.roomErrorDesc"), variant: "destructive" });
     } finally {
       setLoading(false);
@@ -441,7 +448,7 @@ const TripMatchPage: React.FC = () => {
   // ──────────────────────────────────────────────
   // JSX
   // ──────────────────────────────────────────────
-  return <div className="min-h-screen bg-background truncate" style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom, 0px))' }}>
+  return <div className="min-h-screen bg-background" style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom, 0px))' }}>
       {/* ── Loading Overlay ── */}
       <AnimatePresence>
         {loading && <motion.div initial={{

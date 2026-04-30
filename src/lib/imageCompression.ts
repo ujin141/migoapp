@@ -24,9 +24,9 @@ const DEFAULT_OPTIONS: CompressionOptions = {
 };
 
 export async function compressImage(file: File, customOptions?: CompressionOptions): Promise<File> {
-  // 이미지가 아닌 경우 (동영상이나 다른 파일) 바로 원본 리턴
+  // 🚨 [보안] 이미지가 아닌 파일 업로드 시도 원천 차단 (Unrestricted File Upload 방어)
   if (!file.type.startsWith('image/')) {
-    return file;
+    throw new Error("Only image files are allowed.");
   }
 
   // GIF는 손실 압축하면 애니메이션이 망가지는 경우가 많아 제외할 수도 있지만
@@ -50,11 +50,11 @@ export async function compressImage(file: File, customOptions?: CompressionOptio
       type: compressedBlob.type,
       lastModified: Date.now(),
     });
-
-    console.log(`[ImageCompression] Original: ${(file.size / 1024 / 1024).toFixed(2)} MB -> Compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+    // 프로덕션: 실패 시 console.warn은 남기되 불필요 정보 노출 제거
     return compressedFile;
   } catch (error) {
-    console.warn("Image compression failed, returning original file", error);
-    return file;
+    // 🚨 [보안] 이미지 변환/압축 실패 시 원본 리턴 금지 (악성 파일이 이미지로 위장했을 경우 필터가 뚫림)
+    console.error("Image compression failed, rejecting upload to prevent malicious payload ingestion.", error);
+    throw new Error("Failed to process image. It might be corrupted or an invalid file format.");
   }
 }

@@ -214,12 +214,13 @@ export async function toggleAdSlot(id: string, enabled: boolean): Promise<boolea
 /** 이미지를 Supabase Storage에 업로드 */
 export async function uploadAdImage(file: File): Promise<string | null> {
   if (!isSupabaseConfigured) {
-    // Mock: return an object URL for preview
+    // ⚠️ Mock 모드: Object URL은 콨포넌트 언마운트 시 URL.revokeObjectURL(url)로 반드시 정리해야 함 (메모리 누수)
     return URL.createObjectURL(file);
   }
   const compressedFile = await compressImage(file);
   const ext = compressedFile.name.split(".").pop();
-  const path = `ads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const uuidPrefix = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID().split('-')[0] : Array.from(crypto.getRandomValues(new Uint8Array(4))).map(b => b.toString(16).padStart(2, '0')).join('');
+  const path = `ads/${Date.now()}-${uuidPrefix}.${ext}`;
   const {
     error
   } = await supabase.storage.from("ad-images").upload(path, compressedFile, {

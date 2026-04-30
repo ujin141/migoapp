@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { useAuth } from "@/hooks/useAuth";
-import { getMigoPlusPricing, getLocalizedPrice } from "@/lib/pricing";
+import { getMigoPlusPricing } from "@/lib/pricing";
 import { supabase } from "@/lib/supabaseClient";
-import { PLUS_BILLING_CYCLE_MAP, IAP_PRODUCT_IDS, isNativeIOS } from "@/lib/iapService";
+import { PLUS_BILLING_CYCLE_MAP, IAP_PRODUCT_IDS, isNativePlatform } from "@/lib/iapService";
 import { toast } from "@/hooks/use-toast";
 
 interface MigoPlusModalProps {
@@ -54,7 +54,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
 
   // 탭: plus | premium
   const [activePlan, setActivePlan] = useState<"plus" | "premium">(defaultPlan);
-  // 기간 선택 (Plus만 해당)
+  // 기간 선택 (Plus만 해당) — App Store Connect 등록: monthly, quarterly, yearly
   const [billingCycle, setBillingCycle] = useState<"monthly" | "quarterly" | "yearly">("quarterly");
   // step은 더 이상 iapNotice 없이 plan만
   const [loading, setLoading] = useState(false);
@@ -62,7 +62,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
 
   const pricing = getMigoPlusPricing();
 
-  // ── 선택한 플랜의 금액 계산 ──────────────────────────────
+  // ── 선택한 플랜의 금액 계산  // App Store Connect 등록 상품 기준
   const plusPrices = {
     monthly:   { krw: pricing.month1,  label: i18n.t("auto.g_0153", "1개월"),  badge: null },
     quarterly: { krw: pricing.month3,  label: i18n.t("auto.g_0154", "3개월"),  badge: `${Math.round((1 - pricing.month3 / (pricing.month1 * 3)) * 100)}% OFF` },
@@ -82,8 +82,8 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
   const handleActivate = async () => {
     if (!user) return;
 
-    // 네이티브 iOS 환경에서만 실제 IAP 호출
-    if (isNativeIOS()) {
+    // 네이티브 환경(iOS/Android)에서만 실제 IAP 호출
+    if (isNativePlatform()) {
       setLoading(true);
       try {
         let productId: string;
@@ -120,7 +120,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
 
   // 구매 복원
   const handleRestore = async () => {
-    if (!isNativeIOS()) return;
+    if (!isNativePlatform()) return;
     setRestoring(true);
     try {
       const result = await restorePurchasesIAP();
@@ -158,17 +158,19 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
             style={{ maxHeight: "92vh" }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* ── 드래그 핸들 + 닫기 ── */}
-            <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            {/* ── 닫기 버튼 & 드래그 핸들 ── */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-1 shrink-0">
+              <div className="w-8" /> {/* 밸런스용 빈 공간 */}
+              <div className="w-10 h-1.5 rounded-full bg-muted-foreground/30" />
+              <button
+                onClick={handleClose}
+                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"
+              >
+                <X size={15} className="text-muted-foreground" />
+              </button>
             </div>
-            <button
-              onClick={handleClose}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted flex items-center justify-center z-10"
-            >
-              <X size={15} className="text-muted-foreground" />
-            </button>
 
             {/* ── PLAN 선택 화면 ── */}
             {(
@@ -177,7 +179,8 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                 <div className="px-5 pt-2 pb-3 shrink-0">
                   <div className="flex gap-2 p-1 bg-muted rounded-2xl">
                     <button
-                      onClick={() => setActivePlan("plus")}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setActivePlan("plus"); }}
                       className={`flex-1 py-2.5 rounded-xl text-sm font-extrabold transition-all ${
                         activePlan === "plus"
                           ? "bg-gradient-to-r from-emerald-500 to-blue-500 text-white shadow-md"
@@ -187,7 +190,8 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                       ✨ Plus
                     </button>
                     <button
-                      onClick={() => setActivePlan("premium")}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setActivePlan("premium"); }}
                       className={`flex-1 py-2.5 rounded-xl text-sm font-extrabold transition-all ${
                         activePlan === "premium"
                           ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md"
@@ -221,7 +225,8 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                             return (
                               <button
                                 key={cycle}
-                                onClick={() => setBillingCycle(cycle)}
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setBillingCycle(cycle); }}
                                 className={`relative flex-1 rounded-2xl border-2 p-3 text-center transition-all ${
                                   billingCycle === cycle
                                     ? "border-emerald-500 bg-emerald-500/10"
@@ -235,11 +240,11 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                                 )}
                                 <p className="text-[10px] text-muted-foreground">{p.label}</p>
                                 <p className="text-sm font-extrabold text-foreground mt-0.5">
-                                  {getLocalizedPrice(p.krw, i18n.language)}
+                                  {pricing.format(p.krw)}
                                 </p>
                                 {cycle !== "monthly" && (
                                   <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
-                                    {t("auto.g_0089", "월")}{getLocalizedPrice(Math.round(p.krw / (cycle === "quarterly" ? 3 : 12)), i18n.language)}
+                                    {t("auto.g_0089", "/ month")}{pricing.format(Math.round(p.krw / (cycle === "quarterly" ? 3 : 12)))}
                                   </p>
                                 )}
                               </button>
@@ -288,7 +293,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                         <h2 className="text-xl font-extrabold relative z-10">Migo Premium</h2>
                         <p className="text-white/80 text-xs mt-0.5 relative z-10 truncate">{t("auto.g_0092", "최고급 여행 메이트 경험")}</p>
                         <div className="mt-2 relative z-10">
-                          <span className="text-2xl font-extrabold">₩99,900</span>
+                          <span className="text-2xl font-extrabold">{pricing.format(PREMIUM_KRW)}</span>
                           <span className="text-white/70 text-xs ml-1 truncate">{t("auto.g_0093", "/ 월")}</span>
                         </div>
                       </div>
@@ -366,9 +371,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                         {loading
                           ? <div className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
                           : <>{activePlan === "premium" ? <Crown size={18} /> : <Sparkles size={18} />}
-                            {activePlan === "premium"
-                              ? t("auto.g_0159", "Premium 구독하기")
-                              : t("auto.g_0160", "Plus 구독하기")}
+                            {i18n.language?.startsWith('ko') ? '구독하기' : 'Subscribe'}
                           </>
                         }
                       </motion.button>

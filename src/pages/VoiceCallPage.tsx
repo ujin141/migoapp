@@ -40,8 +40,8 @@ const VoiceCallPage = () => {
 
   // Auto-connect after 2 seconds
   useEffect(() => {
-    const t = setTimeout(() => setCallState("connected"), 2000);
-    return () => clearTimeout(t);
+    const timeoutId = setTimeout(() => setCallState("connected"), 2000); // 't' 변수명이 useTranslation의 t를 섀도잉하는 버그 수정
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Start timer when connected

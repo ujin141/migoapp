@@ -45,9 +45,16 @@ window.addEventListener('unhandledrejection', (event) => {
     return;
   }
 
-  // 4. 나머지 — 개발 환경에서만 로깅 (프로덕션 노이즈 방지)
+  // 4. 나머지 — 개발 환경에서만 오버레이 표시 (프로덕션 노이즈/정보 유출 방지)
   if (import.meta.env.DEV) {
     console.error('[unhandledrejection]', event.reason);
+    if (!document.getElementById('migo-critical-error') && !msg.includes('chunk')) {
+      const errorDiv = document.createElement('div');
+      errorDiv.id = 'migo-critical-error';
+      errorDiv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#ff9900;color:black;z-index:999999;padding:60px 20px;overflow:auto;word-wrap:break-word;font-family:monospace;font-size:14px;';
+      errorDiv.innerHTML = `<h2>⚠️ UNHANDLED PROMISE [DEV ONLY]</h2><br/><p><strong>${msg}</strong></p>`;
+      document.body.appendChild(errorDiv);
+    }
   }
 });
 
@@ -57,8 +64,25 @@ window.addEventListener('error', (event) => {
   if (event.target instanceof HTMLImageElement || event.target instanceof HTMLLinkElement) {
     return;
   }
+  
+  // 개발 환경에서만 에러 오버레이 표시 (프로덕션에서는 정보 유출 방지)
   if (import.meta.env.DEV) {
     console.error('[window.onerror]', event.error ?? event.message);
+    if (!document.getElementById('migo-critical-error')) {
+      const errorDiv = document.createElement('div');
+      errorDiv.id = 'migo-critical-error';
+      errorDiv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#ff0000;color:white;z-index:999999;padding:60px 20px;overflow:auto;word-wrap:break-word;font-family:monospace;font-size:14px;';
+      const safeMsgText = document.createElement('span');
+      safeMsgText.textContent = event.error?.message || event.message;
+      const safePreText = document.createElement('pre');
+      safePreText.style.cssText = 'white-space:pre-wrap;font-size:11px;';
+      safePreText.textContent = event.error?.stack || '';
+      errorDiv.innerHTML = '<h2>🚀 CRITICAL JS ERROR [DEV ONLY]</h2><br/>';
+      errorDiv.appendChild(safeMsgText);
+      errorDiv.appendChild(document.createElement('br'));
+      errorDiv.appendChild(safePreText);
+      document.body.appendChild(errorDiv);
+    }
   }
 });
 

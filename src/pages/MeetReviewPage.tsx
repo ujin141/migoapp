@@ -1,11 +1,10 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Star, Check, Send, ThumbsUp, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -31,8 +30,7 @@ interface MetUser {
 
 // Mock data removed
 
-const POSITIVE_TAGS = ["Punctual", "Great conversation", i18n.t("auto.g_0762", "Considerate"), i18n.t("auto.g_0763", "Knowledgeable"), i18n.t("auto.g_0764", "Felt safe"), "Would meet again", i18n.t("auto.g_0765", "Knows local spots"), i18n.t("auto.g_0766", "Great photographer")];
-const CAUTION_TAGS = [i18n.t("auto.g_0767", "Late / no-show"), i18n.t("auto.g_0768", "Uncomfortable conversation"), i18n.t("auto.g_0769", "Inconsiderate")];
+
 
 // ─── StarRating ───────────────────────────────────
 const StarRating = ({
@@ -60,9 +58,25 @@ const WriteReview = ({
   onClose,
   onSubmit
 }: WriteReviewProps) => {
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
+
+  const POSITIVE_TAGS = useMemo(() => [
+    t("auto.g_0781", "시간약속 지킴"),
+    t("auto.g_0782", "대화가 즐거웠어요"),
+    t("auto.g_0762", "배려심 있어요"),
+    t("auto.g_0763", "지식이 풍부해요"),
+    t("auto.g_0764", "안전한 노느춴어요"),
+    t("auto.g_0783", "또 만나고 싶어요"),
+    t("auto.g_0765", "현지 맛집을 잘 알아요"),
+    t("auto.g_0766", "사진을 잘 찍어줘요"),
+  ], [t]);
+
+  const CAUTION_TAGS = useMemo(() => [
+    t("auto.g_0767", "놀쇼 / 지각"),
+    t("auto.g_0768", "불편한 대화"),
+    t("auto.g_0769", "배려심 부족"),
+  ], [t]);
+
   const [rating, setRating] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [text, setText] = useState("");

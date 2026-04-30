@@ -1,0 +1,252 @@
+{
+  "identifier" : "B12E3A4F-C5D0-4E6B-A9F2-1234567890AB",
+  "nonConsumableProducts" : [
+
+  ],
+  "consumableProducts" : [
+    {
+      "displayPrice" : "1.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-111111111111",
+      "localizations" : [
+        {
+          "description" : "3개의 슈퍼라이크",
+          "displayName" : "슈퍼라이크 3개",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.superlike3",
+      "referenceName" : "Superlike 3",
+      "type" : "consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-222222222222",
+      "localizations" : [
+        {
+          "description" : "10개의 슈퍼라이크",
+          "displayName" : "슈퍼라이크 10개",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.superlike10",
+      "referenceName" : "Superlike 10",
+      "type" : "consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-333333333333",
+      "localizations" : [
+        {
+          "description" : "30개의 슈퍼라이크",
+          "displayName" : "슈퍼라이크 30개",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.superlike30",
+      "referenceName" : "Superlike 30",
+      "type" : "consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-444444444444",
+      "localizations" : [
+        {
+          "description" : "부스트 1회",
+          "displayName" : "부스트 1개",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.boost1",
+      "referenceName" : "Boost 1",
+      "type" : "consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-555555555555",
+      "localizations" : [
+        {
+          "description" : "부스트 5회",
+          "displayName" : "부스트 5개",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.boost5",
+      "referenceName" : "Boost 5",
+      "type" : "consumable"
+    },
+    {
+      "displayPrice" : "19.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-666666666666",
+      "localizations" : [
+        {
+          "description" : "부스트 15회",
+          "displayName" : "부스트 15개",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.boost15",
+      "referenceName" : "Boost 15",
+      "type" : "consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-777777777777",
+      "localizations" : [
+        {
+          "description" : "여행 팩",
+          "displayName" : "여행 팩",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.travel_pack",
+      "referenceName" : "Travel Pack",
+      "type" : "consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-888888888888",
+      "localizations" : [
+        {
+          "description" : "인증 뱃지",
+          "displayName" : "인증 뱃지",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.verifiedbadge",
+      "referenceName" : "Verified Badge",
+      "type" : "consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-999999999999",
+      "localizations" : [
+        {
+          "description" : "프로필 테마",
+          "displayName" : "프로필 테마",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.item.profiletheme",
+      "referenceName" : "Profile Theme",
+      "type" : "consumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familySharable" : false,
+      "internalID" : "48C2A1B3-D4E5-4F6A-B7C8-AAAAAAAAAAAA",
+      "localizations" : [
+        {
+          "description" : "주변 여행자 잠금 해제",
+          "displayName" : "주변 잠금해제",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.nearby_unlock",
+      "referenceName" : "Nearby Unlock",
+      "type" : "consumable"
+    }
+  ],
+  "autoRenewableSubscriptions" : [
+    {
+      "familySharable" : false,
+      "internalID" : "A1B2C3D4-E5F6-7890-ABCD-100000000001",
+      "localizations" : [
+        {
+          "description" : "Migo Plus 월간 구독",
+          "displayName" : "Migo Plus 월간",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.sub.plus.m1",
+      "referenceName" : "Migo Plus Monthly",
+      "subscriptionGroupID" : "21000001",
+      "subscriptionPeriod" : "P1M",
+      "introductoryOffer" : null,
+      "displayPrice" : "9.99",
+      "type" : "autoRenewable"
+    },
+    {
+      "familySharable" : false,
+      "internalID" : "A1B2C3D4-E5F6-7890-ABCD-100000000002",
+      "localizations" : [
+        {
+          "description" : "Migo Plus 3개월 구독",
+          "displayName" : "Migo Plus 3개월",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.sub.plus.q1",
+      "referenceName" : "Migo Plus Quarterly",
+      "subscriptionGroupID" : "21000001",
+      "subscriptionPeriod" : "P3M",
+      "introductoryOffer" : null,
+      "displayPrice" : "24.99",
+      "type" : "autoRenewable"
+    },
+    {
+      "familySharable" : false,
+      "internalID" : "A1B2C3D4-E5F6-7890-ABCD-100000000003",
+      "localizations" : [
+        {
+          "description" : "Migo Plus 연간 구독",
+          "displayName" : "Migo Plus 연간",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.sub.plus.y1",
+      "referenceName" : "Migo Plus Yearly",
+      "subscriptionGroupID" : "21000001",
+      "subscriptionPeriod" : "P1Y",
+      "introductoryOffer" : null,
+      "displayPrice" : "79.99",
+      "type" : "autoRenewable"
+    },
+    {
+      "familySharable" : false,
+      "internalID" : "A1B2C3D4-E5F6-7890-ABCD-100000000004",
+      "localizations" : [
+        {
+          "description" : "Migo Premium 월간 구독",
+          "displayName" : "Migo Premium 월간",
+          "locale" : "ko_KR"
+        }
+      ],
+      "productID" : "com.lunaticsgroup.migo.sub.premium.m1",
+      "referenceName" : "Migo Premium Monthly",
+      "subscriptionGroupID" : "21000002",
+      "subscriptionPeriod" : "P1M",
+      "introductoryOffer" : null,
+      "displayPrice" : "19.99",
+      "type" : "autoRenewable"
+    }
+  ],
+  "settings" : {
+    "_applicationUsername" : "",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_diagnosticsEnabled" : false,
+    "_locale" : "ko_KR",
+    "_storefront" : "KOR",
+    "_storeKitErrors" : [
+      {
+        "current" : "0",
+        "enabled" : false,
+        "kind" : "Load Products"
+      }
+    ]
+  },
+  "version" : {
+    "major" : 3,
+    "minor" : 0,
+    "patch" : 0
+  }
+}

@@ -390,15 +390,19 @@ export const LoginForm = ({ props }: any) => {
           whileTap={{ scale: 0.97 }}
           onClick={async () => {
             try {
-              if (Capacitor.isNativePlatform()) {
+              if (Capacitor.getPlatform() === 'ios') {
                 const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+
                 const result = await SignInWithApple.authorize({
-                  clientId: 'com.migo.app',
+                  clientId: 'com.lunaticsgroup.migo', // iOS 네이티브: 앱 번들 ID
                   redirectURI: '',
                   scopes: 'email name',
-                  state: '12345',
-                  nonce: 'nonce',
+                  // CSRF 방지: 매 요청마다 안전한 임의 state 생성 (Math.random 사용 금지)
+                  state: (typeof crypto !== 'undefined' && crypto.randomUUID) 
+                    ? crypto.randomUUID() 
+                    : Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join(''),
                 });
+
                 if (result?.response?.identityToken) {
                   const { error } = await supabase.auth.signInWithIdToken({
                     provider: 'apple',
@@ -410,12 +414,16 @@ export const LoginForm = ({ props }: any) => {
                 const { data, error } = await supabase.auth.signInWithOAuth({
                   provider: "apple",
                   options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
-                    skipBrowserRedirect: false, 
+                    redirectTo: Capacitor.isNativePlatform()
+                      ? 'migoapp://login-callback'
+                      : `${window.location.origin}/auth/callback`,
+                    skipBrowserRedirect: Capacitor.isNativePlatform(),
                   }
                 });
                 if (error) {
                   toast({ title: i18n.t("login.apple"), description: error.message, variant: "destructive" });
+                } else if ((data as any)?.url && Capacitor.isNativePlatform()) {
+                  await Browser.open({ url: (data as any).url, presentationStyle: 'popover' });
                 }
               }
             } catch (e: any) {

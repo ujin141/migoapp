@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.migo.app',
+  appId: 'com.lunaticsgroup.migo',
   appName: 'Migo',
   webDir: 'dist',
   server: {
@@ -49,6 +49,13 @@ const config: CapacitorConfig = {
     },
     CapacitorHttp: {
       enabled: false, // 기본 Fetch API 사용
+    },
+    Keyboard: {
+      // 'none': WebView가 키보드에 의해 자동 리사이즈되지 않음
+      // → useKeyboard 훅이 --kb-height CSS 변수로 직접 처리
+      resize: 'none',
+      resizeOnFullScreen: true,
+      style: 'default', // 'dark' | 'light' | 'default'
     },
   },
 };

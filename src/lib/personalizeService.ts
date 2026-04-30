@@ -60,6 +60,20 @@ export function recordSwipe(profile: {
     }
   }
 
+  // 로컴스토리지 무한 증가 방지: 각 맵 항목이 50개를 넘으면 가장 매력 낙은 항목 제거
+  const MAX_MAP_SIZE = 50;
+  const trimMap = (map: Record<string, number>) => {
+    const entries = Object.entries(map);
+    if (entries.length > MAX_MAP_SIZE) {
+      entries.sort(([, a], [, b]) => a - b); // 오름소순 (likedCount 낙은 순서)
+      const toRemove = entries.slice(0, entries.length - MAX_MAP_SIZE);
+      toRemove.forEach(([k]) => delete map[k]);
+    }
+  };
+  trimMap(p.nationality);
+  trimMap(p.travelStyle);
+  trimMap(p.ageRange);
+
   savePrefs(p);
 }
 

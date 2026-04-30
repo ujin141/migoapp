@@ -136,6 +136,52 @@ const ProfilePage = () => {
   const [userType, setUserType] = useState<string>("traveler");
   const [profileTheme, setProfileTheme] = useState<string>("default");
 
+  // ─ 테마 스타일 맵 ─
+  const THEME_STYLES: Record<string, {
+    cardBg: string;
+    decorBg: string;
+    avatarRing: string;
+    accentText: string;
+    badgeBg: string;
+  }> = {
+    default: {
+      cardBg: 'bg-card border-border/50',
+      decorBg: 'from-primary/12 via-primary/5',
+      avatarRing: 'border-border/40',
+      accentText: 'text-primary',
+      badgeBg: 'bg-primary/10',
+    },
+    aurora: {
+      cardBg: 'bg-gradient-to-br from-emerald-500/8 via-purple-500/5 to-card border-purple-400/30',
+      decorBg: 'from-purple-500/20 via-emerald-500/10',
+      avatarRing: 'border-purple-400/60',
+      accentText: 'text-purple-600',
+      badgeBg: 'bg-purple-500/10',
+    },
+    sunset: {
+      cardBg: 'bg-gradient-to-br from-orange-500/8 via-pink-500/5 to-card border-pink-400/30',
+      decorBg: 'from-orange-500/20 via-pink-500/10',
+      avatarRing: 'border-pink-400/60',
+      accentText: 'text-pink-600',
+      badgeBg: 'bg-pink-500/10',
+    },
+    neon: {
+      cardBg: 'bg-gradient-to-br from-blue-500/8 via-cyan-500/5 to-card border-cyan-400/30',
+      decorBg: 'from-blue-500/20 via-cyan-500/10',
+      avatarRing: 'border-cyan-400/60',
+      accentText: 'text-cyan-600',
+      badgeBg: 'bg-cyan-500/10',
+    },
+    midnight: {
+      cardBg: 'bg-gradient-to-br from-slate-800/80 via-slate-700/40 to-card border-slate-600/40',
+      decorBg: 'from-slate-700/30 via-slate-600/15',
+      avatarRing: 'border-slate-500/60',
+      accentText: 'text-slate-300',
+      badgeBg: 'bg-slate-700/40',
+    },
+  };
+  const theme = THEME_STYLES[profileTheme] ?? THEME_STYLES.default;
+
   // 최대 5초 후 profileLoading 강제 해제 (무한 스켈레톤 방지)
   useEffect(() => {
     const timeout = setTimeout(() => setProfileLoading(false), 5000);
@@ -663,12 +709,17 @@ const ProfilePage = () => {
   if (authLoading || profileLoading) {
     return (
       <div className="h-full bg-background safe-bottom overflow-y-auto">
-        <header className="flex items-center justify-between px-5 pt-safe pb-2">
-          <h1 className="text-2xl font-extrabold text-foreground truncate">{t('profile.title')}</h1>
-        </header>
-        {/* Skeleton loader */}
-        <div className="mx-5 mt-3 bg-card rounded-3xl p-5 shadow-card animate-pulse">
-          <div className="flex items-center gap-4">
+        {/* Skeleton: header */}
+        <div className="flex items-center justify-between px-5 pt-safe pb-2">
+          <div className="h-7 w-20 bg-muted rounded-xl animate-pulse" />
+          <div className="flex gap-2">
+            <div className="h-7 w-24 bg-muted rounded-full animate-pulse" />
+            <div className="h-9 w-9 bg-muted rounded-xl animate-pulse" />
+          </div>
+        </div>
+        {/* Skeleton: hero card */}
+        <div className="mx-4 mt-3 bg-card rounded-3xl p-5 shadow-card animate-pulse">
+          <div className="flex items-center gap-4 mb-4">
             <div className="w-20 h-20 rounded-2xl bg-muted shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="h-5 bg-muted rounded-xl w-32" />
@@ -676,15 +727,14 @@ const ProfilePage = () => {
               <div className="h-3 bg-muted rounded-xl w-20" />
             </div>
           </div>
-          <div className="mt-4 h-3 bg-muted rounded-xl w-full" />
-          <div className="mt-2 h-3 bg-muted rounded-xl w-3/4" />
-          <div className="flex gap-4 mt-6">
-            <div className="flex-1 h-12 bg-muted rounded-2xl" />
-            <div className="flex-1 h-12 bg-muted rounded-2xl" />
+          <div className="h-2 bg-muted rounded-full w-full mt-3" />
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            {[0,1,2].map(i => <div key={i} className="h-16 bg-muted rounded-2xl" />)}
           </div>
         </div>
-        <div className="grid grid-cols-4 gap-2 mx-5 mt-4">
-          {[0,1,2,3].map(i => <div key={i} className="h-20 bg-card rounded-2xl animate-pulse" />)}
+        {/* Skeleton: stats */}
+        <div className="grid grid-cols-4 gap-2 mx-4 mt-3">
+          {[0,1,2,3].map(i => <div key={i} className="h-16 bg-card rounded-2xl animate-pulse" />)}
         </div>
       </div>
     );
@@ -778,167 +828,294 @@ const ProfilePage = () => {
           );
         })()}
       </AnimatePresence>
-      {/* Decorative Top Background */}
-      <div className="absolute top-0 left-0 w-full h-[35vh] bg-gradient-to-b from-primary/10 via-primary/5 to-transparent z-0 pointer-events-none" />
+      {/* ── Decorative background (테마 반영) ── */}
+      <div className={`absolute top-0 left-0 w-full h-[280px] bg-gradient-to-b ${theme.decorBg} to-transparent z-0 pointer-events-none transition-all duration-500`} />
       <div className="relative z-10">
-      <header className="flex items-center justify-between px-5 pt-safe pb-2">
-          <h1 className="text-2xl font-extrabold text-foreground truncate">{t('profile.title')}</h1>
-        <div className="flex items-center gap-2">
-          {isPlus && <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
+
+      {/* ── Top Bar ── */}
+      <header className="flex items-center justify-between px-4 pt-safe pb-2">
+        <h1 className="text-xl font-black text-foreground tracking-tight">{t('profile.title')}</h1>
+        <div className="flex items-center gap-1.5">
+          {isPlus && (
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
               <Crown size={11} className="text-amber-500" />
               <span className="text-[10px] font-extrabold text-amber-500">Plus</span>
-            </div>}
-          {/* Trust badge — always visible, click → verification page */}
-          <button onClick={() => setShowVerifyModal(true)} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 active:scale-95 transition-transform">
-            <Shield size={11} className="text-emerald-500" />
-            <span className="text-[10px] font-extrabold text-emerald-500 truncate">{t("profilePage.verified")}</span>
-          </button>
-          
-          {/* Real Traveler Badge */}
-          <button onClick={() => setShowVerifyModal(true)} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-emerald-400/10 to-teal-500/10 border border-emerald-400/40 active:scale-95 transition-transform shadow-[0_0_8px_rgba(52,211,153,0.3)]">
-            <span className="text-[10px] font-extrabold text-emerald-500 flex items-center gap-1 drop-shadow-sm">✈️ Real Traveler</span>
-          </button>
-
-          <button onClick={() => setShowSettingsModal(true)} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-90">
-            <Settings size={18} className="text-muted-foreground" />
+            </div>
+          )}
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="w-9 h-9 rounded-xl bg-muted/80 flex items-center justify-center transition-transform active:scale-90"
+          >
+            <Settings size={17} className="text-muted-foreground" />
           </button>
         </div>
       </header>
 
-      {/* Plus upgrade banner - compact inline bar */}
+      {/* ── Hero Profile Card ── */}
+      <div className="mx-4 mt-2">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className={`rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.07)] border overflow-hidden transition-all duration-500 ${theme.cardBg}`}
+        >
+          {/* Photo + Info Row */}
+          <div className="flex items-start gap-4 p-4 pb-3">
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <div
+                className={`w-[88px] h-[88px] rounded-2xl overflow-hidden border-2 shadow-md transition-all duration-500 ${theme.avatarRing}`}
+                onClick={() => {
+                  const allPhotos = profilePhotos.map(p => p.url).filter(Boolean);
+                  if (allPhotos.length > 0) { setGalleryOpen({ photos: allPhotos, startIdx: 0 }); setGalleryIdx(0); }
+                }}
+              >
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt="Profile"
+                    className="w-full h-full object-cover cursor-pointer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full gradient-primary flex items-center justify-center text-primary-foreground text-3xl font-black">
+                    {name.charAt(0) || 'M'}
+                  </div>
+                )}
+              </div>
+              {/* Camera edit */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-md border-2 border-card active:scale-90 transition-transform"
+              >
+                {uploading
+                  ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Camera size={12} className="text-white" />
+                }
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) uploadPhoto(file);
+                e.target.value = '';
+              }} />
+            </div>
+
+            {/* Name / Location / Bio */}
+            <div className="flex-1 min-w-0 pt-1">
+              <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                <h2 className="text-[19px] font-black text-foreground leading-tight truncate">{name}</h2>
+                {userType === 'local' && (
+                  <span className="bg-emerald-500 text-white text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full shrink-0">Local</span>
+                )}
+              </div>
+              {/* Verification badges row */}
+              <div className="flex items-center gap-1 flex-wrap mt-1 mb-1.5">
+                <button
+                  onClick={() => setShowVerifyModal(true)}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 active:scale-95 transition-transform"
+                >
+                  <Shield size={10} className="text-emerald-500 shrink-0" />
+                  <span className="text-[9px] font-extrabold text-emerald-600">{t('profilePage.verified', 'Verified')}</span>
+                </button>
+                <button
+                  onClick={() => setShowVerifyModal(true)}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 active:scale-95 transition-transform"
+                >
+                  <span className="text-[9px] font-extrabold text-blue-600">✈️ Real Traveler</span>
+                </button>
+              </div>
+              <div className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                <MapPin size={11} className="shrink-0" />
+                <span className="truncate">{location || t('auto.z_위치감지중_126', '위치감지중')}</span>
+                <button
+                  onClick={async () => {
+                    if (!user) return;
+                    const pos = await getCurrentLocation(true);
+                    if (!pos) return;
+                    const { lat, lng } = pos;
+                    localStorage.setItem('migo_my_lat', String(lat));
+                    localStorage.setItem('migo_my_lng', String(lng));
+                    try {
+                      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, { headers: { 'User-Agent': 'MigoApp/1.0' } });
+                      const geo = await res.json();
+                      const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || geo.address?.state || '';
+                      const country = geo.address?.country || '';
+                      const loc = city ? `${city}, ${country}` : country;
+                      if (loc) {
+                        setLocation(loc);
+                        await supabase.from('profiles').update({ location: loc, lat, lng }).eq('id', user.id);
+                      }
+                    } catch {/* ignore */}
+                  }}
+                  className="text-primary/50 hover:text-primary transition-colors shrink-0"
+                >
+                  <Navigation size={10} />
+                </button>
+              </div>
+              {bio && <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">{bio}</p>}
+            </div>
+          </div>
+
+          {/* Trust Score Bar */}
+          <div
+            className="mx-4 mb-3 p-3 bg-gradient-to-br from-emerald-500/8 to-teal-500/5 border border-emerald-500/20 rounded-2xl cursor-pointer active:opacity-80 transition-opacity"
+            onClick={() => setShowVerifyModal(true)}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Shield size={13} className="text-emerald-500 shrink-0" />
+                <span className="text-[12px] font-extrabold text-foreground">{t('verifMark.title', 'Trust Certification Mark')}</span>
+                <span className="text-[10px] text-muted-foreground">Migo Trust System</span>
+              </div>
+              <span className="text-[11px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                {t('profilePage.verified', 'Verified')} ✅
+              </span>
+            </div>
+            {/* Progress bar */}
+            <div className="h-1.5 bg-muted/60 rounded-full overflow-hidden mb-2">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"
+                initial={{ width: 0 }}
+                animate={{ width: '40%' }}
+                transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { labelKey: 'verifMark.phone', fallback: 'Phone', active: true, emoji: '📱' },
+                { labelKey: 'verifMark.email', fallback: 'Email', active: true, emoji: '✉️' },
+                { labelKey: 'verifMark.id', fallback: 'ID', active: false, emoji: '🪪' },
+                { labelKey: 'verifMark.sns', fallback: 'SNS', active: false, emoji: '📸' },
+              ].map(({ labelKey, fallback, active, emoji }) => (
+                <div
+                  key={labelKey}
+                  className={`flex flex-col items-center gap-0.5 py-1.5 rounded-xl ${
+                    active
+                      ? 'bg-emerald-500/10 border border-emerald-500/20'
+                      : 'bg-muted/40 border border-border/30'
+                  }`}
+                >
+                  <span className="text-sm">{emoji}</span>
+                  <span className={`text-[8px] font-bold ${
+                    active ? 'text-emerald-600' : 'text-muted-foreground'
+                  }`}>{t(labelKey, fallback)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[9px] text-muted-foreground mt-2 text-center">{t('verifMark.clickToBump', 'Tap to raise verification level →')}</p>
+
+          </div>
+
+          {/* Stats 4-col grid */}
+          <div className="grid grid-cols-4 gap-0 border-t border-border/40">
+            {[
+              { value: myPosts.length, label: t('profilePage.stats.posts', 'Posts'), icon: '📝', action: () => setShowMyPosts(true) },
+              { value: matchedUsers.length, label: t('profilePage.stats.matched', 'Matched'), icon: '💘', action: () => setShowMatchDetail(true) },
+              { value: myTrips.length, label: t('profilePage.stats.trips', 'Trips'), icon: '✈️', action: () => setShowTripDetail(true) },
+              { value: myMeetings.length, label: t('profilePage.stats.meetings', 'Meets'), icon: '🤝', action: () => setShowMeetingDetail(true) },
+            ].map((stat, i, arr) => (
+              <button
+                key={stat.label}
+                onClick={stat.action}
+                className={`flex flex-col items-center justify-center py-3 active:bg-muted/30 transition-colors ${
+                  i < arr.length - 1 ? 'border-r border-border/40' : ''
+                }`}
+              >
+                <span className="text-base mb-0.5">{stat.icon}</span>
+                <span className="text-[16px] font-black text-foreground leading-none">{stat.value}</span>
+                <span className="text-[9px] text-muted-foreground font-semibold mt-0.5 truncate px-1">{stat.label}</span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ── Quick Action Buttons ── */}
+      <div className="flex gap-2 mx-4 mt-3">
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={() => setShowEditModal(true)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-card border border-border/50 shadow-sm font-bold text-[13px] text-foreground active:opacity-80 transition-all"
+        >
+          <Edit2 size={15} className="text-muted-foreground shrink-0" />
+          {t('profile.editProfileBtn', '프로필 편집')}
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={() => {
+            if (boostActive) return;
+            startBoost();
+          }}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl font-bold text-[13px] shadow-sm transition-all ${
+            boostActive
+              ? 'bg-purple-500 text-white'
+              : boostsCount > 0 || isPlus
+              ? 'gradient-primary text-white'
+              : 'bg-card border border-border/50 text-muted-foreground'
+          }`}
+        >
+          <Zap size={15} className={`shrink-0 ${boostActive ? 'animate-pulse' : ''}`} />
+          <span className="truncate">
+            {boostActive
+              ? `${Math.floor(boostSecondsLeft / 60)}:${(boostSecondsLeft % 60).toString().padStart(2, '0')}`
+              : `Boost (${boostsCount})`}
+          </span>
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={() => navigate('/verification')}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 font-bold text-[13px] text-emerald-700 shadow-sm active:opacity-80 transition-all"
+        >
+          <Shield size={15} className="text-emerald-500 shrink-0" />
+          {t('verif.title', '인증')}
+        </motion.button>
+      </div>
+
+      {/* ── Plus Upgrade Banner (non-Plus only) ── */}
       {!isPlus && (
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setShowPlusModal(true)}
-          className="mx-5 mt-3 mb-1 w-[calc(100%-40px)] flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/15 to-orange-500/8 border border-amber-500/25 active:opacity-80"
+          className="mx-4 mt-3 w-[calc(100%-32px)] flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500/12 to-orange-500/8 border border-amber-500/25 active:opacity-80"
         >
-          <Crown size={14} className="text-amber-500 shrink-0" />
-          <div className="flex-1 text-left">
-            <span className="text-xs font-bold text-foreground truncate">{t('profilePage.upgradeTitle')}</span>
-            <span className="text-[10px] text-muted-foreground ml-2 truncate">{t("auto.g_0887", "이용자 매칭 등 더 많은 혼잭")}</span>
+          <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+            <Crown size={15} className="text-amber-500" />
           </div>
-          <span className="text-[10px] font-extrabold text-amber-500 border border-amber-500/40 px-2 py-0.5 rounded-full shrink-0">Plus</span>
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-[13px] font-extrabold text-foreground truncate">{t('profilePage.upgradeTitle', 'Migo Plus 업그레이드')}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{t('auto.g_0887', '더 많은 매칭, 부스트, 나를 좋아한 사람 확인')}</p>
+          </div>
+          <ChevronRight size={16} className="text-amber-500 shrink-0" />
         </motion.button>
       )}
 
-      {/* --- Unified Profile Header --- */}
-      <div className="mx-5 mt-3 flex flex-col items-center pt-2">
-        {/* Profile Photo */}
-        <div className="relative mb-4">
-          <div className="w-[100px] h-[100px] rounded-full overflow-hidden shadow-lg border-[3px] border-background">
-            {photoUrl ? (
-              <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" 
-                onError={(e) => {
-                  const imgEl = e.target as HTMLImageElement;
-                  imgEl.style.display = 'none';
-                  imgEl.parentElement?.querySelector('.photo-fallback')?.setAttribute('style', 'display:flex');
-                }}
-              />
-            ) : null}
-            <div className="photo-fallback w-full h-full gradient-primary flex items-center justify-center text-primary-foreground text-4xl font-black truncate" style={{ display: photoUrl ? 'none' : 'flex' }}>
-              {name.charAt(0) || "M"}
-            </div>
-          </div>
-          {/* Edit Photo Button */}
-          <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-card flex items-center justify-center shadow-lg border border-border/50 transition-transform active:scale-90 disabled:opacity-60">
-            {uploading ? <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" /> : <Camera size={14} className="text-primary" />}
-          </button>
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) uploadPhoto(file);
-            e.target.value = "";
-          }} />
-        </div>
-
-        {/* Name & Basic Info */}
-        <div className="text-center w-full px-4 mb-5">
-          <h2 className="text-2xl font-black text-foreground flex items-center justify-center gap-2">
-            {name}
-            {userType === "local" && (
-              <span className="bg-emerald-500 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full shadow-sm">
-                Local
-              </span>
-            )}
-          </h2>
-          <div className="flex items-center justify-center gap-1.5 mt-1 text-sm text-muted-foreground font-medium">
-            <span className="truncate">{location || t("auto.z_\uC704\uCE58\uAC10\uC9C0\uC911_126", "\uC704\uCE58\uAC10\uC9C0\uC911")}</span>
-            <button onClick={async () => {
-              if (!user) return;
-              const pos = await getCurrentLocation(true);
-              if (!pos) return;
-              const { lat, lng } = pos;
-              localStorage.setItem('migo_my_lat', String(lat));
-              localStorage.setItem('migo_my_lng', String(lng));
-              try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, { headers: { 'User-Agent': 'MigoApp/1.0' } });
-                const geo = await res.json();
-                const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || geo.address?.state || "";
-                const country = geo.address?.country || "";
-                const loc = city ? `${city}, ${country}` : country;
-                if (loc) {
-                  setLocation(loc);
-                  await supabase.from('profiles').update({ location: loc, lat, lng }).eq('id', user.id);
-                }
-              } catch {/* ignore */}
-            }} className="text-primary/50 hover:text-primary transition-colors p-1" title={t("auto.z_\uD604\uC7AC\uC704\uCE58\uB85C\uC5C5\uB370\uC774\uD2B8_127", "\uD604\uC7AC\uC704\uCE58\uB85C\uC5C5\uB370\uC774\uD2B8")}>
-              <Navigation size={12} />
-            </button>
-          </div>
-          {bio && <p className="text-sm text-muted-foreground mt-3 text-center px-4 leading-relaxed line-clamp-2">{bio}</p>}
-        </div>
-
-        {/* Stats Row (Instagram Style) */}
-        <div className="flex justify-center w-full max-w-sm gap-5 mb-6 border-b border-border/40 pb-6">
-          {[
-            { value: String(myPosts.length), label: t("profilePage.stats.posts"), icon: FileText, action: () => setShowMyPosts(true) },
-            { value: String(matchedUsers.length), label: t("profilePage.stats.matched"), icon: Heart, action: () => setShowMatchDetail(true) },
-            { value: String(myTrips.length), label: t("profilePage.stats.trips"), icon: Plane, action: () => setShowTripDetail(true) },
-            { value: String(myMeetings.length), label: t("profilePage.stats.meetings"), icon: Handshake, action: () => setShowMeetingDetail(true) }
-          ].map(stat => (
-            <button key={stat.label} onClick={stat.action} className="flex flex-col items-center justify-center active:opacity-70 transition-opacity min-w-0 flex-1">
-              <span className="text-[17px] font-black text-foreground leading-none mb-1">{stat.value}</span>
-              <span className="text-[10px] text-muted-foreground font-semibold truncate max-w-full block text-center">{stat.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Action Buttons Row */}
-        <div className="flex gap-2 w-full max-w-sm mb-6">
-          <button className="flex-1 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-xl font-bold text-[13px] active:scale-95 transition-all" onClick={() => setShowEditModal(true)}>
-            {t("profile.editProfileBtn")}
-          </button>
-          <button className={`flex-1 py-2.5 rounded-xl font-bold text-[13px] active:scale-95 transition-all flex items-center justify-center gap-1.5 ${boostActive ? "bg-purple-500 text-white" : boostsCount > 0 || isPlus ? "gradient-primary text-white" : "bg-muted text-muted-foreground"}`} onClick={() => {
-            if (boostActive) return;
-            startBoost();
-          }}>
-            <Zap size={14} className={`shrink-0 ${boostActive ? "animate-pulse" : ""}`} />
-            <span className="truncate">
-              {boostActive ? `${Math.floor(boostSecondsLeft / 60)}:${(boostSecondsLeft % 60).toString().padStart(2, '0')}` : `Boost (${boostsCount})`}
-            </span>
-          </button>
-        </div>
-
-        {/* Tag & Mission Summary */}
-        <div className="w-full space-y-2 mb-2">
+      {/* ── Tags & Mission ── */}
+      {(travelMission || visitedCountries.length > 0 || tags.length > 0) && (
+        <div className="mx-4 mt-3 space-y-2">
           {travelMission && (
-            <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-primary/5 border border-primary/10">
-              <span className="text-base shrink-0">🎯</span>
-              <p className="text-xs font-bold text-foreground truncate">{travelMission}</p>
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-primary/5 border border-primary/10">
+              <span className="text-sm shrink-0">🎯</span>
+              <p className="text-[12px] font-bold text-foreground truncate">{travelMission}</p>
             </div>
           )}
-          {(visitedCountries.length > 0 || tags.length > 0) && (
-            <div className="flex flex-wrap gap-1.5">
-              {visitedCountries.slice(0, 5).map((flag: string) => (
-                <span key={flag} className="px-2 py-1 rounded-full bg-muted/50 border border-border/50 text-xs shadow-sm bg-card">{flag}</span>
-              ))}
-              {visitedCountries.length > 5 && <span className="px-2 py-1 rounded-full bg-muted/50 text-[10px] font-bold text-muted-foreground">+{visitedCountries.length - 5}</span>}
-              {tags.slice(0, 3).map(tag => (
-                <span key={tag} className="px-3 py-1 rounded-full bg-muted/50 border border-border/50 text-[11px] font-bold text-muted-foreground shadow-sm bg-card">#{tag}</span>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-1.5">
+            {visitedCountries.slice(0, 5).map((flag: string) => (
+              <span key={flag} className="px-2 py-1 rounded-full bg-card border border-border/50 text-sm shadow-sm">{flag}</span>
+            ))}
+            {visitedCountries.length > 5 && (
+              <span className="px-2 py-1 rounded-full bg-muted/60 text-[10px] font-bold text-muted-foreground">+{visitedCountries.length - 5}</span>
+            )}
+            {tags.slice(0, 4).map(tag => (
+              <span key={tag} className="px-3 py-1 rounded-full bg-card border border-border/50 text-[11px] font-semibold text-muted-foreground shadow-sm">#{tag}</span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ─── 나를 좋아한 사람들 섹션 ─── */}
       {likers.length > 0 && (
@@ -977,7 +1154,7 @@ const ProfilePage = () => {
                 </div>
                 <p className="text-white/80 text-[11px] font-semibold">
                   {canViewLikers
-                    ? t("auto.g_0888_sub", `${likers.length}명이 당신을 좋아해요 💘`)
+                    ? t("auto.g_0888_sub", { count: likers.length, defaultValue: `${likers.length}명이 당신을 좋아해요 💘` })
                     : t("auto.g_0888_sub_lock", "누군가 당신에게 빠졌어요 👀")}
                 </p>
               </div>
@@ -1379,38 +1556,36 @@ const ProfilePage = () => {
 
       
       {/* Dashboard Menu Groups */}
-      <div className="mx-5 mt-6 mb-24 space-y-5">
-        
+      <div className="mx-4 mt-5 mb-28 space-y-4">
+
         {/* Safety CTA */}
-        <button onClick={() => navigate('/safety')} className="w-full flex items-center justify-between p-3 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 active:scale-95 transition-transform shadow-sm">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shadow-inner shrink-0">
-              <span className="text-lg">🛡️</span>
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-[14px] font-extrabold text-emerald-600 tracking-tight truncate">{t("auto.g_0894", "안전 시스템")}</p>
-              <p className="text-[11px] text-emerald-600/70 font-bold mt-0.5 truncate">{t("auto.g_0895", "만남 전 체크리스트 확인")}</p>
-            </div>
+        <button onClick={() => navigate('/safety')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 active:scale-95 transition-transform shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+            <span className="text-lg">🛡️</span>
           </div>
-          <span className="text-[10px] font-black text-white px-2.5 py-1 rounded-lg bg-emerald-500 shadow-sm leading-none tracking-wider shrink-0 ml-2">NEW</span>
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-[13px] font-extrabold text-emerald-700 truncate">{t("auto.g_0894", "안전 시스템")}</p>
+            <p className="text-[10px] text-emerald-600/70 font-semibold mt-0.5 truncate">{t("auto.g_0895", "만남 전 체크리스트 확인")}</p>
+          </div>
+          <span className="text-[9px] font-black text-white px-2 py-0.5 rounded-full bg-emerald-500 shrink-0">NEW</span>
         </button>
 
         {/* Group 1: Explore & Organize */}
         <div>
-          <h4 className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider mb-2 pl-3 truncate">{t("profilePage.menu.exploreTitle", "Explore")}</h4>
-          <div className="bg-card rounded-3xl shadow-[0_2px_10px_rgb(0,0,0,0.03)] border border-border/50 overflow-hidden">
+          <h4 className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2 pl-1">{t("profilePage.menu.exploreTitle", "Explore")}</h4>
+          <div className="bg-card rounded-2xl shadow-sm border border-border/50 overflow-hidden">
             {menuItems.slice(0, 4).map((item, i) => {
               const Icon = item.icon;
               return (
-                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-2.5 p-3.5 bg-card active:bg-muted/60 transition-colors ${i !== 3 ? 'border-b border-border/40' : ''}`}>
-                  <div className="w-8 h-8 rounded-2xl gradient-primary flex items-center justify-center shrink-0 shadow-sm">
-                    <Icon size={14} className="text-white drop-shadow-sm" />
+                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-3 px-4 py-3.5 bg-card active:bg-muted/50 transition-colors ${i !== 3 ? 'border-b border-border/30' : ''}`}>
+                  <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center shrink-0 shadow-sm">
+                    <Icon size={14} className="text-white" />
                   </div>
                   <div className="flex-1 text-left min-w-0">
-                    <h4 className="text-[14px] font-bold text-foreground truncate">{item.label}</h4>
-                    <p className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate">{item.desc}</p>
+                    <p className="text-[13px] font-semibold text-foreground truncate">{item.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{item.desc}</p>
                   </div>
-                  <ChevronRight size={18} className="text-muted-foreground/40" />
+                  <ChevronRight size={16} className="text-muted-foreground/40 shrink-0" />
                 </button>
               );
             })}
@@ -1419,31 +1594,36 @@ const ProfilePage = () => {
 
         {/* Group 2: Account & Settings */}
         <div>
-          <h4 className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider mb-2 pl-3 truncate">{t("profilePage.menu.accountTitle", "Account")}</h4>
-          <div className="bg-card rounded-3xl shadow-[0_2px_10px_rgb(0,0,0,0.03)] border border-border/50 overflow-hidden">
+          <h4 className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2 pl-1">{t("profilePage.menu.accountTitle", "Account")}</h4>
+          <div className="bg-card rounded-2xl shadow-sm border border-border/50 overflow-hidden">
             {menuItems.slice(4).map((item, i, arr) => {
               const Icon = item.icon;
               return (
-                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-2.5 p-3.5 bg-card active:bg-muted/60 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/40' : 'border-b border-border/40'}`}>
-                  <div className={`w-8 h-8 rounded-2xl ${item.highlight ? 'bg-amber-500/15' : 'bg-muted'} flex items-center justify-center shrink-0`}>
+                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-3 px-4 py-3.5 bg-card active:bg-muted/50 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/30' : ''}`}>
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${item.highlight ? 'bg-amber-500/15' : 'bg-muted/60'}`}>
                     <Icon size={14} className={item.highlight ? 'text-amber-500' : 'text-muted-foreground'} />
                   </div>
                   <div className="flex-1 text-left min-w-0">
-                    <h4 className={`text-[14px] font-bold truncate ${item.highlight ? 'text-amber-600' : 'text-foreground'}`}>{item.label}</h4>
+                    <p className={`text-[13px] font-semibold truncate ${item.highlight ? 'text-amber-600' : 'text-foreground'}`}>{item.label}</p>
                   </div>
-                  <ChevronRight size={18} className="text-muted-foreground/40" />
+                  <ChevronRight size={16} className="text-muted-foreground/40 shrink-0" />
                 </button>
               );
             })}
-            <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center gap-2.5 p-3.5 bg-card active:bg-destructive/10 transition-colors">
-              <div className="w-8 h-8 rounded-2xl bg-destructive/10 flex items-center justify-center shrink-0">
+            <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center gap-3 px-4 py-3.5 bg-card active:bg-destructive/10 transition-colors">
+              <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
                 <LogOut size={14} className="text-destructive" />
               </div>
               <div className="flex-1 text-left min-w-0">
-                <span className="text-[14px] font-bold text-destructive truncate">{t('settings.logout')}</span>
+                <span className="text-[13px] font-semibold text-destructive truncate">{t('settings.logout')}</span>
               </div>
             </button>
           </div>
+        </div>
+
+        {/* Trust footer */}
+        <div className="pb-2 text-center">
+          <p className="text-[10px] text-muted-foreground/50">🔒 {t('profilePage.trustFooter', '모든 데이터는 암호화되어 안전하게 보호됩니다')}</p>
         </div>
       </div>
 

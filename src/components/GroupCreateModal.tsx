@@ -200,7 +200,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
 
   const canNext = () => {
     if (step === 0) return destination.trim().length > 0;
-    if (step === 1) return startDate.length > 0 && endDate.length > 0 && title.trim().length > 0;
+    if (step === 1) return startDate.length > 0 && endDate.length > 0 && title.trim().length > 0 && startDate <= endDate;
     return true;
   };
 
@@ -258,8 +258,8 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
 
           {/* Modal */}
           <motion.div
-            className="relative z-10 w-full max-w-md mx-auto flex flex-col bg-card rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-float"
-            style={{ maxHeight: "calc(100dvh - 32px)" }}
+            className="relative z-10 w-full max-w-md mx-auto flex flex-col bg-card rounded-t-3xl sm:rounded-3xl shadow-float"
+            style={{ maxHeight: "calc(100dvh - 32px)", overflow: "hidden", display: "flex", flexDirection: "column" }}
             initial={{ y: 60, opacity: 0, scale: 0.96 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 60, opacity: 0, scale: 0.96 }}
@@ -426,11 +426,15 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
                           <input
                             type="date"
                             value={endDate}
+                            min={startDate}
                             onChange={e => setEndDate(e.target.value)}
                             className="w-full bg-transparent text-[14px] text-foreground outline-none font-medium"
                           />
                         </div>
                       </div>
+                      {startDate && endDate && startDate > endDate && (
+                        <p className="text-[11px] text-red-500 mt-2 font-medium ml-1">종료일은 시작일 이후여야 합니다.</p>
+                      )}
                     </div>
 
                     {/* 인원 */}
@@ -588,7 +592,10 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
             </div>
 
             {/* ── 하단 고정 버튼 ── */}
-            <div className="bg-card border-t border-border/40 px-5 pt-4 pb-8 sm:pb-6 shrink-0 z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.02)]">
+            <div
+              className="bg-card border-t border-border/40 px-5 pt-4 shrink-0 z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.02)]"
+              style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))" }}
+            >
               <div className="flex gap-3">
                 {step > 0 && (
                   <motion.button

@@ -254,7 +254,7 @@ const GlobalFilter: React.FC<GlobalFilterProps> = ({
       setLocalEnd(filters.dateRange.end);
       setLocalGroupSize(filters.groupSize);
     }
-  }, [open]);
+  }, [open, filters.destination, filters.dateRange.start, filters.dateRange.end, filters.groupSize]);
 
   // Popular grid is always all 12 cities — only search box filters
   const filteredPopular = destSearch.trim() ? popDestinations.filter(d => d.city.includes(destSearch) || d.country.includes(destSearch) || d.city.toLowerCase().includes(destSearch.toLowerCase())) : popDestinations;

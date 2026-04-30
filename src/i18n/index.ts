@@ -2,6 +2,8 @@ import i18n from "i18next";
 import { FILTER_LOCALES } from "./filterLocales";
 import { CHECKIN_LOCALES } from "./checkinLocales";
 import { TIER_LOCALES } from "./tierLocales";
+import { GDF_LOCALES } from "./gdfLocales";
+import { MAP_LOCALES } from "./mapLocales";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 
@@ -20,8 +22,10 @@ i18n
       const FILTER = (FILTER_LOCALES as any)[language] || {};
       const CHECKIN = (CHECKIN_LOCALES as any)[language] || {};
       const TIER = (TIER_LOCALES as any)[language] || {};
+      const GDF = (GDF_LOCALES as any)[language] || {};
+      const MAP = (MAP_LOCALES as any)[language] || {};
       
-      return { ...res.default, ...FILTER, ...CHECKIN, ...TIER };
+      return { ...res.default, ...FILTER, ...CHECKIN, ...TIER, ...GDF, ...MAP };
     })
   )
   .init({

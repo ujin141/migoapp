@@ -88,11 +88,20 @@ const SafetyCheckInPage = () => {
         url: shareLink
       });
     } else {
-      await navigator.clipboard.writeText(shareLink);
-      toast({
-        title: i18n.t("auto.z_\uB9C1\uD06C\uBCF5\uC0AC\uB428_41", "\uB9C1\uD06C\uBCF5\uC0AC\uB428"),
-        description: i18n.t("auto.z_\uBE44\uC0C1\uC5F0\uB77D\uCC98\uC5D0\uBD99\uC5EC\uB123\uC5B4_42", "\uBE44\uC0C1\uC5F0\uB77D\uCC98\uC5D0\uBD99\uC5EC\uB123\uC5B4")
-      });
+      try {
+        await navigator.clipboard.writeText(shareLink);
+        toast({
+          title: i18n.t("auto.z_\uB9C1\uD06C\uBCF5\uC0AC\uB428_41", "\uB9C1\uD06C\uBCF5\uC0AC\uB428"),
+          description: i18n.t("auto.z_\uBE44\uC0C1\uC5F0\uB77D\uCC98\uC5D0\uBD99\uC5EC\uB123\uC5B4_42", "\uBE44\uC0C1\uC5F0\uB77D\uCC98\uC5D0\uBD99\uC5EC\uB123\uC5B4")
+        });
+      } catch {
+        // iOS 코피 권한 거부 등 클립보드 API 실패 시 폴백: alert로 직접 표시
+        toast({
+          title: i18n.t("auto.z_\uB9C1\uD06C_99", "\uB9C1\uD06C"),
+          description: shareLink,
+          variant: "default"
+        });
+      }
     }
   };
   return <div className="min-h-screen bg-background flex flex-col">

@@ -3,6 +3,7 @@ import { Heart, Compass, Map, MessageCircle, User } from "lucide-react";
 import { useChatContext } from "@/context/ChatContext";
 import { useTranslation } from "react-i18next";
 import { useNotifications } from "@/context/NotificationContext";
+import { triggerHaptic } from "@/lib/haptics";
 
 interface TabDef {
   path: string;
@@ -29,7 +30,7 @@ const BottomNav = () => {
 
   return (
     <nav id="migo-bottom-nav" className="fixed bottom-0 left-0 right-0 z-[100] bg-card/97 backdrop-blur-xl border-t border-border/60">
-      <div className="flex items-center justify-around max-w-lg mx-auto px-2" style={{ height: '52px' }}>
+      <div className="flex items-center justify-around px-2" style={{ height: '52px' }}>
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
@@ -38,7 +39,7 @@ const BottomNav = () => {
           return (
             <button
               key={tab.path}
-              onClick={() => navigate(tab.path)}
+              onClick={() => { triggerHaptic("light"); navigate(tab.path); }}
               className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 min-w-0 group"
             >
               <div className={`relative flex items-center justify-center rounded-xl transition-all duration-200 ${

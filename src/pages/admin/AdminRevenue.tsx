@@ -141,11 +141,8 @@ export const AdminRevenue = () => {
       <div className="flex gap-2 mb-2 truncate">
         {(["overview", "subscriptions", "purchases"] as const).map(t => <button key={t} onClick={() => setTab(t)} className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all
             ${tab === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-            {t === "overview" ? i18n.t("auto.z_\uAC1C\uC694_943", "\uAC1C\uC694") : t === "subscriptions" ? i18n.t("admin.tabSubscriptions", {
-          defaultValue: `Subscriptions (${subscriptions.length})`
-        }) : i18n.t("admin.tabPurchases", {
-          defaultValue: `Purchases (${purchases.length})`
-        })}
+            {t === "overview" ? "개요" : t === "subscriptions" ? `구독 (${subscriptions.length})` : `구매 내역 (${purchases.length})`}
+
           </button>)}
       </div>
 

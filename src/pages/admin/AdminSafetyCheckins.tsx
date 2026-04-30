@@ -54,7 +54,7 @@ export const AdminSafetyCheckins = () => {
         </div>
         <button onClick={load} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted text-muted-foreground text-sm hover:text-foreground transition-colors">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          {t("auto.g_1286", "새로고침8")}
+          {t("auto.g_1286", "새로고침")}
         </button>
       </div>
 
@@ -100,7 +100,7 @@ export const AdminSafetyCheckins = () => {
         <div className="space-y-3 truncate">
           {filtered.map(c => {
             const profile = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
-            const userName = profile?.name || c.userName || t("auto.g_1294", "알수없음8");
+            const userName = profile?.name || c.userName || t("auto.g_1294", "알수없음");
             const userPhoto = profile?.photo_url || c.userPhoto;
             const timeAgo = new Date(c.created_at || c.checked_at || Date.now());
             const minsAgo = Math.floor((Date.now() - timeAgo.getTime()) / 60000);
@@ -183,7 +183,7 @@ export const AdminSafetyCheckins = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground truncate">{t("auto.g_1306", "국가위치6")}</span>
+                  <span className="text-muted-foreground truncate">{t("auto.g_1306", "국가위치")}</span>
                   <span className="font-bold text-foreground truncate">{selected.location_name || t("auto.g_1307", "위치없음")}</span>
                 </div>
                 {selected.latitude && <div className="flex justify-between">

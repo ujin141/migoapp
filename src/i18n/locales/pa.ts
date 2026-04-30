@@ -114,8 +114,67 @@ const pa = {
     "start": "ਸ਼ੁਰੂ ਕਰੋ"
   },
   "map": {
-      "distanceUnknown": "Distance unknown"
+    "toast": {
+      "traveler_found": {
+        "title": "👥 Nearby traveler discovered!",
+        "desc": "{{name}} is only {{distance}} away (about {{time}} min walk)!"
+      },
+      "hotplace_found": {
+        "title": "{{emoji}} Nearest {{category}} nearby!",
+        "desc": "People are gathering near '{{name}}' — {{distance}} away (about {{time}} min walk)!"
+      },
+      "group_found": {
+        "title": "🍻 Nearby meetup happening now",
+        "desc": "'{{title}}' meetup is happening just {{distance}} away!"
+      },
+      "photo_found": {
+        "title": "📸 Live local photo feed",
+        "desc": "A photo was just posted only {{distance}} away!"
+      }
     },
+    "profile": "Profile",
+    "destination": "Destination",
+    "schedule": "Schedule",
+    "travelStyle": "Travel Style",
+    "reset": "Reset",
+    "viewProfile": "View Profile",
+    "locationNoAuth": "Location permission denied",
+    "locationUnknown": "Location unknown",
+    "matchFail": "Match failed",
+    "matchSuccess": "Match successful!",
+    "newVibe": "New radius explored",
+    "filterApplied": "Filter applied.",
+    "user": "User",
+    "bioPlaceholder": "No bio available.",
+    "destPlaceholder": "Destination unknown",
+    "datesUnknown": "Dates unknown",
+    "genderUnknown": "Unknown",
+    "korean": "Korean",
+    "seoul": "Seoul",
+    "host": "Host",
+    "today": "Today",
+    "searchingPlaces": "Searching nearby places...",
+    "connectingPlaces": "Connecting Google Places",
+    "hostLabel": "Host",
+    "mapFilter": "Map Filter",
+    "distanceRadius": "Distance Radius",
+    "apply": "Apply",
+    "lightningMatchDesc": "Fly to a hot place & auto-match 4~6 people!",
+    "lightningMatchTitle": "Organizing travel group...",
+    "lightningMatchProgress1": "Inviting 3~5 optimal random members",
+    "lightningMatchProgress2": "at famous hot places 🚀",
+    "enterChat": "Enter Chat",
+    "applyJoin": "Apply to Join",
+    "locationShareOff": "Location sharing off",
+    "premium": "PREMIUM",
+    "normal": "Normal",
+    "cancelLike": "Unlike",
+    "like": "Like",
+    "me": "Me",
+    "title": "Map",
+    "nearby": "Nearby travelers",
+    "noNearby": "No travelers nearby",
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",
@@ -246,13 +305,13 @@ const pa = {
     "inputMuted": "🔕 This is a conversation with notifications turned off.",
     "shareLocation": "Share Location",
     "cancel": "Cancel",
-    "reportReasons": {
-      "0": "Inappropriate words or actions",
-      "1": "Spam / Advertising",
-      "2": "Fake profile",
-      "3": "Offensive content",
-      "4": "Other"
-    },
+    "reportReasons": [
+      "Inappropriate words or actions",
+      "Spam / Advertising",
+      "Fake profile",
+      "Offensive content",
+      "Other"
+    ],
     "autoTranslate": "Auto-translate ",
     "translating": "Translating...",
     "viewOriginal": "View original",
@@ -413,7 +472,13 @@ const pa = {
     "userCount": "Registered members",
     "tripCount": "Trip schedules registered",
     "memberCount": "Community groups",
-    "meetingCount": "Successful meetings"
+    "meetingCount": "Successful meetings",
+    "tripStatus": {
+      "completed": "Completed",
+      "active": "Active",
+      "upcoming": "Upcoming"
+    },
+    "me": "Me"
   },
   "login": {
     "loginTimeout": "Login took too long. Please check your network and try again.",
@@ -545,7 +610,8 @@ const pa = {
     "ok": "OK",
     "back": "ਵਾਪਸ",
     "close": "ਬੰਦ ਕਰੋ",
-    "retry": "ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼"
+    "retry": "ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼",
+    "deny": "Deny"
   },
   "travelStyles": [
     "Backpacking 🎒",
@@ -862,7 +928,9 @@ const pa = {
   },
   "profilePage": {
     "menu": {
-      "helpDesc": "ਮਿਗੋ ਦੀਆਂ ਮੁੱਖ ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ ਨੂੰ ਕਿਵੇਂ ਵਰਤਣਾ ਹੈ ਦੀ ਸਮੀਖਿਆ"
+      "helpDesc": "ਮਿਗੋ ਦੀਆਂ ਮੁੱਖ ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ ਨੂੰ ਕਿਵੇਂ ਵਰਤਣਾ ਹੈ ਦੀ ਸਮੀਖਿਆ",
+      "exploreTitle": "Explore & Organize",
+      "accountTitle": "Account & Settings"
     },
     "stats": {
       "matched": "ਮੇਲ ਖਾਂਦਾ",
@@ -872,7 +940,8 @@ const pa = {
     "tripStatus": {
       "active": "ਜਾਰੀ ਹੈ",
       "upcoming": "ਅਨੁਸੂਚਿਤ",
-      "ended": "ਅੰਤ"
+      "ended": "ਅੰਤ",
+      "completed": "Completed"
     },
     "features": {
       "trips": {
@@ -898,6 +967,11 @@ const pa = {
       "sos": {
         "label": "ਐਮਰਜੈਂਸੀ SOS",
         "desc": "ਐਮਰਜੈਂਸੀ ਦੀ ਸਥਿਤੀ ਵਿੱਚ ਸਥਾਨ ਪ੍ਰਸਾਰਣ ਅਤੇ ਸੰਕਟਕਾਲੀਨ ਸੰਪਰਕ"
+      },
+      "premiumSupport": {
+        "label": "MIGO Premium Support",
+        "desc": "Priority 1:1 dedicated customer center",
+        "connectedDesc": "Connecting to a dedicated consultant"
       }
     },
     "settings": {
@@ -1009,7 +1083,8 @@ const pa = {
     "licenseFooter": "ਹਰੇਕ ਲਾਇਬ੍ਰੇਰੀ ਲਈ ਵਿਸਤ੍ਰਿਤ ਲਾਇਸੈਂਸ ਵੇਰਵੇ ਲਾਇਬ੍ਰੇਰੀ ਦੇ GitHub ਰਿਪੋਜ਼ਟਰੀ ਵਿੱਚ ਲੱਭੇ ਜਾ ਸਕਦੇ ਹਨ। MIT ਲਾਇਸੰਸ ਲਈ, ਤੁਹਾਨੂੰ ਕਾਪੀਰਾਈਟ ਨੋਟਿਸ ਅਤੇ ਲਾਇਸੰਸ ਦੀ ਇੱਕ ਕਾਪੀ ਸ਼ਾਮਲ ਕਰਨੀ ਚਾਹੀਦੀ ਹੈ।",
     "refundPolicy": "ਰਿਫੰਡ ਨੀਤੀ",
     "version": "ਐਪ ਸੰਸਕਰਣ",
-    "companyInfo": "ਕਾਰੋਬਾਰੀ ਜਾਣਕਾਰੀ"
+    "companyInfo": "ਕਾਰੋਬਾਰੀ ਜਾਣਕਾਰੀ",
+    "me": "Me"
   },
   "verif": {
     "trust": {
@@ -1324,7 +1399,6 @@ const pa = {
       "checkDone": "Verification Verification ✅"
     },
     "map": {
-      "distanceUnknown": "Distance unknown"
     },
     "login": {
       "passwordConfirm": "verify password",
@@ -1569,7 +1643,6 @@ const pa = {
     "alert.t21Title": "You can check it in the navigation tab.",
     "general.cancel": "Cancel",
     "verif.checkDone": "Verification complete ✅",
-    "map.distanceUnknown": "Distance unknown",
     "general.femaleOnly": "Women only",
     "general.sameSexOnly": "Same sex only",
     "general.anySex": "Doesn't matter",
@@ -1687,7 +1760,12 @@ const pa = {
     "viewDescNone": "ਮਿਗੋ ਪਲੱਸ 'ਤੇ ਅੱਪਗ੍ਰੇਡ ਕਰੋ ਅਤੇ ਦੇਖੋ ਕਿ ਤੁਹਾਨੂੰ ਕਿਸ ਨੇ ਦੇਖਿਆ ਹੈ!",
     "someone": "ਕੋਈ",
     "defaultLoc": "ਅਣਜਾਣ ਜਗ੍ਹਾ",
-    "emptyDesc": "ਜਦੋਂ ਨਵੀਆਂ ਸੂਚਨਾਵਾਂ ਆਉਂਦੀਆਂ ਹਨ, ਉਹ ਤੁਰੰਤ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੀਆਂ।"
+    "emptyDesc": "ਜਦੋਂ ਨਵੀਆਂ ਸੂਚਨਾਵਾਂ ਆਉਂਦੀਆਂ ਹਨ, ਉਹ ਤੁਰੰਤ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੀਆਂ।",
+    "tripJoinTarget": "requested to join your {{target}} group",
+    "newNotif": "You have a new notification",
+    "matchSuccess": "You matched with {{name}}! Start chatting now.",
+    "groupJoin": "{{name}} joined '{{title}}'!",
+    "streak": "You're on a {{streak}}-day streak! Check in on Migo today."
   },
   "createTrip": {
     "requiredFields": "Required",

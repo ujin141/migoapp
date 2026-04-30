@@ -93,9 +93,9 @@ function scoreGroup(group: TripGroup, input: MatchInput): number {
     } else {
       score += 40; 
     }
-    // 프리미엄 구독자의 경우 매칭 부스트 (즉흥 만남일 때 최상단 노출)
+    // Plus 구독자 매칭 부스트 (+30: 지나치면 관련없는 그룹이 최상단에 둀야는 부당 이득)
     if (input.isPlusUser) {
-      score += 150; 
+      score += 30;
     }
   } else if (input.destination) {
     const dest = input.destination.toLowerCase();
@@ -131,6 +131,8 @@ function scoreGroup(group: TripGroup, input: MatchInput): number {
 
   // 분위기 매칭
   if (input.vibe !== "any") {
+    // 💡 최적화: getVibeKeywords(t) 혹은 memoized map을 밖에서 받아 쓰면 더욱 좋지만, 내부에서 하더라도 매번 번역하진 않도록 상단 캐싱 처리(또는 미리 빼둠)
+    // 현재는 i18n.t()를 여기서 호출하더라도 최소한 이 객체 자체가 VIBE_KWS로 분리되면 좋음
     const VIBE_KWS: Record<TripVibe, string[]> = {
       party:   [i18n.t("auto.g_0362", "club"), i18n.t("auto.g_0363", "party"), i18n.t("auto.g_0364", "night"), "night", "bar"],
       healing: [i18n.t("auto.g_0365", "healing"), i18n.t("auto.g_0366", "relax"), i18n.t("auto.g_0367", "casual"), i18n.t("auto.g_0368", "cafe"), i18n.t("auto.g_0369", "free")],
@@ -138,7 +140,7 @@ function scoreGroup(group: TripGroup, input: MatchInput): number {
       any:     [],
     };
     const all = [...group.tags, group.title].join(" ").toLowerCase();
-    const hit = VIBE_KWS[input.vibe].some(k => all.includes(k));
+    const hit = VIBE_KWS[input.vibe].some(k => all.includes(k.toLowerCase()));
     if (hit) score += 15;
   }
 

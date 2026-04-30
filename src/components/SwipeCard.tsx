@@ -4,6 +4,7 @@ import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from "
 import { MapPin, Calendar, Star, ChevronUp, Crown, Languages, Home, Zap, Shield, Info, User, ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { translateText } from "@/lib/translateService";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import ProfileDetailSheet from "./ProfileDetailSheet";
 import ReportBlockActionSheet from "./ReportBlockActionSheet";
 import VerifyBadge from "./VerifyBadge";
@@ -158,16 +159,35 @@ const SwipeCard = ({
   })();
   const isDragging = useRef(false);
   const dragDistance = useRef(0);
+  const hapticTriggered = useRef(false);
+
   const handleDragStart = () => {
     isDragging.current = false;
     dragDistance.current = 0;
+    hapticTriggered.current = false;
   };
   const handleDrag = (_: unknown, info: PanInfo) => {
     dragDistance.current = Math.abs(info.offset.x);
     if (dragDistance.current > 8) isDragging.current = true;
+    
+    // 네이티브 느낌: 스와이프 임계점(120)을 지날 때 살짝 틱- 하는 햅틱 피드백
+    if (dragDistance.current > 120 && !hapticTriggered.current) {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+      hapticTriggered.current = true;
+    } else if (dragDistance.current < 110 && hapticTriggered.current) {
+      // 임계점 밑으로 다시 돌아오면 초기화 (다시 넘을 때 또 반응)
+      hapticTriggered.current = false;
+    }
   };
   const handleDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x > 120) onSwipeRight();else if (info.offset.x < -120) onSwipeLeft();
+    if (info.offset.x > 120) {
+      onSwipeRight();
+    } else if (info.offset.x < -120) {
+      onSwipeLeft();
+    } else if (dragDistance.current > 20) {
+      // 카드가 다시 제자리로 돌아갈 때 튕김(Snap) 햅틱
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+    }
     setTimeout(() => {
       isDragging.current = false;
       dragDistance.current = 0;
@@ -189,14 +209,17 @@ const SwipeCard = ({
     }} drag={isTop ? "x" : false} dragConstraints={{
       left: 0,
       right: 0
-    }} dragElastic={0.9} onDragStart={handleDragStart} onDrag={handleDrag} onDragEnd={handleDragEnd} onTap={isTop ? handleTap : undefined} exit={{
+    }} dragElastic={0.6} onDragStart={handleDragStart} onDrag={handleDrag} onDragEnd={handleDragEnd} onTap={isTop ? handleTap : undefined} exit={{
       x: 300,
       opacity: 0,
+      rotate: 15,
       transition: {
-        duration: 0.3
+        type: "spring",
+        stiffness: 300,
+        damping: 25
       }
     }}>
-      <div className="relative w-full h-full rounded-3xl bg-card overflow-hidden shadow-float truncate">
+      <div className="relative w-full h-full rounded-[28px] bg-card overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] truncate touch-none select-none">
         {/* Top Progress Dots */}
         {photos.length > 1 && (
           <div className="absolute top-2 left-2 right-2 flex gap-1 z-30 pointer-events-none">
@@ -228,17 +251,23 @@ const SwipeCard = ({
         {isTop && photos.length > 1 && (
           <>
             <div 
-              className="absolute top-10 bottom-32 left-0 w-[40%] z-20 cursor-pointer"
+              className="absolute top-10 bottom-32 left-0 w-[40%] z-20 cursor-pointer touch-none"
               onClick={(e) => {
                 e.stopPropagation();
-                if (currentPhotoIdx > 0) setCurrentPhotoIdx(i => i - 1);
+                if (currentPhotoIdx > 0) {
+                  Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                  setCurrentPhotoIdx(i => i - 1);
+                }
               }}
             />
             <div 
-              className="absolute top-10 bottom-32 right-0 w-[40%] z-20 cursor-pointer"
+              className="absolute top-10 bottom-32 right-0 w-[40%] z-20 cursor-pointer touch-none"
               onClick={(e) => {
                 e.stopPropagation();
-                if (currentPhotoIdx < photos.length - 1) setCurrentPhotoIdx(i => i + 1);
+                if (currentPhotoIdx < photos.length - 1) {
+                  Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                  setCurrentPhotoIdx(i => i + 1);
+                }
               }}
             />
           </>
@@ -246,25 +275,39 @@ const SwipeCard = ({
 
         {/* ── 현지인 테두리 / 프리미엄 테두리 / 프로필 테마 ── */}
         {(() => {
-          if (profile.profileTheme && profile.profileTheme !== 'default') {
-            const THEME_STYLES: Record<string, string> = {
-              aurora: "inset 0 0 0 5px rgba(168,85,247,0.8), 0 0 30px rgba(168,85,247,0.5)",
-              sunset: "inset 0 0 0 5px rgba(244,63,94,0.8), 0 0 30px rgba(244,63,94,0.5)",
-              neon: "inset 0 0 0 5px rgba(6,182,212,0.8), 0 0 30px rgba(6,182,212,0.5)",
-              midnight: "inset 0 0 0 5px rgba(30,41,59,0.9), 0 0 30px rgba(15,23,42,0.8)"
-            };
-            return <div className="absolute inset-0 pointer-events-none rounded-3xl z-10" style={{
-              boxShadow: THEME_STYLES[profile.profileTheme] || THEME_STYLES.aurora
-            }} />;
-          }
+          let shadows: string[] = [];
+          
+          // 1. Inset Border (Premium vs Theme vs Local)
           if (profile.isPremium) {
-            return <div className="absolute inset-0 pointer-events-none rounded-3xl z-10" style={{
-              boxShadow: "inset 0 0 0 4px rgba(251,191,36,0.8), 0 0 20px rgba(251,191,36,0.3)"
-            }} />;
+            shadows.push("inset 0 0 0 4px rgba(251,191,36,1)"); // Gold Border for Premium
+          } else if (profile.profileTheme && profile.profileTheme !== 'default') {
+            const THEME_BORDERS: Record<string, string> = {
+              aurora: "inset 0 0 0 4px rgba(168,85,247,0.8)",
+              sunset: "inset 0 0 0 4px rgba(244,63,94,0.8)",
+              neon: "inset 0 0 0 4px rgba(6,182,212,0.8)",
+              midnight: "inset 0 0 0 4px rgba(30,41,59,0.9)",
+            };
+            shadows.push(THEME_BORDERS[profile.profileTheme] || THEME_BORDERS.aurora);
+          } else if (isLocal) {
+            shadows.push("inset 0 0 0 3px rgba(34,197,94,0.7)");
           }
-          if (isLocal) {
-            return <div className="absolute inset-0 pointer-events-none rounded-3xl z-10" style={{
-              boxShadow: "inset 0 0 0 3px rgba(34,197,94,0.7)"
+
+          // 2. Outer Glow (Theme vs Premium)
+          if (profile.profileTheme && profile.profileTheme !== 'default') {
+            const THEME_GLOWS: Record<string, string> = {
+              aurora: "0 0 40px rgba(168,85,247,0.6)",
+              sunset: "0 0 40px rgba(244,63,94,0.6)",
+              neon: "0 0 40px rgba(6,182,212,0.6)",
+              midnight: "0 0 40px rgba(15,23,42,0.8)",
+            };
+            shadows.push(THEME_GLOWS[profile.profileTheme] || THEME_GLOWS.aurora);
+          } else if (profile.isPremium) {
+            shadows.push("0 0 30px rgba(251,191,36,0.4)");
+          }
+
+          if (shadows.length > 0) {
+            return <div className="absolute inset-0 pointer-events-none rounded-3xl z-10 transition-all duration-300" style={{
+              boxShadow: shadows.join(", ")
             }} />;
           }
           return null;
@@ -309,11 +352,12 @@ const SwipeCard = ({
         {/* Gradient Overlay for Text */}
         {(() => {
           let gradClass = "from-black/95 via-black/50 to-transparent";
-          if (profile.profileTheme === "aurora") gradClass = "from-purple-950/95 via-purple-900/60 to-transparent";
-          if (profile.profileTheme === "sunset") gradClass = "from-rose-950/95 via-rose-900/60 to-transparent";
-          if (profile.profileTheme === "neon") gradClass = "from-cyan-950/95 via-cyan-900/60 to-transparent";
-          if (profile.profileTheme === "midnight") gradClass = "from-slate-950/95 via-slate-900/60 to-transparent";
-          return <div className={`absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t ${gradClass} pointer-events-none`} />;
+          if (profile.profileTheme === "aurora") gradClass = "from-purple-900/95 via-purple-700/60 to-transparent";
+          if (profile.profileTheme === "sunset") gradClass = "from-rose-900/95 via-rose-700/60 to-transparent";
+          if (profile.profileTheme === "neon") gradClass = "from-cyan-900/95 via-cyan-700/60 to-transparent";
+          if (profile.profileTheme === "midnight") gradClass = "from-slate-900/95 via-slate-800/60 to-transparent";
+          
+          return <div className={`absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t ${gradClass} pointer-events-none transition-colors duration-500`} />;
         })()}
 
         {/* Profile Info */}
@@ -354,16 +398,18 @@ const SwipeCard = ({
                {/* 신고하기 버튼 — Guideline 1.2 */}
                <button onClick={e => {
                  e.stopPropagation();
+                 Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
                  setShowReport(true);
-               }} className="w-8 h-8 rounded-full bg-red-500/20 backdrop-blur-md flex items-center justify-center transition-transform hover:scale-110 active:scale-95 border border-red-400/40 shrink-0">
+               }} className="w-8 h-8 rounded-full bg-red-500/20 backdrop-blur-md flex items-center justify-center filter transition-transform active:scale-90 border border-red-400/40 shrink-0">
                  <ShieldAlert size={16} className="text-red-300" />
                </button>
                {/* Info Button */}
                <button onClick={e => {
                  e.stopPropagation();
+                 Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
                  if (profile?.id) onProfileView?.(profile.id);
                  setShowDetail(true);
-               }} className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center transition-transform hover:scale-110 active:scale-95 border border-white/30 shrink-0">
+               }} className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center filter transition-transform active:scale-90 border border-white/30 shrink-0">
                  <Info size={18} className="text-white" />
                </button>
              </div>

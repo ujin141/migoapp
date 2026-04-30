@@ -116,16 +116,36 @@ const ProfileDetailSheet = ({
         damping: 28,
         stiffness: 300
       }}>
-            {/* ── Theme Border ── */}
+            {/* ── Theme & Premium Border ── */}
             {(() => {
-              if (profile.profileTheme && profile.profileTheme !== 'default') {
-                const THEME_STYLES: Record<string, string> = {
+              let shadows: string[] = [];
+
+              if (profile.isPremium) {
+                shadows.push("inset 0 0 0 4px rgba(251,191,36,1)"); // Gold Border for Premium
+              } else if (profile.profileTheme && profile.profileTheme !== 'default') {
+                const THEME_BORDERS: Record<string, string> = {
                   aurora: "inset 0 0 0 4px rgba(168,85,247,0.8)",
                   sunset: "inset 0 0 0 4px rgba(244,63,94,0.8)",
                   neon: "inset 0 0 0 4px rgba(6,182,212,0.8)",
-                  midnight: "inset 0 0 0 4px rgba(30,41,59,0.9)"
+                  midnight: "inset 0 0 0 4px rgba(30,41,59,0.9)",
                 };
-                return <div className="absolute inset-0 pointer-events-none rounded-3xl z-20" style={{ boxShadow: THEME_STYLES[profile.profileTheme] || THEME_STYLES.aurora }} />;
+                shadows.push(THEME_BORDERS[profile.profileTheme] || THEME_BORDERS.aurora);
+              }
+
+              if (profile.profileTheme && profile.profileTheme !== 'default') {
+                const THEME_GLOWS: Record<string, string> = {
+                  aurora: "0 0 40px rgba(168,85,247,0.4)",
+                  sunset: "0 0 40px rgba(244,63,94,0.4)",
+                  neon: "0 0 40px rgba(6,182,212,0.4)",
+                  midnight: "0 0 40px rgba(15,23,42,0.6)",
+                };
+                shadows.push(THEME_GLOWS[profile.profileTheme] || THEME_GLOWS.aurora);
+              } else if (profile.isPremium) {
+                shadows.push("0 0 30px rgba(251,191,36,0.3)");
+              }
+
+              if (shadows.length > 0) {
+                return <div className="absolute inset-0 pointer-events-none rounded-3xl z-20" style={{ boxShadow: shadows.join(", ") }} />;
               }
               return null;
             })()}

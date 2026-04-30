@@ -67,9 +67,10 @@ export const useRealtimeChat = ({ threadId, onMessage }: UseRealtimeChatOptions)
       .from("messages")
       .select("id, thread_id, sender_id, text, created_at")
       .eq("thread_id", threadId)
-      .order("created_at", { ascending: true })
-      .limit(50);
-    return (data ?? []) as RealtimeMessage[];
+      // 🚨 [버그 수정] 최근 메시지부터 100개를 불러온 뒤, 프론트에서 시간순(오름차순)으로 역순 정렬해야 최신 대화가 보임
+      .order("created_at", { ascending: false })
+      .limit(100);
+    return (data ?? []).reverse() as RealtimeMessage[];
   }, [threadId]);
 
   return { sendMessage, fetchMessages };

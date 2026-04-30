@@ -5,7 +5,8 @@ const NotFound = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+    // 프로덕션에서 경로를 콘솔에 노출하면 공격자가 탐색 네비게이션을 파악할 수 있는 위험이 있음
+    // 필요하면 서버사이드 로깅(Sentry 등)으로대체
   }, [location.pathname]);
 
   return (

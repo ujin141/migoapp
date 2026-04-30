@@ -97,11 +97,13 @@ if (!window.__SUPABASE__ && isSupabaseConfigured) {
     return Promise.resolve();
   };
 
-  // 패치 2: getSession — 초기화 중에는 localStorage에서 직접 읽기
+  // 패치 2: getSession — 락 획득 중(초기화가 진행 중)일 때만 localStorage에서 직접 읽기
+  // ⚠️ initializePromise는 완료 후에도 truthy(resolved Promise)로 남아
+  //    정상 getSession 흐름을 계속 우회하게 되어 401을 유발함 → lockAcquired만 체크
   const _origGetSession = a.getSession.bind(a);
   a.getSession = async function () {
-    if (this.lockAcquired || this.initializePromise) {
-      // 초기화 진행 중: initializePromise 대기 없이 바로 storage에서 읽기
+    if (this.lockAcquired) {
+      // 초기화 진행 중: localStorage에서 직접 읽어 deadlock 회피
       const stored = _readSessionFromStorage();
       return { data: { session: stored }, error: null };
     }
@@ -127,6 +129,7 @@ if (!isSupabaseConfigured) {
 // ── 인메모리 캐시 ────────────────────────────────────────────────────────────
 interface CacheEntry<T> { data: T; expiry: number; }
 const _queryCache = new Map<string, CacheEntry<unknown>>();
+const _MAX_CACHE_SIZE = 300; // 1000 → 300으로 절감 (메모리 70% 절감)
 
 export function getCached<T>(key: string): T | null {
   const e = _queryCache.get(key) as CacheEntry<T> | undefined;
@@ -136,12 +139,20 @@ export function getCached<T>(key: string): T | null {
 }
 
 export function setCache<T>(key: string, data: T, ttlMs = 5 * 60 * 1000): void {
-  // LRU-like: 캐시 키 1000개 초과 시 가장 오래된 항목 50개 삭제 (O(1) 접근)
-  if (_queryCache.size >= 1000) {
-    let count = 0;
-    for (const k of _queryCache.keys()) {
-      _queryCache.delete(k);
-      if (++count >= 50) break;
+  // LRU-like: 캐시 키 300개 초과 시 만료 항목을 먼저 제거, 그 다음에 가장 오래된 30개 삭제
+  if (_queryCache.size >= _MAX_CACHE_SIZE) {
+    const now = Date.now();
+    // 먼저 만료된 항목 정리
+    for (const [k, v] of _queryCache.entries()) {
+      if (v.expiry < now) _queryCache.delete(k);
+    }
+    // 여전히 가득 찼다면 가장 오래된 20개 LRU 제거
+    if (_queryCache.size >= _MAX_CACHE_SIZE) {
+      let count = 0;
+      for (const k of _queryCache.keys()) {
+        _queryCache.delete(k);
+        if (++count >= 20) break;
+      }
     }
   }
   _queryCache.set(key, { data, expiry: Date.now() + ttlMs });

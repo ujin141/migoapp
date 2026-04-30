@@ -14,10 +14,9 @@ const LanguagePicker = () => {
     i18n.changeLanguage(code);
     localStorage.setItem("migo-lang", code);
     setOpen(false);
-    // Force reload to update all statically evaluated constants (e.g., HOTPLACES, PRICING)
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
+    // BUG-11 fix: setTimeout cleanup 없음 이슈 해결 — 즉시 reload
+    // (정적 상수들이 언어 변경을 반영하려면 full reload 필요)
+    window.location.reload();
   };
 
   return (

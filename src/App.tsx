@@ -10,6 +10,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AnimatePresence, motion } from "framer-motion";
+import { useNavigationDirection } from "@/hooks/useNavigationDirection";
 import BottomNav from "./components/BottomNav";
 import TutorialOverlay, { useTutorial } from "./components/TutorialOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -106,15 +107,31 @@ const PageLoader = () => (
 
 const hideNavRoutes = ["/create-trip", "/splash", "/onboarding", "/login", "/verification", "/profile-setup", "/trip-calendar", "/meet-review", "/marketplace", "/voice-call", "/admin", "/terms", "/privacy", "/auth/callback", "/download", "/safety", "/shop", "/nearby", "/trip-review", "/trip-match", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy"];
 
-const pageVariants = {
-  initial: { opacity: 0, y: 4 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.18, ease: "easeOut" } },
-  exit:    { opacity: 0, y: -4, transition: { duration: 0.12 } },
-};
+// 방향별 페이지 전환 variants
+const makePageVariants = (direction: "push" | "pop" | "tab") => ({
+  initial: direction === "tab"
+    ? { opacity: 0 }
+    : direction === "push"
+      ? { opacity: 0, x: "100%" }
+      : { opacity: 0, x: "-30%" },
+  animate: {
+    opacity: 1,
+    x: 0,
+    transition: direction === "tab"
+      ? { duration: 0.15, ease: "easeOut" }
+      : { duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }, // iOS spring curve
+  },
+  exit: direction === "tab"
+    ? { opacity: 0, transition: { duration: 0.1 } }
+    : direction === "push"
+      ? { opacity: 0, x: "-20%", transition: { duration: 0.22, ease: "easeIn" } }
+      : { opacity: 0, x: "60%", transition: { duration: 0.22, ease: "easeIn" } },
+});
 
 const PUBLIC_ROUTES = ["/splash", "/onboarding", "/login", "/auth/callback", "/terms", "/privacy", "/download", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy"];
 
 const AppContent = () => {
+  const navDirection = useNavigationDirection();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -147,14 +164,14 @@ const AppContent = () => {
   }, [showEula]);
 
   useEffect(() => {
-    if (showInitialSplash) {
+    if (showInitialSplash && !loading) {
       const timer = setTimeout(() => {
         setShowInitialSplash(false);
         sessionStorage.setItem('migo_splash_shown', '1');
-      }, 2000); // 무조건 2초간 노출
+      }, 1000); // 로딩 완료 후 1초 대기 후 페이드아웃 (더 부드러운 전환)
       return () => clearTimeout(timer);
     }
-  }, [showInitialSplash]);
+  }, [showInitialSplash, loading]);
 
   const showNav = !hideNavRoutes.includes(location.pathname);
   const isAdmin = location.pathname.startsWith("/admin");
@@ -171,10 +188,20 @@ const AppContent = () => {
   // ── (iOS 전용) 앱 추적 투명성(ATT) 권한 요청 ──
   useATT();
 
-  // ── Supabase 세션 만료 감지: TOKEN_REFRESH_FAILED → 로그인으로 이동 ——————————
+  // ── Supabase 세션 만료 감지: TOKEN_REFRESH_FAILED / SIGNED_OUT → 로그인으로 이동 ──
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'TOKEN_REFRESHED') return; // 정상 갱신
+      if (event === 'TOKEN_REFRESH_FAILED') {
+        // 토큰 갱신 실패 — 세션 만료 또는 네트워크 문제
+        // 이미 로그인 화면이면 중복 이동 방지
+        const isPublic = PUBLIC_ROUTES.some(r => window.location.hash.includes(r));
+        if (!isPublic) {
+          console.warn('[Auth] Token refresh failed, redirecting to login');
+          navigate('/login', { replace: true });
+        }
+        return;
+      }
       if (event === 'SIGNED_OUT') {
         // 세션 업코드를 포함한 조용한 SIGNED_OUT 코드 처리
         const isPublic = PUBLIC_ROUTES.some(r => window.location.hash.includes(r));
@@ -195,12 +222,8 @@ const AppContent = () => {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
     } else if (user) {
-      // If user hasn't completed setup (setupComplete is false), force them to the profile setup page
-      if (user.setupComplete === false && location.pathname !== '/profile-setup') {
-        navigate('/profile-setup', { replace: true });
-      } 
-      // If setup is complete (or not explicitly false) and they are on auth/onboarding/setup pages, send them home
-      else if (user.setupComplete !== false && (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding' || location.pathname === '/profile-setup')) {
+      // If they are logged in and on auth/onboarding pages, send them to home (unless they are explicitly on profile-setup, in which case we let them finish it)
+      if (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding') {
         navigate('/', { replace: true });
       }
     }
@@ -262,12 +285,12 @@ const AppContent = () => {
     return () => {
       backHandler.then(h => h.remove());
     };
-  }, [navigate, toast]);
+  }, [navigate, toast, t]);
 
   // 체크인 스트리크: user 세션 시작 시 1회만 실행
   useEffect(() => {
     if (user) checkInStreak();
-  }, [user?.id]);
+  }, [user]);
 
   // ── GPS 권한 요청만: 위치 자동 업데이트 제거 (Apple 5.1.2 - 수동 체크인만 허용) ──
   useEffect(() => {
@@ -281,7 +304,7 @@ const AppContent = () => {
       // ❌ 자동 위치 업데이트 제거 (Apple Guideline 5.1.2)
       // await supabase.from('profiles').update({ lat, lng }).eq('id', user.id);
     });
-  }, [user?.id]);
+  }, [user]);
 
   // ── 언어 자동 감지 ────────────────────────────────────────────
   useEffect(() => {
@@ -317,45 +340,61 @@ const AppContent = () => {
     );
   }
 
+  const pageVariants = makePageVariants(navDirection);
+
   return (
-    <div className="max-w-lg mx-auto relative h-screen overflow-hidden">
-      {/* 라운트별 ErrorBoundary: 페이지 크래시가 앱 전체로 파급되지 않도록 격리 */}
-      <ErrorBoundary pageBoundary={true}>
-      <Suspense fallback={<PageLoader />}>
-        <Routes location={location}>
-          <Route path="/splash"         element={<SplashPage />} />
-          <Route path="/onboarding"     element={<OnboardingPage />} />
-          <Route path="/login"          element={<LoginPage />} />
-          <Route path="/"               element={<Index />} />
-          <Route path="/discover"       element={<DiscoverPage />} />
-          <Route path="/map"            element={<MapPage />} />
-          <Route path="/chat"           element={<ChatPage />} />
-          <Route path="/profile"        element={<ProfilePage />} />
-          <Route path="/notifications"  element={<NotificationPage />} />
-          <Route path="/create-trip"    element={<CreateTripPage />} />
-          <Route path="/verification"   element={<VerificationPage />} />
-          <Route path="/profile-setup"  element={<ProfileSetupPage />} />
-          <Route path="/trip-calendar"  element={<TripCalendarPage />} />
-          <Route path="/meet-review"    element={<MeetReviewPage />} />
-          <Route path="/marketplace"    element={<MarketplacePage />} />
-          <Route path="/voice-call"     element={<VoiceCallPage />} />
-          <Route path="/terms"          element={<TermsPage />} />
-          <Route path="/privacy"        element={<PrivacyPage />} />
-          <Route path="/auth/callback"  element={<AuthCallbackPage />} />
-          <Route path="/download"       element={<DownloadPage />} />
-          <Route path="/find-account"   element={<FindAccountPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/safety"         element={<SafetyCheckInPage />} />
-          <Route path="/shop"           element={<ShopPage />} />
-          <Route path="/nearby"         element={<NearbyPage />} />
-          <Route path="/trip-review"    element={<TripReviewPage />} />
-          <Route path="/trip-match"     element={<TripMatchPage />} />
-          <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
-          <Route path="/refund-policy"  element={<RefundPolicyPage />} />
-          <Route path="*"              element={<NotFound />} />
-        </Routes>
-      </Suspense>
-      </ErrorBoundary>
+    <div className="relative h-screen overflow-hidden w-full">
+      {/* ── 페이지 스크롤 컨테이너: BottomNav(64px) 위만큼만 차지 ── */}
+      <div className="h-full overflow-hidden" style={{ paddingBottom: showNav ? 'calc(52px + env(safe-area-inset-bottom, 0px))' : '0' }}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={location.pathname}
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="h-full w-full overflow-y-auto"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <ErrorBoundary key={location.pathname} pageBoundary={true}>
+              <Suspense fallback={<PageLoader />}>
+                <Routes location={location}>
+                  <Route path="/splash"         element={<SplashPage />} />
+                  <Route path="/onboarding"     element={<OnboardingPage />} />
+                  <Route path="/login"          element={<LoginPage />} />
+                  <Route path="/"               element={<Index />} />
+                  <Route path="/discover"       element={<DiscoverPage />} />
+                  <Route path="/map"            element={<MapPage />} />
+                  <Route path="/chat"           element={<ChatPage />} />
+                  <Route path="/profile"        element={<ProfilePage />} />
+                  <Route path="/notifications"  element={<NotificationPage />} />
+                  <Route path="/create-trip"    element={<CreateTripPage />} />
+                  <Route path="/verification"   element={<VerificationPage />} />
+                  <Route path="/profile-setup"  element={<ProfileSetupPage />} />
+                  <Route path="/trip-calendar"  element={<TripCalendarPage />} />
+                  <Route path="/meet-review"    element={<MeetReviewPage />} />
+                  <Route path="/marketplace"    element={<MarketplacePage />} />
+                  <Route path="/voice-call"     element={<VoiceCallPage />} />
+                  <Route path="/terms"          element={<TermsPage />} />
+                  <Route path="/privacy"        element={<PrivacyPage />} />
+                  <Route path="/auth/callback"  element={<AuthCallbackPage />} />
+                  <Route path="/download"       element={<DownloadPage />} />
+                  <Route path="/find-account"   element={<FindAccountPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/safety"         element={<SafetyCheckInPage />} />
+                  <Route path="/shop"           element={<ShopPage />} />
+                  <Route path="/nearby"         element={<NearbyPage />} />
+                  <Route path="/trip-review"    element={<TripReviewPage />} />
+                  <Route path="/trip-match"     element={<TripMatchPage />} />
+                  <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
+                  <Route path="/refund-policy"  element={<RefundPolicyPage />} />
+                  <Route path="*"              element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
+          </motion.div>
+        </AnimatePresence>
+      </div>
       {showNav && <BottomNav />}
       <AnimatePresence>
         {tutorialVisible && showTutorial && (
@@ -372,7 +411,9 @@ const AppContent = () => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <SplashPage isOverlay={true} />
+            <Suspense fallback={<PageLoader />}>
+              <SplashPage isOverlay={true} />
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>

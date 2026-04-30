@@ -210,6 +210,15 @@ const IdUploadModal = ({
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [backPreview, setBackPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  
+  // 🚨 [React Bug Fix] 타이머 반환 누수 방어용 Ref
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const pickFile = (side: "front" | "back") => {
     const input = document.createElement("input");
     input.type = "file";
@@ -219,11 +228,12 @@ const IdUploadModal = ({
       if (!file) return;
       const url = URL.createObjectURL(file);
       if (side === "front") {
+        // 이전 preview URL revoke (메모리 누수 방지)
+        setFrontPreview(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
         setFrontFile(file);
-        setFrontPreview(url);
       } else {
+        setBackPreview(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
         setBackFile(file);
-        setBackPreview(url);
       }
     };
     input.click();
@@ -285,9 +295,8 @@ const IdUploadModal = ({
       });
       if (insertErr) throw insertErr;
       setStep("pending");
-      setTimeout(() => {
-        onDone();
-      }, 2000);
+      // 🚨 [React Bug Fix] 단순 return () => clearTimeout는 onClick에서 동작하지 않는 오개념이므로 useRef로 교체
+      timerRef.current = setTimeout(() => { onDone(); }, 2000);
     } catch (e: any) {
       toast({
         title: i18n.t('verif.id.uploadFail'),
@@ -470,10 +479,14 @@ const VerificationPage = () => {
       data
     } = await supabase.from('profiles').select('phone_verified, email_verified, id_verified, sns_connected, review_verified').eq('id', userId).single();
     if (!data) return;
+    // 🚨 [CRITICAL SECURITY WARNING] Trust Score 우회 가능 취약점
+    // 현재 신뢰도 점수(trust_score) 계산 및 저장(update)을 클라이언트에서 직접 수행하고 있습니다.
+    // 이는 RLS 우회 시 사용자가 임의로 자신의 검증 상태(phone_verified 등)와 점수를 
+    // 100점으로 조작하여 DB에 주입할 수 있는 설계적 결함입니다.
+    // TODO: 프로덕션 배포 전에 반드시 `recalcTrustScore` 로직을 Supabase Postgres Trigger 
+    // 혹은 Edge Function(RPC)으로 완전히 이관해야 합니다.
     const score = (data.phone_verified ? 15 : 0) + (data.email_verified ? 10 : 0) + (data.id_verified ? 40 : 0) + (data.sns_connected ? 15 : 0) + (data.review_verified ? 20 : 0);
-    await supabase.from('profiles').update({
-      trust_score: score
-    }).eq('id', userId);
+    await supabase.from('profiles').update({ trust_score: score }).eq('id', userId);
     setDbTrustScore(score);
   };
   const [showIdModal, setShowIdModal] = useState(false);
@@ -638,19 +651,12 @@ const VerificationPage = () => {
         title: t('verif.phone.done')
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : t("verif.otpError");
-      if (msg.toLowerCase().includes("lock") && msg.toLowerCase().includes("stole it")) {
-        toast({
-          title: t('verif.phone.delay'),
-          description: t('verif.phone.delayDesc'),
-          variant: "destructive"
-        });
+      // 에러 메시지 원본 노우 안 함 (서비스 내부 정보 노우 / brute force 정보 피드백 방지)
+      const isLockError = e instanceof Error && e.message.toLowerCase().includes("lock") && e.message.toLowerCase().includes("stole");
+      if (isLockError) {
+        toast({ title: t('verif.phone.delay'), description: t('verif.phone.delayDesc'), variant: "destructive" });
       } else {
-        toast({
-          title: t('login.otpFail'),
-          description: msg,
-          variant: "destructive"
-        });
+        toast({ title: t('login.otpFail'), description: t('verif.otpError'), variant: "destructive" });
       }
     } finally {
       setPhoneLoading(false);
@@ -750,11 +756,8 @@ const VerificationPage = () => {
       type: 'email'
     });
     if (error) {
-      toast({
-        title: t('verif.email.codeFail'),
-        description: t('verif.email.codeFailDesc'),
-        variant: "destructive"
-      });
+      // 에러 메시지 노우 방지 (및 brute force 정보 제연)
+      toast({ title: t('verif.email.codeFail'), description: t('verif.email.codeFailDesc'), variant: "destructive" });
       return;
     }
     setEmailStep("done");
@@ -773,7 +776,7 @@ const VerificationPage = () => {
       title: t('verif.email.done')
     });
   };
-  return <div className="min-h-screen bg-background safe-bottom">
+  return <div className="min-h-full bg-background safe-bottom">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-12 pb-4">
         <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
@@ -782,6 +785,17 @@ const VerificationPage = () => {
         <div>
           <h1 className="text-xl font-extrabold text-foreground truncate">{t('verif.title')}</h1>
           <p className="text-xs text-muted-foreground truncate">{t('verif.subtitle')}</p>
+        </div>
+      </div>
+
+      {/* Privacy Assurance Banner */}
+      <div className="mx-5 mb-4 bg-gradient-to-br from-blue-500/8 to-violet-500/5 border border-blue-500/20 rounded-2xl p-3.5 flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-blue-500/15 flex items-center justify-center shrink-0 mt-0.5">
+          <Lock size={14} className="text-blue-500" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[12px] font-extrabold text-foreground">{t("verif.privacyTitle", "개인정보 완전 보호")}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{t("verif.privacyDesc", "인증 정보는 암호화 저장되며 외부에 공개되지 않습니다. 신뢰 점수만 다른 사용자에게 표시됩니다.")}</p>
         </div>
       </div>
 

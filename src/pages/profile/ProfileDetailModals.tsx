@@ -55,7 +55,7 @@ export const MatchDetailModal = ({ showMatchDetail, setShowMatchDetail, matchedU
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">{u.location}</p>
                       <div className="flex gap-1 mt-1">
-                        {u.tags.map((tag: string) => <span key={tag} className="px-2 py-0.5 rounded-full bg-card text-[9px] font-semibold text-muted-foreground">{tag}</span>)}
+                        {(u.tags || []).map((tag: string) => <span key={tag} className="px-2 py-0.5 rounded-full bg-card text-[9px] font-semibold text-muted-foreground">{tag}</span>)}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5">

@@ -70,7 +70,7 @@ export const AdminPosts = () => {
         <motion.button whileTap={{
         scale: 0.95
       }} onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-sm">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{t("auto.g_1273", "새로고침6")}</motion.button>
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{t("auto.g_1273", "새로고침")}</motion.button>
       </div>
 
       <div className="flex gap-3 mb-5">
@@ -124,7 +124,7 @@ export const AdminPosts = () => {
                     </motion.button>
                     <motion.button whileTap={{
                 scale: 0.9
-              }} onClick={() => handleToggleHidden(p.id, p.hidden)} className={`p-2 rounded-xl transition-colors ${p.hidden ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"}`} title={p.hidden ? t("auto.g_1280", "숨김해제6") : t("auto.g_1281", "글숨김")}>
+              }} onClick={() => handleToggleHidden(p.id, p.hidden)} className={`p-2 rounded-xl transition-colors ${p.hidden ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"}`} title={p.hidden ? t("auto.g_1280", "숨김해제") : t("auto.g_1281", "글숨김")}>
                       {p.hidden ? <Eye size={14} /> : <EyeOff size={14} />}
                     </motion.button>
                     <motion.button whileTap={{

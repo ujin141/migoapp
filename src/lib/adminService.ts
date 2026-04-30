@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { createClient } from "@supabase/supabase-js";
-import { isSupabaseConfigured } from "./supabaseClient";
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
 
 // Admin ?꾩슜 adminSupabase ?대씪?댁뼵????persistSession/autoRefreshToken???꾩쟾??鍮꾪솢?깊솕?섏뿬
 // 留뚮즺??JWT 媛깆떊 ?쒕룄濡??명븳 GoTrue ?곕뱶?쎌쓣 ?먯쿇 李⑤떒?⑸땲??
@@ -49,12 +49,33 @@ export async function fetchAdminStats() {
   };
 }
 
-/** Admin Role Security Check (IDOR Prevention) */
+/** Admin Role Security Check — DB에서 실제 권한 검증 */
+let _adminRoleCache: { result: boolean; ts: number } | null = null;
+const ADMIN_CACHE_TTL_MS = 60_000; // 60초 캐시
+
 async function checkAdminRole(): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
-  // The Admin UI is protected by the migo2024 PIN barrier.
-  // Operations fired from AdminPage are allowed to process.
-  return true;
+
+  // 캐시 유효 시 재사용 (60초 이내)
+  if (_adminRoleCache && Date.now() - _adminRoleCache.ts < ADMIN_CACHE_TTL_MS) {
+    return _adminRoleCache.result;
+  }
+
+  const { data: { user } } = await adminSupabase.auth.getUser();
+  if (!user) {
+    _adminRoleCache = { result: false, ts: Date.now() };
+    return false;
+  }
+
+  const { data, error } = await adminSupabase
+    .from("profiles")
+    .select("is_admin, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const isAdmin = !error && (data?.is_admin === true || data?.role === "admin");
+  _adminRoleCache = { result: isAdmin, ts: Date.now() };
+  return isAdmin;
 }
 
 /** USERS */
@@ -245,7 +266,7 @@ export async function fetchAdminReports() {
   const {
     data,
     error
-  } = await adminSupabase.from("reports").select("*, reporter:profiles!reports_reporter_id_fkey(name, photo_url)").order("created_at", {
+  } = await supabase.from("reports").select("*, reporter:profiles!reports_reporter_id_fkey(name, photo_url)").order("created_at", {
     ascending: false
   });
   if (error) {
@@ -253,7 +274,7 @@ export async function fetchAdminReports() {
     const {
       data: data2,
       error: error2
-    } = await adminSupabase.from("reports").select("*, profiles!reports_reporter_id_fkey(name, photo_url)").order("created_at", {
+    } = await supabase.from("reports").select("*, profiles!reports_reporter_id_fkey(name, photo_url)").order("created_at", {
       ascending: false
     });
     if (error2) {
@@ -276,7 +297,7 @@ export async function updateReportStatus(reportId: string, status: "pending" | "
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const {
     error
-  } = await adminSupabase.from("reports").update({
+  } = await supabase.from("reports").update({
     status
   }).eq("id", reportId);
   return !error;
@@ -453,14 +474,17 @@ export async function fetchRevenueStats() {
     purchases: 0,
     churnRate: 0
   };
-  const [subRes, purRes] = await Promise.all([adminSupabase.from("subscriptions").select("plan, amount, status, created_at"), adminSupabase.from("purchases").select("amount, item_type, created_at")]);
+  const [subRes, purRes] = await Promise.all([
+    supabase.from("subscriptions").select("plan, price_krw, status, created_at"), 
+    supabase.from("purchases").select("price_krw, item_id, created_at")
+  ]);
   const subs = subRes.data || [];
   const purs = purRes.data || [];
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const activeSubRevenue = subs.filter((s: any) => s.status === "active").reduce((a: number, s: any) => a + (s.amount || 0), 0);
-  const purchaseRevenue = purs.reduce((a: number, p: any) => a + (p.amount || 0), 0);
-  const monthlyRev = purs.filter((p: any) => p.created_at >= monthStart).reduce((a: number, p: any) => a + (p.amount || 0), 0);
+  const activeSubRevenue = subs.filter((s: any) => s.status === "active").reduce((a: number, s: any) => a + (s.price_krw || 0), 0);
+  const purchaseRevenue = purs.reduce((a: number, p: any) => a + (p.price_krw || 0), 0);
+  const monthlyRev = purs.filter((p: any) => p.created_at >= monthStart).reduce((a: number, p: any) => a + (p.price_krw || 0), 0);
   const cancelledSubs = subs.filter((s: any) => s.status === "cancelled").length;
   const totalSubs = subs.filter((s: any) => s.status !== "cancelled").length;
   return {
@@ -476,7 +500,7 @@ export async function fetchSubscriptionList() {
   const {
     data,
     error
-  } = await adminSupabase.from("subscriptions").select("*, profiles:user_id(name, email, photo_url)").order("created_at", {
+  } = await supabase.from("subscriptions").select("*, profiles:user_id(name, email, photo_url)").order("created_at", {
     ascending: false
   }).limit(100);
   if (error) {
@@ -495,7 +519,7 @@ export async function fetchPurchaseHistory() {
   const {
     data,
     error
-  } = await adminSupabase.from("purchases").select("*, profiles:user_id(name, email)").order("created_at", {
+  } = await supabase.from("purchases").select("*, profiles:user_id(name, email)").order("created_at", {
     ascending: false
   }).limit(200);
   if (error) {
@@ -645,38 +669,39 @@ export async function fetchSafetyCheckins() {
 export async function broadcastNotification(title: string, content: string, type: string, filter: string): Promise<{
   sent: number;
 }> {
-  if (!isSupabaseConfigured || !(await checkAdminRole())) return {
-    sent: 0
-  };
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return { sent: 0 };
+
+  // 대상 유저 필터링
   let query = adminSupabase.from("profiles").select("id");
-  if (filter === "plus") query = query.eq("is_plus", true);
+  if (filter === "plus")     query = query.eq("is_plus", true);
   if (filter === "verified") query = query.eq("verified", true);
-  if (filter === "free") query = query.eq("is_plus", false);
-  const {
-    data: users
-  } = await query.limit(5000);
-  if (!users || users.length === 0) return {
-    sent: 0
-  };
+  if (filter === "free")     query = query.eq("is_plus", false);
+
+  const { data: users } = await query.limit(5000);
+  if (!users || users.length === 0) return { sent: 0 };
+
+  // 200명씩 청크로 분할하여 INSERT (Supabase INSERT 한도 대비)
   const chunks: any[][] = [];
   for (let i = 0; i < users.length; i += 200) chunks.push(users.slice(i, i + 200));
+
   let sent = 0;
   for (const chunk of chunks) {
+    // in_app_notifications 테이블에 INSERT
+    // → push_on_inapp Database Webhook이 push-notify Edge Function을 호출
+    // → push-notify가 notification_prefs.system 값을 확인 후 FCM 발송
     const payload = chunk.map(u => ({
       user_id: u.id,
       title,
       content,
-      type,
-      read: false
+      // type을 system으로 통일 (notification_prefs의 'system' 키와 매핑됨)
+      type: (type === "info" || type === "update" || type === "promo" || type === "warning") ? "system" : type,
+      read: false,
     }));
-    const {
-      error
-    } = await adminSupabase.from("notifications").insert(payload);
+    const { error } = await adminSupabase.from("in_app_notifications").insert(payload);
     if (!error) sent += chunk.length;
   }
-  return {
-    sent
-  };
+
+  return { sent };
 }
 
 // ?? ADMIN ACTIVITY LOG ????????????????????????????????????????????????????????

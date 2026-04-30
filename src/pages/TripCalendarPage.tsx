@@ -246,7 +246,9 @@ const TripCalendarPage = () => {
     const fetchAll = async () => {
       const {
         data: tripData
-      } = await supabase.from('trips').select('*').eq('user_id', user.id);
+      } = await supabase.from('trips')
+        .select('id, destination, start_date, end_date, emoji, color')
+        .eq('user_id', user.id);
       const formatted: TripPlan[] = tripData ? tripData.map(d => ({
         id: d.id,
         destination: d.destination,
@@ -354,7 +356,7 @@ const TripCalendarPage = () => {
     const d = dateStr(viewYear, viewMonth, day);
     return nearbyUsers.filter(u => isBetween(d, u.startDate, u.endDate)).length;
   };
-  return <div className="min-h-screen bg-background safe-bottom pb-24 truncate">
+  return <div className="min-h-full bg-background safe-bottom pb-24">
       {/* Header */}
       <header className="flex items-center gap-3 px-5 pt-12 pb-4">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center active:scale-90 transition-transform">

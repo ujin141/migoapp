@@ -1,29 +1,20 @@
 import i18n from "@/i18n";
-
+import { supabase } from "@/lib/supabaseClient";
 
 // ── 번역 결과 메모리 캐시 (트래픽 + API 비용 절감) ───────────────
 // key: `${text}:${targetLang}`, value: 번역 결과
 const _translateCache = new Map<string, string>();
 const MAX_CACHE_SIZE = 500; // 최대 500개 캐싱 (메모리 관리)
 
-function getSupabaseFunctionUrl(): string {
-  const url = import.meta.env.VITE_SUPABASE_URL as string;
-  if (!url) return '';
-  return `${url}/functions/v1/clever-api`;
-}
-
+// supabase.functions.invoke()를 사용:
+//  - 인증 헤더(Authorization) 자동 첨부 (anon key + 세션 토큰)
+//  - CORS preflight를 SDK가 처리하므로 localhost에서도 동작
 async function fetchFromEdgeFunction(action: string, payload: Record<string, any>): Promise<any> {
-  const url = getSupabaseFunctionUrl();
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${anonKey}`
-    },
-    body: JSON.stringify({ action, ...payload })
+  const { data, error } = await supabase.functions.invoke("clever-api", {
+    body: { action, ...payload },
   });
-  return res.json();
+  if (error) throw error;
+  return data;
 }
 
 /**
@@ -123,9 +114,14 @@ async function simulateTranslation(text: string, targetLang: SupportedLang): Pro
     const data = await res.json();
     const translated = data?.responseData?.translatedText;
     if (!translated || translated === text) return text;
-    const txt = document.createElement('textarea');
-    txt.innerHTML = translated;
-    return txt.value;
+    // 안전한 HTML 엔티티 디코딩 (textarea.innerHTML XSS 취약점 패치)
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(translated, 'text/html');
+      return doc.body.textContent || translated;
+    } catch {
+      return translated;
+    }
   } catch {
     return text;
   }

@@ -86,19 +86,31 @@ const SplashPage = ({ isOverlay = false }: { isOverlay?: boolean }) => {
 
       {/* Loading dots */}
       <motion.div
-        className="absolute bottom-16 flex gap-2"
+        className="absolute bottom-16 flex flex-col items-center gap-3"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2 }}
       >
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            className="w-2 h-2 rounded-full bg-primary"
-            animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
-            transition={{ duration: 1, repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
-          />
-        ))}
+        <div className="flex gap-2">
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="w-2 h-2 rounded-full bg-primary"
+              animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
+              transition={{ duration: 1, repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
+            />
+          ))}
+        </div>
+        {/* Trust badge */}
+        <motion.div
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.8 }}
+        >
+          <span className="text-[10px]">🛡️</span>
+          <span className="text-[10px] font-semibold text-emerald-600">{t("splash.safeTagline", "안전하게 보호된 여행 커뮤니티")}</span>
+        </motion.div>
       </motion.div>
     </div>
   );

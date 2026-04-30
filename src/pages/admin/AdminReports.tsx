@@ -46,6 +46,9 @@ export const AdminReports = () => {
   useEffect(() => {
     load();
   }, []);
+
+  const notifyStatChange = () => window.dispatchEvent(new Event("adminStatsNeedRefresh"));
+
   const resolve = async (id: string) => {
     const success = await updateReportStatus(id, "resolved");
     if (success) {
@@ -57,6 +60,7 @@ export const AdminReports = () => {
         ...p,
         status: "resolved"
       }));
+      notifyStatChange();
     }
   };
   const dismiss = async (id: string) => {
@@ -70,6 +74,7 @@ export const AdminReports = () => {
         ...p,
         status: "dismissed"
       }));
+      notifyStatChange();
     }
   };
   const banTarget = async (targetId: string, reportId: string) => {
@@ -83,6 +88,7 @@ export const AdminReports = () => {
     } : r));
     setSelected(null);
     setBanning(false);
+    notifyStatChange();
   };
   const filtered = reports.filter(r => status === "all" || r.status === status);
   const pending = reports.filter(r => r.status === "pending").length;

@@ -39,8 +39,7 @@ xcodebuild archive \
   -scheme "$SCHEME" \
   -configuration Release \
   -archivePath "$ARCHIVE_PATH" \
-  -allowProvisioningUpdates \
-  CODE_SIGN_STYLE=Automatic
+  -allowProvisioningUpdates
 
 echo "✅ Archive 완료: $ARCHIVE_PATH"
 

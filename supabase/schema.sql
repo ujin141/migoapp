@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGO APP - Complete Database Schema (Unified)
--- Last updated: 2026-03-29
+-- Last updated: 2026-04-30
 -- Run this entire script in Supabase SQL Editor
 -- ============================================================
 
@@ -79,7 +79,10 @@ CREATE TABLE IF NOT EXISTS profiles (
   -- 쇼핑 아이템 구매 상태
   has_badge             BOOLEAN DEFAULT false,
   profile_theme         TEXT DEFAULT 'default',
-  nearby_expires_at     TIMESTAMPTZ
+  nearby_expires_at     TIMESTAMPTZ,
+  -- 푸쉬 알림 수신 설정 (FCM push-notify Edge Function 참조)
+  -- 각 키가 false이면 해당 타입 푸쉬 알림 발송 안 함
+  notification_prefs    JSONB DEFAULT '{"like":true,"superlike":true,"match":true,"comment":true,"group":true,"system":true}'::jsonb
 );
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_select"     ON profiles;
@@ -114,6 +117,71 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- ============================================================
+-- ★ SECURITY TRIGGER: Trust Score Calculation (Anti-Tamper) ★
+-- ============================================================
+CREATE OR REPLACE FUNCTION secure_calculate_trust_score()
+RETURNS TRIGGER AS $$
+DECLARE
+  calculated_score NUMERIC(4,1) := 0;
+BEGIN
+  -- 클라이언트가 보낸 값을 무시하고 인증 내역을 기반으로 백엔드에서 재계산
+  IF NEW.phone_verified = true THEN calculated_score := calculated_score + 15; END IF;
+  IF NEW.email_verified = true THEN calculated_score := calculated_score + 10; END IF;
+  IF NEW.id_verified = true THEN calculated_score := calculated_score + 40; END IF;
+  IF NEW.sns_connected = true THEN calculated_score := calculated_score + 15; END IF;
+  IF NEW.review_verified = true THEN calculated_score := calculated_score + 20; END IF;
+
+  NEW.trust_score := calculated_score;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_calculate_trust_score ON public.profiles;
+CREATE TRIGGER trigger_calculate_trust_score
+  BEFORE INSERT OR UPDATE OF phone_verified, email_verified, id_verified, sns_connected, review_verified
+  ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION secure_calculate_trust_score();
+
+-- ============================================================
+-- ★ SECURITY TRIGGER: Prevent Stat Rollback & Spoofing (Anti-Cheat) ★
+-- ============================================================
+CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- 사용자가 악의적인 API 호출로 자신의 민감한 권한 인가 필드를 조작하는 행위 원천 차단
+  IF auth.role() = 'authenticated' THEN
+    -- 1. 이용 횟수나 패널티 벌점을 0으로 초기화/롤백하는 행위 방지
+    IF NEW.instant_meets_count < OLD.instant_meets_count THEN
+      NEW.instant_meets_count := OLD.instant_meets_count;
+    END IF;
+    IF NEW.no_show_count < OLD.no_show_count THEN
+      NEW.no_show_count := OLD.no_show_count;
+    END IF;
+
+    -- 2. 프론트엔드에서 무료로 프리미엄 우회를 시도하는 행위 적발 및 무시 (현재 클라이언트 결제로직 의존도 때문에 부분 무시)
+    -- 결제 스키마가 완벽히 이전되기 전까지 plan 필드는 제한적으로만 허용하지만, 
+    -- 관리자 권한 부여 등은 엄격히 차단해야 합니다.
+    IF NEW.is_banned != OLD.is_banned THEN
+      NEW.is_banned := OLD.is_banned; -- 유저가 본인 밴을 풀 수 없음
+    END IF;
+
+    -- 3. [핵심] 사용자가 임의로 인증 뱃지(신분증, 연락처 등)를 True로 변조하는 것을 방어 (Trust Score 어뷰징 원천 차단)
+    IF NEW.id_verified != OLD.id_verified THEN NEW.id_verified := OLD.id_verified; END IF;
+    IF NEW.phone_verified != OLD.phone_verified THEN NEW.phone_verified := OLD.phone_verified; END IF;
+    -- 이메일 인증이나 리뷰 인증 등은 현재 프론트 통신에 의존하므로 로직에 맞게 부분적 허용이 필요하나, 
+    -- 신분증(id_verified)은 오직 Admin/Edge Function만 권한이 있어야 함.
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_block_sensitive_update ON public.profiles;
+CREATE TRIGGER trigger_block_sensitive_update
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION block_sensitive_profile_updates();
 
 -- ============================================================
 -- TABLE: likes
@@ -181,7 +249,23 @@ ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS photo            TEXT;
 ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS last_message     TEXT;
 ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS unread_count     INTEGER DEFAULT 0;
 ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS meet_expires_at  TIMESTAMPTZ;
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS created_by       UUID REFERENCES profiles(id) ON DELETE SET NULL;
 
+-- 채팅방 방장(만든 이) 강제 주입 트리거 (Chat Hijacking 방어용)
+CREATE OR REPLACE FUNCTION set_chat_thread_creator() RETURNS TRIGGER AS $$
+BEGIN
+  -- 클라이언트가 임의로 만든 방이라도 서버상에서 생성자를 강제 기록
+  IF NEW.created_by IS NULL THEN
+    NEW.created_by := auth.uid();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_set_chat_creator ON chat_threads;
+CREATE TRIGGER trigger_set_chat_creator
+  BEFORE INSERT ON chat_threads
+  FOR EACH ROW EXECUTE FUNCTION set_chat_thread_creator();
 
 -- ============================================================
 -- TABLE: chat_members
@@ -208,7 +292,19 @@ $$ LANGUAGE sql SECURITY DEFINER;
 CREATE POLICY "members_select" ON chat_members FOR SELECT USING (
   check_is_chat_member(thread_id)
 );
-CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (true);
+
+-- 🚨 [CRITICAL SECURITY FIX] 채팅방 하이재킹 차단
+-- 기존 `WITH CHECK (true)`였던 허술한 정책을 폐기하고 3가지 정당한 경우에만 멤버 추가 허용:
+-- 1) 방을 자기가 방금 막 개설한 경우 (created_by = auth.uid)
+-- 2) 자기가 이미 해당 방의 소속 멤버인 경우 (초대 권한)
+-- 3) 시스템/트리거 강제 주입 (is_group 공개방 등 자기 자신 Insert)
+CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (
+  auth.uid() = user_id 
+  OR 
+  EXISTS (SELECT 1 FROM chat_threads WHERE id = thread_id AND created_by = auth.uid())
+  OR 
+  check_is_chat_member(thread_id)
+);
 
 -- ============================================================
 -- TABLE: messages
@@ -542,21 +638,74 @@ CREATE TRIGGER trg_sync_chat_members_on_change
 CREATE TABLE IF NOT EXISTS reports (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   reporter_id   UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  target_id     UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  target_id     UUID, -- Polymorphic ID (User, Post, Group etc.)
+  type          TEXT DEFAULT 'user', -- 'user', 'post', 'comment', 'group'
   reason        TEXT NOT NULL,
   details       TEXT,
   status        TEXT DEFAULT 'pending',
   created_at    TIMESTAMPTZ DEFAULT NOW(),
-  -- 어드민 처리용 확장 콼럼
+  -- 어드민 처리용 확장 컬럼
   resolved_at   TIMESTAMPTZ,
   resolved_by   UUID REFERENCES profiles(id) ON DELETE SET NULL,
   admin_comment TEXT
 );
+-- 기존에 profiles(id) 외래키가 걸려있었다면 게시글/그룹 신고 시 에러가 나므로 외래키 삭제 (멱등성 보장)
+ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_target_id_fkey;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "reports_insert"     ON reports;
-DROP POLICY IF EXISTS "reports_select_own" ON reports;
-CREATE POLICY "reports_insert"     ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
-CREATE POLICY "reports_select_own" ON reports FOR SELECT USING (auth.uid() = reporter_id);
+DROP POLICY IF EXISTS "reports_insert"       ON reports;
+DROP POLICY IF EXISTS "reports_select_own"   ON reports;
+DROP POLICY IF EXISTS "reports_select_admin" ON reports;
+DROP POLICY IF EXISTS "reports_update_admin" ON reports;
+
+-- 신고자 본인: 자기 신고만 삽입/조회
+CREATE POLICY "reports_insert"       ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+CREATE POLICY "reports_select_own"   ON reports FOR SELECT USING (auth.uid() = reporter_id);
+
+-- 어드민: 모든 신고 조회 및 상태 업데이트
+CREATE POLICY "reports_select_admin" ON reports FOR SELECT USING (
+  EXISTS(SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+);
+CREATE POLICY "reports_update_admin" ON reports FOR UPDATE USING (
+  EXISTS(SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+);
+
+-- ============================================================
+-- TABLE: marketplace_likes
+-- ============================================================
+CREATE TABLE IF NOT EXISTS marketplace_likes (
+  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id       UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  item_id       TEXT NOT NULL,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, item_id)
+);
+ALTER TABLE marketplace_likes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "mlikes_select" ON marketplace_likes;
+DROP POLICY IF EXISTS "mlikes_insert" ON marketplace_likes;
+DROP POLICY IF EXISTS "mlikes_delete" ON marketplace_likes;
+
+CREATE POLICY "mlikes_select" ON marketplace_likes FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "mlikes_insert" ON marketplace_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "mlikes_delete" ON marketplace_likes FOR DELETE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "reports_insert"       ON reports;
+DROP POLICY IF EXISTS "reports_select_own"   ON reports;
+DROP POLICY IF EXISTS "reports_select_admin" ON reports;
+DROP POLICY IF EXISTS "reports_update_admin" ON reports;
+
+-- 신고자 본인: 자기 신고만 삽입/조회
+CREATE POLICY "reports_insert"       ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+CREATE POLICY "reports_select_own"   ON reports FOR SELECT USING (auth.uid() = reporter_id);
+
+-- 어드민: 모든 신고 조회 및 상태 업데이트
+CREATE POLICY "reports_select_admin" ON reports FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')
+  ));
+CREATE POLICY "reports_update_admin" ON reports FOR UPDATE
+  USING (EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')
+  ));
 
 CREATE INDEX IF NOT EXISTS idx_reports_status     ON reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports(created_at DESC);
@@ -927,7 +1076,11 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 );
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "sub_own" ON subscriptions;
+DROP POLICY IF EXISTS "sub_admin" ON subscriptions;
 CREATE POLICY "sub_own" ON subscriptions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "sub_admin" ON subscriptions FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
+);
 
 -- ============================================================
 -- TABLE: purchases (아이템 일회성 구매)
@@ -944,7 +1097,11 @@ CREATE TABLE IF NOT EXISTS purchases (
 );
 ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "purchase_own" ON purchases;
+DROP POLICY IF EXISTS "purchase_admin" ON purchases;
 CREATE POLICY "purchase_own" ON purchases FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "purchase_admin" ON purchases FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
+);
 
 -- ============================================================
 -- TABLE: user_items (보유 아이템 잔량)
@@ -1973,3 +2130,283 @@ SELECT cron.schedule(
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS has_badge         BOOLEAN DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_theme     TEXT DEFAULT 'default';
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nearby_expires_at TIMESTAMPTZ;
+
+-- ============================================================
+-- ★ SEED: 관리자 계정 설정
+-- ============================================================
+-- 1) 컬럼이 아직 없으면 추가
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role     TEXT    DEFAULT 'user';
+
+-- 2) 관리자 지정
+UPDATE profiles
+SET
+  is_admin = true,
+  role     = 'admin'
+WHERE id = (
+  SELECT id
+  FROM auth.users
+  WHERE email = 'ujin141@naver.com'
+  LIMIT 1
+);
+
+-- ============================================================
+-- TABLE: hotplace_seekers (핫플 동반자 구하기)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.hotplace_seekers (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  hotplace_id TEXT        NOT NULL,
+  message     TEXT,
+  meet_date   TEXT,                      -- YYYY-MM-DD (선택)
+  meet_time   TEXT,                      -- HH:MM (선택)
+  max_members INTEGER     DEFAULT 4,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 동일 유저가 같은 핫플에 중복 등록 방지
+CREATE UNIQUE INDEX IF NOT EXISTS hotplace_seekers_user_hotplace_idx
+  ON public.hotplace_seekers (user_id, hotplace_id);
+
+-- 핫플 ID 기준 조회 성능 인덱스
+CREATE INDEX IF NOT EXISTS hotplace_seekers_hotplace_id_idx
+  ON public.hotplace_seekers (hotplace_id, created_at DESC);
+
+-- Realtime 구독 지원 (MapPage.tsx INSERT 실시간 수신용)
+ALTER TABLE public.hotplace_seekers REPLICA IDENTITY FULL;
+
+ALTER TABLE public.hotplace_seekers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "hotplace_seekers_select" ON public.hotplace_seekers;
+DROP POLICY IF EXISTS "hotplace_seekers_insert" ON public.hotplace_seekers;
+DROP POLICY IF EXISTS "hotplace_seekers_delete" ON public.hotplace_seekers;
+
+-- 로그인된 유저는 누구나 읽을 수 있음 (동반자 목록 공개)
+CREATE POLICY "hotplace_seekers_select"
+  ON public.hotplace_seekers FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- 본인 레코드만 삽입 가능
+CREATE POLICY "hotplace_seekers_insert"
+  ON public.hotplace_seekers FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+-- 본인 레코드만 삭제 가능
+CREATE POLICY "hotplace_seekers_delete"
+  ON public.hotplace_seekers FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- ============================================================
+-- NOTIFICATION TRIGGERS
+-- ============================================================
+
+-- ── 1. 좋아요 / 슈퍼라이크 알림 ─────────────────────────────
+-- likes 테이블에 INSERT 되면 받는 사람에게 알림을 생성
+-- (클라이언트가 직접 INSERT 하던 duplicated 로직의 백업 + 중복 방지)
+CREATE OR REPLACE FUNCTION notify_on_like()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- 자기 자신에게 좋아요는 알림 생략
+  IF NEW.from_user = NEW.to_user THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO notifications (user_id, type, actor_id, target_id)
+  VALUES (
+    NEW.to_user,
+    CASE NEW.kind
+      WHEN 'super_like' THEN 'superlike'
+      WHEN 'superlike'  THEN 'superlike'
+      ELSE 'like'
+    END,
+    NEW.from_user,
+    NULL
+  )
+  ON CONFLICT DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_notify_on_like ON likes;
+CREATE TRIGGER trg_notify_on_like
+  AFTER INSERT ON likes
+  FOR EACH ROW EXECUTE FUNCTION notify_on_like();
+
+-- ── 2. 매칭 알림 ──────────────────────────────────────────────
+-- matches 테이블에 INSERT 되면 양쪽 유저에게 match 알림 생성
+CREATE OR REPLACE FUNCTION notify_on_match()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- user1 → user2 에게 알림
+  INSERT INTO notifications (user_id, type, actor_id, target_id)
+  VALUES (NEW.user2_id, 'match', NEW.user1_id, NEW.thread_id)
+  ON CONFLICT DO NOTHING;
+
+  -- user2 → user1 에게 알림
+  INSERT INTO notifications (user_id, type, actor_id, target_id)
+  VALUES (NEW.user1_id, 'match', NEW.user2_id, NEW.thread_id)
+  ON CONFLICT DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_notify_on_match ON matches;
+CREATE TRIGGER trg_notify_on_match
+  AFTER INSERT ON matches
+  FOR EACH ROW EXECUTE FUNCTION notify_on_match();
+
+-- ── 3. 댓글 알림 ──────────────────────────────────────────────
+-- comments 테이블에 INSERT 되면 게시글 작성자에게 알림
+CREATE OR REPLACE FUNCTION notify_on_comment()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_post_author UUID;
+BEGIN
+  -- 게시글 작성자 조회
+  SELECT author_id INTO v_post_author
+  FROM posts WHERE id = NEW.post_id;
+
+  -- 작성자가 본인이면 알림 생략
+  IF v_post_author IS NULL OR v_post_author = NEW.author_id THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
+  VALUES (
+    v_post_author,
+    'comment',
+    NEW.author_id,
+    NEW.post_id,
+    LEFT(NEW.text, 80)  -- 미리보기 텍스트 (80자 제한)
+  );
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_notify_on_comment ON comments;
+CREATE TRIGGER trg_notify_on_comment
+  AFTER INSERT ON comments
+  FOR EACH ROW EXECUTE FUNCTION notify_on_comment();
+
+-- ── 4. 그룹 신규 멤버 입장 알림 ───────────────────────────────
+-- trip_group_members INSERT 시 그룹 호스트에게 알림
+CREATE OR REPLACE FUNCTION notify_on_group_join()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_host_id  UUID;
+  v_title    TEXT;
+BEGIN
+  SELECT host_id, title INTO v_host_id, v_title
+  FROM trip_groups WHERE id = NEW.group_id;
+
+  -- 호스트가 본인이거나 없으면 생략
+  IF v_host_id IS NULL OR v_host_id = NEW.user_id THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
+  VALUES (
+    v_host_id,
+    'group_join',
+    NEW.user_id,
+    NEW.group_id,
+    v_title
+  );
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_notify_on_group_join ON trip_group_members;
+CREATE TRIGGER trg_notify_on_group_join
+  AFTER INSERT ON trip_group_members
+  FOR EACH ROW EXECUTE FUNCTION notify_on_group_join();
+
+-- ── 5. profile_view 중복 방지 ─────────────────────────────────
+-- 기존 중복 profile_view 레코드 제거 (unique index 생성 전 필수)
+-- 각 (user_id, actor_id) 쌍에서 가장 최신 레코드만 남기고 나머지 삭제
+DELETE FROM notifications
+WHERE type = 'profile_view'
+  AND id NOT IN (
+    SELECT DISTINCT ON (user_id, actor_id) id
+    FROM notifications
+    WHERE type = 'profile_view'
+    ORDER BY user_id, actor_id, created_at DESC
+  );
+
+-- 이제 unique index 안전하게 생성
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notif_profile_view_dedup
+  ON notifications (user_id, actor_id, type)
+  WHERE type = 'profile_view';
+
+-- ── 6. notifications Realtime 구독 테이블 등록 ─────────────────
+-- (이미 등록되어 있을 수 있으므로 DO EXCEPTION으로 감싸 멱등 처리)
+DO $$
+BEGIN
+  BEGIN
+    ALTER TABLE notifications REPLICA IDENTITY FULL;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+END;
+$$;
+
+-- ============================================================
+-- ★ MIGRATION: 2026-04-30
+-- 푸쉬 알림 인프라 통합
+-- (FCM HTTP v1 API + Capacitor PushNotifications + notification_prefs 필터링)
+-- ============================================================
+
+-- [1] profiles: 사용자별 알림 수신 설정 컬럼 추가 (기존 DB 멱등 적용)
+-- 각 키가 false이면 push-notify Edge Function이 해당 타입 발송을 건너뜀
+-- 지원 키: like | superlike | match | comment | group | system
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS notification_prefs JSONB
+  DEFAULT '{"like":true,"superlike":true,"match":true,"comment":true,"group":true,"system":true}'::jsonb;
+
+-- [2] profiles: FCM 디바이스 토큰 컬럼 추가 (기존 DB 멱등 적용)
+-- iOS: APNs → Firebase → FCM 토큰 자동 매핑 (AppDelegate.swift 참조)
+-- 클라이언트: usePushNotifications.ts 훅이 토큰 취득 후 이 컬럼에 upsert
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS fcm_token TEXT;
+
+-- ============================================================
+-- DATABASE WEBHOOKS (Supabase 대시보드에서 수동 설정 필요)
+-- 아래 Webhook들이 push-notify Edge Function을 호출합니다.
+-- 설정 위치: Supabase Dashboard > Integrations > Database Webhooks
+-- Edge Function URL: https://<project-ref>.supabase.co/functions/v1/push-notify
+-- 인증 헤더: Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>
+-- ============================================================
+-- Webhook 1: push_on_notification
+--   Table: notifications | Event: INSERT
+--   → like / superlike / match / comment / group_join 푸쉬
+--
+-- Webhook 2: push_on_message
+--   Table: messages | Event: INSERT
+--   → 채팅 메시지 수신 푸쉬
+--
+-- Webhook 3: push_on_inapp
+--   Table: in_app_notifications | Event: INSERT
+--   → 관리자 브로드캐스트 및 시스템 알림 푸쉬
+-- ============================================================
+
+-- [3] 푸쉬 알림 테스트 쿼리 (SQL Editor에서 직접 실행하여 파이프라인 검증)
+-- 아래 주석을 해제하고 실제 user_id로 교체하여 실행
+/*
+INSERT INTO in_app_notifications (user_id, type, title, content)
+VALUES (
+  '<YOUR_USER_UUID>',
+  'system',
+  '🔔 푸쉬 알림 테스트',
+  '푸쉬 알림 파이프라인이 정상 작동합니다.'
+);
+*/
+
+-- [4] notification_prefs 인덱스 (JSONB 키 기반 빠른 필터링, 선택적)
+-- CREATE INDEX IF NOT EXISTS idx_profiles_notif_prefs
+--   ON profiles USING GIN (notification_prefs);

@@ -53,7 +53,7 @@ const ProductModal = ({
       <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={onClose} />
       <motion.div className="relative z-10 w-full max-w-lg bg-card rounded-3xl p-6 shadow-float max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-extrabold text-foreground truncate">{pkg ? i18n.t("auto.g_1233", "상품수정6") : i18n.t("auto.g_1234", "새상품등록")}</h2>
+          <h2 className="text-xl font-extrabold text-foreground truncate">{pkg ? i18n.t("auto.g_1233", "상품수정") : i18n.t("auto.g_1234", "새상품등록")}</h2>
           <button onClick={onClose} className="p-2 bg-muted rounded-full"><X size={18} /></button>
         </div>
         
@@ -67,13 +67,13 @@ const ProductModal = ({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-muted-foreground mb-1 block">{i18n.t("auto.g_1237", "카테고리7")}</label>
+              <label className="text-xs font-bold text-muted-foreground mb-1 block">{i18n.t("auto.g_1237", "카테고리")}</label>
               <select value={form.category} onChange={e => setForm({
               ...form,
               category: e.target.value
             })} className="w-full bg-muted rounded-xl px-4 py-3 text-sm outline-none">
                 <option value="tour">{i18n.t("auto.g_1238", "투어")}</option>
-                <option value="activity">{i18n.t("auto.g_1239", "액티비티7")}</option>
+                <option value="activity">{i18n.t("auto.g_1239", "액티비티")}</option>
                 <option value="stay">{i18n.t("auto.g_1240", "숙소")}</option>
                 <option value="food">{i18n.t("auto.g_1241", "맛집")}</option>
               </select>
@@ -102,7 +102,7 @@ const ProductModal = ({
           </div>
 
           <div>
-            <label className="text-xs font-bold text-muted-foreground mb-1 block">{i18n.t("auto.g_1247", "상세설명7")}</label>
+            <label className="text-xs font-bold text-muted-foreground mb-1 block">{i18n.t("auto.g_1247", "상세설명")}</label>
             <textarea value={form.description} onChange={e => setForm({
             ...form,
             description: e.target.value
@@ -129,7 +129,7 @@ const ProductModal = ({
         </div>
 
         <button onClick={handleSubmit} disabled={saving} className="w-full mt-6 py-4 bg-primary text-primary-foreground font-bold rounded-xl flex justify-center items-center gap-2">
-          {saving ? i18n.t("auto.g_1250", "저장중") : <><Save size={18} />{i18n.t("auto.g_1251", "저장하기7")}</>}
+          {saving ? i18n.t("auto.g_1250", "저장중") : <><Save size={18} />{i18n.t("auto.g_1251", "저장하기")}</>}
         </button>
       </motion.div>
     </div>;
@@ -220,7 +220,7 @@ const AdminMarketplace = () => {
                 <tr>
                   <th className="p-4 text-xs font-bold text-muted-foreground w-16">{t("auto.g_1257", "이미지")}</th>
                   <th className="p-4 text-xs font-bold text-muted-foreground">{t("auto.g_1258", "상품명")}</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground">{t("auto.g_1259", "카테고리7")}</th>
+                  <th className="p-4 text-xs font-bold text-muted-foreground">{t("auto.g_1259", "카테고리")}</th>
                   <th className="p-4 text-xs font-bold text-muted-foreground">{t("auto.g_1260", "목적지")}</th>
                   <th className="p-4 text-xs font-bold text-muted-foreground text-right">{t("auto.g_1261", "가격")}</th>
                   <th className="p-4 text-xs font-bold text-muted-foreground text-right w-24">{t("auto.g_1262", "관리")}</th>
@@ -239,7 +239,7 @@ const AdminMarketplace = () => {
                       <p className="text-[10px] text-muted-foreground">{item.description.substring(0, 50)}...</p>
                     </td>
                     <td className="p-4 text-xs font-semibold text-muted-foreground">
-                      {item.category === "tour" ? t("auto.g_1263", "투어") : item.category === "stay" ? t("auto.g_1264", "숙소") : item.category === "activity" ? t("auto.g_1265", "액티비티7") : t("auto.g_1266", "맛집")}
+                      {item.category === "tour" ? t("auto.g_1263", "투어") : item.category === "stay" ? t("auto.g_1264", "숙소") : item.category === "activity" ? t("auto.g_1265", "액티비티") : t("auto.g_1266", "맛집")}
                     </td>
                     <td className="p-4 text-xs text-muted-foreground flex items-center gap-1 mt-3.5">
                       <MapPin size={12} /> {item.destination}

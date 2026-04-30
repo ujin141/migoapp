@@ -43,7 +43,8 @@
     --shadow-card: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
     --shadow-card-hover: 0 8px 32px -4px rgba(0, 0, 0, 0.12);
     --shadow-float: 0 12px 40px -8px rgba(0, 0, 0, 0.15);
-    --nav-height: 3.25rem; /* 52px — actual BottomNav button area */
+    --nav-height: 3.25rem; /* 52px — 탭바 버튼 영역 */
+    --nav-total: calc(3.25rem + env(safe-area-inset-bottom, 0px)); /* 탭바 + 홈인디케이터 포함 전체 높이 */
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -112,15 +113,37 @@
   button, a, [role="button"] {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    /* GPU 합성 레이어로 올려 클릭 반응 즉각화 */
-    will-change: transform;
     cursor: pointer;
   }
 
-  /* will-change cleanup: 애니메이션 끝나면 해제 */
-  button:not(:hover):not(:active),
-  a:not(:hover):not(:active) {
-    will-change: auto;
+  /* ── hover는 실제 포인터(PC) 기기에서만 — 터치 시 hover 잔류 제거 ── */
+  @media (hover: none) {
+    button:hover, a:hover, [role="button"]:hover {
+      opacity: 1 !important;
+      background-color: initial;
+      color: initial;
+      transform: none !important;
+    }
+  }
+
+  /* ── 일반 스크롤 컨테이너 — 우터 마다 잔류 찺는 것 차단 ── */
+  [class*="overflow-y-auto"],
+  [class*="overflow-auto"],
+  [class*="overflow-scroll"] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
+  }
+
+  /* ── 이미지 드래그 백프리지 전면 차단 ── */
+  img, video {
+    -webkit-user-drag: none;
+    user-drag: none;
+    pointer-events: none;
+  }
+  /* 클릭 가능한 이미지는 포인터 복원 */
+  a img, button img, [role="button"] img {
+    pointer-events: auto;
   }
 }
 
@@ -156,11 +179,10 @@
   /* pt-safe, pb-safe, pb-safe-or, pt-safe-exact, mt-safe, mb-safe, px-safe 등은
      tailwind.config.ts 플러그인에서 단일 정의 — 여기 중복 정의 제거 */
 
-  /* 콘텐츠 페이지 하단: 네비바 높이 + 기기 홈바 여백 (Tailwind 미포함 커스텀 클래스)
-     Guideline 4 fix: iPad Air 11-inch에서 탭바 뒤에 버튼이 절대 가려지지 않도록 3rem 버퍼
-     52px nav + safe-area + 48px(3rem) buffer = iPad Air에서 최소 100px 여백 확보 */
+  /* 콘텐츠 페이지 하단: 네비바 높이 + 기기 홈바 여백
+     실제 탭바 높이(52px) + safe-area + 1.5rem 여유 버퍼 */
   .safe-bottom {
-    padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 20px) + 3rem);
+    padding-bottom: calc(var(--nav-total) + 1.5rem);
   }
 
   /* Scrollbar hide utility */
@@ -227,5 +249,41 @@
   /* RTL 언어(아랍어/히브리어/페르시아어) 지원 */
   [dir="rtl"] .i18n-truncate {
     text-align: right;
+  }
+
+  /* ── 네이티브 앱 전환 애니메이션 GPU 가속 ── */
+  .page-transition {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* ── 리스트 아이템 탭 피드백 (iOS 네이티브 느낌) ── */
+  .tap-highlight {
+    transition: opacity 0.08s ease;
+  }
+  .tap-highlight:active {
+    opacity: 0.6;
+  }
+
+  /* ── 앉은 시트(bottom sheet) 스냅 스크롤 ── */
+  .sheet-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-snap-type: none;
+  }
+
+  /* ── 전체 화면 스크롤 가능 컨테이너 ── */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+  }
+
+  /* ── 플로팅 레이어 차단 (web 느낌 제거) ── */
+  * {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
   }
 }

@@ -5,6 +5,7 @@ import { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { Sparkles, Lock } from "lucide-react";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 interface EditProfileModalProps {
   showEditModal: boolean;
@@ -204,24 +205,34 @@ export const EditProfileModal = ({
                 <label className="text-sm font-bold text-foreground mb-3 flex items-center gap-1.5">
                   <Sparkles size={16} className="text-primary" /> {i18n.t("auto.z_\uD504\uB85C\uD544\uD14C\uB9C8_123", "\uD504\uB85C\uD544\uD14C\uB9C8")} {!canPremiumTheme && <Lock size={12} className="text-muted-foreground ml-1" />}
                 </label>
-                <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+                <div className="grid grid-cols-5 gap-2">
                   {THEMES.map(th => {
                     const isSelected = profileTheme === th.id;
+                    const isLocked = !canPremiumTheme && th.id !== 'default';
                     return (
                       <button
                         key={th.id}
                         onClick={() => {
-                          if (canPremiumTheme || th.id === 'default') setProfileTheme(th.id);
+                          if (!isLocked) {
+                            Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                            setProfileTheme(th.id);
+                          } else {
+                            Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {}); // Lock feeling
+                          }
                         }}
-                        className={`relative shrink-0 flex flex-col items-center gap-2 ${!canPremiumTheme && th.id !== 'default' ? 'opacity-50 grayscale' : ''}`}
+                        className="relative flex flex-col items-center gap-1.5 min-w-0 transition-transform active:scale-90"
                       >
-                        <div className={`w-14 h-14 rounded-full border-2 ${th.gradient} flex items-center justify-center transition-all ${isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-card shadow-lg scale-105' : 'ring-0 opacity-80'}`} />
-                        <span className={`text-[10px] font-extrabold ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>{th.name}</span>
-                        {!canPremiumTheme && th.id !== 'default' && (
-                          <div className="absolute inset-0 bg-background/20 rounded-full flex items-center justify-center pb-5">
-                            <Lock size={14} className="text-foreground shadow-sm drop-shadow-md" />
-                          </div>
-                        )}
+                        <div className={`w-12 h-12 rounded-full border-2 ${th.gradient} flex items-center justify-center transition-all relative ${isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-card shadow-lg scale-105' : 'opacity-80'}`}>
+                          {isLocked && (
+                            <div className="absolute inset-0 rounded-full bg-black/20 flex items-center justify-center pointer-events-none">
+                              <Lock size={13} className="text-white drop-shadow" />
+                            </div>
+                          )}
+                          {isSelected && !isLocked && (
+                            <Check size={14} className="text-primary drop-shadow-sm" />
+                          )}
+                        </div>
+                        <span className={`text-[9px] font-bold text-center leading-tight truncate w-full px-0.5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>{th.name}</span>
                       </button>
                     );
                   })}

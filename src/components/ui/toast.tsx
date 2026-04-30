@@ -14,9 +14,13 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-[env(safe-area-inset-top)] z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
+      // 항상 하단 표시, 탭바(80px) + safe-area-inset-bottom 위로 올림
+      "fixed bottom-0 left-0 right-0 z-[100] flex max-h-screen w-full flex-col-reverse px-4 pt-4 md:max-w-[420px] md:right-0 md:left-auto",
       className,
     )}
+    style={{
+      paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
+    }}
     {...props}
   />
 ));

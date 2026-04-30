@@ -12,7 +12,15 @@ PODS:
     - Capacitor
   - CapacitorGeolocation (6.1.1):
     - Capacitor
+  - CapacitorHaptics (6.0.3):
+    - Capacitor
+  - CapacitorKeyboard (6.0.4):
+    - Capacitor
   - CapacitorPreferences (6.0.4):
+    - Capacitor
+  - CapacitorPushNotifications (8.0.3):
+    - Capacitor
+  - CapgoCapacitorAppTrackingTransparency (8.1.6):
     - Capacitor
   - CapgoNativePurchases (6.0.42):
     - Capacitor
@@ -25,7 +33,11 @@ DEPENDENCIES:
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorDevice (from `../../node_modules/@capacitor/device`)"
   - "CapacitorGeolocation (from `../../node_modules/@capacitor/geolocation`)"
+  - "CapacitorHaptics (from `../../node_modules/@capacitor/haptics`)"
+  - "CapacitorKeyboard (from `../../node_modules/@capacitor/keyboard`)"
   - "CapacitorPreferences (from `../../node_modules/@capacitor/preferences`)"
+  - "CapacitorPushNotifications (from `../../node_modules/@capacitor/push-notifications`)"
+  - "CapgoCapacitorAppTrackingTransparency (from `../../node_modules/@capgo/capacitor-app-tracking-transparency`)"
   - "CapgoNativePurchases (from `../../node_modules/@capgo/native-purchases`)"
 
 EXTERNAL SOURCES:
@@ -43,8 +55,16 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/device"
   CapacitorGeolocation:
     :path: "../../node_modules/@capacitor/geolocation"
+  CapacitorHaptics:
+    :path: "../../node_modules/@capacitor/haptics"
+  CapacitorKeyboard:
+    :path: "../../node_modules/@capacitor/keyboard"
   CapacitorPreferences:
     :path: "../../node_modules/@capacitor/preferences"
+  CapacitorPushNotifications:
+    :path: "../../node_modules/@capacitor/push-notifications"
+  CapgoCapacitorAppTrackingTransparency:
+    :path: "../../node_modules/@capgo/capacitor-app-tracking-transparency"
   CapgoNativePurchases:
     :path: "../../node_modules/@capgo/native-purchases"
 
@@ -56,9 +76,13 @@ SPEC CHECKSUMS:
   CapacitorCordova: 8d93e14982f440181be7304aa9559ca631d77fff
   CapacitorDevice: 38ad323d74e3a86b56253680538ac23a2c9b4a68
   CapacitorGeolocation: ef657a46a125be74010f4ce57caae173c23204d2
+  CapacitorHaptics: 40f83026feeee9cfe36e89e9c98a3baaaf20c450
+  CapacitorKeyboard: e8cd50fd5cbdd023a5947a5c0f5cca6e5aa5a253
   CapacitorPreferences: 5848e0691b36b4bb4acc98e481ab56d451578d30
+  CapacitorPushNotifications: e4437b4ec1b2070685bf032c210f346432214c5f
+  CapgoCapacitorAppTrackingTransparency: bd5884a1dc7c9d8a2878fe0972fdf7989c84b9eb
   CapgoNativePurchases: 260513c14dadae1e5b32e885adb63e8cb19f9d7a
 
-PODFILE CHECKSUM: 41c96cd534b52587f309d7b8b0f626741c473c93
+PODFILE CHECKSUM: 92c35ae9d07df2c9efbadeadaa664e473705814e
 
 COCOAPODS: 1.16.2

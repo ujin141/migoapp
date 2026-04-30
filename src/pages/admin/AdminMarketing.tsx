@@ -22,7 +22,7 @@ const formatColor = (f: string) => f === "card" ? "bg-violet-500/10 text-violet-
 
 // ─── Ad status badge ───────────────────────────────────────
 const statusBadge = (s: AdStatus) => s === "active" ? "bg-emerald-500/10 text-emerald-400" : s === "draft" ? "bg-muted text-muted-foreground" : s === "paused" ? "bg-amber-500/10 text-amber-400" : "bg-blue-500/10 text-blue-400";
-const statusLabel = (s: AdStatus) => s === "active" ? i18n.t("auto.g_1106", "게재중") : s === "draft" ? i18n.t("auto.g_1107", "초안") : s === "paused" ? i18n.t("auto.g_1108", "일시정지7") : i18n.t("auto.g_1109", "완료");
+const statusLabel = (s: AdStatus) => s === "active" ? i18n.t("auto.g_1106", "게재중") : s === "draft" ? i18n.t("auto.g_1107", "초안") : s === "paused" ? i18n.t("auto.g_1108", "일시정지") : i18n.t("auto.g_1109", "완료");
 
 // ─── Image Upload Component ────────────────────────────────
 const ImageUpload = ({
@@ -64,7 +64,7 @@ const ImageUpload = ({
 
       {uploading ? <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-muted-foreground truncate">{i18n.t("auto.g_1110", "업로드중7")}</p>
+          <p className="text-xs text-muted-foreground truncate">{i18n.t("auto.g_1110", "업로드중")}</p>
         </div> : value ? <>
           <img src={value} alt="ad" className="w-full h-full object-cover" />
           <button onClick={e => {
@@ -132,7 +132,7 @@ const CreateAdModal = ({
       onClose();
     }
   };
-  const steps = [i18n.t("auto.g_1114", "광고슬롯선"), i18n.t("auto.g_1115", "광고소재7"), i18n.t("auto.g_1116", "타겟팅예산")];
+  const steps = [i18n.t("auto.g_1114", "광고슬롯선"), i18n.t("auto.g_1115", "광고소재"), i18n.t("auto.g_1116", "타겟팅예산")];
   return <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={onClose} />
       <motion.div className="relative z-10 w-full max-w-2xl bg-card rounded-3xl shadow-float border border-border overflow-hidden" initial={{
@@ -173,7 +173,7 @@ const CreateAdModal = ({
             }))} className={`text-left p-4 rounded-2xl border-2 transition-all ${form.slot_id === s.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${formatColor(s.format)}`}>
-                        {s.format === "card" ? i18n.t("auto.g_1119", "카드") : s.format === "banner" ? i18n.t("auto.g_1120", "배너") : s.format === "native" ? i18n.t("auto.g_1121", "네이티브7") : i18n.t("auto.g_1122", "전면")}
+                        {s.format === "card" ? i18n.t("auto.g_1119", "카드") : s.format === "banner" ? i18n.t("auto.g_1120", "배너") : s.format === "native" ? i18n.t("auto.g_1121", "네이티브") : i18n.t("auto.g_1122", "전면")}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{s.dimensions}</span>
                     </div>
@@ -188,7 +188,7 @@ const CreateAdModal = ({
           {step === 1 && <div className="space-y-4 truncate">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{i18n.t("auto.g_1123", "광고제목7")}</label>
+                  <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{i18n.t("auto.g_1123", "광고제목")}</label>
                   <input value={form.title} onChange={e => setForm(f => ({
                 ...f,
                 title: e.target.value
@@ -207,14 +207,14 @@ const CreateAdModal = ({
                 <ImageUpload value={imageUrl} onChange={setImageUrl} />
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{i18n.t("auto.g_1128", "헤드라인7")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{i18n.t("auto.g_1128", "헤드라인")}</label>
                 <input value={form.headline} onChange={e => setForm(f => ({
               ...f,
               headline: e.target.value
             }))} placeholder={i18n.t("auto.g_1129", "예서울방콕")} maxLength={60} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary transition-colors" />
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{i18n.t("auto.g_1130", "광고문구7")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{i18n.t("auto.g_1130", "광고문구")}</label>
                 <textarea value={form.body_text} onChange={e => setForm(f => ({
               ...f,
               body_text: e.target.value
@@ -239,11 +239,11 @@ const CreateAdModal = ({
 
               {/* Ad Preview */}
               {(form.headline || imageUrl) && selectedSlot && <div className="bg-muted/50 rounded-2xl p-4 border border-border truncate">
-                  <p className="text-[10px] font-bold text-muted-foreground mb-3 uppercase tracking-wide truncate">{i18n.t("auto.g_1135", "미리보기7")}{selectedSlot.format})</p>
+                  <p className="text-[10px] font-bold text-muted-foreground mb-3 uppercase tracking-wide truncate">{i18n.t("auto.g_1135", "미리보기")}{selectedSlot.format})</p>
                   {selectedSlot.format === "banner" ? <div className="w-full h-14 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 border border-border flex items-center px-3 gap-3 overflow-hidden">
                       {imageUrl && <img src={imageUrl} className="h-10 w-10 rounded-lg object-cover shrink-0" />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-foreground truncate">{form.headline || i18n.t("auto.g_1136", "헤드라인7")}</p>
+                        <p className="text-xs font-bold text-foreground truncate">{form.headline || i18n.t("auto.g_1136", "헤드라인")}</p>
                         <p className="text-[10px] text-muted-foreground truncate">{form.advertiser}</p>
                       </div>
                       <span className="text-[10px] font-bold text-primary whitespace-nowrap shrink-0">{form.cta_text}</span>
@@ -251,14 +251,14 @@ const CreateAdModal = ({
                       {imageUrl ? <img src={imageUrl} className="w-full h-32 object-cover" /> : <div className="w-full h-32 bg-muted flex items-center justify-center"><ImageIcon size={20} className="text-muted-foreground" /></div>}
                       <div className="p-3">
                         <span className="text-[9px] font-bold text-muted-foreground uppercase truncate">{i18n.t("auto.g_1137", "광고")}</span>
-                        <p className="text-xs font-bold text-foreground mt-0.5 truncate">{form.headline || i18n.t("auto.g_1138", "헤드라인7")}</p>
+                        <p className="text-xs font-bold text-foreground mt-0.5 truncate">{form.headline || i18n.t("auto.g_1138", "헤드라인")}</p>
                         <button className="mt-2 w-full py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold">{form.cta_text}</button>
                       </div>
                     </div> : <div className="flex gap-3 items-start">
                       {imageUrl && <img src={imageUrl} className="w-20 h-16 rounded-xl object-cover shrink-0" />}
                       <div>
                         <span className="text-[9px] font-bold text-muted-foreground uppercase truncate">{i18n.t("auto.g_1139", "광고")}</span>
-                        <p className="text-sm font-bold text-foreground truncate">{form.headline || i18n.t("auto.g_1140", "헤드라인7")}</p>
+                        <p className="text-sm font-bold text-foreground truncate">{form.headline || i18n.t("auto.g_1140", "헤드라인")}</p>
                         <p className="text-xs text-muted-foreground">{form.body_text}</p>
                         <span className="text-xs text-primary font-bold mt-1 block">{form.cta_text} →</span>
                       </div>
@@ -269,7 +269,7 @@ const CreateAdModal = ({
           {/* Step 2: Targeting + Budget */}
           {step === 2 && <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-2 block">{i18n.t("auto.g_1141", "타겟성별7")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-2 block">{i18n.t("auto.g_1141", "타겟성별")}</label>
                 <div className="flex gap-2 truncate">
                   {[["all", i18n.t("auto.g_1142", "전체")], ["male", i18n.t("auto.g_1143", "남성")], ["female", i18n.t("auto.g_1144", "여성")]].map(([val, label]) => <button key={val} onClick={() => setForm(f => ({
                 ...f,
@@ -280,17 +280,17 @@ const CreateAdModal = ({
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-2 block">{i18n.t("auto.g_1145", "타겟연령7")}{form.target_age_min}{i18n.t("auto.g_1146", "세")}{form.target_age_max}{i18n.t("auto.g_1147", "세")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-2 block">{i18n.t("auto.g_1145", "타겟연령")}{form.target_age_min}{i18n.t("auto.g_1146", "세")}{form.target_age_max}{i18n.t("auto.g_1147", "세")}</label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-[10px] text-muted-foreground mb-1 truncate">{i18n.t("auto.g_1148", "최소연령7")}</p>
+                    <p className="text-[10px] text-muted-foreground mb-1 truncate">{i18n.t("auto.g_1148", "최소연령")}</p>
                     <input type="range" min={18} max={60} value={form.target_age_min} onChange={e => setForm(f => ({
                   ...f,
                   target_age_min: Number(e.target.value)
                 }))} className="w-full accent-violet-500" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground mb-1 truncate">{i18n.t("auto.g_1149", "최대연령7")}</p>
+                    <p className="text-[10px] text-muted-foreground mb-1 truncate">{i18n.t("auto.g_1149", "최대연령")}</p>
                     <input type="range" min={20} max={65} value={form.target_age_max} onChange={e => setForm(f => ({
                   ...f,
                   target_age_max: Number(e.target.value)
@@ -323,13 +323,13 @@ const CreateAdModal = ({
                 <p className="text-[10px] text-muted-foreground mt-1 truncate">{i18n.t("auto.g_1153", "일예산")}{Math.round(form.budget / Math.max(1, Math.ceil((new Date(form.end_date).getTime() - new Date(form.start_date).getTime()) / 86400000))).toLocaleString()}</p>
               </div>
               <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{i18n.t("auto.g_1154", "게재상태7")}</label>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{i18n.t("auto.g_1154", "게재상태")}</label>
                 <select value={form.status} onChange={e => setForm(f => ({
               ...f,
               status: e.target.value as AdStatus
             }))} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary">
                   <option value="draft">{i18n.t("auto.g_1155", "초안으로저")}</option>
-                  <option value="active">{i18n.t("auto.g_1156", "즉시게재7")}</option>
+                  <option value="active">{i18n.t("auto.g_1156", "즉시게재")}</option>
                 </select>
               </div>
             </div>}
@@ -367,7 +367,7 @@ export const AdminMarketing = () => {
   // Push state
   const [pushTitle, setPushTitle] = useState("");
   const [pushBody, setPushBody] = useState("");
-  const [pushTarget, setPushTarget] = useState(t("auto.g_1162", "전체유저7"));
+  const [pushTarget, setPushTarget] = useState(t("auto.g_1162", "전체유저"));
   const [pushSent, setPushSent] = useState(false);
   useEffect(() => {
     fetchAds().then(setAds);
@@ -423,7 +423,7 @@ export const AdminMarketing = () => {
     label: t("auto.g_1165", "프로모코드")
   }, {
     id: "push",
-    label: t("auto.g_1166", "푸시알림7")
+    label: t("auto.g_1166", "푸시알림")
   }];
   return <div className="truncate">
       <div className="flex items-center justify-between mb-6 truncate">
@@ -445,17 +445,17 @@ export const AdminMarketing = () => {
         icon: Megaphone,
         color: "from-violet-500 to-purple-600"
       }, {
-        label: t("auto.g_1171", "총노출수7"),
+        label: t("auto.g_1171", "총노출수"),
         value: ads.reduce((a, c) => a + c.impressions, 0).toLocaleString(),
         icon: Users,
         color: "from-blue-500 to-cyan-500"
       }, {
-        label: t("auto.g_1172", "총클릭수8"),
+        label: t("auto.g_1172", "총클릭수"),
         value: ads.reduce((a, c) => a + c.clicks, 0).toLocaleString(),
         icon: MousePointer,
         color: "from-pink-500 to-rose-500"
       }, {
-        label: t("auto.g_1173", "광고수익8"),
+        label: t("auto.g_1173", "광고수익"),
         value: t("auto.p2", { val: (ads.reduce((a, c) => a + c.budget_spent, 0) / 10000).toFixed(0)
         }),
         icon: DollarSign,
@@ -488,7 +488,7 @@ export const AdminMarketing = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${formatColor(s.format)}`}>
-                        {s.format === "card" ? t("auto.g_1175", "카드") : s.format === "banner" ? t("auto.g_1176", "배너") : s.format === "native" ? t("auto.g_1177", "네이티브8") : t("auto.g_1178", "전면광고8")}
+                        {s.format === "card" ? t("auto.g_1175", "카드") : s.format === "banner" ? t("auto.g_1176", "배너") : s.format === "native" ? t("auto.g_1177", "네이티브") : t("auto.g_1178", "전면광고")}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{s.dimensions}</span>
                     </div>
@@ -507,7 +507,7 @@ export const AdminMarketing = () => {
                 {/* Visual slot preview */}
                 <div className={`mt-3 rounded-xl border border-dashed border-border/50 flex items-center justify-center text-[10px] text-muted-foreground font-semibold
                   ${s.format === "card" ? "h-24" : s.format === "interstitial" ? "h-32" : "h-10"}`}>
-                  {s.enabled ? <span className="text-primary truncate">{t("auto.g_1181", "광고게재중")}</span> : t("auto.g_1182", "광고없음8")}
+                  {s.enabled ? <span className="text-primary truncate">{t("auto.g_1181", "광고게재중")}</span> : t("auto.g_1182", "광고없음")}
                 </div>
               </motion.div>)}
           </div>
@@ -517,7 +517,7 @@ export const AdminMarketing = () => {
       {tab === "ads" && <div>
           <div className="flex gap-2 mb-4 truncate">
             {(["all", "active", "draft", "paused", "completed"] as const).map(f => <button key={f} onClick={() => setAdFilter(f)} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${adFilter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                {f === "all" ? t("auto.g_1183", "전체") : f === "active" ? t("auto.g_1184", "게재중") : f === "draft" ? t("auto.g_1185", "초안") : f === "paused" ? t("auto.g_1186", "일시정지8") : t("auto.g_1187", "완료")}
+                {f === "all" ? t("auto.g_1183", "전체") : f === "active" ? t("auto.g_1184", "게재중") : f === "draft" ? t("auto.g_1185", "초안") : f === "paused" ? t("auto.g_1186", "일시정지") : t("auto.g_1187", "완료")}
               </button>)}
           </div>
           <div className="space-y-3 truncate">
@@ -552,7 +552,7 @@ export const AdminMarketing = () => {
                     <div className="flex flex-col gap-1.5 shrink-0 truncate">
                       {a.status === "active" && <motion.button whileTap={{
                   scale: 0.9
-                }} onClick={() => handleStatusChange(a.id, "paused")} className="p-2 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors" title={t("auto.g_1193", "일시정지8")}>
+                }} onClick={() => handleStatusChange(a.id, "paused")} className="p-2 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors" title={t("auto.g_1193", "일시정지")}>
                           <Pause size={12} />
                         </motion.button>}
                       {a.status === "paused" && <motion.button whileTap={{
@@ -562,7 +562,7 @@ export const AdminMarketing = () => {
                         </motion.button>}
                       {a.status === "draft" && <motion.button whileTap={{
                   scale: 0.9
-                }} onClick={() => handleStatusChange(a.id, "active")} className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors" title={t("auto.g_1195", "게재시작8")}>
+                }} onClick={() => handleStatusChange(a.id, "active")} className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors" title={t("auto.g_1195", "게재시작")}>
                           <Play size={12} />
                         </motion.button>}
                       <motion.button whileTap={{
@@ -594,7 +594,7 @@ export const AdminMarketing = () => {
                 </div>
                 <div className="grid grid-cols-4 gap-3 truncate">
                   {[{
-              label: t("auto.g_1202", "도달노출8"),
+              label: t("auto.g_1202", "도달노출"),
               value: a.impressions.toLocaleString()
             }, {
               label: t("auto.g_1203", "클릭"),
@@ -683,8 +683,8 @@ export const AdminMarketing = () => {
               <div>
                 <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.g_1216", "대상")}</label>
                 <select value={pushTarget} onChange={e => setPushTarget(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary">
-                  <option>{t("auto.g_1217", "전체유저8")}</option><option>{t("auto.g_1218", "무료유저8")}</option><option>{t("auto.g_1219", "Plus유")}</option>
-                  <option>{t("auto.g_1220", "비활성유저")}</option><option>{t("auto.g_1221", "신규가입7")}</option>
+                  <option>{t("auto.g_1217", "전체유저")}</option><option>{t("auto.g_1218", "무료유저")}</option><option>{t("auto.g_1219", "Plus유")}</option>
+                  <option>{t("auto.g_1220", "비활성유저")}</option><option>{t("auto.g_1221", "신규가입")}</option>
                 </select>
               </div>
               <div>
@@ -699,7 +699,7 @@ export const AdminMarketing = () => {
               </div>
             </div>
             {(pushTitle || pushBody) && <div className="bg-muted/50 rounded-2xl p-4 mb-4 border border-border">
-                <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wide truncate">{t("auto.g_1226", "미리보기8")}</p>
+                <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wide truncate">{t("auto.g_1226", "미리보기")}</p>
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0"><Bell size={14} className="text-white" /></div>
                   <div><p className="text-sm font-bold text-foreground truncate">{pushTitle || t("auto.g_1227", "제목")}</p><p className="text-xs text-muted-foreground mt-0.5 truncate">{pushBody || t("auto.g_1228", "내용")}</p></div>
@@ -713,7 +713,7 @@ export const AdminMarketing = () => {
           }} exit={{
             opacity: 0
           }} className="w-full py-3 rounded-2xl bg-emerald-500/10 text-emerald-400 text-sm font-bold text-center flex items-center justify-center gap-2">
-                  <Check size={16} />{t("auto.g_1229", "발송완료8")}{pushTarget}{t("auto.g_1230", "에게전송됨")}</motion.div> : <motion.button whileTap={{
+                  <Check size={16} />{t("auto.g_1229", "발송완료")}{pushTarget}{t("auto.g_1230", "에게전송됨")}</motion.div> : <motion.button whileTap={{
             scale: 0.97
           }} onClick={sendPush} disabled={!pushTitle || !pushBody} className="w-full py-3 rounded-2xl gradient-primary text-primary-foreground text-sm font-extrabold disabled:opacity-40 flex items-center justify-center gap-2">
                   <Send size={14} />{t("auto.g_1231", "푸시알림발")}</motion.button>}

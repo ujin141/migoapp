@@ -22,7 +22,7 @@ export const getCurrentLocation = async (showToastOnFail = false): Promise<GeoLo
         permStatus = await Geolocation.requestPermissions();
         if (permStatus.location !== 'granted') {
           if (showToastOnFail) {
-            toast({ title: i18n.t("auto.g_0012", "Location permission denied"), variant: "destructive" });
+            toast({ title: i18n.t("alert.t23Title", "위치 권한이 필요해요"), variant: "destructive" });
           }
           return null;
         }
@@ -63,8 +63,8 @@ export const getCurrentLocation = async (showToastOnFail = false): Promise<GeoLo
     console.warn(i18n.t("auto.g_0356", "[GPS] 위치 가져오기 실패:"), error?.message || error);
     if (showToastOnFail) {
       toast({
-        title: i18n.t("auto.g_0013", "Location unavailable"),
-        description: i18n.t("auto.g_0014", "Please try again in a moment"),
+        title: i18n.t("auto.z_위치권한이필요합니다_1453", "위치를 가져올 수 없습니다."),
+        description: i18n.t("auto.g_0047_loc", "잠시 후 다시 시도해주세요."),
         variant: "destructive",
       });
     }

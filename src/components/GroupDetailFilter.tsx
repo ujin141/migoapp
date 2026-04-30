@@ -1,5 +1,4 @@
-import i18n from "@/i18n";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, RotateCcw, Check, MapPin, Calendar, Users, Compass, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -43,33 +42,34 @@ export function countGroupDetailFilters(f: GroupDetailFilterState): number {
   );
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-const TRAVEL_STYLES: { id: TravelStyle; emoji: string; label: string; color: string; bg: string }[] = [
-  { id: i18n.t("auto.g_0022", "관광"),       emoji: "🗺️",  label: i18n.t("auto.g_0023", "관광 / 투어"),   color: "text-emerald-600", bg: "bg-emerald-500/15 border-emerald-500/40" },
-  { id: i18n.t("auto.g_0024", "맛집"),       emoji: "🍜",  label: i18n.t("auto.g_0025", "맛집 탐방"),      color: "text-orange-600",  bg: "bg-orange-500/15 border-orange-500/40" },
-  { id: i18n.t("auto.g_0026", "자연"),       emoji: "🏔️", label: i18n.t("auto.g_0027", "자연 / 액티비티"), color: "text-teal-600",    bg: "bg-teal-500/15 border-teal-500/40" },
-  { id: i18n.t("auto.g_0028", "휴양"),       emoji: "🏖️", label: i18n.t("auto.g_0029", "휴양 / 힐링"),    color: "text-blue-600",    bg: "bg-blue-500/15 border-blue-500/40" },
-  { id: i18n.t("auto.g_0030", "나이트라이프"), emoji: "🎉",  label: i18n.t("auto.g_0031", "나이트라이프"),   color: "text-purple-600",  bg: "bg-purple-500/15 border-purple-500/40" },
-];
-
-const DURATIONS: { id: TravelDuration; label: string; sub: string }[] = [
-  { id: i18n.t("auto.g_0032", "1-3일"), label: i18n.t("auto.g_0033", "1–3일"),  sub: i18n.t("auto.g_0034", "짧은 여행") },
-  { id: i18n.t("auto.g_0035", "4-7일"), label: i18n.t("auto.g_0036", "4–7일"),  sub: i18n.t("auto.g_0037", "일주일 내외") },
-  { id: i18n.t("auto.g_0038", "1-2주"), label: i18n.t("auto.g_0039", "1–2주"),  sub: i18n.t("auto.g_0040", "알찬 여행") },
-  { id: i18n.t("auto.g_0041", "2주+"),  label: i18n.t("auto.g_0042", "2주 이상"), sub: i18n.t("auto.g_0043", "장기 여행") },
-];
-
-const GENDER_OPTS: { id: GenderPref; emoji: string; label: string }[] = [
-  { id: "any",         emoji: "✨", label: i18n.t("auto.g_0044", "상관없음") },
-  { id: "mixed",       emoji: "👫", label: i18n.t("auto.g_0045", "혼성") },
-  { id: "female-only", emoji: "🙋‍♀️", label: i18n.t("auto.g_0046", "여성만") },
-  { id: "male-only",   emoji: "🙋‍♂️", label: i18n.t("auto.g_0047", "남성만") },
-];
-
 // ─── Component ────────────────────────────────────────────────────────────────
 const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, value, onChange }) => {
+  const { t } = useTranslation();
   const [local, setLocal] = useState<GroupDetailFilterState>(value);
   useEffect(() => { if (open) setLocal(value); }, [open, value]);
+
+  // ─── 언어 변경 시 재계산되는 데이터 ──────────────────────────────────────
+  const TRAVEL_STYLES = useMemo(() => [
+    { id: "관광" as TravelStyle,       emoji: "🗺️",  label: t("gdf.style_tour",    "관광 / 투어"),    color: "text-emerald-600", bg: "bg-emerald-500/15 border-emerald-500/40" },
+    { id: "맛집" as TravelStyle,       emoji: "🍜",  label: t("gdf.style_food",    "맛집 탐방"),       color: "text-orange-600",  bg: "bg-orange-500/15 border-orange-500/40" },
+    { id: "자연" as TravelStyle,       emoji: "🏔️", label: t("gdf.style_nature",  "자연 / 액티비티"), color: "text-teal-600",    bg: "bg-teal-500/15 border-teal-500/40" },
+    { id: "휴양" as TravelStyle,       emoji: "🏖️", label: t("gdf.style_relax",   "휴양 / 힐링"),     color: "text-blue-600",    bg: "bg-blue-500/15 border-blue-500/40" },
+    { id: "나이트라이프" as TravelStyle, emoji: "🎉",  label: t("gdf.style_night",   "나이트라이프"),    color: "text-purple-600",  bg: "bg-purple-500/15 border-purple-500/40" },
+  ], [t]);
+
+  const DURATIONS = useMemo(() => [
+    { id: "1-3일" as TravelDuration, label: t("gdf.dur_1_3",  "1–3일"),   sub: t("gdf.dur_1_3_sub",  "짧은 여행") },
+    { id: "4-7일" as TravelDuration, label: t("gdf.dur_4_7",  "4–7일"),   sub: t("gdf.dur_4_7_sub",  "일주일 내외") },
+    { id: "1-2주" as TravelDuration, label: t("gdf.dur_1_2w", "1–2주"),   sub: t("gdf.dur_1_2w_sub", "알찬 여행") },
+    { id: "2주+"  as TravelDuration, label: t("gdf.dur_2w_p", "2주 이상"), sub: t("gdf.dur_2w_p_sub", "장기 여행") },
+  ], [t]);
+
+  const GENDER_OPTS = useMemo(() => [
+    { id: "any"         as GenderPref, emoji: "✨",   label: t("gdf.gender_any",    "상관없음") },
+    { id: "mixed"       as GenderPref, emoji: "👫",   label: t("gdf.gender_mixed",  "혼성") },
+    { id: "female-only" as GenderPref, emoji: "🙋‍♀️", label: t("gdf.gender_female", "여성만") },
+    { id: "male-only"   as GenderPref, emoji: "🙋‍♂️", label: t("gdf.gender_male",   "남성만") },
+  ], [t]);
 
   const activeCount = countGroupDetailFilters(local);
   const handleApply = () => { onChange(local); onClose(); };
@@ -110,14 +110,15 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                     <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
                       <SlidersHorizontal size={13} className="text-primary" />
                     </div>
-                    <h2 className="text-lg font-extrabold text-foreground tracking-tight truncate">{i18n.t("auto.g_0012", "동행 필터")}</h2>
+                    <h2 className="text-lg font-extrabold text-foreground tracking-tight truncate">{t("gdf.title", "동행 필터")}</h2>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 ml-9 truncate">{i18n.t("auto.g_0013", "원하는 여행 동행 조건을 설정하세요")}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 ml-9 truncate">{t("gdf.subtitle", "원하는 여행 동행 조건을 설정하세요")}</p>
                 </div>
                 <div className="flex items-center gap-2 truncate">
                   {activeCount > 0 && (
                     <button onClick={handleReset} className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-muted text-xs font-semibold text-muted-foreground hover:text-foreground transition-all active:scale-95">
-                      <RotateCcw size={11} /> {i18n.t("auto.g_0014", "초기화")}</button>
+                      <RotateCcw size={11} /> {t("gdf.reset", "초기화")}
+                    </button>
                   )}
                   <button onClick={onClose} className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center transition-all active:scale-90">
                     <X size={16} className="text-muted-foreground" />
@@ -134,7 +135,7 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                     <div className="w-7 h-7 rounded-lg bg-sky-500/15 flex items-center justify-center">
                       <Compass size={13} className="text-sky-500" />
                     </div>
-                    <span className="text-sm font-bold text-foreground truncate">{i18n.t("auto.g_0015", "출발지 / 목적지")}</span>
+                    <span className="text-sm font-bold text-foreground truncate">{t("gdf.departure_dest", "출발지 / 목적지")}</span>
                   </div>
                   <div className="space-y-2">
                     {/* 출발지 */}
@@ -143,7 +144,7 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                       <input
                         value={local.departureKeyword}
                         onChange={e => set("departureKeyword", e.target.value)}
-                        placeholder={i18n.t("auto.g_0048", "출발지 입력 (예: 서울, 부산)")}
+                        placeholder={t("gdf.departure_ph", "출발지 입력 (예: 서울, 부산)")}
                         className="flex-1 bg-transparent text-[13px] font-semibold text-foreground placeholder:text-muted-foreground/60 outline-none"
                       />
                       {local.departureKeyword && (
@@ -158,7 +159,7 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                       <input
                         value={local.destinationKeyword}
                         onChange={e => set("destinationKeyword", e.target.value)}
-                        placeholder={i18n.t("auto.g_0049", "목적지 입력 (예: 도쿄, 방콕)")}
+                        placeholder={t("gdf.destination_ph", "목적지 입력 (예: 도쿄, 방콕)")}
                         className="flex-1 bg-transparent text-[13px] font-semibold text-foreground placeholder:text-muted-foreground/60 outline-none"
                       />
                       {local.destinationKeyword && (
@@ -178,7 +179,7 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                     <div className="w-7 h-7 rounded-lg bg-orange-500/15 flex items-center justify-center">
                       <span className="text-sm">🗺️</span>
                     </div>
-                    <span className="text-sm font-bold text-foreground truncate">{i18n.t("auto.g_0016", "여행 스타일")}</span>
+                    <span className="text-sm font-bold text-foreground truncate">{t("gdf.travel_style", "여행 스타일")}</span>
                     {local.travelStyle && (
                       <span className="ml-auto text-xs text-orange-500 font-semibold flex items-center gap-1">
                         <Check size={11} /> {TRAVEL_STYLES.find(s => s.id === local.travelStyle)?.label}
@@ -189,9 +190,9 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                     <motion.button whileTap={{ scale: 0.95 }}
                       onClick={() => set("travelStyle", null)}
                       className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${local.travelStyle === null ? "border-transparent bg-rose-500/15 text-rose-600" : "border-border bg-muted/50 text-muted-foreground"}`}
-                    >{i18n.t("auto.g_0017", "전체")}</motion.button>
+                    >{t("gdf.all", "전체")}</motion.button>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 truncate">
+                  <div className="grid grid-cols-2 gap-2">
                     {TRAVEL_STYLES.map(style => {
                       const sel = local.travelStyle === style.id;
                       return (
@@ -199,11 +200,11 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                           onClick={() => set("travelStyle", sel ? null : style.id)}
                           className={`relative flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${sel ? `border-transparent ${style.bg} shadow-sm` : "border-border bg-muted/40"}`}
                         >
-                          <span className="text-xl leading-none">{style.emoji}</span>
-                          <span className={`text-[12px] font-bold ${sel ? style.color : "text-foreground"}`}>{style.label}</span>
+                          <span className="text-xl leading-none shrink-0">{style.emoji}</span>
+                          <span className={`text-[12px] font-bold truncate ${sel ? style.color : "text-foreground"}`}>{style.label}</span>
                           {sel && (
                             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
-                              className="absolute top-2 right-2 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center">
+                              className="absolute top-2 right-2 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center shrink-0">
                               <Check size={8} className="text-white" strokeWidth={3} />
                             </motion.div>
                           )}
@@ -221,14 +222,14 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                     <div className="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center">
                       <Calendar size={13} className="text-blue-500" />
                     </div>
-                    <span className="text-sm font-bold text-foreground truncate">{i18n.t("auto.g_0018", "여행 기간")}</span>
+                    <span className="text-sm font-bold text-foreground truncate">{t("gdf.duration", "여행 기간")}</span>
                     {local.duration && (
-                      <span className="ml-auto text-xs text-blue-500 font-semibold flex items-center gap-1">
-                        <Check size={11} /> {local.duration}
+                      <span className="ml-auto text-xs text-blue-500 font-semibold flex items-center gap-1 shrink-0">
+                        <Check size={11} /> {DURATIONS.find(d => d.id === local.duration)?.label}
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-2 truncate">
+                  <div className="grid grid-cols-2 gap-2">
                     {DURATIONS.map(d => {
                       const sel = local.duration === d.id;
                       return (
@@ -258,14 +259,14 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                     <div className="w-7 h-7 rounded-lg bg-pink-500/15 flex items-center justify-center">
                       <Users size={13} className="text-pink-500" />
                     </div>
-                    <span className="text-sm font-bold text-foreground truncate">{i18n.t("auto.g_0019", "성비")}</span>
+                    <span className="text-sm font-bold text-foreground truncate">{t("gdf.gender", "성비")}</span>
                     {local.genderPref !== "any" && (
-                      <span className="ml-auto text-xs text-pink-500 font-semibold flex items-center gap-1">
+                      <span className="ml-auto text-xs text-pink-500 font-semibold flex items-center gap-1 shrink-0">
                         <Check size={11} /> {GENDER_OPTS.find(g => g.id === local.genderPref)?.label}
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-2 truncate">
+                  <div className="grid grid-cols-2 gap-2">
                     {GENDER_OPTS.map(g => {
                       const sel = local.genderPref === g.id;
                       return (
@@ -273,11 +274,11 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                           onClick={() => set("genderPref", g.id)}
                           className={`relative flex items-center gap-2.5 p-3 rounded-2xl border-2 transition-all ${sel ? "border-transparent bg-pink-500/15 shadow-sm" : "border-border bg-muted/40"}`}
                         >
-                          <span className="text-lg leading-none">{g.emoji}</span>
-                          <span className={`text-[12px] font-bold ${sel ? "text-pink-600" : "text-muted-foreground"}`}>{g.label}</span>
+                          <span className="text-lg leading-none shrink-0">{g.emoji}</span>
+                          <span className={`text-[12px] font-bold truncate ${sel ? "text-pink-600" : "text-muted-foreground"}`}>{g.label}</span>
                           {sel && (
                             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
-                              className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-pink-500 flex items-center justify-center">
+                              className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-pink-500 flex items-center justify-center shrink-0">
                               <Check size={8} className="text-white" strokeWidth={3} />
                             </motion.div>
                           )}
@@ -296,7 +297,10 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
                 >
                   <motion.div className="absolute inset-0 bg-white/10" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }} style={{ skewX: -20 }} />
                   <span className="relative z-10 flex items-center justify-center gap-2 truncate">
-                    {activeCount > 0 ? <><Check size={18} strokeWidth={3} />{i18n.t("auto.g_0020", "필터 적용 (")}{activeCount}{i18n.t("auto.g_0021", "개)")}</>: i18n.t("auto.g_0050", "전체 동행 보기")}
+                    {activeCount > 0
+                      ? <><Check size={18} strokeWidth={3} />{t("gdf.apply_with_count", "필터 적용")} ({activeCount}{t("gdf.apply_count_suffix", "개")})</>
+                      : t("gdf.view_all", "전체 동행 보기")
+                    }
                   </span>
                 </motion.button>
               </div>

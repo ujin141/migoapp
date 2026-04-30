@@ -91,7 +91,7 @@ const BOOST_DURATION = 30 * 60;
 const MAX_FREE_DM = 10;
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, sessionReady } = useAuth();
   const [isPlus, setIsPlus] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [boostActive, setBoostActive] = useState(false);
@@ -147,7 +147,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
 
   // ── DB에서 구독상태 + 아이템 잔량 로드 ──────────────────────────────────
   useEffect(() => {
-    if (!user) return;
+    if (!user || !sessionReady) return; // sessionReady: auth lockAcquired 완료 후 실행
 
     // profiles에서 구독 플랜 + 아이템 구매 상태 로드
     supabase
@@ -163,8 +163,9 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
           if (exp > new Date()) setNearbyUnlockedUntil(exp);
         }
         const now = new Date();
+        // BUG-09 fix: plus_expires_at 이 null 이면 '만료 없음(영구)' 으로 처리
         const expiresAt = data?.plus_expires_at ? new Date(data.plus_expires_at) : null;
-        const isExpired = expiresAt && expiresAt < now;
+        const isExpired = expiresAt !== null && expiresAt < now; // null이면 만료 안 됨
 
         if (!isExpired) {
           if (data?.plan === 'premium') {
@@ -180,7 +181,13 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
 
           // 만료됐지만 아직 DB에 premium/plus로 남아있다면 해제 업데이트 (Pseudo-cron)
           if (data?.plan && data.plan !== 'free') {
-            supabase.from('profiles').update({ plan: 'free', is_plus: false }).eq('id', user.id).then();
+            supabase.from('profiles')
+              .update({ plan: 'free', is_plus: false })
+              .eq('id', user.id)
+              .then(({ error }) => {
+                // 업데이트 실패는 로컈에만 기록 (DB와 로컈 간 불일치는 다음 앱 실행 시 처리됨)
+                if (error) console.warn('[Sub] 만료 해제 DB 업데이트 실패:', error.message);
+              });
           }
         }
       });
@@ -196,8 +203,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
           setSuperLikesLeft(data.super_likes ?? 0);
           setBoostsCount(data.boosts ?? 0);
         } else {
-          // user_items 행 없으면 생성
-          supabase.from("user_items").insert({ user_id: user.id }).then(() => {});
+          // BUG-01 fix: insert → upsert (race condition으로 409 Conflict 방지)
+          supabase.from("user_items").upsert({ user_id: user.id }, { onConflict: 'user_id' }).then(() => {});
         }
       });
 
@@ -215,7 +222,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, sessionReady]);
 
   // ── Migo Plus/Premium 업그레이드 (ex: 테스트 결제) ─────────────────────────────────
   const upgradePlus = useCallback(async (plan: 'plus' | 'premium' = 'plus') => {
@@ -233,6 +240,14 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       const { data: itemData } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
       const currentBoosts = itemData?.boosts ?? 0;
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      
+      // 🚨 [CRITICAL SECURITY WARNING] 결제 우회(Payment Bypass) 취약점 구간
+      // 현재 클라이언트 측에서 StoreKit 영수증 1차 검증만 수행 후, 직접 자신의 
+      // 권한(is_plus)과 구독 레코드(subscriptions)를 DB에 강제 Insert 하고 있습니다.
+      // 악성 사용자가 이 통신을 가로채거나 브라우저 콘솔에서 직접 함수를 호출하면, 
+      // 실제 과금 없이 무료로 프리미엄 우회를 할 수 있습니다.
+      // TODO: 영수증(Receipt) 토큰을 Edge Function으로 넘겨 Apple Server와 
+      // 2차 검증(Server-to-Server)을 거친 뒤 서버에서 DB를 업데이트하도록 아키텍처를 변경해야 합니다.
       await Promise.all([
         supabase.from("profiles").update({ is_plus: true, plan }).eq("id", user.id),
         supabase.from("subscriptions").insert({
@@ -380,11 +395,31 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const purchaseTravelPack = useCallback(async () => {
-    await addSuperLikes(10);
-    await addBoosts(1);
-  }, [addSuperLikes, addBoosts]);
+    // 낙관적 즉시 UI 업데이트
+    setSuperLikesLeft(prev => prev + 10);
+    setBoostsCount(prev => prev + 1);
+    if (user) {
+      // 단일 SELECT 후 단일 upsert — 레이스 컨디션 방지 (addSuperLikes + addBoosts 순차 실행 X)
+      const { data } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", user.id).maybeSingle();
+      await supabase.from("user_items").upsert({
+        user_id: user.id,
+        super_likes: (data?.super_likes ?? 0) + 10,
+        boosts: (data?.boosts ?? 0) + 1,
+      }, { onConflict: 'user_id' });
+    }
+  }, [user]);
 
   const boostIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // BUG-04 fix: boost interval cleanup — 컴포넌트 언마운트 시 interval 정리
+  useEffect(() => {
+    return () => {
+      if (boostIntervalRef.current) {
+        clearInterval(boostIntervalRef.current);
+        boostIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const startBoost = useCallback(async () => {
     if (boostsCount <= 0 && !isPlus) return; // 잔여 부스트 없으면 불가

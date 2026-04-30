@@ -38,7 +38,9 @@ const NotificationPage = () => {
   const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
 
   const fetchProfile = async (actorId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', actorId).single();
+    const { data } = await supabase.from('profiles')
+      .select('id, name, age, nationality, gender, bio, location, photo_url, photo_urls, travel_style, languages, mbti, phone_verified, is_plus, interests')
+      .eq('id', actorId).single();
     if (data) {
       setSelectedProfile({
         id: data.id,
@@ -65,7 +67,7 @@ const NotificationPage = () => {
   const profileViewCount = profileViews.length;
 
   return (
-    <div className="min-h-screen bg-background safe-bottom truncate">
+    <div className="min-h-full bg-background safe-bottom">
       {/* Header */}
       <div className="px-5 pt-safe pb-4 flex items-center justify-between truncate">
         <div className="truncate">
