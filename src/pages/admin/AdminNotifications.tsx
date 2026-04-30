@@ -123,6 +123,33 @@ export const AdminNotifications = () => {
             </div>
           </div>
 
+          <div className="pt-2">
+            <label className="text-xs font-bold text-muted-foreground mb-2 block">{t("auto.z_\uCD94\uCC9C\uD15C\uD50C\uB9BF_001", "\uCD94\uCC9C \uD15C\uD50C\uB9BF")}</label>
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {[
+                { title: "이번 주말 떠날 사람? ✈️", content: "Migo에서 주말 동행을 찾아보세요! 지금 바로 내 주변 여행자를 확인하세요." },
+                { title: "Migo 여름 이벤트! 🌴", content: "지금 바로 새로운 동행을 찾고 특별한 혜택을 받아가세요!" },
+                { title: "Migo Plus 깜짝 할인 👑", content: "단 3일간! Plus 멤버십 50% 할인 혜택을 놓치지 마세요." },
+                { title: "앱 업데이트 완료 🚀", content: "더 빠르고 안전해진 Migo를 지금 만나보세요. 최신 버전으로 업데이트 해주세요." },
+                { title: "긴급 서버 점검 안내 🛠️", content: "오늘 밤 12시부터 1시간 동안 서버 점검이 있을 예정입니다. 양해 부탁드립니다." },
+                { title: "프로필 완성하고 매칭률 UP! 📸", content: "사진과 자기소개를 추가하면 매칭 확률이 3배 높아집니다!" },
+                { title: "나를 좋아하는 사람이 있어요 ❤️", content: "누군가 당신에게 호감을 보였습니다. 지금 앱에 접속해서 확인해보세요!" },
+                { title: "새로운 핫플이 등록됐어요 🔥", content: "요즘 뜨는 핫플레이스! 함께 갈 동행을 지금 Migo에서 구해보세요." },
+                { title: "커뮤니티 가이드라인 안내 📢", content: "모두가 즐거운 여행을 위해 Migo 커뮤니티 가이드라인을 꼭 확인해주세요." },
+                { title: "안전한 동행 캠페인 🛡️", content: "출발 전 꼭 확인해야 할 안전 수칙! 안심하고 여행을 떠나보세요." }
+              ].map((tpl, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => { setTitle(tpl.title); setContent(tpl.content); }}
+                  className="shrink-0 px-3 py-2 rounded-xl bg-muted/50 border border-border hover:border-primary/40 text-left transition-all w-[180px]"
+                >
+                  <p className="text-xs font-bold text-foreground truncate">{tpl.title}</p>
+                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">{tpl.content}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="text-xs font-bold text-muted-foreground mb-1.5 block">{t("auto.z_\uC81C\uBAA9_975", "\uC81C\uBAA9")}</label>
             <input value={title} onChange={e => setTitle(e.target.value)} maxLength={60} placeholder={t("auto.z_\uC608MIGO\uC5EC\uB984\uC774\uBCA4\uD2B8_976", "\uC608MIGO\uC5EC\uB984\uC774\uBCA4\uD2B8")} className="w-full px-3 py-2.5 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary" />
