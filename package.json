@@ -1,7 +1,7 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,8 +29,7 @@
     "@capacitor/ios": "^6.2.1",
     "@capacitor/keyboard": "^6.0.4",
     "@capacitor/preferences": "^6.0.4",
-    "@capacitor/push-notifications": "^8.0.3",
-    "@capgo/capacitor-app-tracking-transparency": "^8.1.6",
+    "@capacitor/push-notifications": "^6.0.3",
     "@capgo/native-purchases": "^6.0.42",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",

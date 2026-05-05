@@ -4,6 +4,7 @@ import { X, Heart, Star, Lock, Crown, Zap } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { createPortal } from "react-dom";
 
 // ─── Constants ───
 export const TRAVEL_STYLES = [
@@ -453,7 +454,7 @@ export const FilterModal = ({
 }: any) => {
   const { t } = useTranslation();
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {showFilterModal && (
         <motion.div
@@ -707,6 +708,7 @@ export const FilterModal = ({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

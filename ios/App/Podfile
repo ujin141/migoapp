@@ -20,12 +20,13 @@ def capacitor_pods
   pod 'CapacitorKeyboard', :path => '../../node_modules/@capacitor/keyboard'
   pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
   pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
-  pod 'CapgoCapacitorAppTrackingTransparency', :path => '../../node_modules/@capgo/capacitor-app-tracking-transparency'
   pod 'CapgoNativePurchases', :path => '../../node_modules/@capgo/native-purchases'
 end
 
 target 'App' do
   capacitor_pods
+  pod 'Firebase/Core'
+  pod 'Firebase/Messaging'
   # Add your Pods here
 end
 

@@ -29,7 +29,7 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav id="migo-bottom-nav" className="fixed bottom-0 left-0 right-0 z-[100] bg-card/97 backdrop-blur-xl border-t border-border/60">
+    <nav id="migo-bottom-nav" className="fixed bottom-0 left-0 right-0 z-40 bg-card/97 backdrop-blur-xl border-t border-border/60">
       <div className="flex items-center justify-around px-2" style={{ height: '52px' }}>
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;

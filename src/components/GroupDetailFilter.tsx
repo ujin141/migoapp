@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, RotateCcw, Check, MapPin, Calendar, Users, Compass, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -77,7 +78,7 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
   const set = <K extends keyof GroupDetailFilterState>(key: K, val: GroupDetailFilterState[K]) =>
     setLocal(prev => ({ ...prev, [key]: val }));
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -308,7 +309,8 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 export default GroupDetailFilter;

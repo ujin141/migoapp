@@ -16,6 +16,7 @@ export interface GroupThread {
   memberPhotos?: string[];
   groupWelcome?: string;
   opponentId?: string;
+  createdAt?: string;
 }
 interface ChatContextType {
   totalUnread: number;
@@ -134,7 +135,8 @@ export const ChatProvider = ({
         isGroup: thread.is_group,
         memberCount: members.length || 2,
         memberPhotos,
-        opponentId: !thread.is_group ? others[0]?.user_id : undefined
+        opponentId: !thread.is_group ? others[0]?.user_id : undefined,
+        createdAt: thread.created_at
       } as GroupThread;
     }).filter(Boolean) as GroupThread[];
     setThreads(mapped);

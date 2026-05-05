@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getCurrentLocation } from "@/lib/locationService";
 import { checkInStreak } from "@/lib/streakService";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { useATT } from "@/hooks/useATT";
+
 import i18n from "./i18n";
 
 // ── 즉시 로드 (첫 화면) ────────────────────────────────────────────
@@ -185,8 +185,7 @@ const AppContent = () => {
   // ── 네이티브 푸시 권한 및 토큰 레지스터 (백그라운드 알림용) ──
   usePushNotifications(user?.id);
 
-  // ── (iOS 전용) 앱 추적 투명성(ATT) 권한 요청 ──
-  useATT();
+
 
   // ── Supabase 세션 만료 감지: TOKEN_REFRESH_FAILED / SIGNED_OUT → 로그인으로 이동 ──
   useEffect(() => {
@@ -344,8 +343,8 @@ const AppContent = () => {
 
   return (
     <div className="relative h-screen overflow-hidden w-full">
-      {/* ── 페이지 스크롤 컨테이너: BottomNav(64px) 위만큼만 차지 ── */}
-      <div className="h-full overflow-hidden" style={{ paddingBottom: showNav ? 'calc(52px + env(safe-area-inset-bottom, 0px))' : '0' }}>
+      {/* ── 페이지 스크롤 컨테이너: BottomNav 위만큼만 차지 ── */}
+      <div className="h-full overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}
@@ -353,8 +352,14 @@ const AppContent = () => {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="h-full w-full overflow-y-auto"
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            className="w-full overflow-y-auto"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: showNav ? 'calc(52px + env(safe-area-inset-bottom, 0px))' : 0,
+            }}
           >
             <ErrorBoundary key={location.pathname} pageBoundary={true}>
               <Suspense fallback={<PageLoader />}>

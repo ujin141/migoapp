@@ -5,6 +5,24 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- ─── 0. 사전 필수 작업 (에러 방지) ───────────────────────────────────────────
+-- cover_image 및 thread_id 컬럼을 추가하고, 트리거를 갱신하여 INSERT 시 오류를 방지합니다.
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS cover_image TEXT;
+ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS thread_id UUID;
+
+CREATE OR REPLACE FUNCTION trg_trip_group_create_thread()
+RETURNS TRIGGER AS $trg$
+DECLARE
+  v_thread_id UUID;
+BEGIN
+  INSERT INTO chat_threads (is_group, name, photo_url)
+  VALUES (true, NEW.title, NEW.cover_image)
+  RETURNING id INTO v_thread_id;
+  NEW.thread_id := v_thread_id;
+  RETURN NEW;
+END;
+$trg$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- 비밀번호 + 이메일 확인 처리
 UPDATE auth.users SET
   encrypted_password  = crypt('Migo2024!', gen_salt('bf')),

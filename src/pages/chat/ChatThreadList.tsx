@@ -75,6 +75,19 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
             const isLocked = !canOpenChat(chat.id);
             const isLast = idx === arr.length - 1;
             
+            let isNewMatch = false;
+            let expiresIn = "";
+            if (!groupChat.isGroup && (chat.lastMessage === "New conversation" || !chat.lastMessage) && groupChat.createdAt) {
+              isNewMatch = true;
+              const created = new Date(groupChat.createdAt).getTime();
+              const diff = 24 * 60 * 60 * 1000 - (Date.now() - created);
+              if (diff > 0) {
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                expiresIn = `${h}h ${m}m`;
+              }
+            }
+            
             return (
               <div key={chat.id} className="relative w-full overflow-hidden bg-background">
                 {/* Underlay Left (Swipe Right actions) */}
@@ -167,8 +180,15 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
                           </div>
                           <span className={`text-[11px] font-bold shrink-0 ${chat.unread > 0 ? "text-primary" : "text-muted-foreground/60"}`}>{chat.time}</span>
                         </div>
-                        <p className={`text-[13px] truncate leading-tight ${chat.unread > 0 ? "font-bold text-foreground" : "font-medium text-muted-foreground line-clamp-2 white-space-normal"}`}>
-                          {isLocked ? i18n.t("auto.g_1392", "🔒 You have a message. Upgrade to Plus to view.") : chat.lastMessage}
+                        <p className={`text-[13px] truncate leading-tight flex items-center gap-1 ${chat.unread > 0 || isNewMatch ? "font-bold text-foreground" : "font-medium text-muted-foreground line-clamp-2 white-space-normal"}`}>
+                          {isLocked 
+                            ? i18n.t("auto.g_1392", "🔒 You have a message. Upgrade to Plus to view.") 
+                            : isNewMatch && expiresIn
+                              ? <span className="text-amber-500 flex items-center gap-1"><MessageCircle size={12} /> {i18n.t("chat.newMatch", "새로운 매치!")} <span className="text-xs bg-amber-500/10 px-1.5 rounded text-amber-600 ml-0.5">⏳ {expiresIn}</span></span>
+                              : isNewMatch
+                                ? <span className="text-muted-foreground">{i18n.t("chat.expiredMatch", "만료된 매치")}</span>
+                                : chat.lastMessage
+                          }
                         </p>
                       </div>
 

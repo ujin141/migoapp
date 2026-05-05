@@ -434,6 +434,21 @@ const LoginPage = () => {
           password
         }), loginTimeout]);
         if (error) throw error;
+        // 로그인 성공 → 프로필 설정 완료 여부 확인 (탈퇴 후 재가입 대응)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("setup_complete, name")
+            .eq("id", session.user.id)
+            .single();
+          // 프로필이 없거나 setup_complete가 false이면 프로필 설정으로 이동
+          if (!profile || !profile.setup_complete) {
+            setDone(true);
+            setTimeout(() => navigate("/profile-setup"), 800);
+            return;
+          }
+        }
         setDone(true);
         setTimeout(() => navigate("/"), 800);
       } else {

@@ -13,10 +13,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         // ── Firebase 초기화 (GoogleService-Info.plist 자동 인식) ──
-        FirebaseApp.configure()
+        // NSException은 Swift do/catch로 잡을 수 없으므로 ObjC 래퍼 사용
+        let firebaseOK = ObjCExceptionCatcher.catchException {
+            FirebaseApp.configure()
+        }
 
-        // ── FCM 딜리게이트 등록 ──
-        Messaging.messaging().delegate = self
+        if firebaseOK {
+            // ── FCM 딜리게이트 등록 ──
+            Messaging.messaging().delegate = self
+        } else {
+            NSLog("⚠️ [Migo] Firebase initialization failed — push notifications will be unavailable. Check GoogleService-Info.plist.")
+        }
 
         // ── APNs 원격 알림 등록 ──
         UNUserNotificationCenter.current().delegate = self
@@ -29,7 +36,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        Messaging.messaging().apnsToken = deviceToken
+        if FirebaseApp.app() != nil {
+            Messaging.messaging().apnsToken = deviceToken
+        }
         NotificationCenter.default.post(
             name: .capacitorDidRegisterForRemoteNotifications,
             object: deviceToken

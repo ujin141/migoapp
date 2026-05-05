@@ -23,6 +23,8 @@ import ReportBlockActionSheet from "@/components/ReportBlockActionSheet";
 import CheckInModal from "@/components/CheckInModal";
 import { getMyCheckIn, CheckIn } from "@/lib/checkInService";
 import TodayContent from "@/components/TodayContent";
+import DailyCheckinModal from "@/components/DailyCheckinModal";
+import DailyPicksCard from "@/components/DailyPicksCard";
 import MatchResultCard from "@/components/MatchResultCard";
 import { recordSwipe, personalize } from "@/lib/personalizeService";
 import { requestNotificationPermission, notifyMatch } from "@/lib/notificationService";
@@ -690,7 +692,10 @@ const MatchPage = () => {
       recordAdImpression(topProfile.originalAd.id, user?.id ?? null);
     }
   }, [topProfile]);
-  return <div className="flex flex-col h-screen bg-background safe-bottom truncate">
+  return <div className="flex flex-col h-screen bg-background truncate">
+      {/* ─── 출석체크 모달 (매일 첫 접속 시 자동 표시) ─── */}
+      <DailyCheckinModal />
+
       {/* ─── In-app notification banner (Like / SuperLike received) ─── */}
       <InAppNotifBanner notif={inAppNotif} onClose={() => setInAppNotif(null)} />
 
@@ -715,6 +720,14 @@ const MatchPage = () => {
 
       {/* 오늘의 콘텐츠 */}
       <TodayContent />
+
+      {/* 오늘의 추천 매치 (매일 3명) */}
+      <DailyPicksCard onProfileClick={(id) => {
+        const p = withAds.find(x => x.id === id);
+        if (p) {
+          sendProfileViewNotif(id);
+        }
+      }} />
 
       {/* Boost active banner */}
       {boostActive && <motion.div initial={{

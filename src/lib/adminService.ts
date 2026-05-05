@@ -458,7 +458,7 @@ export async function sendMarketingPush(title: string, body: string, target: str
       type: "marketing",
       read: false
     }));
-    await adminSupabase.from("notifications").insert(payload);
+    await adminSupabase.from("in_app_notifications").insert(payload);
   }
   return true;
 }

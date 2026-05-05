@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, ShieldCheck, Database, Trash2, Key,
-  Globe, Bell, CreditCard, Mail, Users, Lock,
+  Globe, CreditCard, Mail, Users, Lock,
   Eye, ChevronDown, ChevronUp, AlertTriangle, MapPin, Heart
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -114,7 +114,7 @@ export default function PrivacyPage() {
                 <DRow purpose={t("auto.x4034", "인앱결제")} data={t("auto.x4035", "구독 이력 (카드번호 미저장)")} retention={t("auto.x4036", "5년(전자상거래법)")} linked={true} />
                 <DRow purpose={t("auto.x4037", "본인 인증")} data={t("auto.x4038", "신분증 이미지")} retention={t("auto.x4039", "인증 완료 즉시 삭제")} linked={false} />
                 <DRow purpose={t("auto.x4040", "앱 분석·개선")} data={t("auto.x4041", "앱 충돌 로그, 사용 패턴(익명)")} retention={t("auto.x4042", "90일")} linked={false} />
-                <DRow purpose={t("auto.x4043", "광고 (선택 동의)")} data={t("auto.x4044", "IDFA(광고 식별자)")} retention={t("auto.x4045", "동의 철회 시까지")} linked={false} />
+
               </tbody>
             </table>
           </div>
@@ -188,21 +188,10 @@ export default function PrivacyPage() {
           </ul>
         </Section>
 
-        {/* ── 5. ATT ── */}
-        <Section icon={<Bell className="w-4 h-4" />} title={t("privacy.s5.title", "5. 앱 추적 투명성 (ATT — iOS 14.5+)")}>
-          <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 mb-3">
-            <p className="text-xs font-bold text-blue-800 truncate">{t("privacy.s5.att_notice", "Migo는 Apple의 ATT(앱 추적 투명성) 프레임워크를 준수합니다.")}</p>
-          </div>
-          <ul className="list-disc pl-4 space-y-1.5 text-xs">
-            <li>{t("privacy.s5.idfa", "첫 실행 시 IDFA(광고 식별자) 사용에 대한 동의를 요청할 수 있습니다.")}</li>
-            <li>{t("privacy.s5.no_track", "동의하지 않아도 앱의 모든 핵심 기능(매칭, 채팅, 지도 등)을 동일하게 이용할 수 있습니다.")}</li>
-            <li>{t("privacy.s5.revoke", "동의 철회: iOS 설정 → 개인정보 보호 및 보안 → 추적 → Migo 추적 허용 끔")}</li>
-            <li>{t("privacy.s5.no_fingerprint", "기기 지문(Device Fingerprinting)을 통한 추적은 사용하지 않습니다.")}</li>
-          </ul>
-        </Section>
 
-        {/* ── 6. IAP ── */}
-        <Section icon={<CreditCard className="w-4 h-4" />} title={t("privacy.s6.title", "6. 인앱결제 및 구독")}>
+
+        {/* ── 5. IAP ── */}
+        <Section icon={<CreditCard className="w-4 h-4" />} title={t("privacy.s6.title", "5. 인앱결제 및 구독")}>
           <p className="text-xs truncate">{t("privacy.s6.iap", "Migo Plus / Premium 구독은 Apple 인앱결제(IAP)로만 처리됩니다. 회사는 신용카드 번호, CVC 등 카드 정보를 저장하지 않습니다.")}</p>
           <ul className="list-disc pl-4 space-y-1.5 text-xs mt-2">
             <li>{t("privacy.s6.receipt", "Apple 영수증 검증을 통해 구독 상태를 확인합니다.")}</li>
@@ -211,8 +200,8 @@ export default function PrivacyPage() {
           </ul>
         </Section>
 
-        {/* ── 7. Security ── */}
-        <Section icon={<Key className="w-4 h-4" />} title={t("privacy.s7.title", "7. 보안 조치")}>
+        {/* ── 6. Security ── */}
+        <Section icon={<Key className="w-4 h-4" />} title={t("privacy.s7.title", "6. 보안 조치")}>
           <ul className="list-disc pl-4 space-y-1.5 text-xs">
             <li>{t("privacy.s7.ssl", "모든 데이터 전송: TLS 1.3 암호화")}</li>
             <li>{t("privacy.s7.pw", "비밀번호: bcrypt 해시 저장 (평문 미저장)")}</li>
@@ -222,8 +211,8 @@ export default function PrivacyPage() {
           </ul>
         </Section>
 
-        {/* ── 8. Deletion ── */}
-        <Section icon={<Trash2 className="w-4 h-4" />} title={t("privacy.s8.title", "8. 개인정보 삭제·파기")}>
+        {/* ── 7. Deletion ── */}
+        <Section icon={<Trash2 className="w-4 h-4" />} title={t("privacy.s8.title", "7. 개인정보 삭제·파기")}>
           <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-3">
             <p className="font-bold text-red-700 text-xs truncate">{t("privacy.s8.delete_on_withdraw", "탈퇴 즉시 CASCADE DELETE로 영구 삭제:")}</p>
             <ul className="text-xs text-red-600 list-disc pl-4 mt-1 space-y-0.5">
@@ -237,16 +226,16 @@ export default function PrivacyPage() {
           <p className="text-xs mt-1 truncate">{t("privacy.s8.request", "계정 삭제: 앱 내 프로필 → 설정 → 회원 탈퇴 또는 privacy@lunaticsgroup.com 이메일 요청")}</p>
         </Section>
 
-        {/* ── 9. Children ── */}
-        <Section icon={<Heart className="w-4 h-4" />} title={t("privacy.s9.title", "9. 아동 개인정보 보호 (COPPA)")}>
+        {/* ── 8. Children ── */}
+        <Section icon={<Heart className="w-4 h-4" />} title={t("privacy.s9.title", "8. 아동 개인정보 보호 (COPPA)")}>
           <div className="bg-red-50 border border-red-100 rounded-xl p-3">
             <p className="font-bold text-red-700 text-xs truncate">{t("privacy.s9.age", "⛔ Migo는 만 18세 미만의 이용자를 대상으로 하지 않습니다.")}</p>
             <p className="text-xs text-red-600 mt-1 truncate">{t("privacy.s9.coppa", "만 13세 미만 아동의 개인정보를 의도적으로 수집하지 않습니다. 아동임이 확인될 경우 즉시 계정과 관련 데이터를 삭제합니다.")}</p>
           </div>
         </Section>
 
-        {/* ── 10. GDPR ── */}
-        <Section icon={<Globe className="w-4 h-4" />} title={t("privacy.s10.title", "10. EU/EEA 이용자 권리 (GDPR)")}>
+        {/* ── 9. GDPR ── */}
+        <Section icon={<Globe className="w-4 h-4" />} title={t("privacy.s10.title", "9. EU/EEA 이용자 권리 (GDPR)")}>
           <p className="text-xs mb-2 truncate">{t("privacy.s10.intro", "EEA 거주 이용자는 다음 권리를 보유합니다:")}</p>
           <ul className="list-disc pl-4 space-y-1 text-xs">
             <li>{t("privacy.s10.access", "열람권 — 보유 데이터 조회 요청")}</li>
@@ -259,8 +248,8 @@ export default function PrivacyPage() {
           <p className="text-xs mt-2 truncate">{t("privacy.s10.contact", "권리 행사: privacy@lunaticsgroup.com — 30일 이내 처리")}</p>
         </Section>
 
-        {/* ── 11. CCPA ── */}
-        <Section icon={<Lock className="w-4 h-4" />} title={t("privacy.s11.title", "11. 캘리포니아 거주자 권리 (CCPA)")}>
+        {/* ── 10. CCPA ── */}
+        <Section icon={<Lock className="w-4 h-4" />} title={t("privacy.s11.title", "10. 캘리포니아 거주자 권리 (CCPA)")}>
           <ul className="list-disc pl-4 space-y-1 text-xs">
             <li>{t("privacy.s11.know", "수집·공유되는 개인정보의 종류 및 목적 알 권리")}</li>
             <li>{t("privacy.s11.delete", "개인정보 삭제 요청권")}</li>
@@ -269,8 +258,8 @@ export default function PrivacyPage() {
           </ul>
         </Section>
 
-        {/* ── 12. Contact ── */}
-        <Section icon={<Mail className="w-4 h-4" />} title={t("privacy.s12.title", "12. 개인정보 보호책임자 및 문의")}>
+        {/* ── 11. Contact ── */}
+        <Section icon={<Mail className="w-4 h-4" />} title={t("privacy.s12.title", "11. 개인정보 보호책임자 및 문의")}>
           <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-xs">
             <p><strong>{t("privacy.s12.company", "회사")}</strong>: Lunatics Group Inc.</p>
             <p className="truncate"><strong>{t("privacy.s12.dpo", "개인정보 보호책임자")}</strong>{t("auto.x4018", ": 송우진 (CEO)")}</p>

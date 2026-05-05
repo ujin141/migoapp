@@ -1,5 +1,6 @@
 import i18n from "@/i18n";
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, Users, RotateCcw, Check, ChevronDown, Search } from "lucide-react";
 import { useGlobalFilter } from "@/context/GlobalFilterContext";
@@ -305,7 +306,8 @@ const GlobalFilter: React.FC<GlobalFilterProps> = ({
     return `${m}/${day}`;
   };
   const dateDisplay = localStart && localEnd ? `${fmtKr(localStart)} ~ ${fmtKr(localEnd)}` : localStart ? `${fmtKr(localStart)} ~` : null;
-  return <AnimatePresence>
+  return createPortal(
+    <AnimatePresence>
       {open && <>
           {/* Backdrop */}
           <motion.div key="gf-bd" initial={{
@@ -509,6 +511,8 @@ const GlobalFilter: React.FC<GlobalFilterProps> = ({
           </motion.div>
 
         </>}
-    </AnimatePresence>;
+    </AnimatePresence>,
+    document.body
+  );
 };
 export default GlobalFilter;

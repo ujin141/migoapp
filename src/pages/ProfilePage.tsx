@@ -135,6 +135,7 @@ const ProfilePage = () => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [userType, setUserType] = useState<string>("traveler");
   const [profileTheme, setProfileTheme] = useState<string>("default");
+  const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
 
   // ─ 테마 스타일 맵 ─
   const THEME_STYLES: Record<string, {
@@ -377,7 +378,7 @@ const ProfilePage = () => {
           data,
           error
         } = await supabase.from('profiles').select(
-          'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus'
+          'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus, earned_badges'
         ).eq('id', user.id).single();
 
         // DB에 이 유저 레코드가 없다면 (예: 트리거 실패, 레거시 계정) 빈 레코드 자동 생성으로 복구!
@@ -389,7 +390,7 @@ const ProfilePage = () => {
             email: user.email
           }]);
           const retry = await supabase.from('profiles').select(
-            'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus'
+            'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus, earned_badges'
           ).eq('id', user.id).single();
           data = retry.data;
           error = retry.error;
@@ -424,6 +425,7 @@ const ProfilePage = () => {
           if (data.notif_group !== undefined) setNotifGroup(data.notif_group);
           setUserType(data.user_type || "traveler");
           setProfileTheme(data.profile_theme || "default");
+          setEarnedBadges(data.earned_badges || []);
         } else {
           if (!isMounted) return;
           setName(user?.name || user?.email?.split('@')[0] || "User");
@@ -708,7 +710,7 @@ const ProfilePage = () => {
 
   if (authLoading || profileLoading) {
     return (
-      <div className="h-full bg-background safe-bottom overflow-y-auto">
+      <div className="h-full bg-background overflow-y-auto">
         {/* Skeleton: header */}
         <div className="flex items-center justify-between px-5 pt-safe pb-2">
           <div className="h-7 w-20 bg-muted rounded-xl animate-pulse" />
@@ -740,7 +742,20 @@ const ProfilePage = () => {
     );
   }
 
-  return <div className="h-full bg-background safe-bottom relative overflow-y-auto">
+  // ─── 프로필 완성도 계산 ───
+  const calculateCompletion = () => {
+    let score = 0;
+    if (photoUrl) score += 25;
+    if (name && name !== "User" && !name.includes("@")) score += 15;
+    if (bio && bio.length > 0) score += 20;
+    if (tags && tags.length > 0) score += 20;
+    if (location && !location.includes("unknown") && !location.includes("알수없음")) score += 10;
+    if (travelMission || travelDates || visitedCountries.length > 0) score += 10;
+    return Math.min(100, score);
+  };
+  const profileScore = calculateCompletion();
+
+  return <div className="h-full bg-background relative overflow-y-auto">
       {/* ── 사진 라이트박스 ── */}
       <AnimatePresence>
         {galleryOpen && (() => {
@@ -851,7 +866,7 @@ const ProfilePage = () => {
         </div>
       </header>
 
-      {/* ── Hero Profile Card ── */}
+      {/* ── Hero Profile Card — Instagram-style centered layout ── */}
       <div className="mx-4 mt-2">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -859,12 +874,12 @@ const ProfilePage = () => {
           transition={{ duration: 0.35, ease: 'easeOut' }}
           className={`rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.07)] border overflow-hidden transition-all duration-500 ${theme.cardBg}`}
         >
-          {/* Photo + Info Row */}
-          <div className="flex items-start gap-4 p-4 pb-3">
-            {/* Avatar */}
+          {/* 상단: 프로필 사진 + 통계 한 줄 */}
+          <div className="flex items-center gap-5 px-5 pt-5 pb-3">
+            {/* Avatar — 크게 */}
             <div className="relative shrink-0">
               <div
-                className={`w-[88px] h-[88px] rounded-2xl overflow-hidden border-2 shadow-md transition-all duration-500 ${theme.avatarRing}`}
+                className={`w-[84px] h-[84px] rounded-full overflow-hidden border-[3px] shadow-lg transition-all duration-500 ${theme.avatarRing}`}
                 onClick={() => {
                   const allPhotos = profilePhotos.map(p => p.url).filter(Boolean);
                   if (allPhotos.length > 0) { setGalleryOpen({ photos: allPhotos, startIdx: 0 }); setGalleryIdx(0); }
@@ -889,7 +904,7 @@ const ProfilePage = () => {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-md border-2 border-card active:scale-90 transition-transform"
+                className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-md border-2 border-card active:scale-90 transition-transform"
               >
                 {uploading
                   ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -903,177 +918,147 @@ const ProfilePage = () => {
               }} />
             </div>
 
-            {/* Name / Location / Bio */}
-            <div className="flex-1 min-w-0 pt-1">
-              <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                <h2 className="text-[19px] font-black text-foreground leading-tight truncate">{name}</h2>
-                {userType === 'local' && (
-                  <span className="bg-emerald-500 text-white text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full shrink-0">Local</span>
-                )}
-              </div>
-              {/* Verification badges row */}
-              <div className="flex items-center gap-1 flex-wrap mt-1 mb-1.5">
-                <button
-                  onClick={() => setShowVerifyModal(true)}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 active:scale-95 transition-transform"
-                >
-                  <Shield size={10} className="text-emerald-500 shrink-0" />
-                  <span className="text-[9px] font-extrabold text-emerald-600">{t('profilePage.verified', 'Verified')}</span>
-                </button>
-                <button
-                  onClick={() => setShowVerifyModal(true)}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 active:scale-95 transition-transform"
-                >
-                  <span className="text-[9px] font-extrabold text-blue-600">✈️ Real Traveler</span>
-                </button>
-              </div>
-              <div className="flex items-center gap-1 text-[12px] text-muted-foreground">
-                <MapPin size={11} className="shrink-0" />
-                <span className="truncate">{location || t('auto.z_위치감지중_126', '위치감지중')}</span>
-                <button
-                  onClick={async () => {
-                    if (!user) return;
-                    const pos = await getCurrentLocation(true);
-                    if (!pos) return;
-                    const { lat, lng } = pos;
-                    localStorage.setItem('migo_my_lat', String(lat));
-                    localStorage.setItem('migo_my_lng', String(lng));
-                    try {
-                      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, { headers: { 'User-Agent': 'MigoApp/1.0' } });
-                      const geo = await res.json();
-                      const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || geo.address?.state || '';
-                      const country = geo.address?.country || '';
-                      const loc = city ? `${city}, ${country}` : country;
-                      if (loc) {
-                        setLocation(loc);
-                        await supabase.from('profiles').update({ location: loc, lat, lng }).eq('id', user.id);
-                      }
-                    } catch {/* ignore */}
-                  }}
-                  className="text-primary/50 hover:text-primary transition-colors shrink-0"
-                >
-                  <Navigation size={10} />
-                </button>
-              </div>
-              {bio && <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">{bio}</p>}
-            </div>
-          </div>
-
-          {/* Trust Score Bar */}
-          <div
-            className="mx-4 mb-3 p-3 bg-gradient-to-br from-emerald-500/8 to-teal-500/5 border border-emerald-500/20 rounded-2xl cursor-pointer active:opacity-80 transition-opacity"
-            onClick={() => setShowVerifyModal(true)}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Shield size={13} className="text-emerald-500 shrink-0" />
-                <span className="text-[12px] font-extrabold text-foreground">{t('verifMark.title', 'Trust Certification Mark')}</span>
-                <span className="text-[10px] text-muted-foreground">Migo Trust System</span>
-              </div>
-              <span className="text-[11px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                {t('profilePage.verified', 'Verified')} ✅
-              </span>
-            </div>
-            {/* Progress bar */}
-            <div className="h-1.5 bg-muted/60 rounded-full overflow-hidden mb-2">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"
-                initial={{ width: 0 }}
-                animate={{ width: '40%' }}
-                transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
-              />
-            </div>
-            <div className="grid grid-cols-4 gap-1.5">
+            {/* Stats — 3열 인라인 */}
+            <div className="flex-1 grid grid-cols-3 gap-1">
               {[
-                { labelKey: 'verifMark.phone', fallback: 'Phone', active: true, emoji: '📱' },
-                { labelKey: 'verifMark.email', fallback: 'Email', active: true, emoji: '✉️' },
-                { labelKey: 'verifMark.id', fallback: 'ID', active: false, emoji: '🪪' },
-                { labelKey: 'verifMark.sns', fallback: 'SNS', active: false, emoji: '📸' },
-              ].map(({ labelKey, fallback, active, emoji }) => (
-                <div
-                  key={labelKey}
-                  className={`flex flex-col items-center gap-0.5 py-1.5 rounded-xl ${
-                    active
-                      ? 'bg-emerald-500/10 border border-emerald-500/20'
-                      : 'bg-muted/40 border border-border/30'
-                  }`}
+                { value: myPosts.length, label: t('profilePage.stats.posts', 'Posts'), action: () => setShowMyPosts(true) },
+                { value: matchedUsers.length, label: t('profilePage.stats.matched', 'Matched'), action: () => setShowMatchDetail(true) },
+                { value: myTrips.length, label: t('profilePage.stats.trips', 'Trips'), action: () => setShowTripDetail(true) },
+              ].map((stat) => (
+                <button
+                  key={stat.label}
+                  onClick={stat.action}
+                  className="flex flex-col items-center py-1 active:opacity-60 transition-opacity"
                 >
-                  <span className="text-sm">{emoji}</span>
-                  <span className={`text-[8px] font-bold ${
-                    active ? 'text-emerald-600' : 'text-muted-foreground'
-                  }`}>{t(labelKey, fallback)}</span>
-                </div>
+                  <span className="text-[18px] font-black text-foreground leading-none">{stat.value}</span>
+                  <span className="text-[10px] text-muted-foreground font-semibold mt-1 truncate">{stat.label}</span>
+                </button>
               ))}
             </div>
-            <p className="text-[9px] text-muted-foreground mt-2 text-center">{t('verifMark.clickToBump', 'Tap to raise verification level →')}</p>
-
           </div>
 
-          {/* Stats 4-col grid */}
-          <div className="grid grid-cols-4 gap-0 border-t border-border/40">
-            {[
-              { value: myPosts.length, label: t('profilePage.stats.posts', 'Posts'), icon: '📝', action: () => setShowMyPosts(true) },
-              { value: matchedUsers.length, label: t('profilePage.stats.matched', 'Matched'), icon: '💘', action: () => setShowMatchDetail(true) },
-              { value: myTrips.length, label: t('profilePage.stats.trips', 'Trips'), icon: '✈️', action: () => setShowTripDetail(true) },
-              { value: myMeetings.length, label: t('profilePage.stats.meetings', 'Meets'), icon: '🤝', action: () => setShowMeetingDetail(true) },
-            ].map((stat, i, arr) => (
+          {/* 이름 + 뱃지 + 위치 + 바이오 */}
+          <div className="px-5 pb-3">
+            {/* Name row */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-[18px] font-black text-foreground leading-tight">{name}</h2>
+              {userType === 'local' && (
+                <span className="bg-emerald-500 text-white text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded-full">Local</span>
+              )}
+              {/* 인라인 뱃지 */}
               <button
-                key={stat.label}
-                onClick={stat.action}
-                className={`flex flex-col items-center justify-center py-3 active:bg-muted/30 transition-colors ${
-                  i < arr.length - 1 ? 'border-r border-border/40' : ''
-                }`}
+                onClick={() => setShowVerifyModal(true)}
+                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 active:scale-95 transition-transform"
               >
-                <span className="text-base mb-0.5">{stat.icon}</span>
-                <span className="text-[16px] font-black text-foreground leading-none">{stat.value}</span>
-                <span className="text-[9px] text-muted-foreground font-semibold mt-0.5 truncate px-1">{stat.label}</span>
+                <Shield size={9} className="text-emerald-500" />
+                <span className="text-[8px] font-extrabold text-emerald-600">{t('profilePage.verified', 'Verified')}</span>
               </button>
-            ))}
+            </div>
+
+            {/* Location */}
+            <div className="flex items-center gap-1 text-[12px] text-muted-foreground mt-1">
+              <MapPin size={11} className="shrink-0" />
+              <span className="truncate">{location || t('auto.z_위치감지중_126', '위치감지중')}</span>
+              <button
+                onClick={async () => {
+                  if (!user) return;
+                  const pos = await getCurrentLocation(true);
+                  if (!pos) return;
+                  const { lat, lng } = pos;
+                  localStorage.setItem('migo_my_lat', String(lat));
+                  localStorage.setItem('migo_my_lng', String(lng));
+                  try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, { headers: { 'User-Agent': 'MigoApp/1.0' } });
+                    const geo = await res.json();
+                    const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || geo.address?.state || '';
+                    const country = geo.address?.country || '';
+                    const loc = city ? `${city}, ${country}` : country;
+                    if (loc) {
+                      setLocation(loc);
+                      await supabase.from('profiles').update({ location: loc, lat, lng }).eq('id', user.id);
+                      // Phase 3-3: 근처 매칭 실시간 알림 트리거
+                      supabase.rpc('trigger_nearby_alert', { p_user_id: user.id, p_lat: lat, p_lng: lng }).catch(console.error);
+                    }
+                  } catch {/* ignore */}
+                }}
+                className="text-primary/50 hover:text-primary transition-colors shrink-0"
+              >
+                <Navigation size={10} />
+              </button>
+            </div>
+
+            {/* Bio */}
+            {bio && <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">{bio}</p>}
+          </div>
+
+          {/* ─── Profile Completion Progress Bar ─── */}
+          {profileScore < 100 && (
+            <div className="px-5 pb-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                  <Star size={10} className="text-amber-500" fill="currentColor" /> {t("profile.completion", "프로필 완성도")}
+                </span>
+                <span className="text-[10px] font-black text-primary">{profileScore}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }} 
+                  animate={{ width: `${profileScore}%` }} 
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                  className="h-full gradient-primary rounded-full"
+                />
+              </div>
+              <p className="text-[9px] text-muted-foreground mt-1.5">
+                {profileScore < 50 
+                  ? t("profile.completionLow", "프로필을 완성하고 매칭률을 3배 높여보세요! 🔥") 
+                  : t("profile.completionHigh", "조금만 더 채우면 완벽한 프로필이 돼요! ✨")}
+              </p>
+            </div>
+          )}
+
+          {/* Quick Action Buttons — 카드 안에 통합 */}
+          <div className="flex gap-2 px-4 pb-4">
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setShowEditModal(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-muted/80 font-bold text-[12px] text-foreground active:opacity-80 transition-all"
+            >
+              <Edit2 size={13} className="text-muted-foreground shrink-0" />
+              {t('profile.editProfileBtn', '프로필 편집')}
+            </motion.button>
+
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                if (boostActive) return;
+                startBoost();
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-[12px] transition-all ${
+                boostActive
+                  ? 'bg-purple-500 text-white'
+                  : boostsCount > 0 || isPlus
+                  ? 'gradient-primary text-white'
+                  : 'bg-muted/80 text-muted-foreground'
+              }`}
+            >
+              <Zap size={13} className={`shrink-0 ${boostActive ? 'animate-pulse' : ''}`} />
+              <span className="truncate">
+                {boostActive
+                  ? `${Math.floor(boostSecondsLeft / 60)}:${(boostSecondsLeft % 60).toString().padStart(2, '0')}`
+                  : `Boost (${boostsCount})`}
+              </span>
+            </motion.button>
+
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={() => navigate('/verification')}
+              className="flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl bg-emerald-500/10 font-bold text-[12px] text-emerald-700 active:opacity-80 transition-all"
+            >
+              <Shield size={13} className="text-emerald-500 shrink-0" />
+              {t('verif.title', '인증')}
+            </motion.button>
           </div>
         </motion.div>
-      </div>
-
-      {/* ── Quick Action Buttons ── */}
-      <div className="flex gap-2 mx-4 mt-3">
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={() => setShowEditModal(true)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-card border border-border/50 shadow-sm font-bold text-[13px] text-foreground active:opacity-80 transition-all"
-        >
-          <Edit2 size={15} className="text-muted-foreground shrink-0" />
-          {t('profile.editProfileBtn', '프로필 편집')}
-        </motion.button>
-
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={() => {
-            if (boostActive) return;
-            startBoost();
-          }}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl font-bold text-[13px] shadow-sm transition-all ${
-            boostActive
-              ? 'bg-purple-500 text-white'
-              : boostsCount > 0 || isPlus
-              ? 'gradient-primary text-white'
-              : 'bg-card border border-border/50 text-muted-foreground'
-          }`}
-        >
-          <Zap size={15} className={`shrink-0 ${boostActive ? 'animate-pulse' : ''}`} />
-          <span className="truncate">
-            {boostActive
-              ? `${Math.floor(boostSecondsLeft / 60)}:${(boostSecondsLeft % 60).toString().padStart(2, '0')}`
-              : `Boost (${boostsCount})`}
-          </span>
-        </motion.button>
-
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={() => navigate('/verification')}
-          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 font-bold text-[13px] text-emerald-700 shadow-sm active:opacity-80 transition-all"
-        >
-          <Shield size={15} className="text-emerald-500 shrink-0" />
-          {t('verif.title', '인증')}
-        </motion.button>
       </div>
 
       {/* ── Plus Upgrade Banner (non-Plus only) ── */}
@@ -1285,6 +1270,42 @@ const ProfilePage = () => {
           )}
         </div>
       )}
+
+      {/* ── My Badges Section ── */}
+      <div className="mx-5 mt-6 mb-2">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <Crown size={18} className="text-amber-500" />
+            <h3 className="text-[16px] font-black text-foreground">{t("profile.myBadges", "내 뱃지")}</h3>
+          </div>
+          <span className="text-[11px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            {earnedBadges.length}
+          </span>
+        </div>
+
+        {earnedBadges.length > 0 ? (
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2">
+            {earnedBadges.map((b) => (
+              <div key={b} className="flex flex-col items-center justify-center w-[72px] h-[80px] bg-card border border-border/50 rounded-2xl shrink-0 shadow-sm">
+                <div className="text-2xl mb-1">
+                  {b === "early_bird" ? "🌅" : b === "social_king" ? "👑" : b === "travel_holic" ? "✈️" : "✨"}
+                </div>
+                <span className="text-[9px] font-bold text-foreground text-center px-1 truncate w-full">
+                  {b}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-card border border-border/50 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
+              <Star size={18} className="text-muted-foreground/50" />
+            </div>
+            <p className="text-[12px] font-bold text-foreground">{t("profile.noBadges", "아직 획득한 뱃지가 없어요")}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{t("profile.earnBadgesDesc", "앱에서 활동하며 멋진 뱃지를 수집해보세요!")}</p>
+          </div>
+        )}
+      </div>
 
       {/* My Posts Section */}
       <AnimatePresence>
@@ -1556,7 +1577,7 @@ const ProfilePage = () => {
 
       
       {/* Dashboard Menu Groups */}
-      <div className="mx-4 mt-5 mb-28 space-y-4">
+      <div className="mx-4 mt-5 pb-6 space-y-4">
 
         {/* Safety CTA */}
         <button onClick={() => navigate('/safety')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 active:scale-95 transition-transform shadow-sm">

@@ -1557,7 +1557,7 @@ const DiscoverPage = () => {
     return { male: Math.round((maleCount / total) * 100), female: Math.round((femaleCount / total) * 100), unknown: Math.round(((total - maleCount - femaleCount) / total) * 100), maleCount, femaleCount };
   };
 
-  return <div ref={pageRef} className="min-h-full bg-background safe-bottom">
+  return <div ref={pageRef} className="min-h-full bg-background">
       {/* ── 카운트다운 알림 팝업 (1시간 전 / 30분 전 / 마감) ── */}
       <AnimatePresence>
         {countdownAlert && (() => {
@@ -1949,7 +1949,7 @@ const DiscoverPage = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18 }}
-          className="px-4 space-y-3 pt-2 pb-24"
+          className="px-4 space-y-3 pt-2 pb-6"
         >
           {loadingGroups ? (
             <div className="space-y-3">

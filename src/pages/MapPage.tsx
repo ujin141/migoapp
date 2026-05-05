@@ -1,4 +1,5 @@
 import i18n from "@/i18n";
+import { createPortal } from "react-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -979,7 +980,7 @@ const MapPage = () => {
     }
   };
 
-  return <div className="h-screen flex flex-col bg-background safe-bottom relative overflow-hidden text-foreground">
+  return <div className="h-full flex flex-col bg-background relative overflow-hidden text-foreground">
       <TopHeader
         filterCount={displayMode === "groups" ? groupDetailFilterCount : selectedTags.length}
         onFilterClick={() => {
@@ -1947,7 +1948,7 @@ const MapPage = () => {
 
       {/* Flight Trends Drawer */}
       <AnimatePresence>
-        {showFlightTrends && (
+        {showFlightTrends && createPortal(
           <motion.div className="fixed inset-0 z-[110] flex items-end justify-center px-0 pb-0 pt-safe font-sans" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowFlightTrends(false)} />
             <motion.div className="relative w-full max-w-lg mx-auto bg-card rounded-t-[32px] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col" style={{ maxHeight: '85vh' }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
@@ -2055,13 +2056,14 @@ const MapPage = () => {
 
               </div>
             </motion.div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </AnimatePresence>
 
       {/* Lodging Trends Drawer */}
       <AnimatePresence>
-        {showLodgingTrends && (
+        {showLodgingTrends && createPortal(
           <motion.div className="fixed inset-0 z-[110] flex items-end justify-center px-0 pb-0 pt-safe font-sans" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLodgingTrends(false)} />
             <motion.div className="relative w-full max-w-lg mx-auto bg-card rounded-t-[32px] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col" style={{ maxHeight: '85vh' }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
@@ -2143,7 +2145,8 @@ const MapPage = () => {
 
               </div>
             </motion.div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </AnimatePresence>
 

@@ -39,6 +39,7 @@ xcodebuild archive \
   -scheme "$SCHEME" \
   -configuration Release \
   -archivePath "$ARCHIVE_PATH" \
+  -sdk iphoneos \
   -allowProvisioningUpdates
 
 echo "✅ Archive 완료: $ARCHIVE_PATH"

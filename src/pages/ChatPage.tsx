@@ -503,7 +503,7 @@ const ChatPage = () => {
 
   // ─── Chat list ────────────────────────────────────────────
   return (
-    <div className="h-full bg-background safe-bottom overflow-y-auto">
+    <div className="h-full bg-background overflow-y-auto">
 
       {/* ── Header ── */}
       <div className="px-5 pb-4 pt-[max(env(safe-area-inset-top),24px)] bg-card/90 backdrop-blur-xl sticky top-0 z-10 border-b border-border/50">
