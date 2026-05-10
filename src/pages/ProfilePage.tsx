@@ -977,7 +977,7 @@ const ProfilePage = () => {
                       setLocation(loc);
                       await supabase.from('profiles').update({ location: loc, lat, lng }).eq('id', user.id);
                       // Phase 3-3: 근처 매칭 실시간 알림 트리거
-                      supabase.rpc('trigger_nearby_alert', { p_user_id: user.id, p_lat: lat, p_lng: lng }).catch(console.error);
+                      try { await supabase.rpc('trigger_nearby_alert', { p_user_id: user.id, p_lat: lat, p_lng: lng }); } catch {/* ignore */}
                     }
                   } catch {/* ignore */}
                 }}

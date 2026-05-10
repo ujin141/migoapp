@@ -40,6 +40,9 @@ import { compressImage } from "@/lib/imageCompression";
 // Types
 // ──────────────────────────────────────────────
 import { Post, TripGroup, PostComment } from "@/types";
+import TodayContent from "@/components/TodayContent";
+import DailyPicksCard from "@/components/DailyPicksCard";
+
 interface JoinPopupState {
   group: TripGroup;
   newCount: number;
@@ -1783,6 +1786,14 @@ const DiscoverPage = () => {
           </div>
         </div>
       </div>
+
+      {/* TodayContent & DailyPicksCard */}
+      {activeTab === "groups" && (
+        <div className="flex flex-col pt-2">
+          <TodayContent />
+          <DailyPicksCard onProfileClick={(id) => handleProfileClick({ stopPropagation: () => {} } as any, id)} />
+        </div>
+      )}
 
       {/* Search + Filter Row */}
       <div className="px-4 pt-3 pb-2 flex items-center gap-2">

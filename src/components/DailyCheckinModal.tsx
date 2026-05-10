@@ -31,13 +31,15 @@ export default function DailyCheckinModal() {
     const checkedToday = sessionStorage.getItem("migo_checkin_today");
     if (checkedToday === new Date().toISOString().split("T")[0]) return;
 
-    // touch_active (마지막 활동 시간 갱신)
-    supabase.rpc("touch_active", { p_user_id: user.id }).catch(() => {});
-
-    // 출석체크 실행
-    supabase
-      .rpc("do_daily_checkin", { p_user_id: user.id })
-      .then(({ data, error }) => {
+    // touch_active + 출석체크 (async IIFE로 안전하게 실행)
+    (async () => {
+      try {
+        await supabase.rpc("touch_active", { p_user_id: user.id });
+      } catch {
+        // touch_active 실패해도 무시
+      }
+      try {
+        const { data, error } = await supabase.rpc("do_daily_checkin", { p_user_id: user.id });
         if (error || !data) return;
         const d = data as CheckinResult;
         setResult(d);
@@ -48,7 +50,10 @@ export default function DailyCheckinModal() {
           setAnimPhase("enter");
           setTimeout(() => setAnimPhase("reward"), 800);
         }
-      });
+      } catch {
+        // 출석체크 실패 무시
+      }
+    })();
   }, [user]);
 
   const close = useCallback(() => {

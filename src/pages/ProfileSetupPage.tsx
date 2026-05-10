@@ -210,7 +210,7 @@ const ProfileSetupPage = () => {
         const photoUrl = uploadedUrls[0];
 
         // profiles 업데이트
-        await supabase.from("profiles").update({
+        const { error: updateErr } = await supabase.from("profiles").update({
           user_type: userType,
           travel_mission: travelMission,
           bio,
@@ -227,7 +227,19 @@ const ProfileSetupPage = () => {
           } : {}),
           setup_complete: true
         }).eq("id", user.id);
+
+        if (updateErr) {
+          console.error("Profile update error:", updateErr);
+          toast({
+            title: t("profileSetup.errSave"),
+            description: updateErr.message,
+            variant: "destructive"
+          });
+          setSaving(false);
+          return;
+        }
         
+        // refreshPhotoUrl로 globalUser.setupComplete = true 동기화
         if (refreshPhotoUrl) {
           await refreshPhotoUrl();
         }

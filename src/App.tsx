@@ -221,8 +221,12 @@ const AppContent = () => {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
     } else if (user) {
-      // If they are logged in and on auth/onboarding pages, send them to home (unless they are explicitly on profile-setup, in which case we let them finish it)
-      if (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding') {
+      // 신규 유저: setup_complete가 false면 프로필 설정 페이지로 이동
+      if (user.setupComplete === false && location.pathname !== '/profile-setup') {
+        navigate('/profile-setup', { replace: true });
+      }
+      // 기존 유저: 로그인/온보딩 페이지에 있으면 홈으로 이동
+      else if (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding') {
         navigate('/', { replace: true });
       }
     }

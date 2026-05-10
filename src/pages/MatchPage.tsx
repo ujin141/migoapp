@@ -22,9 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import ReportBlockActionSheet from "@/components/ReportBlockActionSheet";
 import CheckInModal from "@/components/CheckInModal";
 import { getMyCheckIn, CheckIn } from "@/lib/checkInService";
-import TodayContent from "@/components/TodayContent";
 import DailyCheckinModal from "@/components/DailyCheckinModal";
-import DailyPicksCard from "@/components/DailyPicksCard";
 import MatchResultCard from "@/components/MatchResultCard";
 import { recordSwipe, personalize } from "@/lib/personalizeService";
 import { requestNotificationPermission, notifyMatch } from "@/lib/notificationService";
@@ -155,18 +153,18 @@ const MatchPage = () => {
         data: me
       } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates').eq('id', user.id).single();
 
-      // 이미 스와이프한 상대 ID 수집 (최근 24시간 이내 데이터만)
+      // 이미 스와이프한 상대 ID 수집 (최근 24시간 이내 데이터만 DB 레벨에서 필터링)
+      const since24hStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const {
         data: swipedData
-      } = await supabase.from('likes').select('to_user, created_at').eq('from_user', user.id);
+      } = await supabase.from('likes')
+        .select('to_user')
+        .eq('from_user', user.id)
+        .gte('created_at', since24hStr);
       
       const swipedIds = new Set();
-      const now = Date.now();
-      const H24 = 24 * 60 * 60 * 1000;
       (swipedData || []).forEach((r: any) => {
-        if (now - new Date(r.created_at).getTime() < H24) {
-          swipedIds.add(r.to_user);
-        }
+        swipedIds.add(r.to_user);
       });
 
       // **매칭된 사람(채팅창이 열린 사람)**은 영구적으로 스와이프에 나오면 안됨
@@ -200,13 +198,13 @@ const MatchPage = () => {
         if (profileIds.length > 0) {
           const {
             data: reviewsData
-          } = await supabase.from('meet_reviews').select('target_id, rating').in('target_id', profileIds);
+          } = await supabase.from('meet_reviews').select('reviewed_id, rating').in('reviewed_id', profileIds);
           
           if (reviewsData) {
             for (const rv of reviewsData) {
-              if (!ratingsMap[rv.target_id]) ratingsMap[rv.target_id] = { sum: 0, count: 0 };
-              ratingsMap[rv.target_id].sum += rv.rating || 0;
-              ratingsMap[rv.target_id].count += 1;
+              if (!ratingsMap[rv.reviewed_id]) ratingsMap[rv.reviewed_id] = { sum: 0, count: 0 };
+              ratingsMap[rv.reviewed_id].sum += rv.rating || 0;
+              ratingsMap[rv.reviewed_id].count += 1;
             }
           }
         }
@@ -304,12 +302,12 @@ const MatchPage = () => {
           data: likerProfiles
         } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme').in('id', likerIds);
         if (likerProfiles) {
-          const { data: likerReviews } = await supabase.from('meet_reviews').select('target_id, rating').in('target_id', likerIds);
+          const { data: likerReviews } = await supabase.from('meet_reviews').select('reviewed_id, rating').in('reviewed_id', likerIds);
           if (likerReviews) {
             for (const rv of likerReviews) {
-              if (!ratingsMap[rv.target_id]) ratingsMap[rv.target_id] = { sum: 0, count: 0 };
-              ratingsMap[rv.target_id].sum += rv.rating || 0;
-              ratingsMap[rv.target_id].count += 1;
+              if (!ratingsMap[rv.reviewed_id]) ratingsMap[rv.reviewed_id] = { sum: 0, count: 0 };
+              ratingsMap[rv.reviewed_id].sum += rv.rating || 0;
+              ratingsMap[rv.reviewed_id].count += 1;
             }
           }
 
@@ -692,7 +690,7 @@ const MatchPage = () => {
       recordAdImpression(topProfile.originalAd.id, user?.id ?? null);
     }
   }, [topProfile]);
-  return <div className="flex flex-col h-screen bg-background truncate">
+  return <div className="flex flex-col h-full bg-background truncate">
       {/* ─── 출석체크 모달 (매일 첫 접속 시 자동 표시) ─── */}
       <DailyCheckinModal />
 
@@ -715,19 +713,6 @@ const MatchPage = () => {
         showNearby
         showShop
       />
-
-
-
-      {/* 오늘의 콘텐츠 */}
-      <TodayContent />
-
-      {/* 오늘의 추천 매치 (매일 3명) */}
-      <DailyPicksCard onProfileClick={(id) => {
-        const p = withAds.find(x => x.id === id);
-        if (p) {
-          sendProfileViewNotif(id);
-        }
-      }} />
 
       {/* Boost active banner */}
       {boostActive && <motion.div initial={{
