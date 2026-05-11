@@ -18,11 +18,16 @@ const AuthCallbackPage = () => {
   } = useTranslation();
   const navigate = useNavigate();
   useEffect(() => {
-    // 1. URL hash 에러 확인 (Supabase OAuth 에러 리다이렉트 대응)
-    const hash = window.location.hash;
-    if (hash && hash.includes("error=")) {
-      const params = new URLSearchParams(hash.substring(1));
-      const errorDesc = params.get("error_description");
+    const fullUrl = window.location.href;
+    const fullHash = window.location.hash; // HashRouter: #/auth/callback#access_token=...
+
+    // 1. URL에서 에러 확인 (hash 또는 query string)
+    if (fullUrl.includes("error=") || fullHash.includes("error=")) {
+      // HashRouter 이중해시에서 에러 파라미터 추출
+      const hashParts = fullHash.split('#');
+      const errorFragment = hashParts.length > 2 ? hashParts[hashParts.length - 1] : hashParts[1] || '';
+      const searchParams = new URLSearchParams(window.location.search || errorFragment);
+      const errorDesc = searchParams.get("error_description");
       if (errorDesc && (errorDesc.includes("already") || errorDesc.includes("exists") || errorDesc.includes("saving new user") || errorDesc.includes("Database error"))) {
         toast({
           title: i18n.t("auto.z_\uC911\uBCF5\uAC00\uC785\uCC28\uB2E8_842", "\uC911\uBCF5\uAC00\uC785\uCC28\uB2E8"),
@@ -36,57 +41,83 @@ const AuthCallbackPage = () => {
           variant: "destructive"
         });
       }
-      navigate("/login", {
-        replace: true
-      });
+      navigate("/login", { replace: true });
       return;
     }
 
-    // 2. 정상 해시(+access_token)인 경우 Supabase가 자동 파싱하여 세션 설정함
-    supabase.auth.getSession().then(({
-      data: {
-        session
-      }
-    }) => {
-      if (session) {
-        // OAuth 완료 후 인앱 브라우저 닫기
-        Browser.close().catch(() => {});
-        navigate("/", {
-          replace: true
-        });
-      } else {
+    // 2. PKCE 코드 흐름: query string에 ?code= 가 있는 경우
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+
+    // 3. 암시적(Implicit) 흐름: HashRouter 이중해시에서 access_token 추출
+    //    URL 형태: /#/auth/callback#access_token=...&refresh_token=...
+    const hashParts = fullHash.split('#');
+    const tokenFragment = hashParts.length > 2 ? hashParts[hashParts.length - 1] : '';
+    const tokenParams = new URLSearchParams(tokenFragment);
+    const access_token = tokenParams.get("access_token");
+    const refresh_token = tokenParams.get("refresh_token");
+
+    const handleAuth = async () => {
+      try {
+        // PKCE 코드 교환
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error) {
+            Browser.close().catch(() => {});
+            navigate("/", { replace: true });
+            return;
+          }
+          console.error("[AuthCallback] Code exchange failed:", error);
+        }
+
+        // 암시적 흐름: 토큰 직접 설정
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (!error) {
+            Browser.close().catch(() => {});
+            navigate("/", { replace: true });
+            return;
+          }
+          console.error("[AuthCallback] setSession failed:", error);
+        }
+
+        // 위 두 방식 모두 해당 안 되면 기존 세션 체크
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          Browser.close().catch(() => {});
+          navigate("/", { replace: true });
+          return;
+        }
+
         // 세션이 아직 없으면 onAuthStateChange로 대기
         let timeoutId: ReturnType<typeof setTimeout>;
-        const {
-          data: {
-            subscription
-          }
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
           if (session) {
-            clearTimeout(timeoutId); // 성공 시 타임아웃 취소 (레이스 콘디션 방지)
+            clearTimeout(timeoutId);
             subscription.unsubscribe();
-            // OAuth 완료 후 인앱 브라우저 닫기
             Browser.close().catch(() => {});
-            navigate("/", {
-              replace: true
-            });
+            navigate("/", { replace: true });
           }
         });
-        // 5초 타임아웃 — 실패 시 로그인 페이지로
+        // 8초 타임아웃 — 실패 시 로그인 페이지로 (5초→8초: 네트워크 느린 환경 대응)
         timeoutId = setTimeout(() => {
           subscription.unsubscribe();
-          navigate("/login", {
-            replace: true
-          });
-        }, 5000);
+          console.warn("[AuthCallback] Timeout - redirecting to login");
+          navigate("/login", { replace: true });
+        }, 8000);
 
-        // 💡 컴포넌트 언마운트 시 발생할 수 있는 메모리 누수 및 좀비 라우팅 방지
+        // 💡 컴포넌트 언마운트 시 메모리 누수 방지
         return () => {
           clearTimeout(timeoutId);
           subscription.unsubscribe();
         };
+      } catch (err) {
+        console.error("[AuthCallback] Unexpected error:", err);
+        navigate("/login", { replace: true });
       }
-    });
+    };
+
+    handleAuth();
   }, [navigate]);
   return <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">

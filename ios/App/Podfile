@@ -25,7 +25,10 @@ end
 
 target 'App' do
   capacitor_pods
-  pod 'Firebase/Core'
+  # NOTE: Do NOT use 'Firebase/Core' — it pulls in FirebaseAnalytics →
+  # GoogleAppMeasurement/IdentitySupport which contains ATT references
+  # and causes Apple rejection under Guideline 2.5.1.
+  pod 'Firebase/CoreOnly'
   pod 'Firebase/Messaging'
   # Add your Pods here
 end

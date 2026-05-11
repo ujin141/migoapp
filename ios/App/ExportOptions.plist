@@ -10,5 +10,14 @@
     <true/>
     <key>destination</key>
     <string>upload</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>signingCertificate</key>
+    <string>Apple Distribution</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.lunaticsgroup.migo</key>
+        <string>Migo Final</string>
+    </dict>
 </dict>
 </plist>

@@ -361,21 +361,23 @@ export const LoginForm = ({ props }: any) => {
           whileTap={{ scale: 0.97 }}
           onClick={async () => {
             try {
+              const isNative = Capacitor.isNativePlatform();
               const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: "google",
                 options: {
-                  redirectTo: Capacitor.isNativePlatform()
+                  redirectTo: isNative
                     ? 'migoapp://login-callback'
-                    : `${window.location.origin}/auth/callback`,
-                  skipBrowserRedirect: true, // 수동으로 인앱 브라우저 열기
+                    : window.location.origin,
+                  skipBrowserRedirect: isNative, // 네이티브만 수동 브라우저, 웹은 자동 리다이렉트
                 }
               });
               if (error) {
                 toast({ title: i18n.t("auto.g_0052", "구글 로그인 오류"), description: error.message, variant: "destructive" });
-              } else if (data?.url) {
+              } else if (isNative && data?.url) {
                 // SFSafariViewController (iOS) / Chrome Custom Tab (Android)
                 await Browser.open({ url: data.url, presentationStyle: 'popover' });
               }
+              // 웹: skipBrowserRedirect=false이므로 현재 페이지가 자동으로 Google로 이동됨
             } catch (e: any) {
               toast({ title: i18n.t("auto.g_0052", "구글 로그인 오류"), description: e?.message, variant: "destructive" });
             }
@@ -416,7 +418,7 @@ export const LoginForm = ({ props }: any) => {
                   options: {
                     redirectTo: Capacitor.isNativePlatform()
                       ? 'migoapp://login-callback'
-                      : `${window.location.origin}/auth/callback`,
+                      : window.location.origin,
                     skipBrowserRedirect: Capacitor.isNativePlatform(),
                   }
                 });

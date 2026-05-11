@@ -113,3 +113,5 @@ replace_emails.py
 # 백업 파일
 *.bak
 *.backup
+ios/build/
+ios/DerivedData/

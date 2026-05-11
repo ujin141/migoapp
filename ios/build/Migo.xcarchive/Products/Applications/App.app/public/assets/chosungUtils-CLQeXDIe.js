@@ -1,1 +1,0 @@
-function h(t){if(!t)return"";const s="ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";let n="";for(let e=0;e<t.length;e++){const o=t.charCodeAt(e);if(o>=44032&&o<=55203){const c=Math.floor((o-44032)/588);n+=s[c]}else n+=t[e]}return n}export{h as g};
