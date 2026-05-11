@@ -61,13 +61,14 @@ async function checkAdminRole(): Promise<boolean> {
     return _adminRoleCache.result;
   }
 
-  const { data: { user } } = await adminSupabase.auth.getUser();
+  // ⚠️ supabase (세션 있는 클라이언트) 사용 — adminSupabase는 persistSession:false라 getUser()가 항상 null
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     _adminRoleCache = { result: false, ts: Date.now() };
     return false;
   }
 
-  const { data, error } = await adminSupabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("is_admin, role")
     .eq("id", user.id)
