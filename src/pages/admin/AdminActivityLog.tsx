@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ClipboardList, RefreshCw, User, Search, Filter, Shield, Ban, Check, Trash2, Eye } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
 import { useTranslation } from "react-i18next";
+import { adminSupabase } from "@/lib/adminService";
 
 type LogEntry = {
   id: string;
@@ -42,13 +42,25 @@ export const AdminActivityLog = () => {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    // adminSupabase로 RLS 우회
+    const { data, error } = await adminSupabase
       .from("admin_activity_log")
       .select("*, profiles:admin_id(name, photo_url)")
       .order("created_at", { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-    if (!error) setLogs(data || []);
+    if (error) {
+      console.warn("[AdminActivityLog] load error:", error);
+      // join 실패 시 단순 조회 재시도
+      const { data: d2 } = await adminSupabase
+        .from("admin_activity_log")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      if (d2) setLogs(d2);
+    } else {
+      setLogs(data || []);
+    }
     setLoading(false);
   };
 

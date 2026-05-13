@@ -39,13 +39,14 @@ export const AdminRevenue = () => {
     setSubscriptions(subs);
     setPurchases(purs);
 
-    // Group purchases by month for chart
+    // Group purchases by month for chart (price_krw 컬럼 사용)
     const monthly: Record<string, number> = {};
     purs.forEach((p: any) => {
       const m = new Date(p.created_at).toLocaleString("default", {
         month: "short"
       });
-      monthly[m] = (monthly[m] || 0) + (p.amount || 0);
+      // price_krw 또는 amount 둘 다 지원
+      monthly[m] = (monthly[m] || 0) + (p.price_krw || p.amount || 0);
     });
     setChartData(Object.entries(monthly).map(([month, revenue]) => ({
       month,
@@ -173,7 +174,7 @@ export const AdminRevenue = () => {
                           {s.plan}
                         </span>
                       </td>
-                      <td className="p-4 text-sm font-bold text-foreground">₩{(s.amount || 0).toLocaleString()}</td>
+                      <td className="p-4 text-sm font-bold text-foreground">₩{(s.price_krw || s.amount || 0).toLocaleString()}</td>
                       <td className="p-4">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${planColor[s.status] || "bg-muted"}`}>
                           {s.status}
@@ -206,7 +207,7 @@ export const AdminRevenue = () => {
                           {p.item_type || i18n.t("auto.z_\uAE30\uD0C0_959", "\uAE30\uD0C0")}
                         </span>
                       </td>
-                      <td className="p-4 text-sm font-bold text-foreground">₩{(p.amount || 0).toLocaleString()}</td>
+                      <td className="p-4 text-sm font-bold text-foreground">₩{(p.price_krw || p.amount || 0).toLocaleString()}</td>
                       <td className="p-4 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString("ko-KR")}</td>
                     </tr>)}
                 </tbody>

@@ -3,7 +3,11 @@ import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, RefreshCw, ExternalLink } from "lucide-react";
-import { fetchAdminReports, updateReportStatus, updateUserBan } from "@/lib/adminService";
+import { toast } from "@/hooks/use-toast";
+import {
+  fetchAdminReports, updateReportStatus, updateUserBan,
+  adminResolveReport, adminBanUser
+} from "@/lib/adminService";
 const typeLabel = (t: string) => t === "user" ? {
   label: i18n.t("auto.z_\uC720\uC800_628", "\uC720\uC800"),
   cls: "bg-violet-500/10 text-violet-400"
@@ -49,46 +53,42 @@ export const AdminReports = () => {
 
   const notifyStatChange = () => window.dispatchEvent(new Event("adminStatsNeedRefresh"));
 
-  const resolve = async (id: string) => {
-    const success = await updateReportStatus(id, "resolved");
+  const resolve = async (id: string, reporterId?: string) => {
+    // RPC 우선 시도, 실패 시 fallback
+    const success = await adminResolveReport(id, "resolved") || await updateReportStatus(id, "resolved");
     if (success) {
-      setReports(prev => prev.map(r => r.id === id ? {
-        ...r,
-        status: "resolved"
-      } : r));
-      if (selected?.id === id) setSelected((p: any) => ({
-        ...p,
-        status: "resolved"
-      }));
+      setReports(prev => prev.map(r => r.id === id ? { ...r, status: "resolved" } : r));
+      if (selected?.id === id) setSelected((p: any) => ({ ...p, status: "resolved" }));
       notifyStatChange();
+      toast({ title: "✅ 신고 해결 완료" });
+    } else {
+      toast({ title: "❌ 실패", description: "신고 해결 실패했습니다.", variant: "destructive" });
     }
   };
   const dismiss = async (id: string) => {
-    const success = await updateReportStatus(id, "dismissed");
+    const success = await adminResolveReport(id, "dismissed") || await updateReportStatus(id, "dismissed");
     if (success) {
-      setReports(prev => prev.map(r => r.id === id ? {
-        ...r,
-        status: "dismissed"
-      } : r));
-      if (selected?.id === id) setSelected((p: any) => ({
-        ...p,
-        status: "dismissed"
-      }));
+      setReports(prev => prev.map(r => r.id === id ? { ...r, status: "dismissed" } : r));
+      if (selected?.id === id) setSelected((p: any) => ({ ...p, status: "dismissed" }));
       notifyStatChange();
+      toast({ title: "🚧 신고 무시 처리" });
     }
   };
   const banTarget = async (targetId: string, reportId: string) => {
     if (!confirm(i18n.t("auto.z_\uC2E0\uACE0\uB300\uC0C1\uC720\uC800\uB97C\uC815\uC9C0\uD558_638", "\uC2E0\uACE0\uB300\uC0C1\uC720\uC800\uB97C\uC815\uC9C0\uD558"))) return;
     setBanning(true);
-    await updateUserBan(targetId, true);
-    await updateReportStatus(reportId, "resolved");
-    setReports(prev => prev.map(r => r.id === reportId ? {
-      ...r,
-      status: "resolved"
-    } : r));
-    setSelected(null);
+    // adminBanUser RPC 우선 (push 알림 내장)
+    const banOk = await adminBanUser(targetId) || await updateUserBan(targetId, true);
+    if (banOk) {
+      await adminResolveReport(reportId, "resolved") || await updateReportStatus(reportId, "resolved");
+      setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: "resolved" } : r));
+      setSelected(null);
+      notifyStatChange();
+      toast({ title: "🚫 계정 정지 완료", description: "신고 대상 사용자에게 알림이 발송되었습니다." });
+    } else {
+      toast({ title: "❌ 실패", description: "계정 정지에 실패했습니다.", variant: "destructive" });
+    }
     setBanning(false);
-    notifyStatChange();
   };
   const filtered = reports.filter(r => status === "all" || r.status === status);
   const pending = reports.filter(r => r.status === "pending").length;

@@ -3,7 +3,12 @@ import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Search, Crown, Ban, Trash2, X, FileText, ChevronDown, RefreshCw } from "lucide-react";
-import { fetchAdminUsers, updateUserValidation, updateUserPlan, updateUserBan, deleteUserAccount, updateUserNote } from "@/lib/adminService";
+import { toast } from "@/hooks/use-toast";
+import {
+  fetchAdminUsers, updateUserValidation, updateUserPlan,
+  updateUserBan, deleteUserAccount, updateUserNote,
+  adminBanUser, adminUnbanUser
+} from "@/lib/adminService";
 type FilterType = "all" | "verified" | "unverified" | "plus" | "premium" | "banned";
 export const AdminUsers = () => {
   const {
@@ -48,14 +53,14 @@ export const AdminUsers = () => {
   const verifyUser = async (id: string, currentVerified: boolean) => {
     const success = await updateUserValidation(id, !currentVerified);
     if (success) {
-      setUsers(prev => prev.map(u => u.id === id ? {
-        ...u,
-        verified: !currentVerified
-      } : u));
-      if (selectedUser?.id === id) setSelectedUser((p: any) => ({
-        ...p,
-        verified: !currentVerified
-      }));
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, verified: !currentVerified } : u));
+      if (selectedUser?.id === id) setSelectedUser((p: any) => ({ ...p, verified: !currentVerified }));
+      toast({
+        title: !currentVerified ? "✅ 인증 승인 완료" : "⚠️ 인증 취소",
+        description: !currentVerified ? "사용자에게 푸시 알림이 발송되었습니다." : "인증이 취소되었습니다."
+      });
+    } else {
+      toast({ title: "❌ 실패", description: "인증 상태 변경에 실패했습니다.", variant: "destructive" });
     }
   };
   const cyclePlan = async (id: string, currentPlan: string, is_plus: boolean) => {
@@ -82,16 +87,23 @@ export const AdminUsers = () => {
       action: label,
       defaultValue: `Are you sure you want to ${label} this user?`
     }))) return;
-    const success = await updateUserBan(id, !currentBanned);
-    if (success) {
-      setUsers(prev => prev.map(u => u.id === id ? {
-        ...u,
-        banned: !currentBanned
-      } : u));
-      if (selectedUser?.id === id) setSelectedUser((p: any) => ({
-        ...p,
-        banned: !currentBanned
-      }));
+    // RPC 내장 함수 우선 시도 (ban_reason, banned_until 지원)
+    const success = currentBanned
+      ? await adminUnbanUser(id)
+      : await adminBanUser(id);
+    // RPC 실패 시 fallback
+    const finalSuccess = success !== false
+      ? success
+      : await updateUserBan(id, !currentBanned);
+    if (finalSuccess) {
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, banned: !currentBanned } : u));
+      if (selectedUser?.id === id) setSelectedUser((p: any) => ({ ...p, banned: !currentBanned }));
+      toast({
+        title: !currentBanned ? "🚫 계정 정지 완료" : "✅ 계정 정지 해제 완료",
+        description: !currentBanned ? "사용자에게 알림이 발송되었습니다." : "사용자가 다시 서비스를 이용할 수 있습니다."
+      });
+    } else {
+      toast({ title: "❌ 실패", description: "계정 정지/해제에 실패했습니다.", variant: "destructive" });
     }
   };
   const handleDelete = async (id: string) => {
@@ -100,6 +112,9 @@ export const AdminUsers = () => {
     if (success) {
       setUsers(prev => prev.filter(u => u.id !== id));
       setSelectedUser(null);
+      toast({ title: "✅ 계정 영구 삭제 완료" });
+    } else {
+      toast({ title: "❌ 실패", description: "계정 삭제에 실패했습니다.", variant: "destructive" });
     }
   };
   const saveNote = async () => {

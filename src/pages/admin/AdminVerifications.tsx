@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "@/hooks/use-toast";
 import { Check, X, Clock, RefreshCw, Eye, Crown } from "lucide-react";
+import { adminApproveVerification, adminRejectVerification } from "@/lib/adminService";
 type VerifRecord = {
   id: string;
   user_id: string;
@@ -66,33 +67,36 @@ export const AdminVerifications = () => {
   const approve = async (rec: VerifRecord) => {
     setProcessing(rec.id);
     try {
-      // id_verifications 상태 업데이트
-      await supabase.from("id_verifications").update({
-        status: "approved",
-        reviewed_at: new Date().toISOString()
-      }).eq("id", rec.id);
-      // profiles id_verified true + trust_score 재계산
-      const {
-        data: p
-      } = await supabase.from("profiles").select("phone_verified, email_verified, sns_connected, review_verified").eq("id", rec.user_id).single();
-      if (p) {
-        const score = (p.phone_verified ? 15 : 0) + (p.email_verified ? 10 : 0) + 40 + (p.sns_connected ? 15 : 0) + (p.review_verified ? 20 : 0);
-        await supabase.from("profiles").update({
-          id_verified: true,
-          trust_score: score
-        }).eq("id", rec.user_id);
+      // RPC 가 있으면 사용, 없으면 직접 업데이트
+      const rpcOk = await adminApproveVerification(rec.id);
+      if (!rpcOk) {
+        // Fallback: 직접 엁데이트
+        await supabase.from("id_verifications").update({
+          status: "approved",
+          reviewed_at: new Date().toISOString()
+        }).eq("id", rec.id);
+        // profiles 엁데이트
+        const { data: p } = await supabase.from("profiles").select("phone_verified, email_verified, sns_connected, review_verified").eq("id", rec.user_id).single();
+        if (p) {
+          const score = (p.phone_verified ? 15 : 0) + (p.email_verified ? 10 : 0) + 40 + (p.sns_connected ? 15 : 0) + (p.review_verified ? 20 : 0);
+          await supabase.from("profiles").update({ id_verified: true, verified: true, trust_score: score }).eq("id", rec.user_id);
+        }
+        // 인앱 알림 INSERT
+        await supabase.from("in_app_notifications").insert({
+          user_id: rec.user_id,
+          title: "✅ 신분증 인증 승인",
+          content: i18n.t("auto.p10", { name: rec.profiles?.name ?? rec.user_id.slice(0, 8) }) || "회원님의 신분증 인증이 승인되었습니다!",
+          type: "system",
+          read: false,
+        });
       }
       toast({
         title: t("auto.g_0050", "승인 완료! ✅"),
-        description: i18n.t("auto.p10", {
-              name: rec.profiles?.name ?? rec.user_id.slice(0, 8)
-        })
+        description: i18n.t("auto.p10", { name: rec.profiles?.name ?? rec.user_id.slice(0, 8) })
       });
       load();
     } catch (e: any) {
-      toast({
-        title: t("alert.t19Title")
-      });
+      toast({ title: t("alert.t19Title"), variant: "destructive" });
     } finally {
       setProcessing(null);
     }
@@ -101,21 +105,29 @@ export const AdminVerifications = () => {
     if (!rejectModal) return;
     setProcessing(rejectModal.id);
     try {
-      await supabase.from("id_verifications").update({
-        status: "rejected",
-        reject_reason: rejectReason,
-        reviewed_at: new Date().toISOString()
-      }).eq("id", rejectModal.id);
-      toast({
-        title: t("alert.t20Title")
-      });
+      const rpcOk = await adminRejectVerification(rejectModal.id, rejectReason || undefined);
+      if (!rpcOk) {
+        // Fallback
+        await supabase.from("id_verifications").update({
+          status: "rejected",
+          reject_reason: rejectReason,
+          reviewed_at: new Date().toISOString()
+        }).eq("id", rejectModal.id);
+        // 거절 알림 INSERT
+        await supabase.from("in_app_notifications").insert({
+          user_id: rejectModal.userId,
+          title: "❌ 신분증 인증 반려",
+          content: rejectReason ? `반려 사유: ${rejectReason}` : "신분증 인증이 반려되었습니다. 다시 제출해 주세요.",
+          type: "system",
+          read: false,
+        });
+      }
+      toast({ title: t("alert.t20Title") });
       setRejectModal(null);
       setRejectReason("");
       load();
     } catch (e: any) {
-      toast({
-        title: t("alert.t21Title")
-      });
+      toast({ title: t("alert.t21Title"), variant: "destructive" });
     } finally {
       setProcessing(null);
     }

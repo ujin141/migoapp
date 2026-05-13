@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Trash2, Eye, Pause, Play, Upload, Image as ImageIcon, Monitor, Smartphone, Tag, Bell, Send, TrendingUp, Check, ChevronDown, DollarSign, Users, MousePointer, Megaphone } from "lucide-react";
 import { Ad, AdSlot, AdStatus, fetchAds, fetchAdSlots, createAd, deleteAd, updateAdStatus, uploadAdImage, toggleAdSlot, MOCK_ADS, MOCK_AD_SLOTS } from "@/lib/adService";
-import { fetchPromoCodes, createPromoCode, updatePromoCodeStatus, deletePromoCode, sendMarketingPush } from "@/lib/adminService";
+import { fetchPromoCodes, createPromoCode, updatePromoCodeStatus, deletePromoCode, broadcastNotification } from "@/lib/adminService";
+import { toast } from "@/hooks/use-toast";
 export type Campaign = {
   id: string;
   title: string;
@@ -395,14 +396,28 @@ export const AdminMarketing = () => {
   };
   const sendPush = async () => {
     if (!pushTitle || !pushBody) return;
-    const ok = await sendMarketingPush(pushTitle, pushBody, pushTarget);
-    if (ok) {
+    // pushTarget select value가 직접 "all"/"free"/"plus"/"verified" 등이 아닌
+    // t() 번역된 라벨이므로 항상 "all"로 fallback하거나,
+    // 아래처럼 원본 문자열로 매핑
+    const labelToFilter: Record<string, string> = {
+      [t("auto.g_1217", "전체유저")]: "all",
+      [t("auto.g_1218", "무료유저")]: "free",
+      [t("auto.g_1219", "Plus유")]: "plus",
+      [t("auto.g_1220", "비활성유저")]: "all",
+      [t("auto.g_1221", "신규가입")]: "all",
+    };
+    const filter = labelToFilter[pushTarget] ?? "all";
+    const result = await broadcastNotification(pushTitle, pushBody, "system", filter);
+    if (result.sent > 0) {
       setPushSent(true);
+      toast({ title: `✅ 알림 발송 완료`, description: `${result.sent}명에게 전송되었습니다.` });
       setTimeout(() => {
         setPushSent(false);
         setPushTitle("");
         setPushBody("");
       }, 3000);
+    } else {
+      toast({ title: "⚠️ 발송 실패", description: "대상 유저가 없거나 권한이 부족합니다.", variant: "destructive" });
     }
   };
   const tabs: {

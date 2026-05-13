@@ -2,8 +2,9 @@ import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Send, Users, Crown, Check, Star } from "lucide-react";
+import { Bell, Send, Users, Crown, Check, Star, AlertCircle } from "lucide-react";
 import { broadcastNotification } from "@/lib/adminService";
+import { supabase } from "@/lib/supabaseClient";
 type NotifType = "info" | "warning" | "update" | "promo" | "system";
 type NotifTarget = "all" | "plus" | "free" | "verified";
 const typeOptions: {
@@ -60,38 +61,47 @@ const history: {
   date: string;
 }[] = [];
 export const AdminNotifications = () => {
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [type, setType] = useState<NotifType>("info");
   const [target, setTarget] = useState<NotifTarget>("all");
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState<{
-    count: number;
-  } | null>(null);
-  const [log, setLog] = useState(history);
+  const [sent, setSent] = useState<{ count: number } | null>(null);
+  const [log, setLog] = useState<typeof history>(history);
+  const [hasFcmWarning, setHasFcmWarning] = useState(!import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY);
+
   const send = async () => {
     if (!title || !content) return;
     setSending(true);
-    const result = await broadcastNotification(title, content, type, target);
-    setSending(false);
-    setSent({
-      count: result.sent
-    });
-    setLog(prev => [{
-      title,
-      target,
-      type,
-      sent: result.sent,
-      date: new Date().toLocaleString("ko-KR")
-    }, ...prev]);
-    setTimeout(() => {
-      setSent(null);
-      setTitle("");
-      setContent("");
-    }, 4000);
+    try {
+      const result = await broadcastNotification(title, content, type, target);
+      setSent({ count: result.sent });
+      // 발송 로그 저장 (broadcast_logs 테이블이 있는 경우)
+      try {
+        await supabase.from("broadcast_logs").insert({
+          title,
+          content,
+          type,
+          target_filter: target,
+          sent_count: result.sent,
+        });
+      } catch { /* 테이블 없어도 무시 */ }
+      setLog(prev => [{
+        title,
+        target,
+        type,
+        sent: result.sent,
+        date: new Date().toLocaleString("ko-KR")
+      }, ...prev]);
+      setTimeout(() => {
+        setSent(null);
+        setTitle("");
+        setContent("");
+      }, 4000);
+    } finally {
+      setSending(false);
+    }
   };
   return <div className="space-y-6">
       <div>
@@ -99,6 +109,21 @@ export const AdminNotifications = () => {
           <Bell size={24} className="text-primary" />{t("auto.z_\uC804\uCCB4\uC54C\uB9BC\uBC1C\uC1A1_971", "\uC804\uCCB4\uC54C\uB9BC\uBC1C\uC1A1")}</h1>
         <p className="text-sm text-muted-foreground mt-1 truncate">{t("auto.z_\uC804\uCCB4\uB610\uB294\uD2B9\uC815\uADF8\uB8F9\uC5D0\uC778_972", "\uC804\uCCB4\uB610\uB294\uD2B9\uC815\uADF8\uB8F9\uC5D0\uC778")}</p>
       </div>
+
+      {/* FCM 서비스 키 경고 */}
+      {hasFcmWarning && (
+        <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+          <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-bold text-amber-500">FCM 직접 푸시 미설정</p>
+            <p className="text-xs text-amber-500/80 mt-0.5">
+              <code className="font-mono">VITE_SUPABASE_SERVICE_ROLE_KEY</code> 환경변수가 없어 in-app 알림만 저장됩니다.
+              Service Role Key를 설정하면 FCM 푸시까지 직접 발송됩니다.
+            </p>
+          </div>
+          <button onClick={() => setHasFcmWarning(false)} className="ml-auto text-amber-500/60 hover:text-amber-500 text-xs">✕</button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Form */}

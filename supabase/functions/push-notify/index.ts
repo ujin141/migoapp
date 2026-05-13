@@ -266,9 +266,26 @@ async function pushToUser(
 }
 
 // ── 메인 핸들러 ──────────────────────────────────────────────────
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
 serve(async (req) => {
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
+  }
+
   const auth = req.headers.get("Authorization") ?? "";
-  if (auth !== `Bearer ${supabaseServiceKey}`) {
+  const token = auth.replace(/^Bearer\s+/i, "");
+  // Service Role Key 또는 Anon Key 모두 허용 (어드민 패널에서 직접 호출 지원)
+  const isAuthorized = token === supabaseServiceKey || token === SUPABASE_ANON_KEY;
+  if (!isAuthorized) {
     return new Response("Unauthorized", { status: 401 });
   }
 

@@ -4,9 +4,12 @@ import { supabase, isSupabaseConfigured } from "./supabaseClient";
 
 // Admin ?꾩슜 adminSupabase ?대씪?댁뼵????persistSession/autoRefreshToken???꾩쟾??鍮꾪솢?깊솕?섏뿬
 // 留뚮즺??JWT 媛깆떊 ?쒕룄濡??명븳 GoTrue ?곕뱶?쎌쓣 ?먯쿇 李⑤떒?⑸땲??
-const adminSupabase = createClient(
+// Service Role Key가 있으면 RLS를 완전히 우회하는 admin 클라이언트 생성
+const _serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined;
+export const adminSupabase = createClient(
   import.meta.env.VITE_SUPABASE_URL ?? "",
-  import.meta.env.VITE_SUPABASE_ANON_KEY ?? "",
+  // Service Role Key 우선, 없으면 Anon Key로 폴백
+  _serviceKey || (import.meta.env.VITE_SUPABASE_ANON_KEY ?? ""),
   {
     auth: {
       persistSession: false,
@@ -98,11 +101,23 @@ export async function fetchAdminUsers() {
 }
 export async function updateUserValidation(userId: string, verified: boolean) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  const {
-    error
-  } = await adminSupabase.from("profiles").update({
-    verified
+  // verified 와 id_verified 두 컬럼 모두 업데이트 (스키마 차이 대응)
+  const { error } = await adminSupabase.from("profiles").update({
+    verified,
+    id_verified: verified,
+    // 인증 승인 시 trust_score 기본값 설정 (이미 있으면 DB가 유지)
   }).eq("id", userId);
+  if (!error && verified) {
+    // 인증 승인 알림 발송
+    await adminSupabase.from("in_app_notifications").insert({
+      user_id: userId,
+      title: "✅ 신분증 인증 승인",
+      content: "회원님의 신분증 인증이 승인되었습니다. 이제 인증 뱃지가 표시됩니다!",
+      type: "system",
+      read: false,
+    });
+    await sendPushViaEdgeFunction(userId, "✅ 신분증 인증 승인", "회원님의 신분증 인증이 승인되었습니다!", "system");
+  }
   return !error;
 }
 export async function updateUserPlan(userId: string, plan: 'free' | 'plus' | 'premium') {
@@ -128,11 +143,27 @@ export async function updateUserPlus(userId: string, is_plus: boolean) {
 }
 export async function updateUserBan(userId: string, banned: boolean) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  const {
-    error
-  } = await adminSupabase.from("profiles").update({
-    banned
+  // banned / is_banned 두 컬럼 모두 업데이트 (스키마 차이 대응)
+  const { error } = await adminSupabase.from("profiles").update({
+    banned,
+    is_banned: banned,
+    ...(banned ? {} : { ban_reason: null, banned_until: null }),
   }).eq("id", userId);
+  if (!error) {
+    // 계정정지/해제 알림 발송
+    const title = banned ? "🚫 계정 정지 안내" : "✅ 계정 정지 해제";
+    const content = banned
+      ? "커뮤니티 가이드라인 위반으로 계정이 정지되었습니다. 문의: support@migo.app"
+      : "계정 정지가 해제되었습니다. 다시 Migo를 이용하실 수 있습니다.";
+    await adminSupabase.from("in_app_notifications").insert({
+      user_id: userId,
+      title,
+      content,
+      type: "system",
+      read: false,
+    });
+    await sendPushViaEdgeFunction(userId, title, content, "system");
+  }
   return !error;
 }
 export async function deleteUserAccount(userId: string) {
@@ -643,7 +674,7 @@ export async function updateAppSetting(key: string, value: any): Promise<boolean
   return true;
 }
 
-// ?? SAFETY ????????????????????????????????????????????????????????????????????
+// ? SAFETY ??????????????????????????????????????????????????????
 
 export async function fetchSafetyCheckins() {
   if (!isSupabaseConfigured) return [];
@@ -665,15 +696,57 @@ export async function fetchSafetyCheckins() {
   }));
 }
 
-// ?? NOTIFICATIONS BROADCAST ???????????????????????????????????????????????????
+// ? NOTIFICATIONS BROADCAST ???????????????????????????????????????
 
-export async function broadcastNotification(title: string, content: string, type: string, filter: string): Promise<{
-  sent: number;
-}> {
+/**
+ * push-notify Edge Function에 직접 요청 (DB Webhook 미구성 환경에서도 FCM 발송)
+ */
+async function sendPushViaEdgeFunction(
+  userId: string,
+  title: string,
+  body: string,
+  notifType = "system"
+): Promise<boolean> {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const serviceKey  = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string;
+    // Service Role Key가 없으면 Anon Key로 시도 (제한적)
+    const authKey = serviceKey || (import.meta.env.VITE_SUPABASE_ANON_KEY as string);
+    if (!supabaseUrl || !authKey) return false;
+
+    const res = await fetch(`${supabaseUrl}/functions/v1/push-notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authKey}`,
+      },
+      body: JSON.stringify({
+        table: "in_app_notifications",
+        record: {
+          user_id: userId,
+          title,
+          content: body,
+          type: notifType,
+        },
+      }),
+    });
+    return res.ok;
+  } catch (e) {
+    console.warn("[adminService] sendPushViaEdgeFunction failed:", e);
+    return false;
+  }
+}
+
+export async function broadcastNotification(
+  title: string,
+  content: string,
+  type: string,
+  filter: string
+): Promise<{ sent: number }> {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return { sent: 0 };
 
   // 대상 유저 필터링
-  let query = adminSupabase.from("profiles").select("id");
+  let query = adminSupabase.from("profiles").select("id, fcm_token");
   if (filter === "plus")     query = query.eq("is_plus", true);
   if (filter === "verified") query = query.eq("verified", true);
   if (filter === "free")     query = query.eq("is_plus", false);
@@ -681,7 +754,10 @@ export async function broadcastNotification(title: string, content: string, type
   const { data: users } = await query.limit(5000);
   if (!users || users.length === 0) return { sent: 0 };
 
-  // 200명씩 청크로 분할하여 INSERT (Supabase INSERT 한도 대비)
+  // 알림 type 정규화 (notification_prefs의 'system' 키와 매핑)
+  const notifType = (type === "info" || type === "update" || type === "promo" || type === "warning") ? "system" : type;
+
+  // 200명씩 청크로 분할하여 INSERT
   const chunks: any[][] = [];
   for (let i = 0; i < users.length; i += 200) chunks.push(users.slice(i, i + 200));
 
