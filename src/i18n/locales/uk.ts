@@ -599,7 +599,11 @@ const uk = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "Будь ласка, завантажте щонайменше 2 фотографії",
+    "photoRequired": "Мін. 2 обов'язково",
+    "photoAddMore": "Додати ще {{n}}",
+    "photoMinHint": "Необхідно завантажити щонайменше 2 фотографії профілю",
   },
   "voiceCall": {
     "connecting": "Підключення...",

@@ -69,7 +69,11 @@ CREATE TABLE IF NOT EXISTS profiles (
   nearby_expires_at     TIMESTAMPTZ,
   is_admin              BOOLEAN DEFAULT false,
   role                  TEXT DEFAULT 'user',
-  notification_prefs    JSONB DEFAULT '{"like":true,"superlike":true,"match":true,"comment":true,"group":true,"system":true}'::jsonb
+  notification_prefs    JSONB DEFAULT '{"like":true,"superlike":true,"match":true,"comment":true,"group":true,"system":true}'::jsonb,
+  -- 추가 누락 컬럼
+  sns_handle            TEXT,                          -- SNS 연동 핸들 (VerificationPage)
+  setup_complete        BOOLEAN DEFAULT false,         -- 프로필 설정 완료 여부 (LoginPage, useAuth)
+  last_active_at        TIMESTAMPTZ DEFAULT NOW()      -- 마지막 활동 시간 (리텐션 기능)
 );
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_select"     ON profiles;

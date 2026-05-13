@@ -291,17 +291,28 @@ export const AdminUsers = () => {
             </div>
 
             {/* Avatar */}
-            <div className="flex items-center gap-4 mb-6 p-4 bg-muted/40 rounded-2xl">
-              {selectedUser.photo_url ? <img src={selectedUser.photo_url} className="w-16 h-16 rounded-2xl object-cover" /> : <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">{(selectedUser.name?.[0] || "?").toUpperCase()}</div>}
-              <div>
-                <p className="font-extrabold text-foreground truncate">{selectedUser.name || t("auto.g_1330", "이름없음6")}</p>
-                <p className="text-xs text-muted-foreground">{selectedUser.email}</p>
-                <div className="flex gap-1.5 mt-1.5 truncate">
-                  {selectedUser.verified && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold truncate">{t("auto.g_1331", "인증됨")}</span>}
-                  {selectedUser.plan === 'premium' ? <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold">Premium</span> : selectedUser.plan === 'plus' || selectedUser.is_plus ? <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold">Plus</span> : null}
-                  {selectedUser.banned && <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold truncate">{t("auto.g_1332", "정지됨")}</span>}
+            <div className="flex flex-col gap-4 mb-6 p-4 bg-muted/40 rounded-2xl">
+              <div className="flex items-center gap-4">
+                {selectedUser.photo_url ? <img src={selectedUser.photo_url} className="w-16 h-16 rounded-2xl object-cover" /> : <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">{(selectedUser.name?.[0] || "?").toUpperCase()}</div>}
+                <div className="min-w-0">
+                  <p className="font-extrabold text-foreground truncate">{selectedUser.name || t("auto.g_1330", "이름없음6")}</p>
+                  <p className="text-xs text-muted-foreground truncate">{selectedUser.email}</p>
+                  <div className="flex gap-1.5 mt-1.5 truncate">
+                    {selectedUser.verified && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold truncate">{t("auto.g_1331", "인증됨")}</span>}
+                    {selectedUser.plan === 'premium' ? <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold">Premium</span> : selectedUser.plan === 'plus' || selectedUser.is_plus ? <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold">Plus</span> : null}
+                    {selectedUser.banned && <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold truncate">{t("auto.g_1332", "정지됨")}</span>}
+                  </div>
                 </div>
               </div>
+              
+              {/* Additional Photos */}
+              {selectedUser.photo_urls && selectedUser.photo_urls.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {selectedUser.photo_urls.map((url: string, idx: number) => (
+                    <img key={idx} src={url} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Info */}
@@ -320,8 +331,50 @@ export const AdminUsers = () => {
                 value: selectedUser.id?.slice(0, 16) + "...",
                 mono: true
               }].map(i => <div key={i.label} className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-xs text-muted-foreground">{i.label}</span>
-                <span className={`text-xs font-semibold text-foreground ${i.mono ? "font-mono text-[10px]" : ""}`}>{i.value}</span>
+                <span className="text-xs text-muted-foreground shrink-0">{i.label}</span>
+                <span className={`text-xs font-semibold text-foreground truncate max-w-[70%] text-right ${i.mono ? "font-mono text-[10px]" : ""}`}>{i.value}</span>
+              </div>)}
+            </div>
+
+            {/* Profile Details */}
+            <div className="space-y-2 mb-6 truncate">
+              <p className="text-[11px] text-muted-foreground font-bold mb-1 truncate">프로필 상세</p>
+              {[{
+                label: "나이",
+                value: selectedUser.age ? `${selectedUser.age}세` : "-"
+              }, {
+                label: "성별",
+                value: selectedUser.gender || "-"
+              }, {
+                label: "MBTI",
+                value: selectedUser.mbti || "-"
+              }, {
+                label: "관심사",
+                value: Array.isArray(selectedUser.interests) && selectedUser.interests.length > 0 ? selectedUser.interests.join(", ") : "-"
+              }, {
+                label: "언어",
+                value: Array.isArray(selectedUser.languages) && selectedUser.languages.length > 0 ? selectedUser.languages.join(", ") : "-"
+              }, {
+                label: "여행 스타일",
+                value: Array.isArray(selectedUser.travel_style) && selectedUser.travel_style.length > 0 ? selectedUser.travel_style.join(", ") : "-"
+              }, {
+                label: "예산",
+                value: selectedUser.budget_range || "-"
+              }, {
+                label: "거주지",
+                value: selectedUser.home_city || "-"
+              }, {
+                label: "선호 지역",
+                value: Array.isArray(selectedUser.preferred_regions) && selectedUser.preferred_regions.length > 0 ? selectedUser.preferred_regions.join(", ") : "-"
+              }, {
+                label: "여행 목적",
+                value: selectedUser.travel_mission || "-"
+              }, {
+                label: "방문 국가",
+                value: Array.isArray(selectedUser.visited_countries) && selectedUser.visited_countries.length > 0 ? selectedUser.visited_countries.join(", ") : "-"
+              }].map(i => <div key={i.label} className="flex justify-between py-2 border-b border-border/50">
+                <span className="text-xs text-muted-foreground shrink-0">{i.label}</span>
+                <span className="text-xs font-semibold text-foreground truncate max-w-[70%] text-right" title={i.value}>{i.value}</span>
               </div>)}
             </div>
 

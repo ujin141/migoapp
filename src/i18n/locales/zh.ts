@@ -599,7 +599,11 @@ const zh = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "请至少上传2张照片",
+    "photoRequired": "至少需要2张",
+    "photoAddMore": "再添加{{n}}张",
+    "photoMinHint": "您必须至少上传2张个人资料照片",
   },
   "voiceCall": {
     "connecting": "正在连接...",

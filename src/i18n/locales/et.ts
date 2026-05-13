@@ -728,7 +728,11 @@ const et = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "Palun laadi üles vähemalt 2 fotot",
+    "photoRequired": "Min. 2 nõutav",
+    "photoAddMore": "Lisa {{n}} lisaks",
+    "photoMinHint": "Pead üles laadima vähemalt 2 profiilipilti",
   },
   "voiceCall": {
     "connecting": "Ühendamine...",

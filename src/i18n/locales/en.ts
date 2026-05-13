@@ -6051,7 +6051,11 @@ const en = {
     "selectedMbti": "Please leave your current MBTI profile tag",
     "mbtiNotice": "It is used to select accurate personality-based matching personnel.",
     "start": "Complete all input and enter Migo",
-    "langDefault": "Please select a language."
+    "langDefault": "Please select a language.",
+    "errPhoto": "Please upload at least 2 photos",
+    "photoRequired": "Min. 2 required",
+    "photoAddMore": "Add {{n}} more",
+    "photoMinHint": "You must upload at least 2 profile photos",
   },
   "voiceCall": {
     "connecting": "Connecting...",

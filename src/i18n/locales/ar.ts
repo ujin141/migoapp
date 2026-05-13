@@ -730,7 +730,11 @@ const ar = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "يرجى تحميل صورتين على الأقل",
+    "photoRequired": "2 صور على الأقل مطلوبة",
+    "photoAddMore": "أضف {{n}} أخرى",
+    "photoMinHint": "يجب تحميل صورتين على الأقل للملف الشخصي",
   },
   "voiceCall": {
     "connecting": "جارٍ الاتصال...",

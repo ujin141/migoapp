@@ -728,7 +728,11 @@ const ur = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "براہ کرم کم از کم 2 تصاویر اپلوڈ کریں",
+    "photoRequired": "کم از کم 2 ضروری",
+    "photoAddMore": "{{n}} مزید شامل کریں",
+    "photoMinHint": "آپ کو کم از کم 2 پروفائل تصاویر اپلوڈ کرنی ہوں گی",
   },
   "voiceCall": {
     "connecting": "منسلک ہو رہا ہے...",

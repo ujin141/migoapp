@@ -599,7 +599,11 @@ const hu = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "Kérjük, tölts fel legalább 2 fotót",
+    "photoRequired": "Minimum 2 szükséges",
+    "photoAddMore": "Adj hozzá {{n}} fotót",
+    "photoMinHint": "Legalább 2 profilképet kell feltöltened",
   },
   "voiceCall": {
     "connecting": "Csatlakozás...",

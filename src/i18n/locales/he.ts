@@ -728,7 +728,11 @@ const he = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "אנא העלה לפחות 2 תמונות",
+    "photoRequired": "מינימום 2 נדרשות",
+    "photoAddMore": "הוסף עוד {{n}}",
+    "photoMinHint": "עליך להעלות לפחות 2 תמונות פרופיל",
   },
   "voiceCall": {
     "connecting": "מתחבר...",

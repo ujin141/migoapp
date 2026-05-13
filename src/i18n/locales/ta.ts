@@ -728,7 +728,11 @@ const ta = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "குறைந்தது 2 புகைப்படங்களை பதிவேற்றவும்",
+    "photoRequired": "குறைந்தது 2 தேவை",
+    "photoAddMore": "மேலும் {{n}} சேர்க்கவும்",
+    "photoMinHint": "குறைந்தது 2 சுயவிவர புகைப்படங்களை பதிவேற்ற வேண்டும்",
   },
   "voiceCall": {
     "connecting": "இணைக்கிறது...",

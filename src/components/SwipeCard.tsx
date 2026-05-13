@@ -50,6 +50,19 @@ const getNationalityFlag = (nationality?: string): string => {
   return "";
 };
 
+// 접속 상태 팠스트 환산 헬퍼
+const getOnlineLabel = (isOnline?: boolean, lastSeen?: string | null): { label: string; color: string; pulse: boolean } | null => {
+  if (isOnline) return { label: "접속 중", color: "bg-emerald-500", pulse: true };
+  if (!lastSeen) return null;
+  const diff = Date.now() - new Date(lastSeen).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 5) return { label: "방금 접속", color: "bg-emerald-400", pulse: false };
+  if (mins < 60) return { label: `${mins}분 전`, color: "bg-amber-400", pulse: false };
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return { label: `${hrs}시간 전`, color: "bg-orange-400", pulse: false };
+  return null; // 24시간 이상 지나면 표시 안 함
+};
+
 // 호환성 점수 바 컴포넌트
 const CompatBar = ({
   label,
@@ -246,6 +259,25 @@ const SwipeCard = ({
              </div>
              <p className="text-white/80 text-sm font-semibold truncate">{i18n.t('auto.j507')}</p>
           </div>}
+
+        {/* ── 실시간 접속 상태 배지 ── */}
+        {(() => {
+          const onlineBadge = getOnlineLabel(profile.isOnline, profile.lastSeen);
+          if (!onlineBadge || !isTop) return null;
+          return (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-md rounded-full px-2.5 py-1.5 shadow-lg border border-white/15 z-30 pointer-events-none"
+            >
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${onlineBadge.color} ${onlineBadge.pulse ? 'animate-pulse' : ''}`}
+              />
+              <span className="text-[10px] text-white font-bold tracking-wide leading-none">{onlineBadge.label}</span>
+            </motion.div>
+          );
+        })()}
 
         {/* Tap areas for photo sliding (left 40%, right 40%) */}
         {isTop && photos.length > 1 && (

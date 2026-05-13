@@ -728,7 +728,11 @@ const sl = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "Prosimo, naložite vsaj 2 fotografiji",
+    "photoRequired": "Min. 2 zahtevani",
+    "photoAddMore": "Dodaj še {{n}}",
+    "photoMinHint": "Naložiti morate vsaj 2 profilni fotografiji",
   },
   "voiceCall": {
     "connecting": "Povezovanje ...",

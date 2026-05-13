@@ -96,3 +96,21 @@ BEGIN
 END;
 $$;
 GRANT EXECUTE ON FUNCTION public.find_email_by_phone(TEXT, TEXT) TO authenticated, anon;
+
+-- increment_ad_clicks: 광고 클릭수 원자적 증가
+CREATE OR REPLACE FUNCTION increment_ad_clicks(row_id UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE ads SET clicks = clicks + 1, budget_spent = budget_spent + 1 WHERE id = row_id;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION increment_ad_clicks(UUID) TO authenticated, anon;
+
+-- increment_ad_impressions: 광고 노출수 원자적 증가
+CREATE OR REPLACE FUNCTION increment_ad_impressions(row_id UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE ads SET impressions = impressions + 1 WHERE id = row_id;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION increment_ad_impressions(UUID) TO authenticated, anon;

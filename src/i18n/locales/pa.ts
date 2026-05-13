@@ -728,7 +728,11 @@ const pa = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "ਕਿਰਪਾ ਕਰਕੇ ਘੱਟੋ-ਘੱਟ 2 ਫੋਟੋਆਂ ਅਪਲੋਡ ਕਰੋ",
+    "photoRequired": "ਘੱਟੋ-ਘੱਟ 2 ਲੋੜੀਂਦੀਆਂ",
+    "photoAddMore": "{{n}} ਹੋਰ ਜੋੜੋ",
+    "photoMinHint": "ਤੁਹਾਨੂੰ ਘੱਟੋ-ਘੱਟ 2 ਪ੍ਰੋਫਾਈਲ ਫੋਟੋਆਂ ਅਪਲੋਡ ਕਰਨੀਆਂ ਚਾਹੀਦੀਆਂ ਹਨ",
   },
   "voiceCall": {
     "connecting": "ਕਨੈਕਟ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ...",

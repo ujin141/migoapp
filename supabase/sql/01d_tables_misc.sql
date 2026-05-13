@@ -192,3 +192,177 @@ DROP POLICY IF EXISTS "hotplace_seekers_delete" ON public.hotplace_seekers;
 CREATE POLICY "hotplace_seekers_select" ON public.hotplace_seekers FOR SELECT TO authenticated USING (true);
 CREATE POLICY "hotplace_seekers_insert" ON public.hotplace_seekers FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "hotplace_seekers_delete" ON public.hotplace_seekers FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+-- ======================== ads ========================
+-- 광고 캠페인 (AdminMarketing에서 관리)
+CREATE TABLE IF NOT EXISTS ads (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title        TEXT NOT NULL,
+  advertiser   TEXT,
+  slot_id      TEXT NOT NULL,              -- ad_slots.id 참조
+  image_url    TEXT,
+  cta_url      TEXT,
+  cta_text     TEXT,
+  headline     TEXT,
+  body_text    TEXT,
+  status       TEXT DEFAULT 'pending',     -- pending/active/paused/ended
+  budget       INTEGER DEFAULT 0,
+  budget_spent INTEGER DEFAULT 0,
+  impressions  INTEGER DEFAULT 0,
+  clicks       INTEGER DEFAULT 0,
+  start_date   DATE,
+  end_date     DATE,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE ads ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ads_admin" ON ads;
+CREATE POLICY "ads_admin" ON ads FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== ad_slots ========================
+-- 광고 슬롯 정의 (앱 화면별 광고 위치)
+CREATE TABLE IF NOT EXISTS ad_slots (
+  id          TEXT PRIMARY KEY,            -- 'match_top_banner' 등 고정 슬롯 ID
+  name        TEXT NOT NULL,
+  description TEXT,
+  app_screen  TEXT NOT NULL,
+  format      TEXT DEFAULT 'banner',       -- banner/interstitial/native
+  dimensions  TEXT,
+  max_active  INTEGER DEFAULT 1,
+  enabled     BOOLEAN DEFAULT true,
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE ad_slots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ad_slots_select" ON ad_slots;
+DROP POLICY IF EXISTS "ad_slots_admin" ON ad_slots;
+CREATE POLICY "ad_slots_select" ON ad_slots FOR SELECT USING (true);
+CREATE POLICY "ad_slots_admin" ON ad_slots FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ad_slots 기본 데이터 삽입
+INSERT INTO ad_slots (id, name, description, app_screen, format, dimensions, max_active, enabled) VALUES
+  ('match_top_banner',      '매칭 상단 배너',   '매칭 페이지 스와이프 카드 상단', 'MatchPage',    'banner',        '360x60', 1, true),
+  ('explore_top_banner',    '탐색 상단 배너',   '탐색 페이지 상단',               'DiscoverPage', 'banner',        '360x60', 1, true),
+  ('profile_bottom_banner', '프로필 하단 배너', '프로필 화면 하단',               'ProfilePage',  'banner',        '360x60', 1, false),
+  ('splash_interstitial',   '스플래시 전면광고','앱 시작 시 전면 광고',           'SplashPage',   'interstitial', '360x640', 1, false)
+ON CONFLICT (id) DO NOTHING;
+
+-- ======================== ad_clicks ========================
+CREATE TABLE IF NOT EXISTS ad_clicks (
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  ad_id      UUID REFERENCES ads(id) ON DELETE CASCADE,
+  user_id    UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE ad_clicks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ad_clicks_insert" ON ad_clicks;
+DROP POLICY IF EXISTS "ad_clicks_admin"  ON ad_clicks;
+CREATE POLICY "ad_clicks_insert" ON ad_clicks FOR INSERT WITH CHECK (true);
+CREATE POLICY "ad_clicks_admin"  ON ad_clicks FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== ad_impressions ========================
+CREATE TABLE IF NOT EXISTS ad_impressions (
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  ad_id      UUID REFERENCES ads(id) ON DELETE CASCADE,
+  user_id    UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE ad_impressions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ad_imp_insert" ON ad_impressions;
+DROP POLICY IF EXISTS "ad_imp_admin"  ON ad_impressions;
+CREATE POLICY "ad_imp_insert" ON ad_impressions FOR INSERT WITH CHECK (true);
+CREATE POLICY "ad_imp_admin"  ON ad_impressions FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== chat_messages ========================
+-- 1:1 채팅 메시지 (chat_threads 기반)
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  thread_id  UUID REFERENCES chat_threads(id) ON DELETE CASCADE,
+  sender_id  UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  content    TEXT NOT NULL,
+  type       TEXT DEFAULT 'text',          -- text/image/system
+  read_by    UUID[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "chatmsg_select" ON chat_messages;
+DROP POLICY IF EXISTS "chatmsg_insert" ON chat_messages;
+CREATE POLICY "chatmsg_select" ON chat_messages FOR SELECT
+  USING (EXISTS (SELECT 1 FROM chat_members WHERE thread_id = chat_messages.thread_id AND user_id = auth.uid()));
+CREATE POLICY "chatmsg_insert" ON chat_messages FOR INSERT
+  WITH CHECK (
+    auth.uid() = sender_id
+    AND EXISTS (SELECT 1 FROM chat_members WHERE thread_id = chat_messages.thread_id AND user_id = auth.uid())
+  );
+
+-- ======================== sos_alerts ========================
+-- SOS 긴급 알림 (SOSModal에서 사용)
+CREATE TABLE IF NOT EXISTS sos_alerts (
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id    UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  lat        DOUBLE PRECISION,
+  lng        DOUBLE PRECISION,
+  address    TEXT,
+  message    TEXT,
+  status     TEXT DEFAULT 'active',        -- active/resolved
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE sos_alerts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "sos_insert" ON sos_alerts;
+DROP POLICY IF EXISTS "sos_own"    ON sos_alerts;
+DROP POLICY IF EXISTS "sos_admin"  ON sos_alerts;
+CREATE POLICY "sos_insert" ON sos_alerts FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "sos_own"    ON sos_alerts FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "sos_admin"  ON sos_alerts FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== call_logs ========================
+-- 음성통화 로그 (VoiceCallPage에서 사용)
+CREATE TABLE IF NOT EXISTS call_logs (
+  id               UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  caller_id        UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  callee_id        UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  duration_seconds INTEGER DEFAULT 0,
+  status           TEXT DEFAULT 'completed', -- completed/missed/declined
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE call_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "calllog_own"   ON call_logs;
+DROP POLICY IF EXISTS "calllog_admin" ON call_logs;
+CREATE POLICY "calllog_own"   ON call_logs FOR ALL   USING (auth.uid() = caller_id OR auth.uid() = callee_id);
+CREATE POLICY "calllog_admin" ON call_logs FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== broadcast_logs ========================
+-- 어드민 푸시 발송 이력 (AdminNotifications에서 사용)
+CREATE TABLE IF NOT EXISTS broadcast_logs (
+  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  admin_id      UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  title         TEXT NOT NULL,
+  content       TEXT,
+  type          TEXT DEFAULT 'general',
+  target_filter TEXT,
+  sent_count    INTEGER DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE broadcast_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "bcast_admin" ON broadcast_logs;
+CREATE POLICY "bcast_admin" ON broadcast_logs FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== user_blocks ========================
+-- 유저 차단 (ReportBlockActionSheet에서 사용, blocks 테이블과 별도 관리)
+-- 참고: blocks 테이블은 01b에 있지만 user_blocks는 커뮤니티 게시글 차단용으로 별도 사용
+CREATE TABLE IF NOT EXISTS user_blocks (
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  blocker_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  blocked_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(blocker_id, blocked_id)
+);
+ALTER TABLE user_blocks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ublocks_own" ON user_blocks;
+CREATE POLICY "ublocks_own" ON user_blocks FOR ALL USING (auth.uid() = blocker_id);
+

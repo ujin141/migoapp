@@ -19,7 +19,7 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 1): Promise<Auth
       setTimeout(() => reject(new Error('timeout')), 4000)
     );
     const { data, error } = await Promise.race([
-      supabase.from("profiles").select("photo_url, photo_urls, name, verified, setup_complete").eq("id", user.id).single(),
+      supabase.from("profiles").select("photo_url, photo_urls, name, verified, setup_complete, is_banned, banned").eq("id", user.id).single(),
       timeoutPromise
     ]);
     
@@ -31,6 +31,12 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 1): Promise<Auth
     }
 
     if (data) {
+      if (data.is_banned || data.banned) {
+        alert("이 계정은 이용 수칙 위반으로 영구 정지되었습니다.");
+        await supabase.auth.signOut();
+        window.location.href = '/login';
+        return { ...user, id: '' }; // Invalidated user
+      }
       const bestPhoto = (data.photo_urls && data.photo_urls.length > 0) ? data.photo_urls[0] : data.photo_url;
       // 표시용으로만 캐시 버스팅 추가 (DB에는 클린 URL 저장)
       const cleanUrl = bestPhoto?.replace(/[?&]t=\d+/, "") || "";

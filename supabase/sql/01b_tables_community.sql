@@ -8,20 +8,25 @@ CREATE TABLE IF NOT EXISTS messages (
   id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   thread_id    UUID REFERENCES chat_threads(id) ON DELETE CASCADE,
   sender_id    UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  content      TEXT,
+  content      TEXT,                          -- 표준 컬럼
+  text         TEXT,                          -- 프론트 호환 (ChatPage, useRealtimeChat이 text로 insert)
   image_url    TEXT,
   created_at   TIMESTAMPTZ DEFAULT NOW(),
-  group_id     UUID,
-  user_id      UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  group_id     UUID,                          -- 그룹 채팅용 (trip_groups.id 참조)
+  user_id      UUID REFERENCES profiles(id) ON DELETE SET NULL,  -- 구버전 호환
   message_type TEXT DEFAULT 'text'
 );
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "messages_select" ON messages;
 DROP POLICY IF EXISTS "messages_insert" ON messages;
+DROP POLICY IF EXISTS "messages_group_select" ON messages;
 CREATE POLICY "messages_select" ON messages FOR SELECT USING (
   thread_id IN (SELECT thread_id FROM chat_members WHERE user_id = auth.uid())
+  OR group_id IS NOT NULL  -- 그룹 메시지는 멤버면 볼 수 있음
 );
-CREATE POLICY "messages_insert" ON messages FOR INSERT WITH CHECK (auth.uid() = sender_id OR auth.uid() = user_id);
+CREATE POLICY "messages_insert" ON messages FOR INSERT WITH CHECK (
+  auth.uid() = sender_id OR auth.uid() = user_id
+);
 
 -- ======================== notifications ========================
 CREATE TABLE IF NOT EXISTS notifications (

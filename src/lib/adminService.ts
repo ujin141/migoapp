@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { createClient } from "@supabase/supabase-js";
-import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import { supabase, isSupabaseConfigured, invalidateCache } from "./supabaseClient";
 
 // Admin ?꾩슜 adminSupabase ?대씪?댁뼵????persistSession/autoRefreshToken???꾩쟾??鍮꾪솢?깊솕?섏뿬
 // 留뚮즺??JWT 媛깆떊 ?쒕룄濡??명븳 GoTrue ?곕뱶?쎌쓣 ?먯쿇 李⑤떒?⑸땲??
@@ -87,7 +87,7 @@ export async function fetchAdminUsers() {
   if (!isSupabaseConfigured) return [];
   const { data, error } = await adminSupabase
     .from("profiles")
-    .select("id,name,email,photo_url,nationality,verified,banned,is_banned,ban_reason,banned_until,plan,is_plus,trust_score,created_at,admin_note,user_type,gender,age")
+    .select("*")
     .order("created_at", { ascending: false })
     .limit(300);
   if (error) {
@@ -150,6 +150,10 @@ export async function updateUserBan(userId: string, banned: boolean) {
     ...(banned ? {} : { ban_reason: null, banned_until: null }),
   }).eq("id", userId);
   if (!error) {
+    // ✅ MatchPage / MapPage 프로필 캐시 즉시 무효화 → 정지된 계정이 스와이프 카드에 노출되지 않도록
+    invalidateCache('match:profiles:');
+    invalidateCache('map:profiles:');
+
     // 계정정지/해제 알림 발송
     const title = banned ? "🚫 계정 정지 안내" : "✅ 계정 정지 해제";
     const content = banned
@@ -168,20 +172,21 @@ export async function updateUserBan(userId: string, banned: boolean) {
 }
 export async function deleteUserAccount(userId: string) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  // Delete profile (cascade should handle the rest)
-  const {
-    error
-  } = await adminSupabase.from("profiles").delete().eq("id", userId);
-  return !error;
+  const { error } = await adminSupabase.rpc("admin_delete_user_account", { p_user_id: userId });
+  if (error) {
+    console.error("deleteUserAccount error:", error);
+    return false;
+  }
+  return true;
 }
 export async function updateUserNote(userId: string, admin_note: string) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  const {
-    error
-  } = await adminSupabase.from("profiles").update({
-    admin_note
-  }).eq("id", userId);
-  return !error;
+  const { error } = await adminSupabase.rpc("admin_update_user_note", { p_user_id: userId, p_note: admin_note });
+  if (error) {
+    console.error("updateUserNote error:", error);
+    return false;
+  }
+  return true;
 }
 
 /** POSTS */
@@ -222,28 +227,30 @@ export async function fetchAdminPosts() {
 }
 export async function deletePost(postId: string) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  const {
-    error
-  } = await adminSupabase.from("posts").delete().eq("id", postId);
-  return !error;
+  const { error } = await adminSupabase.rpc("admin_delete_post", { p_post_id: postId });
+  if (error) {
+    console.error("deletePost error:", error);
+    return false;
+  }
+  return true;
 }
 export async function updatePostHidden(postId: string, hidden: boolean) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  const {
-    error
-  } = await adminSupabase.from("posts").update({
-    hidden
-  }).eq("id", postId);
-  return !error;
+  const { error } = await adminSupabase.rpc("admin_update_post_hidden", { p_post_id: postId, p_hidden: hidden });
+  if (error) {
+    console.error("updatePostHidden error:", error);
+    return false;
+  }
+  return true;
 }
 export async function updatePostPinned(postId: string, pinned: boolean) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  const {
-    error
-  } = await adminSupabase.from("posts").update({
-    pinned
-  }).eq("id", postId);
-  return !error;
+  const { error } = await adminSupabase.rpc("admin_update_post_pinned", { p_post_id: postId, p_pinned: pinned });
+  if (error) {
+    console.error("updatePostPinned error:", error);
+    return false;
+  }
+  return true;
 }
 
 /** GROUPS */
@@ -286,10 +293,12 @@ export async function fetchAdminGroups() {
 }
 export async function deleteGroup(groupId: string) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  const {
-    error
-  } = await adminSupabase.from("trip_groups").delete().eq("id", groupId);
-  return !error;
+  const { error } = await adminSupabase.rpc("admin_delete_group", { p_group_id: groupId });
+  if (error) {
+    console.error("deleteGroup error:", error);
+    return false;
+  }
+  return true;
 }
 
 /** REPORTS */
@@ -817,25 +826,87 @@ export async function resolveSafetyCheckin(id: string) {
 // ─────────────────────────────────────────────────
 export async function fetchAdminChatRooms(limit = 50) {
   if (!isSupabaseConfigured) return [];
-  const { data, error } = await adminSupabase
+
+  // ① 여행 그룹 채팅방
+  const { data: groups } = await adminSupabase
     .from("trip_groups")
-    .select("id, title, description, created_at, member_count, max_members, created_by, is_active, profiles!trip_groups_created_by_fkey(name, photo_url)")
+    .select("id, title, description, created_at, member_count, max_members, host_id, created_by, is_active")
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error) { console.error("fetchAdminChatRooms error:", error); return []; }
-  return data || [];
+
+  // ② 1:1 채팅 스레드 (is_group = false)
+  const { data: threads } = await adminSupabase
+    .from("chat_threads")
+    .select("id, name, created_at, is_group, last_message, created_by")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const groupRooms = (groups || []).map((g: any) => ({
+    id: g.id,
+    title: g.title || '여행 그룹',
+    description: g.description,
+    created_at: g.created_at,
+    member_count: g.member_count || 0,
+    max_members: g.max_members,
+    is_active: g.is_active !== false,
+    room_type: 'group',
+    created_by: g.created_by || g.host_id,
+  }));
+
+  const threadRooms = (threads || []).map((t: any) => ({
+    id: t.id,
+    title: t.name || '1:1 채팅',
+    description: t.last_message,
+    created_at: t.created_at,
+    member_count: t.is_group ? 0 : 2,
+    max_members: t.is_group ? null : 2,
+    is_active: true,
+    room_type: t.is_group ? 'group' : 'direct',
+    created_by: t.created_by,
+  }));
+
+  return [...groupRooms, ...threadRooms].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ).slice(0, limit);
 }
 
-export async function fetchAdminMessages(groupId: string, limit = 30) {
+export async function fetchAdminMessages(roomId: string, limit = 30) {
   if (!isSupabaseConfigured) return [];
-  const { data, error } = await adminSupabase
-    .from("messages")
-    .select("id, content, created_at, user_id, profiles!messages_user_id_fkey(name, photo_url)")
-    .eq("group_id", groupId)
+
+  // 1:1 채팅 메시지 (chat_messages 테이블)
+  const { data: chatMsgs, error: chatErr } = await adminSupabase
+    .from("chat_messages")
+    .select("id, content, created_at, sender_id, profiles!chat_messages_sender_id_fkey(name, photo_url)")
+    .eq("thread_id", roomId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error) { console.error("fetchAdminMessages error:", error); return []; }
-  return data || [];
+
+  if (!chatErr && chatMsgs && chatMsgs.length > 0) {
+    return chatMsgs.map((m: any) => ({
+      ...m,
+      user_id: m.sender_id,
+    }));
+  }
+
+  // 그룹 채팅 메시지 (messages 테이블 fallback)
+  const { data: groupMsgs, error: groupErr } = await adminSupabase
+    .from("messages")
+    .select("id, content, created_at, user_id, profiles!messages_user_id_fkey(name, photo_url)")
+    .eq("group_id", roomId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!groupErr && groupMsgs) return groupMsgs;
+
+  // 두 번째 fallback: thread_id로 메시지 조회
+  const { data: fallbackMsgs } = await adminSupabase
+    .from("messages")
+    .select("id, content, created_at, user_id")
+    .eq("thread_id", roomId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return fallbackMsgs || [];
 }
 
 export async function deactivateChatRoom(groupId: string) {
@@ -887,8 +958,12 @@ export async function adminBanUser(userId: string, reason?: string, banDays?: nu
       ban_reason: reason || null,
       banned_until: banDays ? new Date(Date.now() + banDays * 86400000).toISOString() : null,
     }).eq("id", userId);
+    if (!e2) { invalidateCache('match:profiles:'); invalidateCache('map:profiles:'); }
     return !e2;
   }
+  // ✅ 캐시 즉시 무효화
+  invalidateCache('match:profiles:');
+  invalidateCache('map:profiles:');
   return data === true || data !== false;
 }
 
@@ -903,8 +978,12 @@ export async function adminUnbanUser(userId: string) {
       ban_reason: null,
       banned_until: null,
     }).eq("id", userId);
+    if (!e2) { invalidateCache('match:profiles:'); invalidateCache('map:profiles:'); }
     return !e2;
   }
+  // ✅ 캐시 즉시 무효화
+  invalidateCache('match:profiles:');
+  invalidateCache('map:profiles:');
   return data === true || data !== false;
 }
 

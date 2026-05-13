@@ -599,7 +599,11 @@ const no = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "Last opp minst 2 bilder",
+    "photoRequired": "Min. 2 påkrevd",
+    "photoAddMore": "Legg til {{n}} til",
+    "photoMinHint": "Du må laste opp minst 2 profilbilder",
   },
   "voiceCall": {
     "connecting": "Kobler til...",

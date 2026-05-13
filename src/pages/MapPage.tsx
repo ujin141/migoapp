@@ -284,6 +284,7 @@ const MapPage = () => {
         .from('profiles')
         .select('id,name,photo_url,age,gender,nationality,location,lat,lng,languages,interests,mbti,verified,bio')
         .neq('id', user?.id ?? '')
+        .neq('is_banned', true)
         .order('id')
         .limit(30);
       if (!error && data) {
@@ -741,31 +742,50 @@ const MapPage = () => {
             title: t("auto.t_0010", `🎉 ${name}님과 매칭성공!`)
           });
 
-          // 매칭 성사 시 채팅방(trip_groups) 생성
-          const {
-            data: group
-          } = await supabase.from('trip_groups').insert({
-            name: `${user.name} & ${name}`,
-            created_by: user.id
-          }).select().single();
-          if (group) {
-            await supabase.from('trip_group_members').insert([{
-              group_id: group.id,
-              user_id: user.id
-            }, {
-              group_id: group.id,
-              user_id: id
-            }]);
-          }
-          await supabase.from('in_app_notifications').insert({
-            user_id: id,
-            type: 'match',
-            title: t("map.matchSuccess"),
-            content: t("auto.t_0037", `${user.name}님이 회원님에게 매칭 신청을 보냈습니다`)
-          });
+          // 이미 채팅방이 있는지 확인 (중복 방지)
+          const [u1, u2] = [user.id, id].sort();
+          const { data: existingMatch } = await supabase
+            .from('matches')
+            .select('thread_id')
+            .eq('user1_id', u1)
+            .eq('user2_id', u2)
+            .maybeSingle();
 
-          // 약간의 딜레이 후 채팅으로 이동
-          setTimeout(() => navigate('/chat'), 1500);
+          if (!existingMatch) {
+            // 채팅방(chat_threads) 생성
+            const { data: thread } = await supabase
+              .from('chat_threads')
+              .insert({ is_group: false })
+              .select('id')
+              .single();
+
+            if (thread) {
+              await supabase.from('chat_members').insert([
+                { thread_id: thread.id, user_id: user.id },
+                { thread_id: thread.id, user_id: id }
+              ]);
+
+              // matches 테이블에 기록 (트리거가 양쪽 알림 처리)
+              await supabase.from('matches').upsert({
+                user1_id: u1,
+                user2_id: u2,
+                thread_id: thread.id
+              }, { onConflict: 'user1_id,user2_id' });
+
+              await supabase.from('in_app_notifications').insert({
+                user_id: id,
+                type: 'match',
+                title: t("map.matchSuccess"),
+                content: t("auto.t_0037", `${user.name}님이 회원님에게 매칭 신청을 보냈습니다`)
+              });
+
+              // 채팅방으로 이동
+              setTimeout(() => navigate('/chat', { state: { threadId: thread.id } }), 1500);
+            }
+          } else {
+            // 이미 채팅방 있음 → 바로 이동
+            setTimeout(() => navigate('/chat', { state: { threadId: existingMatch.thread_id } }), 800);
+          }
         } else {
           toast({
             title: t("auto.t_0011", `❤️ ${name}님에게 충심 전달!`)

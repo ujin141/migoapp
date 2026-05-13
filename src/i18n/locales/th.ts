@@ -730,7 +730,11 @@ const th = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "กรุณาอัปโหลดอย่างน้อย 2 รูปภาพ",
+    "photoRequired": "ต้องการอย่างน้อย 2 รูป",
+    "photoAddMore": "เพิ่มอีก {{n}} รูป",
+    "photoMinHint": "คุณต้องอัปโหลดรูปโปรไฟล์อย่างน้อย 2 รูป",
   },
   "voiceCall": {
     "connecting": "กำลังเชื่อมต่อ...",

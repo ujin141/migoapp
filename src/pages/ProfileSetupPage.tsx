@@ -155,7 +155,15 @@ const ProfileSetupPage = () => {
       return prev.filter((_, i) => i !== idx);
     });
   };
+  const MIN_PROFILE_PHOTOS = 2;
   const handleNext = async () => {
+    if (step === 0 && profilePhotos.length < MIN_PROFILE_PHOTOS) {
+      toast({
+        title: t("profileSetup.errPhoto", `사진을 최소 ${MIN_PROFILE_PHOTOS}장 업로드해주세요`),
+        variant: "destructive"
+      });
+      return;
+    }
     if (step === 0 && !bio.trim()) {
       toast({
         title: t("profileSetup.errBio"),
@@ -352,10 +360,17 @@ const ProfileSetupPage = () => {
               {/* Photo picker */}
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-foreground truncate">{t("profileSetup.addPhoto")}</span>
-                  <span className="text-[10px] text-muted-foreground">{profilePhotos.length}/{MAX_PROFILE_PHOTOS}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-foreground truncate">{t("profileSetup.addPhoto")}</span>
+                    <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                      {t("profileSetup.photoRequired", "최소 2장 필수")}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-bold ${profilePhotos.length >= MIN_PROFILE_PHOTOS ? 'text-green-400' : 'text-rose-400'}`}>
+                    {profilePhotos.length}/{MAX_PROFILE_PHOTOS}
+                  </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 truncate">
+                <div className={`grid grid-cols-3 gap-2 truncate p-2 rounded-2xl transition-all ${profilePhotos.length < MIN_PROFILE_PHOTOS ? 'ring-2 ring-rose-500/40 bg-rose-500/5' : 'ring-2 ring-green-500/30 bg-transparent'}`}>
                   {profilePhotos.map((photoItem, idx) => (
                     <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-border shadow-sm">
                       <img src={photoItem.url} alt="" className="w-full h-full object-cover" />
@@ -366,12 +381,30 @@ const ProfileSetupPage = () => {
                     </div>
                   ))}
                   {profilePhotos.length < MAX_PROFILE_PHOTOS && (
-                    <motion.div whileTap={{ scale: 0.95 }} onClick={() => fileRef.current?.click()} className="aspect-square rounded-2xl border-2 border-dashed border-primary/30 bg-muted flex flex-col items-center justify-center gap-1 cursor-pointer">
-                      <Camera size={18} className="text-primary/60" />
-                      <span className="text-[10px] text-primary/60 truncate">{t("profileSetup.addPhoto", "Add Photo")}</span>
+                    <motion.div whileTap={{ scale: 0.95 }} onClick={() => fileRef.current?.click()} className={`aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                      profilePhotos.length < MIN_PROFILE_PHOTOS
+                        ? 'border-rose-400/60 bg-rose-500/10'
+                        : 'border-primary/30 bg-muted'
+                    }`}>
+                      <Camera size={18} className={profilePhotos.length < MIN_PROFILE_PHOTOS ? 'text-rose-400' : 'text-primary/60'} />
+                      <span className={`text-[10px] truncate ${profilePhotos.length < MIN_PROFILE_PHOTOS ? 'text-rose-400 font-bold' : 'text-primary/60'}`}>
+                        {profilePhotos.length < MIN_PROFILE_PHOTOS
+                          ? t("profileSetup.photoAddMore", `${MIN_PROFILE_PHOTOS - profilePhotos.length}장 더 추가`)
+                          : t("profileSetup.addPhoto", "Add Photo")}
+                      </span>
                     </motion.div>
                   )}
                 </div>
+                {/* 빈 슬롯 힌트 (2장 미만일 때) */}
+                {profilePhotos.length < MIN_PROFILE_PHOTOS && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-xs text-rose-400 font-semibold text-center mt-0.5"
+                  >
+                    📸 {t("profileSetup.photoMinHint", `프로필 사진을 최소 ${MIN_PROFILE_PHOTOS}장 업로드해야 합니다`)}
+                  </motion.p>
+                )}
                 <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelect} />
                 <p className="text-xs text-muted-foreground mt-1 text-center truncate">{t("profileSetup.photoHint1")} <span className="text-primary font-bold truncate">{t("profileSetup.photoHint2")}</span> {t("profileSetup.photoHint3")}</p>
               </div>

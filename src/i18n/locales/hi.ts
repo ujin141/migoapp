@@ -599,7 +599,11 @@ const hi = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "कृपया कम से कम 2 फ़ोटो अपलोड करें",
+    "photoRequired": "न्यूनतम 2 आवश्यक",
+    "photoAddMore": "{{n}} और जोड़ें",
+    "photoMinHint": "आपको कम से कम 2 प्रोफ़ाइल फ़ोटो अपलोड करनी होंगी",
   },
   "voiceCall": {
     "connecting": "कनेक्ट हो रहा है...",

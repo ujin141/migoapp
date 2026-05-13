@@ -700,6 +700,16 @@ const ProfilePage = () => {
     highlight: true
   }];
 
+  if (userType === 'admin') {
+    menuItems.unshift({
+      icon: Shield,
+      label: t("auto.admin_console", "어드민 콘솔 (Admin)"),
+      desc: t("auto.admin_console_desc", "유저 관리, 신고 처리 및 앱 설정"),
+      action: () => navigate("/admin"),
+      highlight: true
+    } as any);
+  }
+
   // [Feature 1] 동행 안전 시스템 - 메뉴 아이템으로 추가 (렌더링 시 별도 버튼으로 표시)
   const addTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim()) && tags.length < 8) {

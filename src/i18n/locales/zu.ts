@@ -728,7 +728,11 @@ const zu = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "Sicela ulayishe izithombe ezingu-2 okungenani",
+    "photoRequired": "Okungenani 2 ziyadingeka",
+    "photoAddMore": "Engeza enye {{n}}",
+    "photoMinHint": "Kufanele ulayishe izithombe zephrofayela ezingu-2 okungenani",
   },
   "voiceCall": {
     "connecting": "Iyaxhuma...",

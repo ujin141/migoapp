@@ -728,7 +728,11 @@ const kn = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "ದಯವಿಟ್ಟು ಕನಿಷ್ಠ 2 ಫೋಟೋಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
+    "photoRequired": "ಕನಿಷ್ಠ 2 ಅಗತ್ಯ",
+    "photoAddMore": "ಇನ್ನಷ್ಟು {{n}} ಸೇರಿಸಿ",
+    "photoMinHint": "ನೀವು ಕನಿಷ್ಠ 2 ಪ್ರೊಫೈಲ್ ಫೋಟೋಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಬೇಕು",
   },
   "voiceCall": {
     "connecting": "ಸಂಪರ್ಕಿಸಲಾಗುತ್ತಿದೆ...",

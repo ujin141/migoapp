@@ -728,7 +728,11 @@ const te = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "దయచేసి కనీసం 2 ఫోటోలు అప్‌లోడ్ చేయండి",
+    "photoRequired": "కనీసం 2 అవసరం",
+    "photoAddMore": "మరో {{n}} జోడించండి",
+    "photoMinHint": "మీరు కనీసం 2 ప్రొఫైల్ ఫోటోలు అప్‌లోడ్ చేయాలి",
   },
   "voiceCall": {
     "connecting": "కనెక్ట్ అవుతోంది...",

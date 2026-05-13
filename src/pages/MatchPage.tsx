@@ -27,7 +27,7 @@ import MatchResultCard from "@/components/MatchResultCard";
 import { recordSwipe, personalize } from "@/lib/personalizeService";
 import { requestNotificationPermission, notifyMatch } from "@/lib/notificationService";
 import { MoreHorizontal } from "lucide-react";
-import { MissionModal, LikePopupModal, SuperLikeModal, LoginGateModal, FilterModal } from "./match/MatchModals";
+import { MissionModal, LikePopupModal, PassPopupModal, SuperLikeModal, LoginGateModal, FilterModal } from "./match/MatchModals";
 const MatchPage = () => {
   const {
     t
@@ -125,6 +125,8 @@ const MatchPage = () => {
   const [inAppNotif, setInAppNotif] = useState<InAppNotifData | null>(null);
   const [ads, setAds] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
+  // 실시간 온라인 상태 맵 { userId -> { isOnline, lastSeen } }
+  const [onlineMap, setOnlineMap] = useState<Record<string, { isOnline: boolean; lastSeen: string | null }>>({});
   const [pendingLikers, setPendingLikers] = useState<any[]>([]); // 나를 라이크한 사람
   const [dailyLikesUsed, setDailyLikesUsed] = useState(0); // 오늘 보낸 라이크 수
   const [hasMyGps, setHasMyGps] = useState(true); // 내 위치 정보가 있는지 여부
@@ -183,8 +185,10 @@ const MatchPage = () => {
 
       if (!data) {
         const res = await supabase.from('profiles')
-          .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type,profile_theme')
+          .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned')
           .neq('id', user.id)
+          .neq('is_banned', true)
+          .neq('banned', true)
           .limit(50);
         data = res.data;
         error = res.error;
@@ -206,6 +210,19 @@ const MatchPage = () => {
               ratingsMap[rv.reviewed_id].sum += rv.rating || 0;
               ratingsMap[rv.reviewed_id].count += 1;
             }
+          }
+
+          // ── 온라인 상태 일괄 조회 ──
+          const { data: onlineData } = await supabase
+            .from('online_status')
+            .select('user_id, is_online, last_seen')
+            .in('user_id', profileIds);
+          if (onlineData) {
+            const newMap: Record<string, { isOnline: boolean; lastSeen: string | null }> = {};
+            for (const os of onlineData) {
+              newMap[os.user_id] = { isOnline: !!os.is_online, lastSeen: os.last_seen ?? null };
+            }
+            setOnlineMap(newMap);
           }
         }
 
@@ -234,8 +251,8 @@ const MatchPage = () => {
           return score;
         };
 
-        // 이미 스와이프한 상대 클라이언트 필터
-        const filtered = data.filter(p => !swipedIds.has(p.id));
+        // 이미 스와이프한 상대 클라이언트 필터 + 정지 계정 이중 필터 (캐시 stale 대응)
+        const filtered = data.filter(p => !swipedIds.has(p.id) && !p.is_banned && !p.banned);
         // localStorage GPS fallback: DB lat/lng 없으면 앱 시작 시 저장된 좌표 사용
         const myLat = me?.lat || parseFloat(localStorage.getItem('migo_my_lat') || '0') || null;
         const myLng = me?.lng || parseFloat(localStorage.getItem('migo_my_lng') || '0') || null;
@@ -272,7 +289,9 @@ const MatchPage = () => {
             isPremium: p.plan === 'premium',
             isAd: false,
             avgRating: ratingsMap[p.id]?.count > 0 ? ratingsMap[p.id].sum / ratingsMap[p.id].count : null,
-            reviewCount: ratingsMap[p.id]?.count || 0
+            reviewCount: ratingsMap[p.id]?.count || 0,
+            isOnline: false, // Realtime 구독에서 업데이트됨
+            lastSeen: null as string | null
           };
         });
         // matchScore 높은 순 정렬
@@ -300,7 +319,7 @@ const MatchPage = () => {
       if (likerIds.length > 0) {
         const {
           data: likerProfiles
-        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme').in('id', likerIds);
+        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme').neq('is_banned', true).in('id', likerIds);
         if (likerProfiles) {
           const { data: likerReviews } = await supabase.from('meet_reviews').select('reviewed_id, rating').in('reviewed_id', likerIds);
           if (likerReviews) {
@@ -375,6 +394,43 @@ const MatchPage = () => {
     };
     fetchProfiles();
   }, [user]);
+
+  // ── Supabase Realtime: online_status 실시간 구독 ──
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('online-status-match')
+      .on(
+        'postgres_changes' as any,
+        { event: '*', schema: 'public', table: 'online_status' },
+        (payload: any) => {
+          const updated = payload.new || payload.old;
+          if (!updated?.user_id) return;
+          setOnlineMap(prev => ({
+            ...prev,
+            [updated.user_id]: {
+              isOnline: !!updated.is_online,
+              lastSeen: updated.last_seen ?? null
+            }
+          }));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  // ── onlineMap이 바뀌면 profiles에 isOnline/lastSeen 반영 ──
+  useEffect(() => {
+    if (Object.keys(onlineMap).length === 0) return;
+    setProfiles(prev =>
+      prev.map(p =>
+        onlineMap[p.id]
+          ? { ...p, isOnline: onlineMap[p.id].isOnline, lastSeen: onlineMap[p.id].lastSeen }
+          : p
+      )
+    );
+  }, [onlineMap]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchProfile, setMatchProfile] = useState<any | null>(null);
   const [showMatch, setShowMatch] = useState(false);
@@ -389,6 +445,10 @@ const MatchPage = () => {
   // Like popup
   const [showLikePopup, setShowLikePopup] = useState(false);
   const [likePopupProfile, setLikePopupProfile] = useState<any | null>(null);
+
+  // Pass popup (X 버튼)
+  const [showPassPopup, setShowPassPopup] = useState(false);
+  const [passPopupProfile, setPassPopupProfile] = useState<any | null>(null);
 
   // 통합 필터 적용 (useMemo로 메모이제이션 — 매 render 재계산 방지)
   const withAds = useMemo(() => {
@@ -454,6 +514,14 @@ const MatchPage = () => {
         travel_style: profile.travelStyle?.[0],
         age: profile.age
       }, false);
+
+      // Pass 팝업 표시
+      setPassPopupProfile(profile);
+      setShowPassPopup(true);
+      matchTimersRef.current.timeouts.forEach(clearTimeout);
+      matchTimersRef.current.timeouts = [];
+      const tPass = setTimeout(() => setShowPassPopup(false), 1800);
+      matchTimersRef.current.timeouts.push(tPass);
     }
     setCurrentIndex(i => i + 1);
   }, [currentIndex, withAds]);
@@ -473,6 +541,19 @@ const MatchPage = () => {
       data: mutual
     } = await supabase.from('likes').select('from_user').eq('from_user', toUserId).eq('to_user', user.id).maybeSingle();
     if (mutual) {
+      // 이미 채팅방이 있는지 먼저 확인 (중복 방지)
+      const [u1, u2] = [user.id, toUserId].sort();
+      const { data: existingMatch } = await supabase
+        .from('matches')
+        .select('thread_id')
+        .eq('user1_id', u1)
+        .eq('user2_id', u2)
+        .maybeSingle();
+
+      if (existingMatch?.thread_id) {
+        return existingMatch.thread_id; // 이미 채팅방 존재 → 재사용
+      }
+
       // 3. chat_thread 생성
       const {
         data: thread
@@ -488,7 +569,6 @@ const MatchPage = () => {
           user_id: toUserId
         }]);
         // 4. matches 테이블 저장 → DB 트리거(trg_notify_on_match)가 자동으로 양쪽 notifications INSERT
-        const [u1, u2] = [user.id, toUserId].sort();
         await supabase.from('matches').upsert({
           user1_id: u1,
           user2_id: u2,
@@ -862,6 +942,14 @@ const MatchPage = () => {
       <LikePopupModal
         showLikePopup={showLikePopup}
         likePopupProfile={likePopupProfile}
+      />
+
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* ✕  PASS POPUP — cool X burst, auto-dismiss                  */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      <PassPopupModal
+        showPassPopup={showPassPopup}
+        passPopupProfile={passPopupProfile}
       />
 
       {/* ──────────────────────────────────────────────────────────── */}

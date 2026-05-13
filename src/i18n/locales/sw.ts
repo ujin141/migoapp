@@ -728,7 +728,11 @@ const sw = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "Tafadhali pakia picha angalau 2",
+    "photoRequired": "Angalau 2 zinahitajika",
+    "photoAddMore": "Ongeza {{n}} zaidi",
+    "photoMinHint": "Lazima upakue picha za wasifu angalau 2",
   },
   "voiceCall": {
     "connecting": "Inaunganisha...",

@@ -761,7 +761,11 @@ const ko = {
     "selectedMbti": "현재 MBTI 프로필 태그를 남겨주세요",
     "mbtiNotice": "정확한 성격 기반 매칭 인력을 선출하는 데 활용됩니다.",
     "start": "모든 입력을 끝내고 Migo 입장하기",
-    "langDefault": "언어를 선택하세요."
+    "langDefault": "언어를 선택하세요.",
+    "errPhoto": "사진을 최소 2장 업로드해주세요",
+    "photoRequired": "최소 2장 필수",
+    "photoAddMore": "{{n}}장 더 추가",
+    "photoMinHint": "프로필 사진을 최소 2장 업로드해야 합니다",
   },
   "voiceCall": {
     "connecting": "연결 중..",

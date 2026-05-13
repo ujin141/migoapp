@@ -728,7 +728,11 @@ const mr = {
     "selectedMbti": "Select your MBTI profile tag",
     "mbtiNotice": "Used to find personality-based matches.",
     "start": "Finish setup and enter Migo",
-    "langDefault": "Select a language"
+    "langDefault": "Select a language",
+    "errPhoto": "कृपया किमान 2 फोटो अपलोड करा",
+    "photoRequired": "किमान 2 आवश्यक",
+    "photoAddMore": "आणखी {{n}} जोडा",
+    "photoMinHint": "आपल्याला किमान 2 प्रोफाइल फोटो अपलोड करणे आवश्यक आहे",
   },
   "voiceCall": {
     "connecting": "कनेक्ट करत आहे...",

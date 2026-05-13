@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MoreVertical, ShieldAlert, Phone, CheckSquare, Shield, Crown, AlertTriangle, Languages, ChevronDown, Check, MapPin, Calendar, Map, Lock, Send, Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,8 @@ import SOSModal from "@/components/SOSModal";
 import ProfileDetailSheet from "@/components/ProfileDetailSheet";
 import ReportBlockActionSheet from "@/components/ReportBlockActionSheet";
 import { triggerHaptic } from "@/lib/haptics";
+import { useRealtimeChat } from "@/hooks/useRealtimeChat";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface ChatRoomProps {
   // State from parent
@@ -85,7 +87,7 @@ export interface ChatRoomProps {
 }
 
 export const ChatRoom: React.FC<ChatRoomProps> = ({
-  thread, selectedChat, setSelectedChat, isMuted, isLocked, messages, bottomRef,
+  thread, selectedChat, setSelectedChat, isMuted, isLocked, messages: _messagesProp, bottomRef,
   isPlus, canReadReceipts, setShowPlusModal, showPlusModal,
   handleToggleMute, handleNoShowReport, handleShareLocation, sendMessage, handleDeleteChat, handleReport, handleMeetProposal, handleScheduleShare,
   autoTranslate, setAutoTranslate, targetLang, setTargetLang, translateMap, loadingMap, handleTranslate,
@@ -104,6 +106,56 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // ── 내부 메시지 상태 (useRealtimeChat으로 직접 관리) ──
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const localBottomRef = useRef<HTMLDivElement>(null);
+
+  const { fetchMessages } = useRealtimeChat({
+    threadId: selectedChat,
+    onMessage: (newMsg) => {
+      const formatted = {
+        id: newMsg.id,
+        sender: newMsg.sender_id === user?.id ? 'me' : 'other',
+        text: newMsg.text,
+        time: new Date(newMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setLocalMessages(prev => {
+        // 낙관적 UI 중복 방지: 같은 id 이미 있으면 교체, 없으면 append
+        const exists = prev.findIndex(m => m.id === newMsg.id);
+        if (exists !== -1) {
+          const next = [...prev];
+          next[exists] = formatted;
+          return next;
+        }
+        return [...prev, formatted];
+      });
+    },
+  });
+
+  // 채팅방 진입 시 기존 메시지 초기 로딩
+  useEffect(() => {
+    if (!selectedChat) return;
+    setLocalMessages([]);
+    fetchMessages().then((msgs) => {
+      const formatted = msgs.map(m => ({
+        id: m.id,
+        sender: m.sender_id === user?.id ? 'me' : 'other',
+        text: m.text,
+        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }));
+      setLocalMessages(formatted);
+    });
+  }, [selectedChat]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 메시지 추가될 때마다 스크롤 아래로
+  useEffect(() => {
+    localBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [localMessages]);
+
+  // 실제 렌더링에 사용할 메시지 배열
+  const messages = localMessages;
 
   // ── 번역해서 보내기 상태 (Free: 하루 3회, Plus 무제한) ──
   const [translateSending, setTranslateSending] = useState(false);
@@ -219,30 +271,6 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
           </div>
         </div>
 
-        {/* Auto-translate bar */}
-        <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setAutoTranslate(v => !v)} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-all shadow-sm ${autoTranslate ? "bg-indigo-500 text-white border-transparent" : "bg-card border border-border text-foreground"}`}>
-            <Languages size={12} />{i18n.t('chat.autoTranslate')} {autoTranslate ? "ON" : "OFF"}
-          </motion.button>
-          <div className="relative">
-            <button onClick={() => setShowLangPicker(v => !v)} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-card text-[11px] font-extrabold text-foreground border border-border shadow-sm">
-              {LANG_NAMES[targetLang]}
-              <ChevronDown size={12} className="text-muted-foreground" />
-            </button>
-            <AnimatePresence>
-              {showLangPicker && (
-                <motion.div className="absolute left-0 top-9 bg-card/95 backdrop-blur-md border border-border/60 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-1.5 z-50 min-w-[150px] overflow-hidden" initial={{ opacity: 0, scale: 0.95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -4 }}>
-                  <div className="fixed inset-0 z-[-1]" onClick={() => setShowLangPicker(false)} />
-                  {(Object.entries(LANG_NAMES) as [SupportedLang, string][]).map(([code, name]) => (
-                    <button key={code} onClick={() => { setTargetLang(code); setShowLangPicker(false); }} className={`w-full text-left px-4 py-2.5 text-[13px] rounded-2xl transition-colors ${targetLang === code ? "bg-indigo-500/10 text-indigo-500 font-extrabold" : "text-foreground font-semibold hover:bg-muted"}`}>
-                      {name}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
       </header>
 
       {/* Messages */}
@@ -323,7 +351,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             </div>
           );
         })}
-        <div ref={bottomRef} />
+        <div ref={localBottomRef} />
       </div>
 
       {/* Locked overlay */}
@@ -342,24 +370,50 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
         </motion.div>
       )}
 
-      {/* Quick actions */}
-      <div className="flex gap-2 px-4 pb-2 overflow-x-auto scrollbar-hide">
-        <button onClick={handleShareLocation} className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground transition-colors hover:bg-border active:scale-95">
-          <MapPin size={12} />{i18n.t('chat.shareLocation')}
-        </button>
-        <button onClick={() => setShowMeetProposal(true)} className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground transition-colors hover:bg-border active:scale-95">
-          <Calendar size={12} />{i18n.t('chat.meetProposalBtn')}
-        </button>
-        <button onClick={() => setShowScheduleModal(true)} className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs font-medium text-muted-foreground transition-colors hover:bg-border active:scale-95">
-          <Map size={12} />{i18n.t('chat.scheduleShareBtn')}
-        </button>
-      </div>
+      {/* Bottom area: quick actions + input — 한 덩어리로 묶어 항상 화면 안에 */}
+      <div className="shrink-0 px-3 pt-1 pb-safe bg-background/95 backdrop-blur-xl border-t border-border/40 z-20"
+           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 8px), 8px)' }}>
 
-      {/* Floating Input Area */}
-      <div className="px-3 pt-2 bg-gradient-to-t from-background via-background to-transparent relative z-20" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 8px) + 12px)', marginBottom: 0, transition: 'padding-bottom 0.2s' }}>
-        <div className={`flex flex-col gap-2 rounded-[28px] px-2 py-2 transition-all shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-border bg-card/90 backdrop-blur-xl ${isLocked ? "opacity-70" : ""}`}>
-          <div className={`flex items-center gap-2 px-2`}>
-            <input type="text" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) sendMessage(); }} placeholder={isLocked ? i18n.t('chat.lockedPlaceholder') : isMuted ? i18n.t('chat.inputMuted') : i18n.t('chat.input')} disabled={isLocked} className="flex-1 min-w-0 bg-transparent text-[15px] font-medium text-foreground placeholder:text-muted-foreground outline-none disabled:cursor-not-allowed px-2 py-2.5" />
+        {/* Quick action chips — 얇은 한 줄 */}
+        <div className="flex gap-1.5 mb-2 overflow-x-auto scrollbar-hide">
+          <button onClick={handleShareLocation} className="flex shrink-0 items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground active:scale-95">
+            <MapPin size={11} />{i18n.t('chat.shareLocation')}
+          </button>
+          <button onClick={() => setShowMeetProposal(true)} className="flex shrink-0 items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground active:scale-95">
+            <Calendar size={11} />{i18n.t('chat.meetProposalBtn')}
+          </button>
+          <button onClick={() => setShowScheduleModal(true)} className="flex shrink-0 items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground active:scale-95">
+            <Map size={11} />{i18n.t('chat.scheduleShareBtn')}
+          </button>
+          {/* 번역 토글 chip */}
+          <button onClick={() => setAutoTranslate(v => !v)} className={`flex shrink-0 items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold active:scale-95 ${autoTranslate ? 'bg-indigo-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+            <Languages size={11} />{autoTranslate ? 'AUTO ON' : 'AUTO'}
+          </button>
+          {/* 언어 선택 chip */}
+          <div className="relative shrink-0">
+            <button onClick={() => setShowLangPicker(v => !v)} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground active:scale-95">
+              {LANG_NAMES[targetLang]}<ChevronDown size={10} />
+            </button>
+            <AnimatePresence>
+              {showLangPicker && (
+                <motion.div className="absolute bottom-8 left-0 bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-xl p-1.5 z-50 min-w-[130px] max-h-48 overflow-y-auto"
+                  initial={{ opacity: 0, scale: 0.95, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 4 }}>
+                  <div className="fixed inset-0 z-[-1]" onClick={() => setShowLangPicker(false)} />
+                  {(Object.entries(LANG_NAMES) as [SupportedLang, string][]).map(([code, name]) => (
+                    <button key={code} onClick={() => { setTargetLang(code); setShowLangPicker(false); }}
+                      className={`w-full text-left px-3 py-2 text-[12px] rounded-xl transition-colors ${targetLang === code ? 'bg-indigo-500/10 text-indigo-500 font-extrabold' : 'text-foreground font-semibold hover:bg-muted'}`}>
+                      {name}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Input row */}
+        <div className={`flex items-center gap-2 rounded-[24px] px-3 py-1.5 border border-border bg-card/90 shadow-sm ${isLocked ? 'opacity-70' : ''}`}>
+          <input type="text" value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) sendMessage(); }} placeholder={isLocked ? i18n.t('chat.lockedPlaceholder') : isMuted ? i18n.t('chat.inputMuted') : i18n.t('chat.input')} disabled={isLocked} className="flex-1 min-w-0 bg-transparent text-[15px] font-medium text-foreground placeholder:text-muted-foreground outline-none disabled:cursor-not-allowed px-1 py-2" />
             {/* 번역해서 보내기 */}
             {!isLocked && message.trim() && (
               <motion.button
@@ -393,7 +447,6 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
               </button>
             )}
           </div>
-        </div>
       </div>
 
       <MeetProposalModal showMeetProposal={showMeetProposal} setShowMeetProposal={setShowMeetProposal} meetDate={meetDate} setMeetDate={setMeetDate} meetPlace={meetPlace} setMeetPlace={setMeetPlace} handleMeetProposal={handleMeetProposal} />

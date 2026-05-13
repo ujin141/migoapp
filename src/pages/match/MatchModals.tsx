@@ -194,7 +194,82 @@ export const LikePopupModal = ({
   );
 };
 
-// ─── Super Like Modal ───
+// ─── Pass Popup Modal (X 버튼) ───
+export const PassPopupModal = ({
+  showPassPopup,
+  passPopupProfile,
+}: any) => {
+  return (
+    <AnimatePresence>
+      {showPassPopup && passPopupProfile && (
+        <motion.div className="fixed inset-0 z-[65] flex items-center justify-center pointer-events-none"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+          {/* Soft vignette — cool blue-grey */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-500/20 via-transparent to-slate-400/10" />
+
+          {/* Floating X particles */}
+          {[
+            { x: -80, y: -110, size: 26, delay: 0,    rotate: -15 },
+            { x:  90, y: -140, size: 18, delay: 0.08, rotate: 20  },
+            { x: -50, y:  -55, size: 13, delay: 0.14, rotate: -30 },
+            { x: 115, y:  -75, size: 22, delay: 0.04, rotate: 10  },
+            { x:-110, y:   30, size: 15, delay: 0.18, rotate: -40 },
+            { x:  65, y:   55, size: 30, delay: 0.09, rotate: 15  },
+            { x:   0, y: -170, size: 11, delay: 0.22, rotate: 5   },
+            { x: -85, y:  -35, size: 20, delay: 0.11, rotate: -20 },
+            { x:  95, y:   45, size: 16, delay: 0.24, rotate: 25  },
+            { x:  25, y: -170, size: 11, delay: 0.28, rotate: -5  },
+          ].map((h, i) => (
+            <motion.div key={i} className="absolute"
+              initial={{ x: 0, y: 0, scale: 0, opacity: 0, rotate: 0 }}
+              animate={{ x: h.x, y: h.y, scale: 1.1, opacity: [0, 1, 1, 0], rotate: h.rotate }}
+              transition={{ duration: 1.4, delay: h.delay, ease: "easeOut" }}>
+              <X size={h.size} className="text-slate-400" strokeWidth={3} />
+            </motion.div>
+          ))}
+
+          {/* Main card */}
+          <motion.div className="relative bg-card/95 backdrop-blur-xl rounded-3xl px-8 py-6 shadow-float border border-slate-400/20 text-center max-w-xs w-full mx-6"
+            initial={{ scale: 0.5, y: 60, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.9, y: -20, opacity: 0 }}
+            transition={{ type: "spring", damping: 18, stiffness: 300, delay: 0.05 }}>
+
+            {/* Big animated X circle */}
+            <motion.div className="w-20 h-20 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center mx-auto mb-3 shadow-lg"
+              initial={{ scale: 0, rotate: 30 }}
+              animate={{ scale: [0, 1.25, 1], rotate: [30, -10, 0] }}
+              transition={{ duration: 0.5, delay: 0.1, type: "spring" }}>
+              <X size={36} className="text-white" strokeWidth={3} />
+            </motion.div>
+
+            {/* Profile snapshot */}
+            <div className="flex items-center justify-center gap-2 mb-3">
+              {passPopupProfile.photo ? (
+                <img src={passPopupProfile.photo} alt="" className="w-8 h-8 rounded-xl object-cover border-2 border-slate-400 grayscale" loading="lazy"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center text-muted-foreground text-xs font-bold">
+                  {passPopupProfile.name?.[0] ?? "?"}
+                </div>
+              )}
+              <p className="text-base font-extrabold text-foreground">{passPopupProfile.name}<span className="text-muted-foreground font-semibold"> — Passed</span></p>
+            </div>
+
+            <p className="text-sm text-muted-foreground mb-3 truncate">다음 여행자를 만나보세요 ✈️</p>
+
+            {/* Auto-close progress bar */}
+            <motion.div className="absolute bottom-0 left-0 h-1 rounded-b-3xl bg-gradient-to-r from-slate-400 to-slate-500"
+              initial={{ width: "100%" }} animate={{ width: "0%" }}
+              transition={{ duration: 1.6, ease: "linear" }} />
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+
 export const SuperLikeModal = ({
   showSuperLikeModal, setShowSuperLikeModal,
   pendingSuperProfile, 

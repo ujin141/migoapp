@@ -10,12 +10,11 @@ DECLARE
 BEGIN
   FOREACH t IN ARRAY ARRAY['matches','messages','notifications','trip_reviews','online_status']
   LOOP
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_publication_tables
-      WHERE pubname = 'supabase_realtime' AND tablename = t
-    ) THEN
+    BEGIN
       EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', t);
-    END IF;
+    EXCEPTION WHEN OTHERS THEN
+      -- ignore already added or other errors
+    END;
   END LOOP;
 END;
 $$;
@@ -50,3 +49,19 @@ CREATE POLICY "posts_upload_own" ON storage.objects
 DROP POLICY IF EXISTS "id_docs_own"        ON storage.objects;
 CREATE POLICY "id_docs_own" ON storage.objects
   FOR ALL USING (bucket_id = 'id-docs' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ad-images Storage 버킷 (광고 이미지 업로드)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('ad-images', 'ad-images', true, 5242880, ARRAY['image/jpeg','image/png','image/webp','image/gif'])
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "ad_images_public"     ON storage.objects;
+CREATE POLICY "ad_images_public" ON storage.objects
+  FOR SELECT USING (bucket_id = 'ad-images');
+
+DROP POLICY IF EXISTS "ad_images_admin_upload" ON storage.objects;
+CREATE POLICY "ad_images_admin_upload" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'ad-images'
+    AND EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
+  );
