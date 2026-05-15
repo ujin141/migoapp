@@ -3009,16 +3009,16 @@ DROP VIEW IF EXISTS admin_chat_room_summary CASCADE;
 CREATE OR REPLACE VIEW admin_chat_room_summary AS
   SELECT
     ct.id AS thread_id,
-    ct.type,
+    ct.is_group,
+    ct.name,
     ct.last_message,
     ct.last_message_at,
     ct.created_at,
-    p1.name AS user1_name,
-    p2.name AS user2_name,
-    COUNT(cm.id) AS member_count
+    COUNT(cm.id) AS member_count,
+    ARRAY_AGG(p.name ORDER BY cm.id) FILTER (WHERE p.name IS NOT NULL) AS member_names
   FROM chat_threads ct
   LEFT JOIN chat_members cm ON cm.thread_id = ct.id
-  LEFT JOIN profiles p1 ON p1.id = ct.user1_id
-  LEFT JOIN profiles p2 ON p2.id = ct.user2_id
-  GROUP BY ct.id, p1.name, p2.name
+  LEFT JOIN profiles p ON p.id = cm.user_id
+  GROUP BY ct.id
   ORDER BY ct.last_message_at DESC NULLS LAST;
+
