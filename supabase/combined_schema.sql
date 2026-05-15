@@ -1,6 +1,5 @@
 -- ============================================================
 -- Migo App — 통합 스키마 (All-in-One)
--- sql/01a ~ sql/23 원본 그대로 통합 + 최소 패치
 -- Supabase SQL Editor에서 이 파일 하나만 실행하세요.
 -- ============================================================
 
@@ -143,13 +142,10 @@ DROP POLICY IF EXISTS "threads_update" ON chat_threads;
 CREATE POLICY "threads_select" ON chat_threads FOR SELECT USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid()) OR is_group = true
 );
-DROP POLICY IF EXISTS "threads_insert" ON chat_threads;
 CREATE POLICY "threads_insert" ON chat_threads FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "threads_delete" ON chat_threads;
 CREATE POLICY "threads_delete" ON chat_threads FOR DELETE USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
 );
-DROP POLICY IF EXISTS "threads_update" ON chat_threads;
 CREATE POLICY "threads_update" ON chat_threads FOR UPDATE USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
 );
@@ -209,7 +205,6 @@ CREATE POLICY "messages_select" ON messages FOR SELECT USING (
   thread_id IN (SELECT thread_id FROM chat_members WHERE user_id = auth.uid())
   OR group_id IS NOT NULL  -- 그룹 메시지는 멤버면 볼 수 있음
 );
-DROP POLICY IF EXISTS "messages_insert" ON messages;
 CREATE POLICY "messages_insert" ON messages FOR INSERT WITH CHECK (
   auth.uid() = sender_id OR auth.uid() = user_id
 );
@@ -317,6 +312,7 @@ DECLARE
     i INT;
     char_code INT;
     cho_idx INT;
+BEGIN
     IF word IS NULL THEN RETURN NULL; END IF;
     FOR i IN 1..LENGTH(word) LOOP
         char_code := ascii(SUBSTRING(word FROM i FOR 1));
@@ -918,6 +914,7 @@ CREATE POLICY "ublocks_own" ON user_blocks FOR ALL USING (auth.uid() = blocker_i
 -- 신규 회원 프로필 자동 생성
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
+BEGIN
   INSERT INTO profiles (id, name, email, plan, is_plus, plus_expires_at)
   VALUES (
     NEW.id,
@@ -945,6 +942,7 @@ CREATE OR REPLACE FUNCTION secure_calculate_trust_score()
 RETURNS TRIGGER AS $$
 DECLARE
   calculated_score NUMERIC(4,1) := 0;
+BEGIN
   IF NEW.phone_verified = true THEN calculated_score := calculated_score + 15; END IF;
   IF NEW.email_verified = true THEN calculated_score := calculated_score + 10; END IF;
   IF NEW.id_verified = true THEN calculated_score := calculated_score + 40; END IF;
@@ -964,6 +962,7 @@ CREATE TRIGGER trigger_calculate_trust_score
 -- 민감 필드 변조 방지
 CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
 RETURNS TRIGGER AS $$
+BEGIN
   IF auth.role() = 'authenticated' THEN
     IF NEW.instant_meets_count < OLD.instant_meets_count THEN
       NEW.instant_meets_count := OLD.instant_meets_count;
@@ -989,6 +988,7 @@ CREATE TRIGGER trigger_block_sensitive_update
 -- 신규 회원 user_items 자동 생성
 CREATE OR REPLACE FUNCTION handle_new_user_items()
 RETURNS TRIGGER AS $$
+BEGIN
   INSERT INTO user_items (user_id) VALUES (NEW.id) ON CONFLICT DO NOTHING;
   RETURN NEW;
 END;
@@ -1001,6 +1001,7 @@ CREATE TRIGGER on_profile_created_items
 
 -- chat_threads 생성자 자동 설정
 CREATE OR REPLACE FUNCTION set_chat_thread_creator() RETURNS TRIGGER AS $$
+BEGIN
   IF NEW.created_by IS NULL THEN
     NEW.created_by := auth.uid();
   END IF;
@@ -1018,6 +1019,7 @@ CREATE OR REPLACE FUNCTION trg_trip_group_create_thread()
 RETURNS TRIGGER AS $$
 DECLARE
   v_thread_id UUID;
+BEGIN
   INSERT INTO chat_threads (is_group, name, photo_url)
   VALUES (true, NEW.title, NEW.cover_image)
   RETURNING id INTO v_thread_id;
@@ -1034,6 +1036,7 @@ CREATE TRIGGER trg_trip_group_create_thread_on_insert
 -- trip_group 생성 시 호스트를 멤버로 자동 추가
 CREATE OR REPLACE FUNCTION trg_trip_group_insert_host()
 RETURNS TRIGGER AS $$
+BEGIN
   INSERT INTO trip_group_members (group_id, user_id)
   VALUES (NEW.id, NEW.host_id) ON CONFLICT DO NOTHING;
   RETURN NEW;
@@ -1050,6 +1053,7 @@ CREATE OR REPLACE FUNCTION trg_sync_chat_members()
 RETURNS TRIGGER AS $$
 DECLARE
   v_thread_id UUID;
+BEGIN
   IF TG_OP = 'INSERT' THEN
     SELECT thread_id INTO v_thread_id FROM trip_groups WHERE id = NEW.group_id;
     IF v_thread_id IS NOT NULL THEN
@@ -1075,6 +1079,7 @@ CREATE TRIGGER trg_sync_chat_members_on_change
 -- trip_group_members 변경 시 member_count 자동 동기화
 CREATE OR REPLACE FUNCTION sync_group_member_count()
 RETURNS TRIGGER AS $$
+BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE trip_groups SET member_count = member_count + 1 WHERE id = NEW.group_id;
   ELSIF TG_OP = 'DELETE' THEN
@@ -1092,6 +1097,7 @@ CREATE TRIGGER trg_sync_member_count
 -- 지원 상태 변경 시 알림
 CREATE OR REPLACE FUNCTION notify_application_status()
 RETURNS TRIGGER AS $$
+BEGIN
   IF OLD.status IS DISTINCT FROM NEW.status THEN
     INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
     VALUES (
@@ -1118,6 +1124,7 @@ CREATE TRIGGER on_application_status
 -- 리뷰 삽입 시 avg_rating 자동 업데이트
 CREATE OR REPLACE FUNCTION update_profile_review_stats()
 RETURNS TRIGGER AS $$
+BEGIN
   UPDATE profiles
   SET
     avg_rating   = (SELECT ROUND(AVG(rating)::NUMERIC, 2) FROM trip_reviews WHERE reviewee_id = NEW.reviewee_id),
@@ -1136,6 +1143,7 @@ CREATE TRIGGER on_trip_review_insert
 -- 알림 트리거: 좋아요
 CREATE OR REPLACE FUNCTION notify_on_like()
 RETURNS TRIGGER AS $$
+BEGIN
   IF NEW.from_user = NEW.to_user THEN RETURN NEW; END IF;
   INSERT INTO notifications (user_id, type, actor_id, target_id)
   VALUES (
@@ -1161,6 +1169,7 @@ CREATE TRIGGER trg_notify_on_like
 -- 알림 트리거: 매칭
 CREATE OR REPLACE FUNCTION notify_on_match()
 RETURNS TRIGGER AS $$
+BEGIN
   INSERT INTO notifications (user_id, type, actor_id, target_id)
   VALUES (NEW.user2_id, 'match', NEW.user1_id, NEW.thread_id)
   ON CONFLICT DO NOTHING;
@@ -1181,6 +1190,7 @@ CREATE OR REPLACE FUNCTION notify_on_comment()
 RETURNS TRIGGER AS $$
 DECLARE
   v_post_author UUID;
+BEGIN
   SELECT author_id INTO v_post_author FROM posts WHERE id = NEW.post_id;
   IF v_post_author IS NULL OR v_post_author = NEW.author_id THEN RETURN NEW; END IF;
   INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
@@ -1200,6 +1210,7 @@ RETURNS TRIGGER AS $$
 DECLARE
   v_host_id  UUID;
   v_title    TEXT;
+BEGIN
   SELECT host_id, title INTO v_host_id, v_title FROM trip_groups WHERE id = NEW.group_id;
   IF v_host_id IS NULL OR v_host_id = NEW.user_id THEN RETURN NEW; END IF;
   INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
@@ -1221,6 +1232,7 @@ SECURITY DEFINER
 AS $$
 DECLARE
   deleted_count INTEGER;
+BEGIN
   DELETE FROM chat_threads
   WHERE meet_expires_at IS NOT NULL
     AND meet_expires_at < NOW();
@@ -1243,6 +1255,8 @@ WHERE type = 'profile_view'
 
 -- notifications Realtime 설정
 DO $$
+BEGIN
+  BEGIN
     ALTER TABLE notifications REPLICA IDENTITY FULL;
   EXCEPTION WHEN OTHERS THEN NULL;
   END;
@@ -1258,6 +1272,7 @@ CREATE OR REPLACE FUNCTION delete_user()
 RETURNS void AS $$
 DECLARE
   uid UUID := auth.uid();
+BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
   DELETE FROM profiles WHERE id = uid;
   DELETE FROM auth.users WHERE id = uid;
@@ -1273,6 +1288,7 @@ RETURNS JSON AS $$
 DECLARE
   v_user_id UUID := auth.uid();
   v_items   user_items;
+BEGIN
   SELECT * INTO v_items FROM user_items WHERE user_id = v_user_id FOR UPDATE;
   IF v_items.super_likes <= 0 THEN
     RETURN json_build_object('success', false, 'error', 'no_superlike_left');
@@ -1296,6 +1312,7 @@ DECLARE
   v_user_id      UUID := auth.uid();
   v_match_exists BOOLEAN;
   v_thread_id    UUID;
+BEGIN
   SELECT EXISTS (
     SELECT 1 FROM likes WHERE from_user = p_to_user AND to_user = v_user_id
   ) INTO v_match_exists;
@@ -1326,6 +1343,7 @@ CREATE OR REPLACE FUNCTION public.find_email_by_phone(p_name TEXT, p_phone TEXT)
 RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_email TEXT; v_at INT; v_local TEXT;
+BEGIN
   SELECT email INTO v_email FROM public.profiles
   WHERE name = p_name AND phone = p_phone LIMIT 1;
   IF v_email IS NULL THEN RETURN NULL; END IF;
@@ -1346,6 +1364,7 @@ GRANT EXECUTE ON FUNCTION public.find_email_by_phone(TEXT, TEXT) TO authenticate
 -- increment_ad_clicks: 광고 클릭수 원자적 증가
 CREATE OR REPLACE FUNCTION increment_ad_clicks(row_id UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   UPDATE ads SET clicks = clicks + 1, budget_spent = budget_spent + 1 WHERE id = row_id;
 END;
 $$;
@@ -1354,6 +1373,7 @@ GRANT EXECUTE ON FUNCTION increment_ad_clicks(UUID) TO authenticated, anon;
 -- increment_ad_impressions: 광고 노출수 원자적 증가
 CREATE OR REPLACE FUNCTION increment_ad_impressions(row_id UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   UPDATE ads SET impressions = impressions + 1 WHERE id = row_id;
 END;
 $$;
@@ -1508,6 +1528,7 @@ CREATE OR REPLACE FUNCTION admin_ban_user(
   target_user_id UUID, reason TEXT DEFAULT NULL, ban_days INTEGER DEFAULT NULL
 )
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   UPDATE profiles
   SET is_banned = true, banned = true, ban_reason = reason,
       banned_until = CASE WHEN ban_days IS NOT NULL THEN NOW() + (ban_days || ' days')::INTERVAL ELSE NULL END
@@ -1519,6 +1540,7 @@ $$;
 -- 유저 정지 해제
 CREATE OR REPLACE FUNCTION admin_unban_user(target_user_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   UPDATE profiles SET is_banned = false, banned = false, ban_reason = NULL, banned_until = NULL
   WHERE id = target_user_id;
   RETURN FOUND;
@@ -1528,6 +1550,7 @@ $$;
 -- 신고 처리
 CREATE OR REPLACE FUNCTION admin_resolve_report(report_id UUID, action TEXT, comment TEXT DEFAULT NULL)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   UPDATE reports SET status = action, admin_comment = comment, resolved_at = NOW()
   WHERE id = report_id;
   RETURN FOUND;
@@ -1540,6 +1563,7 @@ RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_user_id UUID;
   v_score   NUMERIC;
+BEGIN
   UPDATE id_verifications SET status = 'approved', reviewed_at = NOW()
   WHERE id = verif_id RETURNING user_id INTO v_user_id;
   IF v_user_id IS NOT NULL THEN
@@ -1564,6 +1588,7 @@ $$;
 CREATE OR REPLACE FUNCTION admin_reject_verification(verif_id UUID, reason TEXT DEFAULT NULL)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE v_user_id UUID;
+BEGIN
   UPDATE id_verifications SET status = 'rejected', reject_reason = reason, reviewed_at = NOW()
   WHERE id = verif_id RETURNING user_id INTO v_user_id;
   IF v_user_id IS NOT NULL THEN
@@ -1578,6 +1603,7 @@ $$;
 -- 게시글 삭제
 CREATE OR REPLACE FUNCTION admin_delete_post(p_post_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   DELETE FROM posts WHERE id = p_post_id;
   RETURN FOUND;
 END;
@@ -1586,6 +1612,7 @@ $$;
 -- 게시글 숨김/공개
 CREATE OR REPLACE FUNCTION admin_update_post_hidden(p_post_id UUID, p_hidden BOOLEAN)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   UPDATE posts SET hidden = p_hidden WHERE id = p_post_id;
   RETURN FOUND;
 END;
@@ -1594,6 +1621,7 @@ $$;
 -- 게시글 상단고정
 CREATE OR REPLACE FUNCTION admin_update_post_pinned(p_post_id UUID, p_pinned BOOLEAN)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   UPDATE posts SET pinned = p_pinned WHERE id = p_post_id;
   RETURN FOUND;
 END;
@@ -1602,6 +1630,7 @@ $$;
 -- 그룹 삭제
 CREATE OR REPLACE FUNCTION admin_delete_group(p_group_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   DELETE FROM trip_groups WHERE id = p_group_id;
   RETURN FOUND;
 END;
@@ -1610,6 +1639,7 @@ $$;
 -- 유저 계정 삭제
 CREATE OR REPLACE FUNCTION admin_delete_user_account(p_user_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   DELETE FROM profiles WHERE id = p_user_id;
   RETURN FOUND;
 END;
@@ -1618,6 +1648,7 @@ $$;
 -- 어드민 노트 업데이트
 CREATE OR REPLACE FUNCTION admin_update_user_note(p_user_id UUID, p_note TEXT)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   UPDATE profiles SET admin_note = p_note WHERE id = p_user_id;
   RETURN FOUND;
 END;
@@ -1689,6 +1720,7 @@ ON CONFLICT (key) DO NOTHING;
 -- 완료 메시지
 -- ─────────────────────────────────────────────
 DO $$
+BEGIN
   RAISE NOTICE '✅ Admin patch applied successfully!';
   RAISE NOTICE '   - Missing columns added to profiles/reports';
   RAISE NOTICE '   - announcements, admin_activity_log, app_settings, subscriptions, purchases, promo_codes tables created';
@@ -1787,8 +1819,10 @@ CREATE INDEX IF NOT EXISTS hotplace_seekers_hotplace_id_idx ON public.hotplace_s
 DO $$
 DECLARE
   t TEXT;
+BEGIN
   FOREACH t IN ARRAY ARRAY['matches','messages','notifications','trip_reviews','online_status']
   LOOP
+    BEGIN
       EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', t);
     EXCEPTION WHEN OTHERS THEN
       -- ignore already added or other errors
@@ -1897,6 +1931,7 @@ DECLARE
   mock_ids UUID[];
   cnt INTEGER;
   target_count INTEGER;
+BEGIN
   -- 모의 유저(seed/mock/hotmock/global/intl)만 선별
   SELECT array_agg(id ORDER BY random())
   INTO mock_ids
@@ -1968,6 +2003,7 @@ DECLARE
   v_new_streak INTEGER := 1;
   v_reward TEXT := NULL;
   v_already BOOLEAN := false;
+BEGIN
   -- 오늘 이미 체크인했는지 확인
   IF EXISTS(SELECT 1 FROM daily_checkins WHERE user_id = p_user_id AND checked_at = CURRENT_DATE) THEN
     v_already := true;
@@ -2027,6 +2063,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT
 -- 로그인/앱열기 시 last_active_at 갱신하는 함수 (프론트에서 RPC 호출)
 CREATE OR REPLACE FUNCTION touch_active(p_user_id UUID)
 RETURNS void AS $$
+BEGIN
   UPDATE profiles SET last_active_at = NOW() WHERE id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -2047,6 +2084,7 @@ DECLARE
   like_count INTEGER;
   group_count INTEGER;
   new_users INTEGER;
+BEGIN
   -- === 3시간 미접속 ===
   FOR r IN
     SELECT p.id, p.fcm_token
@@ -2140,6 +2178,7 @@ CREATE OR REPLACE FUNCTION notify_streak_break()
 RETURNS void AS $$
 DECLARE
   r RECORD;
+BEGIN
   FOR r IN
     SELECT dc.user_id, dc.streak, p.fcm_token
     FROM daily_checkins dc
@@ -2169,6 +2208,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_profile_master_badge()
 RETURNS TRIGGER AS $$
+BEGIN
   -- 프로필 마스터 뱃지가 아직 없고, 필수 정보가 모두 채워졌을 때 획득
   IF NOT ('profile_master' = ANY(NEW.earned_badges)) AND 
      NEW.photo_url IS NOT NULL AND NEW.photo_url != '' AND
@@ -2199,6 +2239,7 @@ CREATE TRIGGER trg_profile_badge
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_travel_holic_badge()
 RETURNS TRIGGER AS $$
+BEGIN
   -- 여행을 등록한 유저의 뱃지 확인
   UPDATE profiles 
   SET earned_badges = array_append(earned_badges, 'travel_holic')
@@ -2229,6 +2270,7 @@ DECLARE
   v_user_record RECORD;
   v_views INTEGER;
   v_likes INTEGER;
+BEGIN
   -- 최근 7일 내 접속한 유저들에게만 발송
   FOR v_user_record IN 
     SELECT id, name FROM profiles WHERE last_active_at > NOW() - INTERVAL '7 days'
@@ -2268,6 +2310,7 @@ CREATE OR REPLACE FUNCTION trigger_nearby_alert(p_user_id UUID, p_lat DOUBLE PRE
 RETURNS VOID AS $$
 DECLARE
   v_nearby_count INTEGER;
+BEGIN
   -- 반경 10km 이내 최근 24시간 접속한 활성 유저 수 계산 (간단한 모의 로직)
   -- 실제 PostGIS가 없으므로 lat/lng 단순 차이(대략)로 계산
   SELECT COUNT(*) INTO v_nearby_count
@@ -2341,6 +2384,7 @@ ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS is_premium  BOOLEAN DEFAULT fal
 -- ─────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION sync_message_text_content()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
   -- text로 insert됐는데 content가 비어있으면 동기화
   IF NEW.text IS NOT NULL AND NEW.content IS NULL THEN
     NEW.content := NEW.text;
@@ -2363,6 +2407,7 @@ CREATE TRIGGER trg_sync_message_text
 -- ─────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_thread_last_message()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
   UPDATE chat_threads
   SET last_message     = COALESCE(NEW.text, NEW.content),
       last_message_at  = NEW.created_at,
@@ -2382,6 +2427,7 @@ CREATE TRIGGER trg_update_thread_last_msg
 -- ─────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION touch_active()
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   UPDATE online_status
   SET is_online = true, last_seen = NOW()
   WHERE user_id = auth.uid();
@@ -2404,8 +2450,10 @@ GRANT EXECUTE ON FUNCTION touch_active() TO authenticated;
 DO $$
 DECLARE
   t TEXT;
+BEGIN
   FOREACH t IN ARRAY ARRAY['messages', 'chat_messages', 'online_status', 'hotplace_seekers', 'sos_alerts']
   LOOP
+    BEGIN
       EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', t);
     EXCEPTION WHEN OTHERS THEN
       -- ignore
@@ -2434,6 +2482,7 @@ $$;
 -- 완료
 -- ─────────────────────────────────────────────
 DO $$
+BEGIN
   RAISE NOTICE '✅ Schema fixes applied!';
   UPDATE profiles SET setup_complete = true WHERE email LIKE '%@migo.app%';
   RAISE NOTICE '   profiles: setup_complete, sns_handle, last_active_at 추가';
@@ -2450,6 +2499,7 @@ END $$;
 
 CREATE OR REPLACE FUNCTION sync_auth_verification_to_profiles()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
   -- We use an autonomous transaction or just update the profile.
   -- To bypass block_sensitive_profile_updates, we can temporarily set a local variable
   -- but since it checks auth.role() = 'authenticated', and this trigger fires as 'supabase_admin'
@@ -2475,6 +2525,8 @@ CREATE TRIGGER trg_sync_auth_verification
 -- 12_chat_security.sql
 -- 채팅방 하이재킹 취약점 방어용 RLS 정책 업데이트
 -- ============================================================
+
+
 -- chat_members 테이블의 보안 정책 업데이트
 -- 기존 정책: 자기 자신이면 무조건 INSERT 가능 (치명적: 타인의 비밀 채팅방 thread_id를 알면 무단 침입 가능)
 -- 신규 정책: 
@@ -2488,13 +2540,17 @@ CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (
   OR EXISTS (SELECT 1 FROM chat_threads WHERE id = thread_id AND created_by = auth.uid())
   OR check_is_chat_member(thread_id)
 );
+
 -- ============================================================
 -- 13_privilege_escalation.sql
 -- 심각한 권한 상승 취약점(Privilege Escalation) 방어
 -- 사용자가 자신의 프로필을 수정할 때 is_admin, role 등을 조작할 수 없도록 차단합니다.
 -- ============================================================
+
+
 CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
 RETURNS TRIGGER AS $$
+BEGIN
   -- 서비스 롤(관리자)이 아닌 일반 유저의 직접 수정 요청인 경우
   IF auth.role() IN ('authenticated', 'anon') THEN
     
@@ -2532,10 +2588,13 @@ RETURNS TRIGGER AS $$
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- ============================================================
 -- 14_match_security.sql (v2)
 -- 강제 1:1 채팅 개설(Forced Chat) 취약점 방어 및 바로모임 자동 차감
 -- ============================================================
+
+
 CREATE OR REPLACE FUNCTION enforce_chat_members_rules()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -2543,6 +2602,7 @@ DECLARE
   v_thread_is_group BOOLEAN;
   v_mutual BOOLEAN;
   v_caller_profile RECORD;
+BEGIN
   -- 백엔드 서비스롤(관리자) 무조건 통과
   IF auth.role() != 'authenticated' THEN
     RETURN NEW;
@@ -2598,16 +2658,20 @@ DROP TRIGGER IF EXISTS trigger_enforce_chat_members ON public.chat_members;
 CREATE TRIGGER trigger_enforce_chat_members
   BEFORE INSERT ON public.chat_members
   FOR EACH ROW EXECUTE FUNCTION enforce_chat_members_rules();
+
 -- ============================================================
 -- 15_group_security.sql
 -- 강제 그룹 가입(Forced Group Join) 취약점 방어 및 승인 트리거 자동화
 -- ============================================================
+
+
 -- 1. 그룹 멤버 가입 시 그룹의 상태(status)와 최대 인원수를 확인하는 트리거
 CREATE OR REPLACE FUNCTION enforce_group_join_rules()
 RETURNS TRIGGER AS $$
 DECLARE
   v_group RECORD;
   v_current_count INT;
+BEGIN
   -- 백엔드/트리거(서비스롤)인 경우 제한 검증 패스
   IF auth.role() != 'authenticated' THEN
     RETURN NEW;
@@ -2646,6 +2710,7 @@ CREATE TRIGGER trigger_enforce_group_join
 -- 2. 호스트가 지원자 승인(approved) 시 자동으로 멤버 테이블에 추가하는 트리거
 CREATE OR REPLACE FUNCTION auto_join_approved_applicants()
 RETURNS TRIGGER AS $$
+BEGIN
   -- 지원 상태가 approved로 변경된 경우에만 작동
   IF NEW.status = 'approved' AND OLD.status != 'approved' THEN
     INSERT INTO trip_group_members (group_id, user_id)
@@ -2660,11 +2725,14 @@ DROP TRIGGER IF EXISTS trigger_auto_join_approved ON public.trip_applications;
 CREATE TRIGGER trigger_auto_join_approved
   AFTER UPDATE OF status ON public.trip_applications
   FOR EACH ROW EXECUTE FUNCTION auto_join_approved_applicants();
+
 -- ============================================================
 -- 16_admin_rls_fixes.sql
 -- 심각한 권한 탈취 취약점(Privilege Escalation & Data Wipe) 방어
 -- id_verifications 및 marketplace_items 의 잘못된 ALL 권한 정책 수정
 -- ============================================================
+
+
 -- 1. id_verifications 정책 수정
 -- (기존) 모든 로그인 유저가 다른 유저의 신분증 사진을 보거나 승인/거절 상태를 조작할 수 있는 치명적 결함 존재
 DROP POLICY IF EXISTS "idv_admin" ON public.id_verifications;
@@ -2697,23 +2765,26 @@ CREATE POLICY "marketplace_host_all" ON public.marketplace_items
   FOR ALL TO authenticated
   USING (auth.uid() = host_id)
   WITH CHECK (auth.uid() = host_id);
+
 -- ============================================================
 -- 17_items_rls_fixes.sql
 -- 심각한 유료 아이템 무한 증식(Data Forging) 방어
 -- user_items 테이블 및 구매 내역 위조 방지
 -- ============================================================
+
+
 -- 1. user_items (슈퍼라이크, 부스트 등)
 -- (기존) FOR ALL 정책으로 인해 유저가 자신의 슈퍼라이크와 부스트 개수를 무제한으로 늘릴 수 있었습니다.
 DROP POLICY IF EXISTS "ui_own" ON public.user_items;
 
 -- 조회는 본인만 가능
-DROP POLICY IF EXISTS "ui_select" ON user_items;
 CREATE POLICY "ui_select" ON public.user_items 
   FOR SELECT USING (auth.uid() = user_id);
 
 -- 유저가 직접 수량을 늘리는 업데이트를 차단 (트리거를 통해 강제 방어)
 CREATE OR REPLACE FUNCTION block_item_forging()
 RETURNS TRIGGER AS $$
+BEGIN
   IF auth.role() = 'authenticated' THEN
     IF NEW.super_likes > OLD.super_likes THEN
       NEW.super_likes := OLD.super_likes;
@@ -2735,7 +2806,6 @@ CREATE TRIGGER trigger_block_item_forging
   FOR EACH ROW EXECUTE FUNCTION block_item_forging();
 
 -- 업데이트 정책 (수량 증가 시도는 위의 트리거가 막음, 차감은 허용)
-DROP POLICY IF EXISTS "ui_update" ON user_items;
 CREATE POLICY "ui_update" ON public.user_items 
   FOR UPDATE USING (auth.uid() = user_id);
 
@@ -2746,20 +2816,21 @@ CREATE POLICY "ui_update" ON public.user_items
 -- 2. purchases & subscriptions 내역 위조 방지
 -- (기존) 유저가 스스로 구매 내역이나 구독 기록을 생성하여 유료 회원을 가장할 수 있었습니다.
 DROP POLICY IF EXISTS "purchase_own" ON public.purchases;
-DROP POLICY IF EXISTS "purchase_own_select" ON purchases;
 CREATE POLICY "purchase_own_select" ON public.purchases 
   FOR SELECT USING (auth.uid() = user_id);
 -- 인서트는 오직 서버 사이드(결제 웹훅/RPC)에서만 허용
 
 DROP POLICY IF EXISTS "sub_own" ON public.subscriptions;
-DROP POLICY IF EXISTS "sub_own_select" ON subscriptions;
 CREATE POLICY "sub_own_select" ON public.subscriptions 
   FOR SELECT USING (auth.uid() = user_id);
 -- 인서트는 오직 서버 사이드(결제 웹훅/RPC)에서만 허용
+
 -- ============================================================
 -- 18_matches_rls_fixes.sql
 -- 가짜 매칭 정보 생성(Fake Match Creation) 방어
 -- ============================================================
+
+
 -- 1. matches 테이블의 취약한 INSERT 정책 수정
 -- (기존) WITH CHECK (true) 로 설정되어 누구나 거짓 매칭 데이터를 생성하여 상대방의 매칭 목록에 자신을 표시할 수 있었습니다.
 DROP POLICY IF EXISTS "matches_insert" ON public.matches;
@@ -2773,12 +2844,16 @@ CREATE POLICY "matches_insert" ON public.matches
 -- 따라서 권한을 SELECT와 INSERT로만 제한합니다. (기존에도 UPDATE/DELETE는 허용되지 않았으나 명시적으로 확인)
 DROP POLICY IF EXISTS "matches_update" ON public.matches;
 DROP POLICY IF EXISTS "matches_delete" ON public.matches;
+
 -- ============================================================
 -- 19_admin_notes_security.sql
 -- 관리자 전용 메모 및 차단 사유 변조 방어
 -- ============================================================
+
+
 CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
 RETURNS TRIGGER AS $$
+BEGIN
   -- 서비스 롤(관리자)이 아닌 일반 유저의 직접 수정 요청인 경우
   IF auth.role() IN ('authenticated', 'anon') THEN
     
@@ -2823,10 +2898,13 @@ RETURNS TRIGGER AS $$
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- ============================================================
 -- 20_chat_threads_security.sql
 -- 채팅방 악의적 파괴(Thread Destruction) 및 변조 방어
 -- ============================================================
+
+
 -- 1. chat_threads 테이블의 삭제(DELETE) 권한 축소
 -- (기존) 채팅방의 멤버라면 누구나 전체 채팅방(chat_threads 레코드)을 통째로 삭제할 수 있어, 그룹채팅 폭파 테러가 가능했습니다.
 DROP POLICY IF EXISTS "threads_delete" ON public.chat_threads;
@@ -2849,16 +2927,20 @@ CREATE POLICY "threads_update" ON public.chat_threads
       WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid()
     ))
   );
+
 -- ============================================================
 -- 21_reviews_security.sql
 -- 허위 리뷰 및 평판 조작(Reputation Attack) 방어
 -- ============================================================
+
+
 CREATE OR REPLACE FUNCTION enforce_review_rules()
 RETURNS TRIGGER AS $$
 DECLARE
   v_caller UUID := auth.uid();
   v_has_connection BOOLEAN;
   v_target UUID;
+BEGIN
   -- 관리자 및 백엔드(트리거 등)는 예외
   IF auth.role() != 'authenticated' THEN
     RETURN NEW;
@@ -2871,6 +2953,7 @@ DECLARE
 
   -- 타겟 추출 (meet_reviews는 reviewed_id, trip_reviews는 reviewee_id)
   -- 본 트리거는 meet_reviews와 trip_reviews 양쪽에 적용할 수 있도록 유연하게 작성
+  BEGIN
     v_target := NEW.reviewed_id; -- meet_reviews 테이블인 경우
   EXCEPTION WHEN undefined_column THEN
     v_target := NEW.reviewee_id; -- trip_reviews 테이블인 경우
@@ -2918,12 +3001,16 @@ DROP TRIGGER IF EXISTS trigger_enforce_trip_review ON public.trip_reviews;
 CREATE TRIGGER trigger_enforce_trip_review
   BEFORE INSERT ON public.trip_reviews
   FOR EACH ROW EXECUTE FUNCTION enforce_review_rules();
+
 -- ============================================================
 -- 22_likes_security.sql
 -- 무제한 슈퍼라이크(Super Like Bypass) 취약점 방어
 -- ============================================================
+
+
 CREATE OR REPLACE FUNCTION enforce_superlike_rules()
 RETURNS TRIGGER AS $$
+BEGIN
   -- 관리자 및 백엔드(RPC/트리거)는 허용
   IF auth.role() != 'authenticated' THEN
     RETURN NEW;
@@ -2973,10 +3060,13 @@ DROP POLICY IF EXISTS "likes_update_own" ON public.likes;
 CREATE POLICY "likes_update_own" ON public.likes 
   FOR UPDATE USING (auth.uid() = from_user)
   WITH CHECK (kind != 'super_like');
+
 -- ============================================================
 -- 23_api_rate_limits.sql
 -- API 어뷰징(SMS Bombing 및 AI 번역 비용 폭탄) 방어용 컬럼 추가
 -- ============================================================
+
+
 -- 1. profiles 테이블에 API 어뷰징 방지를 위한 컬럼 추가
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS otp_last_sent TIMESTAMPTZ,
@@ -2986,6 +3076,7 @@ ALTER TABLE public.profiles
 -- 2. 컬럼들이 클라이언트에서 임의로 수정되지 않도록 19번 방어 트리거 업데이트
 CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
 RETURNS TRIGGER AS $$
+BEGIN
   IF auth.role() IN ('authenticated', 'anon') THEN
     
     -- 기존 차단 로직
