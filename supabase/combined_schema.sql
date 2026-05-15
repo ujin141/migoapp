@@ -2985,3 +2985,52 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ============================================================
+-- 누락 테이블/뷰 추가 (앱 코드 교차검증 결과)
+-- ============================================================
+
+-- ── promo_codes (어드민 프로모 코드 관리) ──────────────────
+CREATE TABLE IF NOT EXISTS promo_codes (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  code        TEXT NOT NULL UNIQUE,
+  discount    TEXT NOT NULL,
+  max_limit   INTEGER DEFAULT 100,
+  used_count  INTEGER DEFAULT 0,
+  is_active   BOOLEAN DEFAULT true,
+  expires_at  TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "promo_admin" ON promo_codes;
+CREATE POLICY "promo_admin" ON promo_codes FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ── admin_sos_active (VIEW: 활성 SOS 알림) ─────────────────
+CREATE OR REPLACE VIEW admin_sos_active AS
+  SELECT
+    s.id, s.user_id, s.lat, s.lng, s.address, s.message, s.status, s.created_at,
+    p.name AS user_name, p.photo_url, p.nationality
+  FROM sos_alerts s
+  LEFT JOIN profiles p ON p.id = s.user_id
+  WHERE s.status = 'active'
+  ORDER BY s.created_at DESC;
+
+-- ── admin_chat_room_summary (VIEW: 채팅방 요약) ─────────────
+CREATE OR REPLACE VIEW admin_chat_room_summary AS
+  SELECT
+    ct.id AS thread_id,
+    ct.type,
+    ct.last_message,
+    ct.last_message_at,
+    ct.created_at,
+    p1.name AS user1_name,
+    p2.name AS user2_name,
+    COUNT(cm.id) AS member_count
+  FROM chat_threads ct
+  LEFT JOIN chat_members cm ON cm.thread_id = ct.id
+  LEFT JOIN profiles p1 ON p1.id = ct.user1_id
+  LEFT JOIN profiles p2 ON p2.id = ct.user2_id
+  GROUP BY ct.id, p1.name, p2.name
+  ORDER BY ct.last_message_at DESC NULLS LAST;
