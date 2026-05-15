@@ -1,11 +1,8 @@
 -- ============================================================
--- Migo App — 완전 통합 스키마 (All-in-One)
--- sql/01a ~ sql/23 통합 + 중복 제거
--- Supabase SQL Editor에서 이 파일 하나만 실행하면 됩니다.
+-- Migo App — 통합 스키마 (All-in-One)
+-- sql/01a ~ sql/23 원본 그대로 통합 + 최소 패치
+-- Supabase SQL Editor에서 이 파일 하나만 실행하세요.
 -- ============================================================
-
-
--- ── TABLES: Core (profiles, likes, matches, chat_threads) ──
 
 -- ============================================================
 -- 01a_tables_core.sql - profiles, likes, matches, chat
@@ -84,22 +81,12 @@ CREATE TABLE IF NOT EXISTS profiles (
   setup_complete        BOOLEAN DEFAULT false,         -- 프로필 설정 완료 여부 (LoginPage, useAuth)
   last_active_at        TIMESTAMPTZ DEFAULT NOW()      -- 마지막 활동 시간 (리텐션 기능)
 );
-
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "profiles_select"     ON profiles;
-
 DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
-
 DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
-
-DROP POLICY IF EXISTS "profiles_select" ON profiles;
 CREATE POLICY "profiles_select"     ON profiles FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
 CREATE POLICY "profiles_insert_own" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
-
-DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
 CREATE POLICY "profiles_update_own" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- ======================== likes ========================
@@ -112,22 +99,12 @@ CREATE TABLE IF NOT EXISTS likes (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(from_user, to_user)
 );
-
 ALTER TABLE likes ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "likes_select"     ON likes;
-
 DROP POLICY IF EXISTS "likes_insert_own" ON likes;
-
 DROP POLICY IF EXISTS "likes_delete_own" ON likes;
-
-DROP POLICY IF EXISTS "likes_select" ON likes;
 CREATE POLICY "likes_select"     ON likes FOR SELECT USING (auth.uid() = from_user OR auth.uid() = to_user);
-
-DROP POLICY IF EXISTS "likes_insert_own" ON likes;
 CREATE POLICY "likes_insert_own" ON likes FOR INSERT WITH CHECK (auth.uid() = from_user);
-
-DROP POLICY IF EXISTS "likes_delete_own" ON likes;
 CREATE POLICY "likes_delete_own" ON likes FOR DELETE USING (auth.uid() = from_user);
 
 -- ======================== matches ========================
@@ -139,15 +116,10 @@ CREATE TABLE IF NOT EXISTS matches (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user1_id, user2_id)
 );
-
 ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "matches_select" ON matches;
-
 DROP POLICY IF EXISTS "matches_insert" ON matches;
-
 CREATE POLICY "matches_select" ON matches FOR SELECT USING (auth.uid() = user1_id OR auth.uid() = user2_id);
-
 CREATE POLICY "matches_insert" ON matches FOR INSERT WITH CHECK (true);
 
 -- ======================== chat_threads ========================
@@ -163,30 +135,20 @@ CREATE TABLE IF NOT EXISTS chat_threads (
   created_by      UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE chat_threads ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "threads_select" ON chat_threads;
-
 DROP POLICY IF EXISTS "threads_insert" ON chat_threads;
-
 DROP POLICY IF EXISTS "threads_delete" ON chat_threads;
-
 DROP POLICY IF EXISTS "threads_update" ON chat_threads;
-
-DROP POLICY IF EXISTS "threads_select" ON chat_threads;
 CREATE POLICY "threads_select" ON chat_threads FOR SELECT USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid()) OR is_group = true
 );
-
 DROP POLICY IF EXISTS "threads_insert" ON chat_threads;
 CREATE POLICY "threads_insert" ON chat_threads FOR INSERT WITH CHECK (true);
-
 DROP POLICY IF EXISTS "threads_delete" ON chat_threads;
 CREATE POLICY "threads_delete" ON chat_threads FOR DELETE USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
 );
-
 DROP POLICY IF EXISTS "threads_update" ON chat_threads;
 CREATE POLICY "threads_update" ON chat_threads FOR UPDATE USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
@@ -199,11 +161,8 @@ CREATE TABLE IF NOT EXISTS chat_members (
   user_id   UUID REFERENCES profiles(id) ON DELETE CASCADE,
   UNIQUE(thread_id, user_id)
 );
-
 ALTER TABLE chat_members ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "members_select" ON chat_members;
-
 DROP POLICY IF EXISTS "members_insert" ON chat_members;
 
 CREATE OR REPLACE FUNCTION check_is_chat_member(target_thread_id UUID)
@@ -218,10 +177,12 @@ DROP POLICY IF EXISTS "members_select" ON chat_members;
 CREATE POLICY "members_select" ON chat_members FOR SELECT USING (
   check_is_chat_member(thread_id)
 );
-
-
--- ── TABLES: Community (messages, notifications, posts, comments) ──
-
+DROP POLICY IF EXISTS "members_insert" ON chat_members;
+CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (
+  auth.uid() = user_id
+  OR EXISTS (SELECT 1 FROM chat_threads WHERE id = thread_id AND created_by = auth.uid())
+  OR check_is_chat_member(thread_id)
+);
 -- ============================================================
 -- 01b_tables_community.sql - messages, notifications, posts, comments
 -- 01a 실행 후 실행하세요
@@ -240,21 +201,14 @@ CREATE TABLE IF NOT EXISTS messages (
   user_id      UUID REFERENCES profiles(id) ON DELETE SET NULL,  -- 구버전 호환
   message_type TEXT DEFAULT 'text'
 );
-
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "messages_select" ON messages;
-
 DROP POLICY IF EXISTS "messages_insert" ON messages;
-
 DROP POLICY IF EXISTS "messages_group_select" ON messages;
-
-DROP POLICY IF EXISTS "messages_select" ON messages;
 CREATE POLICY "messages_select" ON messages FOR SELECT USING (
   thread_id IN (SELECT thread_id FROM chat_members WHERE user_id = auth.uid())
   OR group_id IS NOT NULL  -- 그룹 메시지는 멤버면 볼 수 있음
 );
-
 DROP POLICY IF EXISTS "messages_insert" ON messages;
 CREATE POLICY "messages_insert" ON messages FOR INSERT WITH CHECK (
   auth.uid() = sender_id OR auth.uid() = user_id
@@ -271,22 +225,12 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read     BOOLEAN DEFAULT false,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "notif_select_own" ON notifications;
-
 DROP POLICY IF EXISTS "notif_insert"     ON notifications;
-
 DROP POLICY IF EXISTS "notif_update_own" ON notifications;
-
-DROP POLICY IF EXISTS "notif_select_own" ON notifications;
 CREATE POLICY "notif_select_own" ON notifications FOR SELECT USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "notif_insert" ON notifications;
 CREATE POLICY "notif_insert"     ON notifications FOR INSERT WITH CHECK (true);
-
-DROP POLICY IF EXISTS "notif_update_own" ON notifications;
 CREATE POLICY "notif_update_own" ON notifications FOR UPDATE USING (auth.uid() = user_id);
 
 -- ======================== in_app_notifications ========================
@@ -299,22 +243,12 @@ CREATE TABLE IF NOT EXISTS in_app_notifications (
   read       BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE in_app_notifications ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "inapp_select_own" ON in_app_notifications;
-
 DROP POLICY IF EXISTS "inapp_insert"     ON in_app_notifications;
-
 DROP POLICY IF EXISTS "inapp_update_own" ON in_app_notifications;
-
-DROP POLICY IF EXISTS "inapp_select_own" ON in_app_notifications;
 CREATE POLICY "inapp_select_own" ON in_app_notifications FOR SELECT USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "inapp_insert" ON in_app_notifications;
 CREATE POLICY "inapp_insert"     ON in_app_notifications FOR INSERT WITH CHECK (true);
-
-DROP POLICY IF EXISTS "inapp_update_own" ON in_app_notifications;
 CREATE POLICY "inapp_update_own" ON in_app_notifications FOR UPDATE USING (auth.uid() = user_id);
 
 -- ======================== posts ========================
@@ -329,27 +263,14 @@ CREATE TABLE IF NOT EXISTS posts (
   pinned     BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "posts_select"     ON posts;
-
 DROP POLICY IF EXISTS "posts_insert_own" ON posts;
-
 DROP POLICY IF EXISTS "posts_update_own" ON posts;
-
 DROP POLICY IF EXISTS "posts_delete_own" ON posts;
-
-DROP POLICY IF EXISTS "posts_select" ON posts;
 CREATE POLICY "posts_select"     ON posts FOR SELECT USING (hidden = false);
-
-DROP POLICY IF EXISTS "posts_insert_own" ON posts;
 CREATE POLICY "posts_insert_own" ON posts FOR INSERT WITH CHECK (auth.uid() = author_id);
-
-DROP POLICY IF EXISTS "posts_update_own" ON posts;
 CREATE POLICY "posts_update_own" ON posts FOR UPDATE USING (auth.uid() = author_id);
-
-DROP POLICY IF EXISTS "posts_delete_own" ON posts;
 CREATE POLICY "posts_delete_own" ON posts FOR DELETE USING (auth.uid() = author_id);
 
 -- ======================== post_likes ========================
@@ -360,22 +281,12 @@ CREATE TABLE IF NOT EXISTS post_likes (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(post_id, user_id)
 );
-
 ALTER TABLE post_likes ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "post_likes_select" ON post_likes;
-
 DROP POLICY IF EXISTS "post_likes_insert" ON post_likes;
-
 DROP POLICY IF EXISTS "post_likes_delete" ON post_likes;
-
-DROP POLICY IF EXISTS "post_likes_select" ON post_likes;
 CREATE POLICY "post_likes_select" ON post_likes FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "post_likes_insert" ON post_likes;
 CREATE POLICY "post_likes_insert" ON post_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "post_likes_delete" ON post_likes;
 CREATE POLICY "post_likes_delete" ON post_likes FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== comments ========================
@@ -386,27 +297,13 @@ CREATE TABLE IF NOT EXISTS comments (
   text       TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "comments_select"     ON comments;
-
 DROP POLICY IF EXISTS "comments_insert"     ON comments;
-
 DROP POLICY IF EXISTS "comments_delete_own" ON comments;
-
-DROP POLICY IF EXISTS "comments_select" ON comments;
 CREATE POLICY "comments_select"     ON comments FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "comments_insert" ON comments;
 CREATE POLICY "comments_insert"     ON comments FOR INSERT WITH CHECK (auth.uid() = author_id);
-
-DROP POLICY IF EXISTS "comments_delete_own" ON comments;
 CREATE POLICY "comments_delete_own" ON comments FOR DELETE USING (auth.uid() = author_id);
-
-
--- ── TABLES: Trips & Marketplace ──
-
 -- ============================================================
 -- 01c_tables_trips.sql - trip, report, marketplace, review 테이블
 -- 01b 실행 후 실행하세요
@@ -420,7 +317,6 @@ DECLARE
     i INT;
     char_code INT;
     cho_idx INT;
-BEGIN
     IF word IS NULL THEN RETURN NULL; END IF;
     FOR i IN 1..LENGTH(word) LOOP
         char_code := ascii(SUBSTRING(word FROM i FOR 1));
@@ -460,27 +356,14 @@ CREATE TABLE IF NOT EXISTS trip_groups (
   title_chosung         TEXT GENERATED ALWAYS AS (get_chosung(title)) STORED,
   destination_chosung   TEXT GENERATED ALWAYS AS (get_chosung(destination)) STORED
 );
-
 ALTER TABLE trip_groups ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "groups_select"     ON trip_groups;
-
 DROP POLICY IF EXISTS "groups_insert_own" ON trip_groups;
-
 DROP POLICY IF EXISTS "groups_update_own" ON trip_groups;
-
 DROP POLICY IF EXISTS "groups_delete_own" ON trip_groups;
-
-DROP POLICY IF EXISTS "groups_select" ON trip_groups;
 CREATE POLICY "groups_select"     ON trip_groups FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "groups_insert_own" ON trip_groups;
 CREATE POLICY "groups_insert_own" ON trip_groups FOR INSERT WITH CHECK (auth.uid() = host_id);
-
-DROP POLICY IF EXISTS "groups_update_own" ON trip_groups;
 CREATE POLICY "groups_update_own" ON trip_groups FOR UPDATE USING (auth.uid() = host_id);
-
-DROP POLICY IF EXISTS "groups_delete_own" ON trip_groups;
 CREATE POLICY "groups_delete_own" ON trip_groups FOR DELETE USING (auth.uid() = host_id);
 
 -- ======================== trip_group_members ========================
@@ -491,22 +374,12 @@ CREATE TABLE IF NOT EXISTS trip_group_members (
   joined_at  TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(group_id, user_id)
 );
-
 ALTER TABLE trip_group_members ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "group_members_select" ON trip_group_members;
-
 DROP POLICY IF EXISTS "group_members_insert" ON trip_group_members;
-
 DROP POLICY IF EXISTS "group_members_delete" ON trip_group_members;
-
-DROP POLICY IF EXISTS "group_members_select" ON trip_group_members;
 CREATE POLICY "group_members_select" ON trip_group_members FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "group_members_insert" ON trip_group_members;
 CREATE POLICY "group_members_insert" ON trip_group_members FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "group_members_delete" ON trip_group_members;
 CREATE POLICY "group_members_delete" ON trip_group_members FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== trip_applications ========================
@@ -519,22 +392,12 @@ CREATE TABLE IF NOT EXISTS trip_applications (
   created_at    TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(group_id, applicant_id)
 );
-
 ALTER TABLE trip_applications ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "trip_app_select"      ON trip_applications;
-
 DROP POLICY IF EXISTS "trip_app_insert"      ON trip_applications;
-
 DROP POLICY IF EXISTS "trip_app_update_host" ON trip_applications;
-
-DROP POLICY IF EXISTS "trip_app_select" ON trip_applications;
 CREATE POLICY "trip_app_select"      ON trip_applications FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "trip_app_insert" ON trip_applications;
 CREATE POLICY "trip_app_insert"      ON trip_applications FOR INSERT WITH CHECK (auth.uid() = applicant_id);
-
-DROP POLICY IF EXISTS "trip_app_update_host" ON trip_applications;
 CREATE POLICY "trip_app_update_host" ON trip_applications FOR UPDATE USING (true);
 
 -- ======================== reports ========================
@@ -551,30 +414,16 @@ CREATE TABLE IF NOT EXISTS reports (
   resolved_by   UUID REFERENCES profiles(id) ON DELETE SET NULL,
   admin_comment TEXT
 );
-
 ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_target_id_fkey;
-
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "reports_insert"       ON reports;
-
 DROP POLICY IF EXISTS "reports_select_own"   ON reports;
-
 DROP POLICY IF EXISTS "reports_select_admin" ON reports;
-
 DROP POLICY IF EXISTS "reports_update_admin" ON reports;
-
-DROP POLICY IF EXISTS "reports_insert" ON reports;
 CREATE POLICY "reports_insert"       ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
-
-DROP POLICY IF EXISTS "reports_select_own" ON reports;
 CREATE POLICY "reports_select_own"   ON reports FOR SELECT USING (auth.uid() = reporter_id);
-
-DROP POLICY IF EXISTS "reports_select_admin" ON reports;
 CREATE POLICY "reports_select_admin" ON reports FOR SELECT
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
-
-DROP POLICY IF EXISTS "reports_update_admin" ON reports;
 CREATE POLICY "reports_update_admin" ON reports FOR UPDATE
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -586,22 +435,12 @@ CREATE TABLE IF NOT EXISTS marketplace_likes (
   created_at    TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, item_id)
 );
-
 ALTER TABLE marketplace_likes ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "mlikes_select" ON marketplace_likes;
-
 DROP POLICY IF EXISTS "mlikes_insert" ON marketplace_likes;
-
 DROP POLICY IF EXISTS "mlikes_delete" ON marketplace_likes;
-
-DROP POLICY IF EXISTS "mlikes_select" ON marketplace_likes;
 CREATE POLICY "mlikes_select" ON marketplace_likes FOR SELECT USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "mlikes_insert" ON marketplace_likes;
 CREATE POLICY "mlikes_insert" ON marketplace_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "mlikes_delete" ON marketplace_likes;
 CREATE POLICY "mlikes_delete" ON marketplace_likes FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== blocks ========================
@@ -612,22 +451,12 @@ CREATE TABLE IF NOT EXISTS blocks (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(blocker_id, blocked_id)
 );
-
 ALTER TABLE blocks ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "blocks_select_own" ON blocks;
-
 DROP POLICY IF EXISTS "blocks_insert_own" ON blocks;
-
 DROP POLICY IF EXISTS "blocks_delete_own" ON blocks;
-
-DROP POLICY IF EXISTS "blocks_select_own" ON blocks;
 CREATE POLICY "blocks_select_own" ON blocks FOR SELECT USING (auth.uid() = blocker_id);
-
-DROP POLICY IF EXISTS "blocks_insert_own" ON blocks;
 CREATE POLICY "blocks_insert_own" ON blocks FOR INSERT WITH CHECK (auth.uid() = blocker_id);
-
-DROP POLICY IF EXISTS "blocks_delete_own" ON blocks;
 CREATE POLICY "blocks_delete_own" ON blocks FOR DELETE USING (auth.uid() = blocker_id);
 
 -- ======================== id_verifications ========================
@@ -645,20 +474,13 @@ CREATE TABLE IF NOT EXISTS id_verifications (
   reviewed_by   UUID REFERENCES profiles(id) ON DELETE SET NULL,
   reject_reason TEXT
 );
-
 ALTER TABLE id_verifications ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "idv_select_own" ON id_verifications;
-
 DROP POLICY IF EXISTS "idv_insert_own" ON id_verifications;
-
 DROP POLICY IF EXISTS "idv_admin"      ON id_verifications;
-
-DROP POLICY IF EXISTS "idv_select_own" ON id_verifications;
 CREATE POLICY "idv_select_own" ON id_verifications FOR SELECT USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "idv_insert_own" ON id_verifications;
 CREATE POLICY "idv_insert_own" ON id_verifications FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "idv_admin"      ON id_verifications FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ======================== marketplace_items ========================
 CREATE TABLE IF NOT EXISTS marketplace_items (
@@ -678,14 +500,11 @@ CREATE TABLE IF NOT EXISTS marketplace_items (
   is_active      BOOLEAN DEFAULT true,
   created_at     TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE marketplace_items ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "marketplace_select" ON marketplace_items;
-
 DROP POLICY IF EXISTS "marketplace_admin"  ON marketplace_items;
-
 CREATE POLICY "marketplace_select" ON marketplace_items FOR SELECT USING (is_active = true);
+CREATE POLICY "marketplace_admin"  ON marketplace_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ======================== meet_reviews ========================
 CREATE TABLE IF NOT EXISTS meet_reviews (
@@ -697,15 +516,10 @@ CREATE TABLE IF NOT EXISTS meet_reviews (
   created_at  TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(reviewer_id, reviewed_id)
 );
-
 ALTER TABLE meet_reviews ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "reviews_select"     ON meet_reviews;
-
 DROP POLICY IF EXISTS "reviews_insert_own" ON meet_reviews;
-
 CREATE POLICY "reviews_select"     ON meet_reviews FOR SELECT USING (true);
-
 CREATE POLICY "reviews_insert_own" ON meet_reviews FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
 
 -- ======================== trip_reviews ========================
@@ -721,27 +535,13 @@ CREATE TABLE IF NOT EXISTS trip_reviews (
   created_at   TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(reviewer_id, reviewee_id)
 );
-
 ALTER TABLE trip_reviews ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "tr_select"     ON trip_reviews;
-
 DROP POLICY IF EXISTS "tr_insert"     ON trip_reviews;
-
 DROP POLICY IF EXISTS "tr_update_own" ON trip_reviews;
-
-DROP POLICY IF EXISTS "tr_select" ON trip_reviews;
 CREATE POLICY "tr_select"     ON trip_reviews FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "tr_insert" ON trip_reviews;
 CREATE POLICY "tr_insert"     ON trip_reviews FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
-
-DROP POLICY IF EXISTS "tr_update_own" ON trip_reviews;
 CREATE POLICY "tr_update_own" ON trip_reviews FOR UPDATE USING (auth.uid() = reviewer_id);
-
-
--- ── TABLES: Misc (ads, sos, call_logs, etc.) ──
-
 -- ============================================================
 -- 01d_tables_misc.sql - 나머지 테이블
 -- 01c 실행 후 실행하세요
@@ -758,22 +558,12 @@ CREATE TABLE IF NOT EXISTS trip_calendars (
   notes       TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE trip_calendars ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "calendars_select_own" ON trip_calendars;
-
 DROP POLICY IF EXISTS "calendars_insert_own" ON trip_calendars;
-
 DROP POLICY IF EXISTS "calendars_delete_own" ON trip_calendars;
-
-DROP POLICY IF EXISTS "calendars_select_own" ON trip_calendars;
 CREATE POLICY "calendars_select_own" ON trip_calendars FOR SELECT USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "calendars_insert_own" ON trip_calendars;
 CREATE POLICY "calendars_insert_own" ON trip_calendars FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "calendars_delete_own" ON trip_calendars;
 CREATE POLICY "calendars_delete_own" ON trip_calendars FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== trips ========================
@@ -789,27 +579,14 @@ CREATE TABLE IF NOT EXISTS trips (
   notes        TEXT,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "trips_select"     ON trips;
-
 DROP POLICY IF EXISTS "trips_insert_own" ON trips;
-
 DROP POLICY IF EXISTS "trips_update_own" ON trips;
-
 DROP POLICY IF EXISTS "trips_delete_own" ON trips;
-
-DROP POLICY IF EXISTS "trips_select" ON trips;
 CREATE POLICY "trips_select"     ON trips FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "trips_insert_own" ON trips;
 CREATE POLICY "trips_insert_own" ON trips FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "trips_update_own" ON trips;
 CREATE POLICY "trips_update_own" ON trips FOR UPDATE USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "trips_delete_own" ON trips;
 CREATE POLICY "trips_delete_own" ON trips FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== safety_checkins ========================
@@ -828,29 +605,15 @@ CREATE TABLE IF NOT EXISTS safety_checkins (
   is_sos        BOOLEAN DEFAULT false,
   updated_at    TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE safety_checkins ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "checkin_own"    ON safety_checkins;
-
 DROP POLICY IF EXISTS "checkin_select" ON safety_checkins;
-
 DROP POLICY IF EXISTS "checkin_insert" ON safety_checkins;
-
 DROP POLICY IF EXISTS "checkin_update" ON safety_checkins;
-
 DROP POLICY IF EXISTS "checkin_delete" ON safety_checkins;
-
-DROP POLICY IF EXISTS "checkin_select" ON safety_checkins;
 CREATE POLICY "checkin_select" ON safety_checkins FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "checkin_insert" ON safety_checkins;
 CREATE POLICY "checkin_insert" ON safety_checkins FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "checkin_update" ON safety_checkins;
 CREATE POLICY "checkin_update" ON safety_checkins FOR UPDATE USING (auth.uid() = user_id OR true);
-
-DROP POLICY IF EXISTS "checkin_delete" ON safety_checkins;
 CREATE POLICY "checkin_delete" ON safety_checkins FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== profile_views ========================
@@ -861,15 +624,10 @@ CREATE TABLE IF NOT EXISTS profile_views (
   viewed_at   TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(viewer_id, viewed_id)
 );
-
 ALTER TABLE profile_views ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "pv_select" ON profile_views;
-
 DROP POLICY IF EXISTS "pv_insert" ON profile_views;
-
 CREATE POLICY "pv_select" ON profile_views FOR SELECT USING (auth.uid() = viewed_id OR auth.uid() = viewer_id);
-
 CREATE POLICY "pv_insert" ON profile_views FOR INSERT WITH CHECK (auth.uid() = viewer_id);
 
 -- ======================== subscriptions ========================
@@ -884,15 +642,10 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   payment_ref TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "sub_own" ON subscriptions;
-
 DROP POLICY IF EXISTS "sub_admin" ON subscriptions;
-
 CREATE POLICY "sub_own" ON subscriptions FOR ALL USING (auth.uid() = user_id);
-
 CREATE POLICY "sub_admin" ON subscriptions FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
 );
@@ -908,15 +661,10 @@ CREATE TABLE IF NOT EXISTS purchases (
   payment_ref TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "purchase_own" ON purchases;
-
 DROP POLICY IF EXISTS "purchase_admin" ON purchases;
-
 CREATE POLICY "purchase_own" ON purchases FOR ALL USING (auth.uid() = user_id);
-
 CREATE POLICY "purchase_admin" ON purchases FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
 );
@@ -929,11 +677,8 @@ CREATE TABLE IF NOT EXISTS user_items (
   nearby_days INTEGER DEFAULT 0,
   updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE user_items ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "ui_own" ON user_items;
-
 CREATE POLICY "ui_own" ON user_items FOR ALL USING (auth.uid() = user_id);
 
 -- ======================== online_status ========================
@@ -945,15 +690,10 @@ CREATE TABLE IF NOT EXISTS online_status (
   lat       DOUBLE PRECISION,
   lng       DOUBLE PRECISION
 );
-
 ALTER TABLE online_status ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "os_select" ON online_status;
-
 DROP POLICY IF EXISTS "os_upsert" ON online_status;
-
 CREATE POLICY "os_select" ON online_status FOR SELECT USING (true);
-
 CREATE POLICY "os_upsert" ON online_status FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- ======================== travel_check_ins ========================
@@ -967,27 +707,14 @@ CREATE TABLE IF NOT EXISTS travel_check_ins (
   checked_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at    TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '24 hours')
 );
-
 ALTER TABLE travel_check_ins ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "checkin_select" ON travel_check_ins;
-
 DROP POLICY IF EXISTS "checkin_insert" ON travel_check_ins;
-
 DROP POLICY IF EXISTS "checkin_update" ON travel_check_ins;
-
 DROP POLICY IF EXISTS "checkin_delete" ON travel_check_ins;
-
-DROP POLICY IF EXISTS "checkin_select" ON travel_check_ins;
 CREATE POLICY "checkin_select" ON travel_check_ins FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "checkin_insert" ON travel_check_ins;
 CREATE POLICY "checkin_insert" ON travel_check_ins FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "checkin_update" ON travel_check_ins;
 CREATE POLICY "checkin_update" ON travel_check_ins FOR UPDATE USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "checkin_delete" ON travel_check_ins;
 CREATE POLICY "checkin_delete" ON travel_check_ins FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== hotplace_seekers ========================
@@ -1001,24 +728,13 @@ CREATE TABLE IF NOT EXISTS public.hotplace_seekers (
   max_members INTEGER     DEFAULT 4,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 ALTER TABLE public.hotplace_seekers REPLICA IDENTITY FULL;
-
 ALTER TABLE public.hotplace_seekers ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "hotplace_seekers_select" ON public.hotplace_seekers;
-
 DROP POLICY IF EXISTS "hotplace_seekers_insert" ON public.hotplace_seekers;
-
 DROP POLICY IF EXISTS "hotplace_seekers_delete" ON public.hotplace_seekers;
-
-DROP POLICY IF EXISTS "hotplace_seekers_select" ON hotplace_seekers;
 CREATE POLICY "hotplace_seekers_select" ON public.hotplace_seekers FOR SELECT TO authenticated USING (true);
-
-DROP POLICY IF EXISTS "hotplace_seekers_insert" ON hotplace_seekers;
 CREATE POLICY "hotplace_seekers_insert" ON public.hotplace_seekers FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "hotplace_seekers_delete" ON hotplace_seekers;
 CREATE POLICY "hotplace_seekers_delete" ON public.hotplace_seekers FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- ======================== ads ========================
@@ -1042,11 +758,8 @@ CREATE TABLE IF NOT EXISTS ads (
   end_date     DATE,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE ads ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "ads_admin" ON ads;
-
 CREATE POLICY "ads_admin" ON ads FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1063,15 +776,10 @@ CREATE TABLE IF NOT EXISTS ad_slots (
   enabled     BOOLEAN DEFAULT true,
   updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE ad_slots ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "ad_slots_select" ON ad_slots;
-
 DROP POLICY IF EXISTS "ad_slots_admin" ON ad_slots;
-
 CREATE POLICY "ad_slots_select" ON ad_slots FOR SELECT USING (true);
-
 CREATE POLICY "ad_slots_admin" ON ad_slots FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1090,15 +798,10 @@ CREATE TABLE IF NOT EXISTS ad_clicks (
   user_id    UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE ad_clicks ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "ad_clicks_insert" ON ad_clicks;
-
 DROP POLICY IF EXISTS "ad_clicks_admin"  ON ad_clicks;
-
 CREATE POLICY "ad_clicks_insert" ON ad_clicks FOR INSERT WITH CHECK (true);
-
 CREATE POLICY "ad_clicks_admin"  ON ad_clicks FOR SELECT
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1109,15 +812,10 @@ CREATE TABLE IF NOT EXISTS ad_impressions (
   user_id    UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE ad_impressions ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "ad_imp_insert" ON ad_impressions;
-
 DROP POLICY IF EXISTS "ad_imp_admin"  ON ad_impressions;
-
 CREATE POLICY "ad_imp_insert" ON ad_impressions FOR INSERT WITH CHECK (true);
-
 CREATE POLICY "ad_imp_admin"  ON ad_impressions FOR SELECT
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1132,16 +830,11 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   read_by    UUID[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "chatmsg_select" ON chat_messages;
-
 DROP POLICY IF EXISTS "chatmsg_insert" ON chat_messages;
-
 CREATE POLICY "chatmsg_select" ON chat_messages FOR SELECT
   USING (EXISTS (SELECT 1 FROM chat_members WHERE thread_id = chat_messages.thread_id AND user_id = auth.uid()));
-
 CREATE POLICY "chatmsg_insert" ON chat_messages FOR INSERT
   WITH CHECK (
     auth.uid() = sender_id
@@ -1160,22 +853,12 @@ CREATE TABLE IF NOT EXISTS sos_alerts (
   status     TEXT DEFAULT 'active',        -- active/resolved
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE sos_alerts ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "sos_insert" ON sos_alerts;
-
 DROP POLICY IF EXISTS "sos_own"    ON sos_alerts;
-
 DROP POLICY IF EXISTS "sos_admin"  ON sos_alerts;
-
-DROP POLICY IF EXISTS "sos_insert" ON sos_alerts;
 CREATE POLICY "sos_insert" ON sos_alerts FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "sos_own" ON sos_alerts;
 CREATE POLICY "sos_own"    ON sos_alerts FOR SELECT USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "sos_admin" ON sos_alerts;
 CREATE POLICY "sos_admin"  ON sos_alerts FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1189,15 +872,10 @@ CREATE TABLE IF NOT EXISTS call_logs (
   status           TEXT DEFAULT 'completed', -- completed/missed/declined
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE call_logs ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "calllog_own"   ON call_logs;
-
 DROP POLICY IF EXISTS "calllog_admin" ON call_logs;
-
 CREATE POLICY "calllog_own"   ON call_logs FOR ALL   USING (auth.uid() = caller_id OR auth.uid() = callee_id);
-
 CREATE POLICY "calllog_admin" ON call_logs FOR SELECT
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1213,11 +891,8 @@ CREATE TABLE IF NOT EXISTS broadcast_logs (
   sent_count    INTEGER DEFAULT 0,
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE broadcast_logs ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "bcast_admin" ON broadcast_logs;
-
 CREATE POLICY "bcast_admin" ON broadcast_logs FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1231,15 +906,9 @@ CREATE TABLE IF NOT EXISTS user_blocks (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(blocker_id, blocked_id)
 );
-
 ALTER TABLE user_blocks ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "ublocks_own" ON user_blocks;
-
 CREATE POLICY "ublocks_own" ON user_blocks FOR ALL USING (auth.uid() = blocker_id);
-
-
--- ── TRIGGERS & AUTO FUNCTIONS ──
 
 -- ============================================================
 -- 02_triggers.sql - 트리거 + 자동화 함수
@@ -1249,7 +918,6 @@ CREATE POLICY "ublocks_own" ON user_blocks FOR ALL USING (auth.uid() = blocker_i
 -- 신규 회원 프로필 자동 생성
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
-BEGIN
   INSERT INTO profiles (id, name, email, plan, is_plus, plus_expires_at)
   VALUES (
     NEW.id,
@@ -1268,7 +936,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
@@ -1278,7 +945,6 @@ CREATE OR REPLACE FUNCTION secure_calculate_trust_score()
 RETURNS TRIGGER AS $$
 DECLARE
   calculated_score NUMERIC(4,1) := 0;
-BEGIN
   IF NEW.phone_verified = true THEN calculated_score := calculated_score + 15; END IF;
   IF NEW.email_verified = true THEN calculated_score := calculated_score + 10; END IF;
   IF NEW.id_verified = true THEN calculated_score := calculated_score + 40; END IF;
@@ -1290,7 +956,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trigger_calculate_trust_score ON public.profiles;
-
 CREATE TRIGGER trigger_calculate_trust_score
   BEFORE INSERT OR UPDATE OF phone_verified, email_verified, id_verified, sns_connected, review_verified
   ON public.profiles
@@ -1299,7 +964,6 @@ CREATE TRIGGER trigger_calculate_trust_score
 -- 민감 필드 변조 방지
 CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
 RETURNS TRIGGER AS $$
-BEGIN
   IF auth.role() = 'authenticated' THEN
     IF NEW.instant_meets_count < OLD.instant_meets_count THEN
       NEW.instant_meets_count := OLD.instant_meets_count;
@@ -1318,7 +982,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trigger_block_sensitive_update ON public.profiles;
-
 CREATE TRIGGER trigger_block_sensitive_update
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION block_sensitive_profile_updates();
@@ -1326,21 +989,18 @@ CREATE TRIGGER trigger_block_sensitive_update
 -- 신규 회원 user_items 자동 생성
 CREATE OR REPLACE FUNCTION handle_new_user_items()
 RETURNS TRIGGER AS $$
-BEGIN
   INSERT INTO user_items (user_id) VALUES (NEW.id) ON CONFLICT DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_profile_created_items ON profiles;
-
 CREATE TRIGGER on_profile_created_items
   AFTER INSERT ON profiles
   FOR EACH ROW EXECUTE FUNCTION handle_new_user_items();
 
 -- chat_threads 생성자 자동 설정
 CREATE OR REPLACE FUNCTION set_chat_thread_creator() RETURNS TRIGGER AS $$
-BEGIN
   IF NEW.created_by IS NULL THEN
     NEW.created_by := auth.uid();
   END IF;
@@ -1349,7 +1009,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trigger_set_chat_creator ON chat_threads;
-
 CREATE TRIGGER trigger_set_chat_creator
   BEFORE INSERT ON chat_threads
   FOR EACH ROW EXECUTE FUNCTION set_chat_thread_creator();
@@ -1359,7 +1018,6 @@ CREATE OR REPLACE FUNCTION trg_trip_group_create_thread()
 RETURNS TRIGGER AS $$
 DECLARE
   v_thread_id UUID;
-BEGIN
   INSERT INTO chat_threads (is_group, name, photo_url)
   VALUES (true, NEW.title, NEW.cover_image)
   RETURNING id INTO v_thread_id;
@@ -1369,7 +1027,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_trip_group_create_thread_on_insert ON trip_groups;
-
 CREATE TRIGGER trg_trip_group_create_thread_on_insert
   BEFORE INSERT ON trip_groups FOR EACH ROW
   EXECUTE FUNCTION trg_trip_group_create_thread();
@@ -1377,7 +1034,6 @@ CREATE TRIGGER trg_trip_group_create_thread_on_insert
 -- trip_group 생성 시 호스트를 멤버로 자동 추가
 CREATE OR REPLACE FUNCTION trg_trip_group_insert_host()
 RETURNS TRIGGER AS $$
-BEGIN
   INSERT INTO trip_group_members (group_id, user_id)
   VALUES (NEW.id, NEW.host_id) ON CONFLICT DO NOTHING;
   RETURN NEW;
@@ -1385,7 +1041,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_trip_group_insert_host_on_insert ON trip_groups;
-
 CREATE TRIGGER trg_trip_group_insert_host_on_insert
   AFTER INSERT ON trip_groups FOR EACH ROW
   EXECUTE FUNCTION trg_trip_group_insert_host();
@@ -1395,7 +1050,6 @@ CREATE OR REPLACE FUNCTION trg_sync_chat_members()
 RETURNS TRIGGER AS $$
 DECLARE
   v_thread_id UUID;
-BEGIN
   IF TG_OP = 'INSERT' THEN
     SELECT thread_id INTO v_thread_id FROM trip_groups WHERE id = NEW.group_id;
     IF v_thread_id IS NOT NULL THEN
@@ -1414,7 +1068,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_sync_chat_members_on_change ON trip_group_members;
-
 CREATE TRIGGER trg_sync_chat_members_on_change
   AFTER INSERT OR DELETE ON trip_group_members FOR EACH ROW
   EXECUTE FUNCTION trg_sync_chat_members();
@@ -1422,7 +1075,6 @@ CREATE TRIGGER trg_sync_chat_members_on_change
 -- trip_group_members 변경 시 member_count 자동 동기화
 CREATE OR REPLACE FUNCTION sync_group_member_count()
 RETURNS TRIGGER AS $$
-BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE trip_groups SET member_count = member_count + 1 WHERE id = NEW.group_id;
   ELSIF TG_OP = 'DELETE' THEN
@@ -1433,7 +1085,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_sync_member_count ON trip_group_members;
-
 CREATE TRIGGER trg_sync_member_count
   AFTER INSERT OR DELETE ON trip_group_members
   FOR EACH ROW EXECUTE FUNCTION sync_group_member_count();
@@ -1441,7 +1092,6 @@ CREATE TRIGGER trg_sync_member_count
 -- 지원 상태 변경 시 알림
 CREATE OR REPLACE FUNCTION notify_application_status()
 RETURNS TRIGGER AS $$
-BEGIN
   IF OLD.status IS DISTINCT FROM NEW.status THEN
     INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
     VALUES (
@@ -1461,7 +1111,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_application_status ON trip_applications;
-
 CREATE TRIGGER on_application_status
   AFTER UPDATE ON trip_applications
   FOR EACH ROW EXECUTE FUNCTION notify_application_status();
@@ -1469,7 +1118,6 @@ CREATE TRIGGER on_application_status
 -- 리뷰 삽입 시 avg_rating 자동 업데이트
 CREATE OR REPLACE FUNCTION update_profile_review_stats()
 RETURNS TRIGGER AS $$
-BEGIN
   UPDATE profiles
   SET
     avg_rating   = (SELECT ROUND(AVG(rating)::NUMERIC, 2) FROM trip_reviews WHERE reviewee_id = NEW.reviewee_id),
@@ -1481,7 +1129,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_trip_review_insert ON trip_reviews;
-
 CREATE TRIGGER on_trip_review_insert
   AFTER INSERT ON trip_reviews
   FOR EACH ROW EXECUTE FUNCTION update_profile_review_stats();
@@ -1489,7 +1136,6 @@ CREATE TRIGGER on_trip_review_insert
 -- 알림 트리거: 좋아요
 CREATE OR REPLACE FUNCTION notify_on_like()
 RETURNS TRIGGER AS $$
-BEGIN
   IF NEW.from_user = NEW.to_user THEN RETURN NEW; END IF;
   INSERT INTO notifications (user_id, type, actor_id, target_id)
   VALUES (
@@ -1508,7 +1154,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_notify_on_like ON likes;
-
 CREATE TRIGGER trg_notify_on_like
   AFTER INSERT ON likes
   FOR EACH ROW EXECUTE FUNCTION notify_on_like();
@@ -1516,7 +1161,6 @@ CREATE TRIGGER trg_notify_on_like
 -- 알림 트리거: 매칭
 CREATE OR REPLACE FUNCTION notify_on_match()
 RETURNS TRIGGER AS $$
-BEGIN
   INSERT INTO notifications (user_id, type, actor_id, target_id)
   VALUES (NEW.user2_id, 'match', NEW.user1_id, NEW.thread_id)
   ON CONFLICT DO NOTHING;
@@ -1528,7 +1172,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_notify_on_match ON matches;
-
 CREATE TRIGGER trg_notify_on_match
   AFTER INSERT ON matches
   FOR EACH ROW EXECUTE FUNCTION notify_on_match();
@@ -1538,7 +1181,6 @@ CREATE OR REPLACE FUNCTION notify_on_comment()
 RETURNS TRIGGER AS $$
 DECLARE
   v_post_author UUID;
-BEGIN
   SELECT author_id INTO v_post_author FROM posts WHERE id = NEW.post_id;
   IF v_post_author IS NULL OR v_post_author = NEW.author_id THEN RETURN NEW; END IF;
   INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
@@ -1548,7 +1190,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_notify_on_comment ON comments;
-
 CREATE TRIGGER trg_notify_on_comment
   AFTER INSERT ON comments
   FOR EACH ROW EXECUTE FUNCTION notify_on_comment();
@@ -1559,7 +1200,6 @@ RETURNS TRIGGER AS $$
 DECLARE
   v_host_id  UUID;
   v_title    TEXT;
-BEGIN
   SELECT host_id, title INTO v_host_id, v_title FROM trip_groups WHERE id = NEW.group_id;
   IF v_host_id IS NULL OR v_host_id = NEW.user_id THEN RETURN NEW; END IF;
   INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
@@ -1569,7 +1209,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_notify_on_group_join ON trip_group_members;
-
 CREATE TRIGGER trg_notify_on_group_join
   AFTER INSERT ON trip_group_members
   FOR EACH ROW EXECUTE FUNCTION notify_on_group_join();
@@ -1582,7 +1221,6 @@ SECURITY DEFINER
 AS $$
 DECLARE
   deleted_count INTEGER;
-BEGIN
   DELETE FROM chat_threads
   WHERE meet_expires_at IS NOT NULL
     AND meet_expires_at < NOW();
@@ -1603,9 +1241,13 @@ WHERE type = 'profile_view'
     ORDER BY user_id, actor_id, created_at DESC
   );
 
-
--- ── RPC FUNCTIONS ──
-
+-- notifications Realtime 설정
+DO $$
+    ALTER TABLE notifications REPLICA IDENTITY FULL;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+END;
+$$;
 -- ============================================================
 -- 03_rpc_functions.sql - 앱에서 호출하는 RPC 함수
 -- 02_triggers.sql 실행 후 실행하세요
@@ -1616,7 +1258,6 @@ CREATE OR REPLACE FUNCTION delete_user()
 RETURNS void AS $$
 DECLARE
   uid UUID := auth.uid();
-BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
   DELETE FROM profiles WHERE id = uid;
   DELETE FROM auth.users WHERE id = uid;
@@ -1624,7 +1265,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 REVOKE ALL ON FUNCTION delete_user() FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION delete_user() TO authenticated;
 
 -- record_superlike: 슈퍼라이크 차감 + like 삽입
@@ -1633,7 +1273,6 @@ RETURNS JSON AS $$
 DECLARE
   v_user_id UUID := auth.uid();
   v_items   user_items;
-BEGIN
   SELECT * INTO v_items FROM user_items WHERE user_id = v_user_id FOR UPDATE;
   IF v_items.super_likes <= 0 THEN
     RETURN json_build_object('success', false, 'error', 'no_superlike_left');
@@ -1648,7 +1287,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 REVOKE ALL ON FUNCTION record_superlike(UUID) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION record_superlike(UUID) TO authenticated;
 
 -- check_and_create_match: 쌍방 좋아요 시 자동 매칭
@@ -1658,7 +1296,6 @@ DECLARE
   v_user_id      UUID := auth.uid();
   v_match_exists BOOLEAN;
   v_thread_id    UUID;
-BEGIN
   SELECT EXISTS (
     SELECT 1 FROM likes WHERE from_user = p_to_user AND to_user = v_user_id
   ) INTO v_match_exists;
@@ -1682,7 +1319,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 REVOKE ALL ON FUNCTION check_and_create_match(UUID) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION check_and_create_match(UUID) TO authenticated;
 
 -- find_email_by_phone: 이메일 찾기 (마스킹)
@@ -1690,7 +1326,6 @@ CREATE OR REPLACE FUNCTION public.find_email_by_phone(p_name TEXT, p_phone TEXT)
 RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_email TEXT; v_at INT; v_local TEXT;
-BEGIN
   SELECT email INTO v_email FROM public.profiles
   WHERE name = p_name AND phone = p_phone LIMIT 1;
   IF v_email IS NULL THEN RETURN NULL; END IF;
@@ -1706,32 +1341,23 @@ BEGIN
   RETURN v_email;
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.find_email_by_phone(TEXT, TEXT) TO authenticated, anon;
 
 -- increment_ad_clicks: 광고 클릭수 원자적 증가
 CREATE OR REPLACE FUNCTION increment_ad_clicks(row_id UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   UPDATE ads SET clicks = clicks + 1, budget_spent = budget_spent + 1 WHERE id = row_id;
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION increment_ad_clicks(UUID) TO authenticated, anon;
 
 -- increment_ad_impressions: 광고 노출수 원자적 증가
 CREATE OR REPLACE FUNCTION increment_ad_impressions(row_id UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   UPDATE ads SET impressions = impressions + 1 WHERE id = row_id;
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION increment_ad_impressions(UUID) TO authenticated, anon;
-
-
--- ── ADMIN TABLES & RLS ──
-
 -- ============================================================
 -- 04_admin_complete.sql
 -- 어드민 전용 테이블 + RLS 정책 + RPC 함수 + 뷰 + 관리자 지정
@@ -1744,7 +1370,6 @@ GRANT EXECUTE ON FUNCTION increment_ad_impressions(UUID) TO authenticated, anon;
 
 -- reports 테이블에 어드민 컬럼 추가 (누락 시 대비)
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS admin_comment TEXT;
-
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS resolved_at   TIMESTAMPTZ;
 
 -- announcements: 공지사항 (어드민 전용)
@@ -1756,15 +1381,10 @@ CREATE TABLE IF NOT EXISTS announcements (
   is_active  BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "announcements_select" ON announcements;
-
 CREATE POLICY "announcements_select" ON announcements FOR SELECT USING (true);
-
 DROP POLICY IF EXISTS "announcements_admin_all" ON announcements;
-
 CREATE POLICY "announcements_admin_all" ON announcements FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1778,22 +1398,21 @@ CREATE TABLE IF NOT EXISTS admin_activity_log (
   details     JSONB,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-
 ALTER TABLE admin_activity_log ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "activity_log_admin" ON admin_activity_log;
-
 CREATE POLICY "activity_log_admin" ON admin_activity_log FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+-- app_settings: 앱 설정 키-값 저장소
+CREATE TABLE IF NOT EXISTS app_settings (
+  key        TEXT PRIMARY KEY,
+  value      JSONB,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "app_settings_select" ON app_settings;
-
 CREATE POLICY "app_settings_select" ON app_settings FOR SELECT USING (true);
-
 DROP POLICY IF EXISTS "app_settings_admin" ON app_settings;
-
 CREATE POLICY "app_settings_admin" ON app_settings FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1804,37 +1423,43 @@ CREATE POLICY "app_settings_admin" ON app_settings FOR ALL
 
 -- profiles: 어드민 전체 업데이트 허용
 DROP POLICY IF EXISTS "profiles_admin_update" ON profiles;
-
 CREATE POLICY "profiles_admin_update" ON profiles FOR UPDATE
   USING (
     auth.uid() = id
     OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
   );
 
+-- profiles: 어드민 삭제 허용
 DROP POLICY IF EXISTS "profiles_admin_delete" ON profiles;
 CREATE POLICY "profiles_admin_delete" ON profiles FOR DELETE
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+-- posts: 어드민 전체 허용
 DROP POLICY IF EXISTS "posts_admin" ON posts;
 CREATE POLICY "posts_admin" ON posts FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+-- reports: 어드민 전체 허용
 DROP POLICY IF EXISTS "reports_admin" ON reports;
 CREATE POLICY "reports_admin" ON reports FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+-- id_verifications: 어드민 전체 허용
 DROP POLICY IF EXISTS "verif_admin" ON id_verifications;
 CREATE POLICY "verif_admin" ON id_verifications FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+-- safety_checkins: 어드민 전체 허용
 DROP POLICY IF EXISTS "safety_admin" ON safety_checkins;
 CREATE POLICY "safety_admin" ON safety_checkins FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+-- trip_groups: 어드민 전체 허용
 DROP POLICY IF EXISTS "groups_admin" ON trip_groups;
 CREATE POLICY "groups_admin" ON trip_groups FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+-- in_app_notifications: 어드민 전체 허용
 DROP POLICY IF EXISTS "notif_admin" ON in_app_notifications;
 CREATE POLICY "notif_admin" ON in_app_notifications FOR ALL
   USING (
@@ -1842,6 +1467,7 @@ CREATE POLICY "notif_admin" ON in_app_notifications FOR ALL
     OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
   );
 
+-- marketplace_items: 어드민 전체 허용
 DROP POLICY IF EXISTS "market_admin" ON marketplace_items;
 CREATE POLICY "market_admin" ON marketplace_items FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
@@ -1882,7 +1508,6 @@ CREATE OR REPLACE FUNCTION admin_ban_user(
   target_user_id UUID, reason TEXT DEFAULT NULL, ban_days INTEGER DEFAULT NULL
 )
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   UPDATE profiles
   SET is_banned = true, banned = true, ban_reason = reason,
       banned_until = CASE WHEN ban_days IS NOT NULL THEN NOW() + (ban_days || ' days')::INTERVAL ELSE NULL END
@@ -1894,7 +1519,6 @@ $$;
 -- 유저 정지 해제
 CREATE OR REPLACE FUNCTION admin_unban_user(target_user_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   UPDATE profiles SET is_banned = false, banned = false, ban_reason = NULL, banned_until = NULL
   WHERE id = target_user_id;
   RETURN FOUND;
@@ -1904,7 +1528,6 @@ $$;
 -- 신고 처리
 CREATE OR REPLACE FUNCTION admin_resolve_report(report_id UUID, action TEXT, comment TEXT DEFAULT NULL)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   UPDATE reports SET status = action, admin_comment = comment, resolved_at = NOW()
   WHERE id = report_id;
   RETURN FOUND;
@@ -1917,7 +1540,6 @@ RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_user_id UUID;
   v_score   NUMERIC;
-BEGIN
   UPDATE id_verifications SET status = 'approved', reviewed_at = NOW()
   WHERE id = verif_id RETURNING user_id INTO v_user_id;
   IF v_user_id IS NOT NULL THEN
@@ -1942,7 +1564,6 @@ $$;
 CREATE OR REPLACE FUNCTION admin_reject_verification(verif_id UUID, reason TEXT DEFAULT NULL)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE v_user_id UUID;
-BEGIN
   UPDATE id_verifications SET status = 'rejected', reject_reason = reason, reviewed_at = NOW()
   WHERE id = verif_id RETURNING user_id INTO v_user_id;
   IF v_user_id IS NOT NULL THEN
@@ -1954,10 +1575,17 @@ BEGIN
 END;
 $$;
 
+-- 게시글 삭제
+CREATE OR REPLACE FUNCTION admin_delete_post(p_post_id UUID)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+  DELETE FROM posts WHERE id = p_post_id;
+  RETURN FOUND;
+END;
+$$;
+
 -- 게시글 숨김/공개
 CREATE OR REPLACE FUNCTION admin_update_post_hidden(p_post_id UUID, p_hidden BOOLEAN)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   UPDATE posts SET hidden = p_hidden WHERE id = p_post_id;
   RETURN FOUND;
 END;
@@ -1966,7 +1594,6 @@ $$;
 -- 게시글 상단고정
 CREATE OR REPLACE FUNCTION admin_update_post_pinned(p_post_id UUID, p_pinned BOOLEAN)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   UPDATE posts SET pinned = p_pinned WHERE id = p_post_id;
   RETURN FOUND;
 END;
@@ -1975,7 +1602,6 @@ $$;
 -- 그룹 삭제
 CREATE OR REPLACE FUNCTION admin_delete_group(p_group_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   DELETE FROM trip_groups WHERE id = p_group_id;
   RETURN FOUND;
 END;
@@ -1984,7 +1610,6 @@ $$;
 -- 유저 계정 삭제
 CREATE OR REPLACE FUNCTION admin_delete_user_account(p_user_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   DELETE FROM profiles WHERE id = p_user_id;
   RETURN FOUND;
 END;
@@ -1993,12 +1618,17 @@ $$;
 -- 어드민 노트 업데이트
 CREATE OR REPLACE FUNCTION admin_update_user_note(p_user_id UUID, p_note TEXT)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   UPDATE profiles SET admin_note = p_note WHERE id = p_user_id;
   RETURN FOUND;
 END;
 $$;
 
+-- ─────────────────────────────────────────────
+-- 4. 어드민 뷰
+-- ─────────────────────────────────────────────
+
+-- SOS 활성 체크인 뷰
+DROP VIEW IF EXISTS admin_sos_active CASCADE;
 CREATE OR REPLACE VIEW admin_sos_active AS
 SELECT
   sc.id, sc.user_id, sc.location_name, sc.latitude, sc.longitude,
@@ -2009,6 +1639,8 @@ JOIN profiles p ON p.id = sc.user_id
 WHERE sc.is_sos = true AND sc.status != 'resolved'
 ORDER BY sc.created_at DESC;
 
+-- 채팅방 요약 뷰 (trip_groups 기반)
+DROP VIEW IF EXISTS admin_chat_room_summary CASCADE;
 CREATE OR REPLACE VIEW admin_chat_room_summary AS
 SELECT
   tg.id, tg.title, tg.description, tg.is_active, tg.member_count, tg.max_members,
@@ -2018,6 +1650,8 @@ FROM trip_groups tg
 LEFT JOIN profiles p ON p.id = COALESCE(tg.host_id, tg.created_by)
 ORDER BY tg.created_at DESC;
 
+-- 유저 요약 뷰
+DROP VIEW IF EXISTS admin_user_summary CASCADE;
 CREATE OR REPLACE VIEW admin_user_summary AS
 SELECT
   p.id, p.name, p.email, p.photo_url, p.nationality, p.verified, p.is_plus, p.plan,
@@ -2055,7 +1689,6 @@ ON CONFLICT (key) DO NOTHING;
 -- 완료 메시지
 -- ─────────────────────────────────────────────
 DO $$
-BEGIN
   RAISE NOTICE '✅ Admin patch applied successfully!';
   RAISE NOTICE '   - Missing columns added to profiles/reports';
   RAISE NOTICE '   - announcements, admin_activity_log, app_settings, subscriptions, purchases, promo_codes tables created';
@@ -2064,10 +1697,6 @@ BEGIN
   RAISE NOTICE '   - Admin views created';
   RAISE NOTICE '   - Admin account ujin141@naver.com granted admin role';
 END $$;
-
-
--- ── PERFORMANCE INDEXES ──
-
 -- ============================================================
 -- 05_indexes.sql - 모든 성능 인덱스
 -- 테이블 생성 완료 후 실행하세요
@@ -2077,40 +1706,78 @@ END $$;
 -- profiles
 CREATE INDEX IF NOT EXISTS idx_profiles_lat_lng       ON profiles(lat, lng);
 
+-- likes
+CREATE INDEX IF NOT EXISTS idx_likes_from             ON likes(from_user);
 CREATE INDEX IF NOT EXISTS idx_likes_to               ON likes(to_user);
-
 CREATE INDEX IF NOT EXISTS idx_likes_from_created      ON likes(from_user, created_at DESC);
 
+-- matches
+CREATE INDEX IF NOT EXISTS idx_matches_user1           ON matches(user1_id);
 CREATE INDEX IF NOT EXISTS idx_matches_user2           ON matches(user2_id);
 
+-- messages
+CREATE INDEX IF NOT EXISTS idx_messages_thread         ON messages(thread_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_group_id       ON messages(group_id);
-
 CREATE INDEX IF NOT EXISTS idx_messages_created_at     ON messages(created_at DESC);
 
+-- posts
+CREATE INDEX IF NOT EXISTS idx_posts_created           ON posts(created_at DESC);
+
+-- notifications
+CREATE INDEX IF NOT EXISTS idx_notif_user              ON notifications(user_id, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_notif_profile_view_dedup
   ON notifications (user_id, actor_id, type) WHERE type = 'profile_view';
 
+-- in_app_notifications
+CREATE INDEX IF NOT EXISTS idx_inapp_user              ON in_app_notifications(user_id, created_at DESC);
+
+-- trip_groups
+CREATE INDEX IF NOT EXISTS idx_trip_groups_is_active    ON trip_groups(is_active);
 CREATE INDEX IF NOT EXISTS idx_trip_groups_created_at   ON trip_groups(created_at DESC);
 
+-- trip_group_members
+CREATE INDEX IF NOT EXISTS idx_group_members_group      ON trip_group_members(group_id);
 CREATE INDEX IF NOT EXISTS idx_group_members_user       ON trip_group_members(user_id);
 
+-- trip_applications
+CREATE INDEX IF NOT EXISTS idx_trip_app_group           ON trip_applications(group_id);
 CREATE INDEX IF NOT EXISTS idx_trip_app_applicant       ON trip_applications(applicant_id);
 
+-- reports
+CREATE INDEX IF NOT EXISTS idx_reports_status           ON reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_created_at       ON reports(created_at DESC);
 
+-- safety_checkins
+CREATE INDEX IF NOT EXISTS idx_safety_user              ON safety_checkins(user_id);
 CREATE INDEX IF NOT EXISTS idx_safety_checkins_status   ON safety_checkins(status);
-
 CREATE INDEX IF NOT EXISTS idx_safety_checkins_created  ON safety_checkins(created_at DESC);
 
+-- profile_views
+CREATE INDEX IF NOT EXISTS idx_pv_viewed                ON profile_views(viewed_id, viewed_at DESC);
+
+-- trip_reviews
+CREATE INDEX IF NOT EXISTS idx_tr_reviewee              ON trip_reviews(reviewee_id);
 CREATE INDEX IF NOT EXISTS idx_tr_reviewer              ON trip_reviews(reviewer_id);
 
+-- meet_reviews (reviewed_id 컬럼 존재 시에만 실행)
+-- CREATE INDEX IF NOT EXISTS idx_meet_reviews_reviewed    ON meet_reviews(reviewed_id);
+
+-- subscriptions
+CREATE INDEX IF NOT EXISTS idx_sub_user                 ON subscriptions(user_id, expires_at DESC);
+
+-- purchases
+CREATE INDEX IF NOT EXISTS idx_purchases_user           ON purchases(user_id, created_at DESC);
+
+-- online_status
+CREATE INDEX IF NOT EXISTS idx_online_status_city       ON online_status(city);
 CREATE INDEX IF NOT EXISTS idx_online_status_latln      ON online_status(lat, lng);
 
+-- chat_threads
+CREATE INDEX IF NOT EXISTS idx_chat_threads_expires     ON chat_threads(meet_expires_at) WHERE meet_expires_at IS NOT NULL;
+
+-- hotplace_seekers
+CREATE UNIQUE INDEX IF NOT EXISTS hotplace_seekers_user_hotplace_idx ON public.hotplace_seekers(user_id, hotplace_id);
 CREATE INDEX IF NOT EXISTS hotplace_seekers_hotplace_id_idx ON public.hotplace_seekers(hotplace_id, created_at DESC);
-
-
--- ── REALTIME & STORAGE BUCKETS ──
-
 -- ============================================================
 -- 06_realtime_storage.sql - Realtime 구독 + Storage 버킷
 -- 마지막에 실행하세요
@@ -2120,10 +1787,8 @@ CREATE INDEX IF NOT EXISTS hotplace_seekers_hotplace_id_idx ON public.hotplace_s
 DO $$
 DECLARE
   t TEXT;
-BEGIN
   FOREACH t IN ARRAY ARRAY['matches','messages','notifications','trip_reviews','online_status']
   LOOP
-    BEGIN
       EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', t);
     EXCEPTION WHEN OTHERS THEN
       -- ignore already added or other errors
@@ -2132,13 +1797,20 @@ BEGIN
 END;
 $$;
 
+-- STORAGE BUCKETS
+DO $$
+BEGIN
+  INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
+EXCEPTION WHEN OTHERS THEN NULL;
+END;
+$$;
+
 DO $$
 BEGIN
   INSERT INTO storage.buckets (id, name, public)
 VALUES ('posts', 'posts', true) ON CONFLICT (id) DO NOTHING;
-EXCEPTION WHEN OTHERS THEN
-  -- storage schema not available in this context, skip
-  NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END;
 $$;
 
@@ -2146,33 +1818,28 @@ DO $$
 BEGIN
   INSERT INTO storage.buckets (id, name, public)
 VALUES ('id-docs', 'id-docs', false) ON CONFLICT (id) DO NOTHING;
-EXCEPTION WHEN OTHERS THEN
-  -- storage schema not available in this context, skip
-  NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END;
 $$;
 
-DROP POLICY IF EXISTS "avatar_all_public" ON storage.objects;
+-- Storage 정책
+DROP POLICY IF EXISTS "avatar_all_public"  ON storage.objects;
 CREATE POLICY "avatar_all_public" ON storage.objects
   FOR SELECT USING (bucket_id = 'avatars');
 
 DROP POLICY IF EXISTS "avatar_upload_own"  ON storage.objects;
-
 CREATE POLICY "avatar_upload_own" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 DROP POLICY IF EXISTS "posts_all_public"   ON storage.objects;
-
 CREATE POLICY "posts_all_public" ON storage.objects
   FOR SELECT USING (bucket_id = 'posts');
 
 DROP POLICY IF EXISTS "posts_upload_own"   ON storage.objects;
-
 CREATE POLICY "posts_upload_own" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'posts' AND auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "id_docs_own"        ON storage.objects;
-
 CREATE POLICY "id_docs_own" ON storage.objects
   FOR ALL USING (bucket_id = 'id-docs' AND auth.uid()::text = (storage.foldername(name))[1]);
 
@@ -2182,28 +1849,20 @@ BEGIN
   INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('ad-images', 'ad-images', true, 5242880, ARRAY['image/jpeg','image/png','image/webp','image/gif'])
 ON CONFLICT (id) DO NOTHING;
-EXCEPTION WHEN OTHERS THEN
-  -- storage schema not available in this context, skip
-  NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END;
 $$;
 
 DROP POLICY IF EXISTS "ad_images_public"     ON storage.objects;
-
 CREATE POLICY "ad_images_public" ON storage.objects
   FOR SELECT USING (bucket_id = 'ad-images');
 
 DROP POLICY IF EXISTS "ad_images_admin_upload" ON storage.objects;
-
 CREATE POLICY "ad_images_admin_upload" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'ad-images'
     AND EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
   );
-
-
--- ── RETENTION: Features ──
-
 -- ============================================================
 -- MIGO 리텐션 Phase 1-1: 신규 가입 시 자동 좋아요 생성
 -- 새 유저가 가입하면 모의 유저 10~15명이 자동으로 좋아요를 보냄
@@ -2220,17 +1879,11 @@ CREATE TABLE IF NOT EXISTS daily_checkins (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, checked_at)
 );
-
 ALTER TABLE daily_checkins ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "checkin_select_own" ON daily_checkins;
-
 DROP POLICY IF EXISTS "checkin_insert_own" ON daily_checkins;
-
 CREATE POLICY "checkin_select_own" ON daily_checkins FOR SELECT USING (auth.uid() = user_id);
-
 CREATE POLICY "checkin_insert_own" ON daily_checkins FOR INSERT WITH CHECK (auth.uid() = user_id);
-
 CREATE INDEX IF NOT EXISTS idx_daily_checkins_user ON daily_checkins(user_id, checked_at DESC);
 
 -- ============================================================
@@ -2244,7 +1897,6 @@ DECLARE
   mock_ids UUID[];
   cnt INTEGER;
   target_count INTEGER;
-BEGIN
   -- 모의 유저(seed/mock/hotmock/global/intl)만 선별
   SELECT array_agg(id ORDER BY random())
   INTO mock_ids
@@ -2300,7 +1952,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_welcome_likes ON profiles;
-
 CREATE TRIGGER trg_welcome_likes
   AFTER INSERT ON profiles
   FOR EACH ROW EXECUTE FUNCTION auto_generate_welcome_likes();
@@ -2317,7 +1968,6 @@ DECLARE
   v_new_streak INTEGER := 1;
   v_reward TEXT := NULL;
   v_already BOOLEAN := false;
-BEGIN
   -- 오늘 이미 체크인했는지 확인
   IF EXISTS(SELECT 1 FROM daily_checkins WHERE user_id = p_user_id AND checked_at = CURRENT_DATE) THEN
     v_already := true;
@@ -2366,10 +2016,6 @@ BEGIN
   RETURN jsonb_build_object('already', false, 'streak', v_new_streak, 'reward', v_reward);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
--- ── RETENTION: Push ──
-
 -- ============================================================
 -- MIGO 리텐션 Phase 1-2: 미접속 유저 자동 재방문 유도 푸시
 -- pg_cron으로 매시간 실행 → 미접속 유저에게 단계별 푸시 발송
@@ -2381,7 +2027,6 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT
 -- 로그인/앱열기 시 last_active_at 갱신하는 함수 (프론트에서 RPC 호출)
 CREATE OR REPLACE FUNCTION touch_active(p_user_id UUID)
 RETURNS void AS $$
-BEGIN
   UPDATE profiles SET last_active_at = NOW() WHERE id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -2402,7 +2047,6 @@ DECLARE
   like_count INTEGER;
   group_count INTEGER;
   new_users INTEGER;
-BEGIN
   -- === 3시간 미접속 ===
   FOR r IN
     SELECT p.id, p.fcm_token
@@ -2484,6 +2128,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- pg_cron 스케줄 (Supabase Dashboard에서 설정)
+-- SELECT cron.schedule('retention-push', '0 * * * *', 'SELECT send_retention_pushes()');
 -- → 매시 정각마다 실행
 
 -- ============================================================
@@ -2494,7 +2140,6 @@ CREATE OR REPLACE FUNCTION notify_streak_break()
 RETURNS void AS $$
 DECLARE
   r RECORD;
-BEGIN
   FOR r IN
     SELECT dc.user_id, dc.streak, p.fcm_token
     FROM daily_checkins dc
@@ -2512,9 +2157,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-
--- ── BADGES & REPORTS ──
-
+-- pg_cron 스케줄 (Supabase Dashboard에서 설정)
+-- SELECT cron.schedule('streak-break-notify', '0 0 * * *', 'SELECT notify_streak_break()');
+-- → 매일 KST 9:00 (UTC 00:00) 실행
 -- ============================================================
 -- MIGO 리텐션 Phase 3: 뱃지 시스템, 주간 리포트, 근처 매칭 알림
 -- ============================================================
@@ -2524,7 +2169,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_profile_master_badge()
 RETURNS TRIGGER AS $$
-BEGIN
   -- 프로필 마스터 뱃지가 아직 없고, 필수 정보가 모두 채워졌을 때 획득
   IF NOT ('profile_master' = ANY(NEW.earned_badges)) AND 
      NEW.photo_url IS NOT NULL AND NEW.photo_url != '' AND
@@ -2545,17 +2189,16 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_profile_badge ON profiles;
-
 CREATE TRIGGER trg_profile_badge
   BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION check_profile_master_badge();
+
 
 -- ------------------------------------------------------------
 -- 2. 뱃지 자동 획득 (Travel Holic - 여행 등록 시)
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_travel_holic_badge()
 RETURNS TRIGGER AS $$
-BEGIN
   -- 여행을 등록한 유저의 뱃지 확인
   UPDATE profiles 
   SET earned_badges = array_append(earned_badges, 'travel_holic')
@@ -2572,10 +2215,10 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_trip_badge ON trips;
-
 CREATE TRIGGER trg_trip_badge
   AFTER INSERT ON trips
   FOR EACH ROW EXECUTE FUNCTION check_travel_holic_badge();
+
 
 -- ------------------------------------------------------------
 -- 3. 주간 리포트 알림 (매주 일요일 저녁 8시 자동 발송)
@@ -2586,7 +2229,6 @@ DECLARE
   v_user_record RECORD;
   v_views INTEGER;
   v_likes INTEGER;
-BEGIN
   -- 최근 7일 내 접속한 유저들에게만 발송
   FOR v_user_record IN 
     SELECT id, name FROM profiles WHERE last_active_at > NOW() - INTERVAL '7 days'
@@ -2615,6 +2257,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- pg_cron 스케줄링 (매주 일요일 20시)
+-- SELECT cron.schedule('weekly-report', '0 20 * * 0', 'SELECT send_weekly_reports()');
+
+
 -- ------------------------------------------------------------
 -- 4. 지금 근처 실시간 알림 (위치 갱신 시 호출)
 -- ------------------------------------------------------------
@@ -2622,7 +2268,6 @@ CREATE OR REPLACE FUNCTION trigger_nearby_alert(p_user_id UUID, p_lat DOUBLE PRE
 RETURNS VOID AS $$
 DECLARE
   v_nearby_count INTEGER;
-BEGIN
   -- 반경 10km 이내 최근 24시간 접속한 활성 유저 수 계산 (간단한 모의 로직)
   -- 실제 PostGIS가 없으므로 lat/lng 단순 차이(대략)로 계산
   SELECT COUNT(*) INTO v_nearby_count
@@ -2645,10 +2290,6 @@ BEGIN
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
--- ── SCHEMA FIXES (columns, triggers) ──
-
 -- ============================================================
 -- 10_schema_fixes.sql
 -- 프론트엔드 ↔ DB 스키마 불일치 전수 수정 패치
@@ -2661,6 +2302,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ─────────────────────────────────────────────
 -- useAuth.ts, LoginPage.tsx: setup_complete 체크
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS setup_complete   BOOLEAN DEFAULT false;
+-- VerificationPage.tsx: sns_handle 저장
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sns_handle       TEXT;
+-- 08_retention_push.sql: 마지막 활동 추적
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active_at  TIMESTAMPTZ DEFAULT NOW();
 
 -- ─────────────────────────────────────────────
 -- 2. messages 누락 컬럼
@@ -2680,7 +2325,6 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS reported_user_id UUID REFERENCES pr
 -- ─────────────────────────────────────────────
 -- ChatPage.tsx/ProfilePage.tsx에서 last_message_at 정렬에 사용될 수 있음
 ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS last_message_at TIMESTAMPTZ;
-
 ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ DEFAULT NOW();
 
 -- ─────────────────────────────────────────────
@@ -2688,9 +2332,7 @@ ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ DE
 -- ─────────────────────────────────────────────
 -- DiscoverPage.tsx: cover_image, entry_fee, is_premium 사용
 ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS cover_image TEXT;
-
 ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS entry_fee   INTEGER DEFAULT 0;
-
 ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS is_premium  BOOLEAN DEFAULT false;
 
 -- ─────────────────────────────────────────────
@@ -2699,7 +2341,6 @@ ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS is_premium  BOOLEAN DEFAULT fal
 -- ─────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION sync_message_text_content()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
   -- text로 insert됐는데 content가 비어있으면 동기화
   IF NEW.text IS NOT NULL AND NEW.content IS NULL THEN
     NEW.content := NEW.text;
@@ -2713,7 +2354,6 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_sync_message_text ON messages;
-
 CREATE TRIGGER trg_sync_message_text
   BEFORE INSERT OR UPDATE ON messages
   FOR EACH ROW EXECUTE FUNCTION sync_message_text_content();
@@ -2723,7 +2363,6 @@ CREATE TRIGGER trg_sync_message_text
 -- ─────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_thread_last_message()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
   UPDATE chat_threads
   SET last_message     = COALESCE(NEW.text, NEW.content),
       last_message_at  = NEW.created_at,
@@ -2734,7 +2373,6 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_update_thread_last_msg ON messages;
-
 CREATE TRIGGER trg_update_thread_last_msg
   AFTER INSERT ON messages
   FOR EACH ROW EXECUTE FUNCTION update_thread_last_message();
@@ -2744,7 +2382,6 @@ CREATE TRIGGER trg_update_thread_last_msg
 -- ─────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION touch_active()
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   UPDATE online_status
   SET is_online = true, last_seen = NOW()
   WHERE user_id = auth.uid();
@@ -2759,7 +2396,6 @@ BEGIN
   UPDATE profiles SET last_active_at = NOW() WHERE id = auth.uid();
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION touch_active() TO authenticated;
 
 -- ─────────────────────────────────────────────
@@ -2768,10 +2404,8 @@ GRANT EXECUTE ON FUNCTION touch_active() TO authenticated;
 DO $$
 DECLARE
   t TEXT;
-BEGIN
   FOREACH t IN ARRAY ARRAY['messages', 'chat_messages', 'online_status', 'hotplace_seekers', 'sos_alerts']
   LOOP
-    BEGIN
       EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', t);
     EXCEPTION WHEN OTHERS THEN
       -- ignore
@@ -2792,9 +2426,7 @@ VALUES
   ('id-docs',  'id-docs',  false, 10485760, ARRAY['image/jpeg','image/png','image/webp','image/pdf']),
   ('ad-images','ad-images',true,  5242880, ARRAY['image/jpeg','image/png','image/webp','image/gif'])
 ON CONFLICT (id) DO NOTHING;
-EXCEPTION WHEN OTHERS THEN
-  -- storage schema not available in this context, skip
-  NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END;
 $$;
 
@@ -2802,7 +2434,6 @@ $$;
 -- 완료
 -- ─────────────────────────────────────────────
 DO $$
-BEGIN
   RAISE NOTICE '✅ Schema fixes applied!';
   UPDATE profiles SET setup_complete = true WHERE email LIKE '%@migo.app%';
   RAISE NOTICE '   profiles: setup_complete, sns_handle, last_active_at 추가';
@@ -2813,17 +2444,12 @@ BEGIN
   RAISE NOTICE '   touch_active() RPC 생성';
   RAISE NOTICE '   Realtime 구독 + Storage 버킷 설정';
 END $$;
-
-
--- ── SYNC: Auth Verification ──
-
 -- 11_sync_verification.sql
 -- Automatically sync phone and email verification from auth.users to profiles
 -- and recalculate trust_score, bypassing the block_sensitive_profile_updates trigger.
 
 CREATE OR REPLACE FUNCTION sync_auth_verification_to_profiles()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
   -- We use an autonomous transaction or just update the profile.
   -- To bypass block_sensitive_profile_updates, we can temporarily set a local variable
   -- but since it checks auth.role() = 'authenticated', and this trigger fires as 'supabase_admin'
@@ -2842,14 +2468,13 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_sync_auth_verification ON auth.users;
-
 CREATE TRIGGER trg_sync_auth_verification
   AFTER UPDATE OF phone_confirmed_at, email_confirmed_at ON auth.users
   FOR EACH ROW EXECUTE FUNCTION sync_auth_verification_to_profiles();
-
-
--- ── SECURITY: Chat ──
-
+-- ============================================================
+-- 12_chat_security.sql
+-- 채팅방 하이재킹 취약점 방어용 RLS 정책 업데이트
+-- ============================================================
 -- chat_members 테이블의 보안 정책 업데이트
 -- 기존 정책: 자기 자신이면 무조건 INSERT 가능 (치명적: 타인의 비밀 채팅방 thread_id를 알면 무단 침입 가능)
 -- 신규 정책: 
@@ -2863,28 +2488,54 @@ CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (
   OR EXISTS (SELECT 1 FROM chat_threads WHERE id = thread_id AND created_by = auth.uid())
   OR check_is_chat_member(thread_id)
 );
-
-
--- ── SECURITY: Privilege Escalation ──
-
 -- ============================================================
 -- 13_privilege_escalation.sql
 -- 심각한 권한 상승 취약점(Privilege Escalation) 방어
 -- 사용자가 자신의 프로필을 수정할 때 is_admin, role 등을 조작할 수 없도록 차단합니다.
 -- ============================================================
+CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
+RETURNS TRIGGER AS $$
+  -- 서비스 롤(관리자)이 아닌 일반 유저의 직접 수정 요청인 경우
+  IF auth.role() IN ('authenticated', 'anon') THEN
+    
+    -- 기존 차단 로직 (횟수 감소 차단 및 주요 상태 변경 차단)
+    IF NEW.instant_meets_count < OLD.instant_meets_count THEN
+      NEW.instant_meets_count := OLD.instant_meets_count;
+    END IF;
+    IF NEW.no_show_count < OLD.no_show_count THEN
+      NEW.no_show_count := OLD.no_show_count;
+    END IF;
+    IF NEW.is_banned != OLD.is_banned THEN NEW.is_banned := OLD.is_banned; END IF;
+    IF NEW.banned != OLD.banned THEN NEW.banned := OLD.banned; END IF;
+    IF NEW.id_verified != OLD.id_verified THEN NEW.id_verified := OLD.id_verified; END IF;
+    IF NEW.phone_verified != OLD.phone_verified THEN NEW.phone_verified := OLD.phone_verified; END IF;
+    IF NEW.email_verified != OLD.email_verified THEN NEW.email_verified := OLD.email_verified; END IF;
 
-BEGIN;
+    -- [신규] 관리자 권한 상승 방어
+    IF NEW.is_admin != OLD.is_admin THEN NEW.is_admin := OLD.is_admin; END IF;
+    IF NEW.role != OLD.role THEN NEW.role := OLD.role; END IF;
+    
+    -- [신규] 결제 및 구독 관련 상태 조작 방어
+    IF NEW.is_plus != OLD.is_plus THEN NEW.is_plus := OLD.is_plus; END IF;
+    IF NEW.plan != OLD.plan THEN NEW.plan := OLD.plan; END IF;
+    IF NEW.plus_expires_at != OLD.plus_expires_at THEN NEW.plus_expires_at := OLD.plus_expires_at; END IF;
+    IF NEW.boost_expires_at != OLD.boost_expires_at THEN NEW.boost_expires_at := OLD.boost_expires_at; END IF;
+    IF NEW.super_likes_left > OLD.super_likes_left THEN NEW.super_likes_left := OLD.super_likes_left; END IF;
+    
+    -- [신규] 신뢰도 점수 및 리뷰 횟수 조작 방어
+    IF NEW.trust_score != OLD.trust_score THEN NEW.trust_score := OLD.trust_score; END IF;
+    IF NEW.avg_rating != OLD.avg_rating THEN NEW.avg_rating := OLD.avg_rating; END IF;
+    IF NEW.review_count != OLD.review_count THEN NEW.review_count := OLD.review_count; END IF;
 
-
--- ── SECURITY: Match ──
-
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================
 -- 14_match_security.sql (v2)
 -- 강제 1:1 채팅 개설(Forced Chat) 취약점 방어 및 바로모임 자동 차감
 -- ============================================================
-
-BEGIN;
-
 CREATE OR REPLACE FUNCTION enforce_chat_members_rules()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -2892,7 +2543,6 @@ DECLARE
   v_thread_is_group BOOLEAN;
   v_mutual BOOLEAN;
   v_caller_profile RECORD;
-BEGIN
   -- 백엔드 서비스롤(관리자) 무조건 통과
   IF auth.role() != 'authenticated' THEN
     RETURN NEW;
@@ -2940,27 +2590,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 기존 matches 테이블 트리거 제거 (오작동 방지)
+DROP TRIGGER IF EXISTS trigger_enforce_match_rules ON public.matches;
+
+-- chat_members 테이블에 강력한 삽입 방어 트리거 적용
+DROP TRIGGER IF EXISTS trigger_enforce_chat_members ON public.chat_members;
 CREATE TRIGGER trigger_enforce_chat_members
   BEFORE INSERT ON public.chat_members
   FOR EACH ROW EXECUTE FUNCTION enforce_chat_members_rules();
-
-
--- ── SECURITY: Group ──
-
 -- ============================================================
 -- 15_group_security.sql
 -- 강제 그룹 가입(Forced Group Join) 취약점 방어 및 승인 트리거 자동화
 -- ============================================================
-
-BEGIN;
-
 -- 1. 그룹 멤버 가입 시 그룹의 상태(status)와 최대 인원수를 확인하는 트리거
 CREATE OR REPLACE FUNCTION enforce_group_join_rules()
 RETURNS TRIGGER AS $$
 DECLARE
   v_group RECORD;
   v_current_count INT;
-BEGIN
   -- 백엔드/트리거(서비스롤)인 경우 제한 검증 패스
   IF auth.role() != 'authenticated' THEN
     RETURN NEW;
@@ -2992,7 +2639,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trigger_enforce_group_join ON public.trip_group_members;
-
 CREATE TRIGGER trigger_enforce_group_join
   BEFORE INSERT ON public.trip_group_members
   FOR EACH ROW EXECUTE FUNCTION enforce_group_join_rules();
@@ -3000,7 +2646,6 @@ CREATE TRIGGER trigger_enforce_group_join
 -- 2. 호스트가 지원자 승인(approved) 시 자동으로 멤버 테이블에 추가하는 트리거
 CREATE OR REPLACE FUNCTION auto_join_approved_applicants()
 RETURNS TRIGGER AS $$
-BEGIN
   -- 지원 상태가 approved로 변경된 경우에만 작동
   IF NEW.status = 'approved' AND OLD.status != 'approved' THEN
     INSERT INTO trip_group_members (group_id, user_id)
@@ -3012,23 +2657,18 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trigger_auto_join_approved ON public.trip_applications;
-
 CREATE TRIGGER trigger_auto_join_approved
   AFTER UPDATE OF status ON public.trip_applications
   FOR EACH ROW EXECUTE FUNCTION auto_join_approved_applicants();
-
-
--- ── SECURITY: Admin RLS ──
-
 -- ============================================================
 -- 16_admin_rls_fixes.sql
 -- 심각한 권한 탈취 취약점(Privilege Escalation & Data Wipe) 방어
 -- id_verifications 및 marketplace_items 의 잘못된 ALL 권한 정책 수정
 -- ============================================================
+-- 1. id_verifications 정책 수정
+-- (기존) 모든 로그인 유저가 다른 유저의 신분증 사진을 보거나 승인/거절 상태를 조작할 수 있는 치명적 결함 존재
+DROP POLICY IF EXISTS "idv_admin" ON public.id_verifications;
 
-BEGIN;
-
-DROP POLICY IF EXISTS "idv_admin" ON id_verifications;
 CREATE POLICY "idv_admin" ON public.id_verifications
   FOR ALL TO authenticated
   USING (
@@ -3038,7 +2678,10 @@ CREATE POLICY "idv_admin" ON public.id_verifications
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
   );
 
-DROP POLICY IF EXISTS "marketplace_admin" ON marketplace_items;
+-- 2. marketplace_items 정책 수정
+-- (기존) 모든 로그인 유저가 마켓 상품의 가격을 바꾸거나, 남의 상품을 삭제할 수 있는 치명적 결함 존재
+DROP POLICY IF EXISTS "marketplace_admin" ON public.marketplace_items;
+
 CREATE POLICY "marketplace_admin" ON public.marketplace_items
   FOR ALL TO authenticated
   USING (
@@ -3048,27 +2691,29 @@ CREATE POLICY "marketplace_admin" ON public.marketplace_items
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
   );
 
-DROP POLICY IF EXISTS "marketplace_host_all" ON marketplace_items;
+-- 추가로, 마켓플레이스 아이템은 호스트(판매자) 본인도 관리(수정/삭제)할 수 있어야 합니다.
+DROP POLICY IF EXISTS "marketplace_host_all" ON public.marketplace_items;
 CREATE POLICY "marketplace_host_all" ON public.marketplace_items
   FOR ALL TO authenticated
   USING (auth.uid() = host_id)
   WITH CHECK (auth.uid() = host_id);
-
-
--- ── SECURITY: Items RLS ──
-
 -- ============================================================
 -- 17_items_rls_fixes.sql
 -- 심각한 유료 아이템 무한 증식(Data Forging) 방어
 -- user_items 테이블 및 구매 내역 위조 방지
 -- ============================================================
+-- 1. user_items (슈퍼라이크, 부스트 등)
+-- (기존) FOR ALL 정책으로 인해 유저가 자신의 슈퍼라이크와 부스트 개수를 무제한으로 늘릴 수 있었습니다.
+DROP POLICY IF EXISTS "ui_own" ON public.user_items;
 
-BEGIN;
+-- 조회는 본인만 가능
+DROP POLICY IF EXISTS "ui_select" ON user_items;
+CREATE POLICY "ui_select" ON public.user_items 
+  FOR SELECT USING (auth.uid() = user_id);
 
 -- 유저가 직접 수량을 늘리는 업데이트를 차단 (트리거를 통해 강제 방어)
 CREATE OR REPLACE FUNCTION block_item_forging()
 RETURNS TRIGGER AS $$
-BEGIN
   IF auth.role() = 'authenticated' THEN
     IF NEW.super_likes > OLD.super_likes THEN
       NEW.super_likes := OLD.super_likes;
@@ -3085,10 +2730,14 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trigger_block_item_forging ON public.user_items;
-
 CREATE TRIGGER trigger_block_item_forging
   BEFORE UPDATE ON public.user_items
   FOR EACH ROW EXECUTE FUNCTION block_item_forging();
+
+-- 업데이트 정책 (수량 증가 시도는 위의 트리거가 막음, 차감은 허용)
+DROP POLICY IF EXISTS "ui_update" ON user_items;
+CREATE POLICY "ui_update" ON public.user_items 
+  FOR UPDATE USING (auth.uid() = user_id);
 
 -- 유저가 스스로 아이템 로우를 지우거나 임의로 재생성하는 것 방지
 -- INSERT와 DELETE 권한은 관리자 및 백엔드 트리거(on_profile_created_items)만 가지도록 제한
@@ -3097,27 +2746,25 @@ CREATE TRIGGER trigger_block_item_forging
 -- 2. purchases & subscriptions 내역 위조 방지
 -- (기존) 유저가 스스로 구매 내역이나 구독 기록을 생성하여 유료 회원을 가장할 수 있었습니다.
 DROP POLICY IF EXISTS "purchase_own" ON public.purchases;
-
 DROP POLICY IF EXISTS "purchase_own_select" ON purchases;
 CREATE POLICY "purchase_own_select" ON public.purchases 
   FOR SELECT USING (auth.uid() = user_id);
+-- 인서트는 오직 서버 사이드(결제 웹훅/RPC)에서만 허용
 
+DROP POLICY IF EXISTS "sub_own" ON public.subscriptions;
 DROP POLICY IF EXISTS "sub_own_select" ON subscriptions;
 CREATE POLICY "sub_own_select" ON public.subscriptions 
   FOR SELECT USING (auth.uid() = user_id);
-
-
--- ── SECURITY: Matches RLS ──
-
+-- 인서트는 오직 서버 사이드(결제 웹훅/RPC)에서만 허용
 -- ============================================================
 -- 18_matches_rls_fixes.sql
 -- 가짜 매칭 정보 생성(Fake Match Creation) 방어
 -- ============================================================
-
-BEGIN;
+-- 1. matches 테이블의 취약한 INSERT 정책 수정
+-- (기존) WITH CHECK (true) 로 설정되어 누구나 거짓 매칭 데이터를 생성하여 상대방의 매칭 목록에 자신을 표시할 수 있었습니다.
+DROP POLICY IF EXISTS "matches_insert" ON public.matches;
 
 -- (변경) 오직 본인이 당사자인 매칭만 생성할 수 있으며, 실제로는 14번 트리거 및 클라이언트 흐름상 상호 좋아요나 바로모임 검증을 통과해야 유효합니다.
-DROP POLICY IF EXISTS "matches_insert" ON matches;
 CREATE POLICY "matches_insert" ON public.matches 
   FOR INSERT WITH CHECK (auth.uid() IN (user1_id, user2_id));
 
@@ -3125,15 +2772,13 @@ CREATE POLICY "matches_insert" ON public.matches
 -- 일반 사용자는 matches 데이터를 임의로 지우거나 수정해서는 안 됩니다. (연결 끊기는 전용 API/비즈니스 로직을 통해 처리해야 함)
 -- 따라서 권한을 SELECT와 INSERT로만 제한합니다. (기존에도 UPDATE/DELETE는 허용되지 않았으나 명시적으로 확인)
 DROP POLICY IF EXISTS "matches_update" ON public.matches;
-
 DROP POLICY IF EXISTS "matches_delete" ON public.matches;
-
-
--- ── SECURITY: Admin Notes ──
-
+-- ============================================================
+-- 19_admin_notes_security.sql
+-- 관리자 전용 메모 및 차단 사유 변조 방어
+-- ============================================================
 CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
 RETURNS TRIGGER AS $$
-BEGIN
   -- 서비스 롤(관리자)이 아닌 일반 유저의 직접 수정 요청인 경우
   IF auth.role() IN ('authenticated', 'anon') THEN
     
@@ -3178,19 +2823,24 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
--- ── SECURITY: Chat Threads ──
-
 -- ============================================================
 -- 20_chat_threads_security.sql
 -- 채팅방 악의적 파괴(Thread Destruction) 및 변조 방어
 -- ============================================================
+-- 1. chat_threads 테이블의 삭제(DELETE) 권한 축소
+-- (기존) 채팅방의 멤버라면 누구나 전체 채팅방(chat_threads 레코드)을 통째로 삭제할 수 있어, 그룹채팅 폭파 테러가 가능했습니다.
+DROP POLICY IF EXISTS "threads_delete" ON public.chat_threads;
 
-BEGIN;
+-- (변경) 오직 채팅방 생성자(created_by)만이 방을 완전히 삭제할 수 있습니다.
+CREATE POLICY "threads_delete" ON public.chat_threads 
+  FOR DELETE USING (created_by = auth.uid());
+
+
+-- 2. chat_threads 테이블의 수정(UPDATE) 권한 축소
+-- (기존) 채팅방의 멤버라면 누구나 채팅방의 이름이나 썸네일, 만료 시간 등을 임의로 수정할 수 있었습니다.
+DROP POLICY IF EXISTS "threads_update" ON public.chat_threads;
 
 -- (변경) 그룹 채팅방은 방장만 수정 가능하며, 1:1 채팅방은 양쪽 멤버 모두 수정(방 이름 동기화 등) 가능하게 제한합니다.
-DROP POLICY IF EXISTS "threads_update" ON chat_threads;
 CREATE POLICY "threads_update" ON public.chat_threads 
   FOR UPDATE USING (
     (is_group = true AND created_by = auth.uid()) OR
@@ -3199,24 +2849,16 @@ CREATE POLICY "threads_update" ON public.chat_threads
       WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid()
     ))
   );
-
-
--- ── SECURITY: Reviews ──
-
 -- ============================================================
 -- 21_reviews_security.sql
 -- 허위 리뷰 및 평판 조작(Reputation Attack) 방어
 -- ============================================================
-
-BEGIN;
-
 CREATE OR REPLACE FUNCTION enforce_review_rules()
 RETURNS TRIGGER AS $$
 DECLARE
   v_caller UUID := auth.uid();
   v_has_connection BOOLEAN;
   v_target UUID;
-BEGIN
   -- 관리자 및 백엔드(트리거 등)는 예외
   IF auth.role() != 'authenticated' THEN
     RETURN NEW;
@@ -3229,7 +2871,6 @@ BEGIN
 
   -- 타겟 추출 (meet_reviews는 reviewed_id, trip_reviews는 reviewee_id)
   -- 본 트리거는 meet_reviews와 trip_reviews 양쪽에 적용할 수 있도록 유연하게 작성
-  BEGIN
     v_target := NEW.reviewed_id; -- meet_reviews 테이블인 경우
   EXCEPTION WHEN undefined_column THEN
     v_target := NEW.reviewee_id; -- trip_reviews 테이블인 경우
@@ -3266,20 +2907,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- meet_reviews 트리거 적용
+DROP TRIGGER IF EXISTS trigger_enforce_meet_review ON public.meet_reviews;
 CREATE TRIGGER trigger_enforce_meet_review
   BEFORE INSERT ON public.meet_reviews
   FOR EACH ROW EXECUTE FUNCTION enforce_review_rules();
 
+-- trip_reviews 트리거 적용
+DROP TRIGGER IF EXISTS trigger_enforce_trip_review ON public.trip_reviews;
 CREATE TRIGGER trigger_enforce_trip_review
   BEFORE INSERT ON public.trip_reviews
   FOR EACH ROW EXECUTE FUNCTION enforce_review_rules();
-
-
--- ── SECURITY: Likes (Super Like protection) ──
-
+-- ============================================================
+-- 22_likes_security.sql
+-- 무제한 슈퍼라이크(Super Like Bypass) 취약점 방어
+-- ============================================================
 CREATE OR REPLACE FUNCTION enforce_superlike_rules()
 RETURNS TRIGGER AS $$
-BEGIN
   -- 관리자 및 백엔드(RPC/트리거)는 허용
   IF auth.role() != 'authenticated' THEN
     RETURN NEW;
@@ -3324,21 +2968,15 @@ CREATE POLICY "likes_insert_own" ON public.likes
     AND (kind = 'like' OR kind IS NULL)
   );
 
-DROP POLICY IF EXISTS "likes_update_own" ON likes;
+-- UPDATE 시에도 kind를 super_like로 바꿀 수 없도록 차단
+DROP POLICY IF EXISTS "likes_update_own" ON public.likes;
 CREATE POLICY "likes_update_own" ON public.likes 
   FOR UPDATE USING (auth.uid() = from_user)
   WITH CHECK (kind != 'super_like');
-
-
--- ── SECURITY: API Rate Limits ──
-
 -- ============================================================
 -- 23_api_rate_limits.sql
 -- API 어뷰징(SMS Bombing 및 AI 번역 비용 폭탄) 방어용 컬럼 추가
 -- ============================================================
-
-BEGIN;
-
 -- 1. profiles 테이블에 API 어뷰징 방지를 위한 컬럼 추가
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS otp_last_sent TIMESTAMPTZ,
@@ -3348,7 +2986,6 @@ ALTER TABLE public.profiles
 -- 2. 컬럼들이 클라이언트에서 임의로 수정되지 않도록 19번 방어 트리거 업데이트
 CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
 RETURNS TRIGGER AS $$
-BEGIN
   IF auth.role() IN ('authenticated', 'anon') THEN
     
     -- 기존 차단 로직
