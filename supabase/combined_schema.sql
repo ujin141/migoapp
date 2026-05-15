@@ -2132,13 +2132,27 @@ BEGIN
 END;
 $$;
 
-INSERT INTO storage.buckets (id, name, public)
+DO $$
+BEGIN
+  INSERT INTO storage.buckets (id, name, public)
 VALUES ('posts', 'posts', true) ON CONFLICT (id) DO NOTHING;
+EXCEPTION WHEN OTHERS THEN
+  -- storage schema not available in this context, skip
+  NULL;
+END;
+$$;
 
-INSERT INTO storage.buckets (id, name, public)
+DO $$
+BEGIN
+  INSERT INTO storage.buckets (id, name, public)
 VALUES ('id-docs', 'id-docs', false) ON CONFLICT (id) DO NOTHING;
+EXCEPTION WHEN OTHERS THEN
+  -- storage schema not available in this context, skip
+  NULL;
+END;
+$$;
 
-DROP POLICY IF EXISTS "avatar_all_public" ON storage;
+DROP POLICY IF EXISTS "avatar_all_public" ON storage.objects;
 CREATE POLICY "avatar_all_public" ON storage.objects
   FOR SELECT USING (bucket_id = 'avatars');
 
@@ -2163,9 +2177,16 @@ CREATE POLICY "id_docs_own" ON storage.objects
   FOR ALL USING (bucket_id = 'id-docs' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 -- ad-images Storage 버킷 (광고 이미지 업로드)
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+DO $$
+BEGIN
+  INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('ad-images', 'ad-images', true, 5242880, ARRAY['image/jpeg','image/png','image/webp','image/gif'])
 ON CONFLICT (id) DO NOTHING;
+EXCEPTION WHEN OTHERS THEN
+  -- storage schema not available in this context, skip
+  NULL;
+END;
+$$;
 
 DROP POLICY IF EXISTS "ad_images_public"     ON storage.objects;
 
@@ -2762,13 +2783,20 @@ $$;
 -- ─────────────────────────────────────────────
 -- 10. Storage 버킷 (avatars, posts, id-docs)
 -- ─────────────────────────────────────────────
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+DO $$
+BEGIN
+  INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES
   ('avatars',  'avatars',  true,  5242880, ARRAY['image/jpeg','image/png','image/webp','image/gif']),
   ('posts',    'posts',    true,  10485760, ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4']),
   ('id-docs',  'id-docs',  false, 10485760, ARRAY['image/jpeg','image/png','image/webp','image/pdf']),
   ('ad-images','ad-images',true,  5242880, ARRAY['image/jpeg','image/png','image/webp','image/gif'])
 ON CONFLICT (id) DO NOTHING;
+EXCEPTION WHEN OTHERS THEN
+  -- storage schema not available in this context, skip
+  NULL;
+END;
+$$;
 
 -- ─────────────────────────────────────────────
 -- 완료
