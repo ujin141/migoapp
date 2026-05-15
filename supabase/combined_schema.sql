@@ -93,10 +93,13 @@ DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
 
 DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
 
+DROP POLICY IF EXISTS "profiles_select" ON profiles;
 CREATE POLICY "profiles_select"     ON profiles FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
 CREATE POLICY "profiles_insert_own" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
 CREATE POLICY "profiles_update_own" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- ======================== likes ========================
@@ -118,10 +121,13 @@ DROP POLICY IF EXISTS "likes_insert_own" ON likes;
 
 DROP POLICY IF EXISTS "likes_delete_own" ON likes;
 
+DROP POLICY IF EXISTS "likes_select" ON likes;
 CREATE POLICY "likes_select"     ON likes FOR SELECT USING (auth.uid() = from_user OR auth.uid() = to_user);
 
+DROP POLICY IF EXISTS "likes_insert_own" ON likes;
 CREATE POLICY "likes_insert_own" ON likes FOR INSERT WITH CHECK (auth.uid() = from_user);
 
+DROP POLICY IF EXISTS "likes_delete_own" ON likes;
 CREATE POLICY "likes_delete_own" ON likes FOR DELETE USING (auth.uid() = from_user);
 
 -- ======================== matches ========================
@@ -168,16 +174,20 @@ DROP POLICY IF EXISTS "threads_delete" ON chat_threads;
 
 DROP POLICY IF EXISTS "threads_update" ON chat_threads;
 
+DROP POLICY IF EXISTS "threads_select" ON chat_threads;
 CREATE POLICY "threads_select" ON chat_threads FOR SELECT USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid()) OR is_group = true
 );
 
+DROP POLICY IF EXISTS "threads_insert" ON chat_threads;
 CREATE POLICY "threads_insert" ON chat_threads FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "threads_delete" ON chat_threads;
 CREATE POLICY "threads_delete" ON chat_threads FOR DELETE USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
 );
 
+DROP POLICY IF EXISTS "threads_update" ON chat_threads;
 CREATE POLICY "threads_update" ON chat_threads FOR UPDATE USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
 );
@@ -204,6 +214,7 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql SECURITY DEFINER;
 
+DROP POLICY IF EXISTS "members_select" ON chat_members;
 CREATE POLICY "members_select" ON chat_members FOR SELECT USING (
   check_is_chat_member(thread_id)
 );
@@ -238,11 +249,13 @@ DROP POLICY IF EXISTS "messages_insert" ON messages;
 
 DROP POLICY IF EXISTS "messages_group_select" ON messages;
 
+DROP POLICY IF EXISTS "messages_select" ON messages;
 CREATE POLICY "messages_select" ON messages FOR SELECT USING (
   thread_id IN (SELECT thread_id FROM chat_members WHERE user_id = auth.uid())
   OR group_id IS NOT NULL  -- 그룹 메시지는 멤버면 볼 수 있음
 );
 
+DROP POLICY IF EXISTS "messages_insert" ON messages;
 CREATE POLICY "messages_insert" ON messages FOR INSERT WITH CHECK (
   auth.uid() = sender_id OR auth.uid() = user_id
 );
@@ -267,10 +280,13 @@ DROP POLICY IF EXISTS "notif_insert"     ON notifications;
 
 DROP POLICY IF EXISTS "notif_update_own" ON notifications;
 
+DROP POLICY IF EXISTS "notif_select_own" ON notifications;
 CREATE POLICY "notif_select_own" ON notifications FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "notif_insert" ON notifications;
 CREATE POLICY "notif_insert"     ON notifications FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "notif_update_own" ON notifications;
 CREATE POLICY "notif_update_own" ON notifications FOR UPDATE USING (auth.uid() = user_id);
 
 -- ======================== in_app_notifications ========================
@@ -292,10 +308,13 @@ DROP POLICY IF EXISTS "inapp_insert"     ON in_app_notifications;
 
 DROP POLICY IF EXISTS "inapp_update_own" ON in_app_notifications;
 
+DROP POLICY IF EXISTS "inapp_select_own" ON in_app_notifications;
 CREATE POLICY "inapp_select_own" ON in_app_notifications FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "inapp_insert" ON in_app_notifications;
 CREATE POLICY "inapp_insert"     ON in_app_notifications FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "inapp_update_own" ON in_app_notifications;
 CREATE POLICY "inapp_update_own" ON in_app_notifications FOR UPDATE USING (auth.uid() = user_id);
 
 -- ======================== posts ========================
@@ -321,12 +340,16 @@ DROP POLICY IF EXISTS "posts_update_own" ON posts;
 
 DROP POLICY IF EXISTS "posts_delete_own" ON posts;
 
+DROP POLICY IF EXISTS "posts_select" ON posts;
 CREATE POLICY "posts_select"     ON posts FOR SELECT USING (hidden = false);
 
+DROP POLICY IF EXISTS "posts_insert_own" ON posts;
 CREATE POLICY "posts_insert_own" ON posts FOR INSERT WITH CHECK (auth.uid() = author_id);
 
+DROP POLICY IF EXISTS "posts_update_own" ON posts;
 CREATE POLICY "posts_update_own" ON posts FOR UPDATE USING (auth.uid() = author_id);
 
+DROP POLICY IF EXISTS "posts_delete_own" ON posts;
 CREATE POLICY "posts_delete_own" ON posts FOR DELETE USING (auth.uid() = author_id);
 
 -- ======================== post_likes ========================
@@ -346,10 +369,13 @@ DROP POLICY IF EXISTS "post_likes_insert" ON post_likes;
 
 DROP POLICY IF EXISTS "post_likes_delete" ON post_likes;
 
+DROP POLICY IF EXISTS "post_likes_select" ON post_likes;
 CREATE POLICY "post_likes_select" ON post_likes FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "post_likes_insert" ON post_likes;
 CREATE POLICY "post_likes_insert" ON post_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "post_likes_delete" ON post_likes;
 CREATE POLICY "post_likes_delete" ON post_likes FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== comments ========================
@@ -369,10 +395,13 @@ DROP POLICY IF EXISTS "comments_insert"     ON comments;
 
 DROP POLICY IF EXISTS "comments_delete_own" ON comments;
 
+DROP POLICY IF EXISTS "comments_select" ON comments;
 CREATE POLICY "comments_select"     ON comments FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "comments_insert" ON comments;
 CREATE POLICY "comments_insert"     ON comments FOR INSERT WITH CHECK (auth.uid() = author_id);
 
+DROP POLICY IF EXISTS "comments_delete_own" ON comments;
 CREATE POLICY "comments_delete_own" ON comments FOR DELETE USING (auth.uid() = author_id);
 
 
@@ -442,12 +471,16 @@ DROP POLICY IF EXISTS "groups_update_own" ON trip_groups;
 
 DROP POLICY IF EXISTS "groups_delete_own" ON trip_groups;
 
+DROP POLICY IF EXISTS "groups_select" ON trip_groups;
 CREATE POLICY "groups_select"     ON trip_groups FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "groups_insert_own" ON trip_groups;
 CREATE POLICY "groups_insert_own" ON trip_groups FOR INSERT WITH CHECK (auth.uid() = host_id);
 
+DROP POLICY IF EXISTS "groups_update_own" ON trip_groups;
 CREATE POLICY "groups_update_own" ON trip_groups FOR UPDATE USING (auth.uid() = host_id);
 
+DROP POLICY IF EXISTS "groups_delete_own" ON trip_groups;
 CREATE POLICY "groups_delete_own" ON trip_groups FOR DELETE USING (auth.uid() = host_id);
 
 -- ======================== trip_group_members ========================
@@ -467,10 +500,13 @@ DROP POLICY IF EXISTS "group_members_insert" ON trip_group_members;
 
 DROP POLICY IF EXISTS "group_members_delete" ON trip_group_members;
 
+DROP POLICY IF EXISTS "group_members_select" ON trip_group_members;
 CREATE POLICY "group_members_select" ON trip_group_members FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "group_members_insert" ON trip_group_members;
 CREATE POLICY "group_members_insert" ON trip_group_members FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "group_members_delete" ON trip_group_members;
 CREATE POLICY "group_members_delete" ON trip_group_members FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== trip_applications ========================
@@ -492,10 +528,13 @@ DROP POLICY IF EXISTS "trip_app_insert"      ON trip_applications;
 
 DROP POLICY IF EXISTS "trip_app_update_host" ON trip_applications;
 
+DROP POLICY IF EXISTS "trip_app_select" ON trip_applications;
 CREATE POLICY "trip_app_select"      ON trip_applications FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "trip_app_insert" ON trip_applications;
 CREATE POLICY "trip_app_insert"      ON trip_applications FOR INSERT WITH CHECK (auth.uid() = applicant_id);
 
+DROP POLICY IF EXISTS "trip_app_update_host" ON trip_applications;
 CREATE POLICY "trip_app_update_host" ON trip_applications FOR UPDATE USING (true);
 
 -- ======================== reports ========================
@@ -525,13 +564,17 @@ DROP POLICY IF EXISTS "reports_select_admin" ON reports;
 
 DROP POLICY IF EXISTS "reports_update_admin" ON reports;
 
+DROP POLICY IF EXISTS "reports_insert" ON reports;
 CREATE POLICY "reports_insert"       ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
 
+DROP POLICY IF EXISTS "reports_select_own" ON reports;
 CREATE POLICY "reports_select_own"   ON reports FOR SELECT USING (auth.uid() = reporter_id);
 
+DROP POLICY IF EXISTS "reports_select_admin" ON reports;
 CREATE POLICY "reports_select_admin" ON reports FOR SELECT
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+DROP POLICY IF EXISTS "reports_update_admin" ON reports;
 CREATE POLICY "reports_update_admin" ON reports FOR UPDATE
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -552,10 +595,13 @@ DROP POLICY IF EXISTS "mlikes_insert" ON marketplace_likes;
 
 DROP POLICY IF EXISTS "mlikes_delete" ON marketplace_likes;
 
+DROP POLICY IF EXISTS "mlikes_select" ON marketplace_likes;
 CREATE POLICY "mlikes_select" ON marketplace_likes FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "mlikes_insert" ON marketplace_likes;
 CREATE POLICY "mlikes_insert" ON marketplace_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "mlikes_delete" ON marketplace_likes;
 CREATE POLICY "mlikes_delete" ON marketplace_likes FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== blocks ========================
@@ -575,10 +621,13 @@ DROP POLICY IF EXISTS "blocks_insert_own" ON blocks;
 
 DROP POLICY IF EXISTS "blocks_delete_own" ON blocks;
 
+DROP POLICY IF EXISTS "blocks_select_own" ON blocks;
 CREATE POLICY "blocks_select_own" ON blocks FOR SELECT USING (auth.uid() = blocker_id);
 
+DROP POLICY IF EXISTS "blocks_insert_own" ON blocks;
 CREATE POLICY "blocks_insert_own" ON blocks FOR INSERT WITH CHECK (auth.uid() = blocker_id);
 
+DROP POLICY IF EXISTS "blocks_delete_own" ON blocks;
 CREATE POLICY "blocks_delete_own" ON blocks FOR DELETE USING (auth.uid() = blocker_id);
 
 -- ======================== id_verifications ========================
@@ -605,8 +654,10 @@ DROP POLICY IF EXISTS "idv_insert_own" ON id_verifications;
 
 DROP POLICY IF EXISTS "idv_admin"      ON id_verifications;
 
+DROP POLICY IF EXISTS "idv_select_own" ON id_verifications;
 CREATE POLICY "idv_select_own" ON id_verifications FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "idv_insert_own" ON id_verifications;
 CREATE POLICY "idv_insert_own" ON id_verifications FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- ======================== marketplace_items ========================
@@ -679,10 +730,13 @@ DROP POLICY IF EXISTS "tr_insert"     ON trip_reviews;
 
 DROP POLICY IF EXISTS "tr_update_own" ON trip_reviews;
 
+DROP POLICY IF EXISTS "tr_select" ON trip_reviews;
 CREATE POLICY "tr_select"     ON trip_reviews FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "tr_insert" ON trip_reviews;
 CREATE POLICY "tr_insert"     ON trip_reviews FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
 
+DROP POLICY IF EXISTS "tr_update_own" ON trip_reviews;
 CREATE POLICY "tr_update_own" ON trip_reviews FOR UPDATE USING (auth.uid() = reviewer_id);
 
 
@@ -713,10 +767,13 @@ DROP POLICY IF EXISTS "calendars_insert_own" ON trip_calendars;
 
 DROP POLICY IF EXISTS "calendars_delete_own" ON trip_calendars;
 
+DROP POLICY IF EXISTS "calendars_select_own" ON trip_calendars;
 CREATE POLICY "calendars_select_own" ON trip_calendars FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "calendars_insert_own" ON trip_calendars;
 CREATE POLICY "calendars_insert_own" ON trip_calendars FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "calendars_delete_own" ON trip_calendars;
 CREATE POLICY "calendars_delete_own" ON trip_calendars FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== trips ========================
@@ -743,12 +800,16 @@ DROP POLICY IF EXISTS "trips_update_own" ON trips;
 
 DROP POLICY IF EXISTS "trips_delete_own" ON trips;
 
+DROP POLICY IF EXISTS "trips_select" ON trips;
 CREATE POLICY "trips_select"     ON trips FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "trips_insert_own" ON trips;
 CREATE POLICY "trips_insert_own" ON trips FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "trips_update_own" ON trips;
 CREATE POLICY "trips_update_own" ON trips FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "trips_delete_own" ON trips;
 CREATE POLICY "trips_delete_own" ON trips FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== safety_checkins ========================
@@ -780,12 +841,16 @@ DROP POLICY IF EXISTS "checkin_update" ON safety_checkins;
 
 DROP POLICY IF EXISTS "checkin_delete" ON safety_checkins;
 
+DROP POLICY IF EXISTS "checkin_select" ON safety_checkins;
 CREATE POLICY "checkin_select" ON safety_checkins FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "checkin_insert" ON safety_checkins;
 CREATE POLICY "checkin_insert" ON safety_checkins FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "checkin_update" ON safety_checkins;
 CREATE POLICY "checkin_update" ON safety_checkins FOR UPDATE USING (auth.uid() = user_id OR true);
 
+DROP POLICY IF EXISTS "checkin_delete" ON safety_checkins;
 CREATE POLICY "checkin_delete" ON safety_checkins FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== profile_views ========================
@@ -913,12 +978,16 @@ DROP POLICY IF EXISTS "checkin_update" ON travel_check_ins;
 
 DROP POLICY IF EXISTS "checkin_delete" ON travel_check_ins;
 
+DROP POLICY IF EXISTS "checkin_select" ON travel_check_ins;
 CREATE POLICY "checkin_select" ON travel_check_ins FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "checkin_insert" ON travel_check_ins;
 CREATE POLICY "checkin_insert" ON travel_check_ins FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "checkin_update" ON travel_check_ins;
 CREATE POLICY "checkin_update" ON travel_check_ins FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "checkin_delete" ON travel_check_ins;
 CREATE POLICY "checkin_delete" ON travel_check_ins FOR DELETE USING (auth.uid() = user_id);
 
 -- ======================== hotplace_seekers ========================
@@ -943,10 +1012,13 @@ DROP POLICY IF EXISTS "hotplace_seekers_insert" ON public.hotplace_seekers;
 
 DROP POLICY IF EXISTS "hotplace_seekers_delete" ON public.hotplace_seekers;
 
+DROP POLICY IF EXISTS "hotplace_seekers_select" ON hotplace_seekers;
 CREATE POLICY "hotplace_seekers_select" ON public.hotplace_seekers FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "hotplace_seekers_insert" ON hotplace_seekers;
 CREATE POLICY "hotplace_seekers_insert" ON public.hotplace_seekers FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "hotplace_seekers_delete" ON hotplace_seekers;
 CREATE POLICY "hotplace_seekers_delete" ON public.hotplace_seekers FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- ======================== ads ========================
@@ -1097,10 +1169,13 @@ DROP POLICY IF EXISTS "sos_own"    ON sos_alerts;
 
 DROP POLICY IF EXISTS "sos_admin"  ON sos_alerts;
 
+DROP POLICY IF EXISTS "sos_insert" ON sos_alerts;
 CREATE POLICY "sos_insert" ON sos_alerts FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "sos_own" ON sos_alerts;
 CREATE POLICY "sos_own"    ON sos_alerts FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "sos_admin" ON sos_alerts;
 CREATE POLICY "sos_admin"  ON sos_alerts FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -1736,30 +1811,38 @@ CREATE POLICY "profiles_admin_update" ON profiles FOR UPDATE
     OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
   );
 
+DROP POLICY IF EXISTS "profiles_admin_delete" ON profiles;
 CREATE POLICY "profiles_admin_delete" ON profiles FOR DELETE
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+DROP POLICY IF EXISTS "posts_admin" ON posts;
 CREATE POLICY "posts_admin" ON posts FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+DROP POLICY IF EXISTS "reports_admin" ON reports;
 CREATE POLICY "reports_admin" ON reports FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+DROP POLICY IF EXISTS "verif_admin" ON id_verifications;
 CREATE POLICY "verif_admin" ON id_verifications FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+DROP POLICY IF EXISTS "safety_admin" ON safety_checkins;
 CREATE POLICY "safety_admin" ON safety_checkins FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+DROP POLICY IF EXISTS "groups_admin" ON trip_groups;
 CREATE POLICY "groups_admin" ON trip_groups FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
+DROP POLICY IF EXISTS "notif_admin" ON in_app_notifications;
 CREATE POLICY "notif_admin" ON in_app_notifications FOR ALL
   USING (
     auth.uid() = user_id
     OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
   );
 
+DROP POLICY IF EXISTS "market_admin" ON marketplace_items;
 CREATE POLICY "market_admin" ON marketplace_items FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
@@ -2055,6 +2138,7 @@ VALUES ('posts', 'posts', true) ON CONFLICT (id) DO NOTHING;
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('id-docs', 'id-docs', false) ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "avatar_all_public" ON storage;
 CREATE POLICY "avatar_all_public" ON storage.objects
   FOR SELECT USING (bucket_id = 'avatars');
 
@@ -2916,6 +3000,7 @@ CREATE TRIGGER trigger_auto_join_approved
 
 BEGIN;
 
+DROP POLICY IF EXISTS "idv_admin" ON id_verifications;
 CREATE POLICY "idv_admin" ON public.id_verifications
   FOR ALL TO authenticated
   USING (
@@ -2925,6 +3010,7 @@ CREATE POLICY "idv_admin" ON public.id_verifications
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
   );
 
+DROP POLICY IF EXISTS "marketplace_admin" ON marketplace_items;
 CREATE POLICY "marketplace_admin" ON public.marketplace_items
   FOR ALL TO authenticated
   USING (
@@ -2934,6 +3020,7 @@ CREATE POLICY "marketplace_admin" ON public.marketplace_items
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin'))
   );
 
+DROP POLICY IF EXISTS "marketplace_host_all" ON marketplace_items;
 CREATE POLICY "marketplace_host_all" ON public.marketplace_items
   FOR ALL TO authenticated
   USING (auth.uid() = host_id)
@@ -2983,9 +3070,11 @@ CREATE TRIGGER trigger_block_item_forging
 -- (기존) 유저가 스스로 구매 내역이나 구독 기록을 생성하여 유료 회원을 가장할 수 있었습니다.
 DROP POLICY IF EXISTS "purchase_own" ON public.purchases;
 
+DROP POLICY IF EXISTS "purchase_own_select" ON purchases;
 CREATE POLICY "purchase_own_select" ON public.purchases 
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "sub_own_select" ON subscriptions;
 CREATE POLICY "sub_own_select" ON public.subscriptions 
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -3000,6 +3089,7 @@ CREATE POLICY "sub_own_select" ON public.subscriptions
 BEGIN;
 
 -- (변경) 오직 본인이 당사자인 매칭만 생성할 수 있으며, 실제로는 14번 트리거 및 클라이언트 흐름상 상호 좋아요나 바로모임 검증을 통과해야 유효합니다.
+DROP POLICY IF EXISTS "matches_insert" ON matches;
 CREATE POLICY "matches_insert" ON public.matches 
   FOR INSERT WITH CHECK (auth.uid() IN (user1_id, user2_id));
 
@@ -3072,6 +3162,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 BEGIN;
 
 -- (변경) 그룹 채팅방은 방장만 수정 가능하며, 1:1 채팅방은 양쪽 멤버 모두 수정(방 이름 동기화 등) 가능하게 제한합니다.
+DROP POLICY IF EXISTS "threads_update" ON chat_threads;
 CREATE POLICY "threads_update" ON public.chat_threads 
   FOR UPDATE USING (
     (is_group = true AND created_by = auth.uid()) OR
@@ -3205,6 +3296,7 @@ CREATE POLICY "likes_insert_own" ON public.likes
     AND (kind = 'like' OR kind IS NULL)
   );
 
+DROP POLICY IF EXISTS "likes_update_own" ON likes;
 CREATE POLICY "likes_update_own" ON public.likes 
   FOR UPDATE USING (auth.uid() = from_user)
   WITH CHECK (kind != 'super_like');
