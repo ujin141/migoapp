@@ -1752,8 +1752,15 @@ CREATE INDEX IF NOT EXISTS idx_pv_viewed                ON profile_views(viewed_
 CREATE INDEX IF NOT EXISTS idx_tr_reviewee              ON trip_reviews(reviewee_id);
 CREATE INDEX IF NOT EXISTS idx_tr_reviewer              ON trip_reviews(reviewer_id);
 
--- meet_reviews (reviewed_id 컬럼 존재 시에만 실행)
-CREATE INDEX IF NOT EXISTS idx_meet_reviews_reviewed    ON meet_reviews(reviewed_id);
+-- meet_reviews reviewed_id 컬럼 보장 후 인덱스 생성
+ALTER TABLE meet_reviews ADD COLUMN IF NOT EXISTS reviewed_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+DO $$
+BEGIN
+  CREATE INDEX IF NOT EXISTS idx_meet_reviews_reviewed ON meet_reviews(reviewed_id);
+EXCEPTION WHEN undefined_column OR OTHERS THEN
+  NULL;
+END;
+$$;
 
 -- subscriptions
 CREATE INDEX IF NOT EXISTS idx_sub_user                 ON subscriptions(user_id, expires_at DESC);
