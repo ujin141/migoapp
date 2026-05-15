@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trash2, Users, Plane, Crown, RefreshCw } from "lucide-react";
 import { fetchAdminGroups, deleteGroup } from "@/lib/adminService";
+import { toast } from "@/hooks/use-toast";
 export const AdminGroups = () => {
   const {
     t
@@ -20,10 +21,16 @@ export const AdminGroups = () => {
   useEffect(() => {
     load();
   }, []);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const handleDelete = async (id: string) => {
-    if (!confirm(i18n.t("auto.z_\uC815\uB9D0\uB85C\uC774\uADF8\uB8F9\uC744\uC0AD\uC81C\uD558_861", "\uC815\uB9D0\uB85C\uC774\uADF8\uB8F9\uC744\uC0AD\uC81C\uD558"))) return;
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId(prev => prev === id ? null : prev), 3000);
+      return;
+    }
+    setConfirmDeleteId(null);
     const success = await deleteGroup(id);
-    if (success) setGroups(prev => prev.filter(g => g.id !== id));else alert(t("auto.g_1105", "auto.z_그룹삭제에실패했습니_862"));
+    if (success) setGroups(prev => prev.filter(g => g.id !== id));else toast({ title: t("auto.g_1105", "auto.z_그룹삭제에실패했습니_862"), variant: "destructive" });
   };
   const filtered = groups.filter(g => {
     const q = search.toLowerCase();
@@ -94,7 +101,7 @@ export const AdminGroups = () => {
                   </div>
                   <motion.button whileTap={{
               scale: 0.9
-            }} onClick={() => handleDelete(g.id)} className="p-1.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors shrink-0 ml-2" title={i18n.t("auto.z_\uADF8\uB8F9\uC0AD\uC81C_874", "\uADF8\uB8F9\uC0AD\uC81C")}>
+            }} onClick={() => handleDelete(g.id)} className={`p-1.5 rounded-xl transition-colors shrink-0 ml-2 ${confirmDeleteId === g.id ? "bg-red-500 text-white" : "bg-red-500/10 text-red-400 hover:bg-red-500/20"}`} title={confirmDeleteId === g.id ? i18n.t("auto.t_confirm", "한 번 더 눌러 삭제") : i18n.t("auto.z_그룹삭제_874", "그룹삭제")}>
                     <Trash2 size={12} />
                   </motion.button>
                 </div>

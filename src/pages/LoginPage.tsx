@@ -538,6 +538,7 @@ const LoginPage = () => {
           interests: selectedStyles,
           agree_marketing: agreeMarketing,
           created_at: new Date().toISOString(),
+          setup_complete: true,
           // GPS 위치 (앱 시작 시 허용한 경우 즉시 저장)
           lat: parseFloat(localStorage.getItem('migo_my_lat') || '0') || null,
           lng: parseFloat(localStorage.getItem('migo_my_lng') || '0') || null
@@ -547,7 +548,7 @@ const LoginPage = () => {
         toast({
           title: t('login.signupDone')
         });
-        setTimeout(() => navigate("/profile-setup"), 800);
+        setTimeout(() => navigate("/"), 800);
       }
     } catch (e: unknown) {
       let msg = e instanceof Error ? e.message : t("auto.g_0720", "알 수 없는 오류가 발생했습니다.");

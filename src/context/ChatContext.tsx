@@ -106,7 +106,7 @@ export const ChatProvider = ({
       const members = membersByThread[thread.id] || [];
       const others = members.filter((mb: any) => mb.user_id !== user.id);
       const lastMsg = lastMsgMap[thread.id] || null;
-      let name = thread.is_group ? "Group Chat" : "";
+      let name = thread.is_group ? i18n.t("chat.groupChat", "Group Chat") : "";
       let photo = "";
       let memberPhotos: string[] = [];
       if (!thread.is_group) {

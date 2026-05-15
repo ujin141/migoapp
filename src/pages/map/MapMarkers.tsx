@@ -1,18 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { OverlayView } from "@react-google-maps/api";
 import { Hotplace } from "@/lib/placeRecommendations";
 
 // 부드러운 위치 보간을 처리하는 마커 컴포넌트
 export const SmoothTravelerMarker = ({ t, isSelected, onClick }: { t: any, isSelected: boolean, onClick: () => void }) => {
   const [pos, setPos] = useState({ lat: t.lat, lng: t.lng });
+  const posRef = useRef(pos);
+  posRef.current = pos;
   
   // 목적지로 부드럽게 이동 (선형 보간)
   useEffect(() => {
-    if (t.lat === pos.lat && t.lng === pos.lng) return;
+    if (t.lat === posRef.current.lat && t.lng === posRef.current.lng) return;
     
     let frame: number;
     let progress = 0;
-    const startPos = { ...pos };
+    const startPos = { ...posRef.current };
     
     const animate = () => {
       progress += 0.05; // 한 프레임당 5%씩 이동 (대략 20프레임 = 0.3초)
@@ -20,10 +22,11 @@ export const SmoothTravelerMarker = ({ t, isSelected, onClick }: { t: any, isSel
         setPos({ lat: t.lat, lng: t.lng });
         return;
       }
-      setPos({
+      const newPos = {
         lat: startPos.lat + (t.lat - startPos.lat) * progress,
         lng: startPos.lng + (t.lng - startPos.lng) * progress
-      });
+      };
+      setPos(newPos);
       frame = requestAnimationFrame(animate);
     };
     

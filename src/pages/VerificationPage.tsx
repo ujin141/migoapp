@@ -471,23 +471,20 @@ const VerificationPage = () => {
       }
     };
     fetchVerifStatus();
-  }, [user]);
+  }, [user, supaUser?.phone, supaUser?.email_confirmed_at]);
 
-  // trust_score DB 업데이트 풨퍼 함수
+  // trust_score DB 업데이트 래퍼 함수 (보안 강화: DB Trigger 사용)
   const recalcTrustScore = async (userId: string) => {
+    // 🚨 [CRITICAL SECURITY WARNING FIX]
+    // 이전 로직(클라이언트 단에서 점수를 임의 계산하여 DB에 삽입하는 취약점)을 제거했습니다.
+    // DB의 secure_calculate_trust_score 트리거가 검증 상태(phone_verified 등) 변경을 감지하여 
+    // 자동으로 점수를 재계산합니다. 클라이언트는 업데이트 후 그 결과만 다시 읽어옵니다.
     const {
       data
-    } = await supabase.from('profiles').select('phone_verified, email_verified, id_verified, sns_connected, review_verified').eq('id', userId).single();
-    if (!data) return;
-    // 🚨 [CRITICAL SECURITY WARNING] Trust Score 우회 가능 취약점
-    // 현재 신뢰도 점수(trust_score) 계산 및 저장(update)을 클라이언트에서 직접 수행하고 있습니다.
-    // 이는 RLS 우회 시 사용자가 임의로 자신의 검증 상태(phone_verified 등)와 점수를 
-    // 100점으로 조작하여 DB에 주입할 수 있는 설계적 결함입니다.
-    // TODO: 프로덕션 배포 전에 반드시 `recalcTrustScore` 로직을 Supabase Postgres Trigger 
-    // 혹은 Edge Function(RPC)으로 완전히 이관해야 합니다.
-    const score = (data.phone_verified ? 15 : 0) + (data.email_verified ? 10 : 0) + (data.id_verified ? 40 : 0) + (data.sns_connected ? 15 : 0) + (data.review_verified ? 20 : 0);
-    await supabase.from('profiles').update({ trust_score: score }).eq('id', userId);
-    setDbTrustScore(score);
+    } = await supabase.from('profiles').select('trust_score').eq('id', userId).single();
+    if (data && data.trust_score !== undefined) {
+      setDbTrustScore(data.trust_score);
+    }
   };
   const [showIdModal, setShowIdModal] = useState(false);
   // iOS: window.prompt 차단 대신 커스텀 모달 사용 (Apple HIG 준수)

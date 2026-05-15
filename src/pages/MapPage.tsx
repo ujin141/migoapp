@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase, getCached, setCache } from "@/lib/supabaseClient";
+import { haversineKm } from "@/hooks/useGeoDistance";
 import { useAuth } from "@/hooks/useAuth";
 import { translateText } from "@/lib/translateService";
 import { TravelerSheet } from "./map/TravelerSheet";
@@ -101,7 +102,7 @@ const MapPage = () => {
   const autoCycleIndexRef = useRef<number>(0);
   const [profileDetail, setProfileDetail] = useState<any | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [maxDistance, setMaxDistance] = useState(10);
+  const [maxDistance, setMaxDistance] = useState(50);
   const [ageFilter, setAgeFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState("all");
   const [centerAnim, setCenterAnim] = useState(false);
@@ -285,18 +286,14 @@ const MapPage = () => {
         .select('id,name,photo_url,age,gender,nationality,location,lat,lng,languages,interests,mbti,verified,bio')
         .neq('id', user?.id ?? '')
         .neq('is_banned', true)
+        .eq('setup_complete', true)
+        .not('lat', 'is', null)
+        .not('lng', 'is', null)
         .order('id')
-        .limit(30);
+        .limit(200);
       if (!error && data) {
-        const haversine = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-          const R = 6371;
-          const dLat = (lat2 - lat1) * Math.PI / 180;
-          const dLng = (lng2 - lng1) * Math.PI / 180;
-          const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        };
         const parsedData = data.filter(p => p.id !== user?.id).map(p => {
-          const distKm = me?.lat && me?.lng && p.lat && p.lng ? haversine(me.lat, me.lng, p.lat, p.lng) : null;
+          const distKm = me?.lat && me?.lng && p.lat && p.lng ? haversineKm({ lat: me.lat, lng: me.lng }, { lat: p.lat, lng: p.lng }) : null;
           return {
             id: p.id,
             name: p.name || t("map.user"),
@@ -329,7 +326,7 @@ const MapPage = () => {
     fetchTravelers();
 
     const fetchCommunityPosts = async () => {
-      const CACHE_KEY = 'map:communityPosts';
+      const CACHE_KEY = `map:communityPosts:${user?.id ?? 'anon'}`;
       const cached = getCached<any[]>(CACHE_KEY);
       if (cached) { setCommunityPosts(cached); return; }
 
@@ -616,12 +613,18 @@ const MapPage = () => {
         }
       });
     });
+
+    return () => {
+      isMounted = false;
+      channel.unsubscribe();
+      seekerChannel.unsubscribe();
+    };
   }, [t]);
 
   // ―― Nearest Traveler Auto-Select (딱 한 번만) ――
   useEffect(() => {
     if (displayMode === "travelers" && travelers.length > 0 && isTravelerCycleActive) {
-      const validTravelers = travelers.filter(t => t.distanceKm != null && t.distanceKm <= maxDistance && t.lat && t.lng);
+      const validTravelers = travelers.filter(t => t.lat && t.lng);
       if (validTravelers.length === 0) return;
       const sorted = [...validTravelers].sort((a,b) => (a.distanceKm || 0) - (b.distanceKm || 0));
       
@@ -951,7 +954,7 @@ const MapPage = () => {
 
       }
     }
-  }, [displayMode, tripGroups]);
+  }, [displayMode, tripGroups, selectedGroup]);
 
   // 사진피드 진입 시 자동 선택 + 알림
   useEffect(() => {
@@ -977,7 +980,7 @@ const MapPage = () => {
 
       }
     }
-  }, [displayMode, communityPosts]);
+  }, [displayMode, communityPosts, selectedPost]);
 
   const handleModeChange = (mode: "travelers" | "hotplaces" | "community" | "groups" | "restaurants") => {
     setDisplayMode(mode);
@@ -1068,7 +1071,7 @@ const MapPage = () => {
         fullscreenControl: false
       }}>
             {/* Traveler markers */}
-            {displayMode === "travelers" && travelers.filter(t => t.distanceKm == null || t.distanceKm <= maxDistance).filter(t => t.lat && t.lng).map(t => {
+            {displayMode === "travelers" && travelers.filter(t => t.lat && t.lng).map(t => {
               const isSelected = selectedTraveler?.id === t.id;
               return <SmoothTravelerMarker key={t.id} t={t} isSelected={isSelected} onClick={() => {
                  setSelectedTraveler(isSelected ? null : t);

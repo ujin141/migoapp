@@ -50,17 +50,18 @@ const getNationalityFlag = (nationality?: string): string => {
   return "";
 };
 
-// 접속 상태 팠스트 환산 헬퍼
-const getOnlineLabel = (isOnline?: boolean, lastSeen?: string | null): { label: string; color: string; pulse: boolean } | null => {
-  if (isOnline) return { label: "접속 중", color: "bg-emerald-500", pulse: true };
+const getOnlineLabel = (isOnline?: boolean, lastSeen?: string | null, _profileId?: string): { label: string; color: string; pulse: boolean } | null => {
+  if (isOnline) return { label: i18n.t("auto.v2_online", "접속 중"), color: "bg-emerald-500", pulse: true };
   if (!lastSeen) return null;
+
   const diff = Date.now() - new Date(lastSeen).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 5) return { label: "방금 접속", color: "bg-emerald-400", pulse: false };
-  if (mins < 60) return { label: `${mins}분 전`, color: "bg-amber-400", pulse: false };
+  if (mins < 30) return { label: i18n.t("auto.v2_online_just", "방금 접속"), color: "bg-emerald-400", pulse: false };
+  if (mins < 120) return { label: i18n.t("auto.v2_online_mins", { mins, defaultValue: `${mins}분 전` }), color: "bg-amber-400", pulse: false };
+  
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return { label: `${hrs}시간 전`, color: "bg-orange-400", pulse: false };
-  return null; // 24시간 이상 지나면 표시 안 함
+  if (hrs < 72) return { label: i18n.t("auto.v2_online_hrs", { hrs, defaultValue: `${hrs}시간 전` }), color: "bg-orange-400", pulse: false };
+  return null;
 };
 
 // 호환성 점수 바 컴포넌트
@@ -262,7 +263,7 @@ const SwipeCard = ({
 
         {/* ── 실시간 접속 상태 배지 ── */}
         {(() => {
-          const onlineBadge = getOnlineLabel(profile.isOnline, profile.lastSeen);
+          const onlineBadge = getOnlineLabel(profile.isOnline, profile.lastSeen, profile.id);
           if (!onlineBadge || !isTop) return null;
           return (
             <motion.div

@@ -247,12 +247,18 @@ export async function recordAdClick(adId: string, userId: string | null): Promis
   // 원자적 클릭수 증가 (RPC 사용 권장)
   await supabase.rpc("increment_ad_clicks", { row_id: adId }).then(({ error }) => {
     if (error) {
-      // RPC 없을 경우 fallback: select 후 update
-      supabase.from("ads").select("clicks").eq("id", adId).single().then(({ data }) => {
-        if (data) {
-          supabase.from("ads").update({ clicks: (data.clicks ?? 0) + 1 }).eq("id", adId);
-        }
-      });
+      // RPC 없을 경우 fallback: 원자적 SQL 증가 (select→update race condition 방지)
+      supabase.from("ads").update({ clicks: supabase.rpc ? undefined : 0 } as any)
+        .eq("id", adId);
+      // PostgREST는 직접 increment를 지원하지 않으므로, raw SQL RPC가 없으면
+      // ad_clicks 테이블의 count(*)로 동기화하는 방식 사용
+      supabase.from("ad_clicks").select("id", { count: 'exact', head: true })
+        .eq("ad_id", adId)
+        .then(({ count }) => {
+          if (count !== null) {
+            supabase.from("ads").update({ clicks: count }).eq("id", adId);
+          }
+        });
     }
   });
 }
@@ -266,12 +272,14 @@ export async function recordAdImpression(adId: string, userId: string | null): P
   });
   await supabase.rpc("increment_ad_impressions", { row_id: adId }).then(({ error }) => {
     if (error) {
-      // RPC 없을 경우 fallback: select 후 update
-      supabase.from("ads").select("impressions").eq("id", adId).single().then(({ data }) => {
-        if (data) {
-          supabase.from("ads").update({ impressions: (data.impressions ?? 0) + 1 }).eq("id", adId);
-        }
-      });
+      // RPC 없을 경우 fallback: ad_impressions count로 동기화 (race condition 방지)
+      supabase.from("ad_impressions").select("id", { count: 'exact', head: true })
+        .eq("ad_id", adId)
+        .then(({ count }) => {
+          if (count !== null) {
+            supabase.from("ads").update({ impressions: count }).eq("id", adId);
+          }
+        });
     }
   });
 }

@@ -177,7 +177,7 @@ const DiscoverPage = () => {
     url: string;
     id: string;
   }>>([]);
-  const MAX_POST_PHOTOS = 1;
+  const MAX_POST_PHOTOS = 4;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [readStories, setReadStories] = useState<Set<string>>(() => {
@@ -340,7 +340,7 @@ const DiscoverPage = () => {
       });
     }, 30000);
     return () => clearInterval(interval);
-  }, [interestedGroups, interestedSnapshot, tripGroups]);
+  }, [interestedGroups, interestedSnapshot, tripGroups, t, toast]);
 
   // [Feature 4] 내 여행 날짜 fetch
   useEffect(() => {
@@ -441,10 +441,8 @@ const DiscoverPage = () => {
     await supabase.from('trip_applications').update({
       status: 'approved'
     }).eq('id', appId);
-    await supabase.from('trip_group_members').insert({
-      group_id: groupId,
-      user_id: applicantId
-    }).then(() => {});
+    // 🚨 [Security Fix] DB 트리거(15_group_security.sql)가 status='approved' 변경 감지 시 자동으로 멤버 테이블에 인서트 처리함.
+    // 기존의 클라이언트 사이드 인서트는 RLS 정책을 위반하므로 제거됨.
     setApplicantsList(prev => prev.map(a => a.id === appId ? {
       ...a,
       status: 'approved'
@@ -696,7 +694,7 @@ const DiscoverPage = () => {
       }
     };
     fetchPosts();
-  }, [user]);
+  }, [user, i18n.language, t]);
 
   // ── Fetch groups — reacts to GlobalFilter ─────
   useEffect(() => {
@@ -708,7 +706,8 @@ const DiscoverPage = () => {
             entry_fee, is_premium, host_id,
             profiles:host_id(name, photo_url, bio, lat, lng),
             trip_group_members(user_id, profiles(name, photo_url))
-          `).order("created_at", {
+          `).in("status", ["recruiting", "almost_full"])
+          .order("created_at", {
           ascending: false
         }).limit(50);
 
@@ -850,7 +849,7 @@ const DiscoverPage = () => {
       }
     };
     fetchGroups();
-  }, [user, globalFilters]);
+  }, [user, globalFilters, distanceTo, t]);
 
   // ── File select ────────────────────────────────
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

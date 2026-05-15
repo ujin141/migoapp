@@ -66,6 +66,19 @@ serve(async (req) => {
       const auth = await verifyJwt(req);
       if (!auth.ok) return json({ error: "Unauthorized" }, 401);
 
+      // [보안 패치] SMS Bombing 어뷰징 방지 (1분 내 재발송 금지)
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const client = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+      const { data: profile } = await client.from("profiles").select("otp_last_sent").eq("id", auth.userId).single();
+      
+      if (profile?.otp_last_sent) {
+        const lastSent = new Date(profile.otp_last_sent).getTime();
+        if (Date.now() - lastSent < 60000) {
+          return json({ error: "Please wait 1 minute before sending another OTP" }, 429);
+        }
+      }
+      await client.from("profiles").update({ otp_last_sent: new Date().toISOString() }).eq("id", auth.userId);
+
       const phone = (body.phone as string)?.replace(/[^\d+]/g, "");
       // 전화번호 최소 길이 및 형식 검증 (+ 포함 7~15자리)
       if (!phone || phone.replace(/[^\d]/g, "").length < 7 || phone.replace(/[^\d]/g, "").length > 15) {
@@ -124,6 +137,25 @@ serve(async (req) => {
       const auth = await verifyJwt(req);
       if (!auth.ok) return json({ error: "Unauthorized" }, 401);
 
+      // [보안 패치] OpenAI API 요금 폭탄 방지 (서버사이드 과금 횟수 제한)
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const client = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+      const { data: profile } = await client.from("profiles").select("is_plus, translate_count, translate_last_reset").eq("id", auth.userId).single();
+      
+      const today = new Date().toISOString().slice(0, 10);
+      let currentCount = profile?.translate_count || 0;
+      
+      // 날짜가 바뀌었으면 카운트 초기화
+      if (profile?.translate_last_reset !== today) {
+        currentCount = 0;
+        await client.from("profiles").update({ translate_count: 0, translate_last_reset: today }).eq("id", auth.userId);
+      }
+
+      // 무료 유저는 하루 3회 제한 (클라이언트 우회 차단)
+      if (!profile?.is_plus && currentCount >= 3) {
+        return json({ error: "Daily free translation limit reached" }, 429);
+      }
+
       const text = body.text as string;
       const targetLang = body.targetLang as string;
       const sourceLang = body.sourceLang as string;
@@ -175,6 +207,11 @@ serve(async (req) => {
         // OpenAI 에러 로그: 민감 정보 노우 없이 실패 코드만 기록
         console.warn("[clever-api] OpenAI translate failed:", res.status);
         return json({ error: "번역 실패" }, 500, origin);
+      }
+
+      // 번역 성공 시에만 카운트 증가
+      if (!profile?.is_plus) {
+        await client.from("profiles").update({ translate_count: currentCount + 1 }).eq("id", auth.userId);
       }
 
       const translated = openaiData.choices?.[0]?.message?.content?.trim() || text;

@@ -530,7 +530,7 @@ const ProfilePage = () => {
       try {
       const {
         data: meetData
-      } = await supabase.from('meet_reviews').select('id, created_at, rating, tags, profiles!target_id (name, photo_url)').eq('reviewer_id', user.id).order('created_at', {
+      } = await supabase.from('meet_reviews').select('id, created_at, rating, tags, profiles!reviewed_id (name, photo_url)').eq('reviewer_id', user.id).order('created_at', {
         ascending: false
       }).limit(20);
       if (meetData) {
@@ -627,7 +627,7 @@ const ProfilePage = () => {
   // Settings state
   const [notifMatch, setNotifMatch] = useState(true);
   const [notifChat, setNotifChat] = useState(true);
-  const [notifGroup, setNotifGroup] = useState(false);
+  const [notifGroup, setNotifGroup] = useState(true);
   const [profileVisible, setProfileVisible] = useState<"everyone" | "matched" | "none">("everyone");
   const [locationShare, setLocationShare] = useState(true);
   const [showSOS, setShowSOS] = useState(false);

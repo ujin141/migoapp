@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import ProfileDetailSheet from "@/components/ProfileDetailSheet";
 import { toast } from "@/hooks/use-toast";
-import useGeoDistance from "@/hooks/useGeoDistance";
+import useGeoDistance, { haversineKm } from "@/hooks/useGeoDistance";
 import { useSubscription } from "@/context/SubscriptionContext";
 import MigoPlusModal from "@/components/MigoPlusModal";
 import { Lock } from "lucide-react";
@@ -103,6 +103,8 @@ const NearbyPage = () => {
           .from("profiles")
           .select("id,name,age,photo_url,location,user_type,interests,bio,nationality,trust_score,verified,lat,lng,profile_theme")
           .neq("id", user?.id ?? "")
+          .eq("setup_complete", true)
+          .or("is_banned.is.null,is_banned.eq.false")
           .gte("lat", myPos.lat - LAT_DELTA)
           .lte("lat", myPos.lat + LAT_DELTA)
           .gte("lng", myPos.lng - LNG_DELTA)
@@ -118,17 +120,9 @@ const NearbyPage = () => {
             : { data: [] };
           const onlineMap = new Map(onlineData?.map(o => [o.user_id, o]) || []);
 
-          const haversine = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          };
-
           const nearbyUsers = data
             .map((p: any) => {
-              const dist = p.lat && p.lng ? haversine(myPos.lat, myPos.lng, p.lat, p.lng) : null;
+              const dist = p.lat && p.lng ? haversineKm({ lat: myPos.lat, lng: myPos.lng }, { lat: p.lat, lng: p.lng }) : null;
               return { ...p, distance_km: dist };
             })
             .filter((p: any) => p.distance_km !== null && p.distance_km <= KM_RADIUS)

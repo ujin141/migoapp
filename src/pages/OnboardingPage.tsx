@@ -60,15 +60,6 @@ const OnboardingPage = () => {
         transition={{ delay: 0.3 }}
       >
         <img src={siteLogo} alt="Migo" className="h-14 object-contain" />
-        <motion.button
-          onClick={() => { localStorage.setItem("migo_onboarding_done", "1"); navigate("/login"); }}
-          className="text-sm font-semibold text-muted-foreground"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          {t('onboarding.skip')}
-        </motion.button>
       </motion.div>
 
       {/* Slide content */}

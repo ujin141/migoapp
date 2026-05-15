@@ -182,22 +182,24 @@ const AdminMarketplace = () => {
       return false;
     }
   };
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const handleDelete = async (id: string, title: string) => {
-    if (confirm(i18n.t("admin.confirmDeleteItem", {
-      title,
-      defaultValue: `Delete '${title}'? This cannot be undone.`
-    }))) {
-      const success = await deleteMarketplaceItem(id);
-      if (success) {
-        toast({
-          title: t("alert.t16Title")
-        });
-        loadData();
-      } else toast({
-        title: t("alert.t17Title"),
-        variant: "destructive"
-      });
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId(prev => prev === id ? null : prev), 3000);
+      return;
     }
+    setConfirmDeleteId(null);
+    const success = await deleteMarketplaceItem(id);
+    if (success) {
+      toast({
+        title: t("alert.t16Title")
+      });
+      loadData();
+    } else toast({
+      title: t("alert.t17Title"),
+      variant: "destructive"
+    });
   };
   return <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -254,7 +256,7 @@ const AdminMarketplace = () => {
                   }} className="p-2 bg-muted text-muted-foreground rounded-lg hover:text-primary transition-colors">
                           <Edit size={14} />
                         </button>
-                        <button onClick={() => handleDelete(item.id, item.title)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors">
+                        <button onClick={() => handleDelete(item.id, item.title)} className={`p-2 rounded-lg transition-colors ${confirmDeleteId === item.id ? "bg-red-500 text-white" : "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white"}`} title={confirmDeleteId === item.id ? i18n.t("auto.t_confirm", "한 번 더 눌러 삭제") : i18n.t("admin.confirmDeleteItem", "삭제")}>
                           <Trash2 size={14} />
                         </button>
                       </div>

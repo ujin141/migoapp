@@ -27,7 +27,8 @@ const getTime = () => {
   const h = now.getHours();
   const m = now.getMinutes().toString().padStart(2, "0");
   const ampm = h >= 12 ? "PM" : "AM";
-  return `${ampm} ${h > 12 ? h - 12 : h}:${m}`;
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${ampm} ${h12}:${m}`;
 };
 const ChatPage = () => {
   // 키보드 높이 → --kb-height CSS 변수로 주입 (iOS 채팅 입력창이 키보드에 안 가려지도록)
@@ -202,7 +203,7 @@ const ChatPage = () => {
         return n;
       });
     }
-  }, [targetLang, translateMap]);
+  }, [targetLang, translateMap, t, toast]);
 
   // Auto-translate incoming messages when toggle is ON
   useEffect(() => {
@@ -210,7 +211,7 @@ const ChatPage = () => {
     const last = messages[messages.length - 1];
     if (!last || last.sender === "me" || translateMap[last.id]) return;
     handleTranslate(last.id, last.text);
-  }, [messages, autoTranslate, handleTranslate]); // BUG-16 fix: handleTranslate dep 추가
+  }, [messages, autoTranslate, handleTranslate, translateMap]); // BUG-16 fix: handleTranslate dep 추가
 
   const sendMessage = async () => {
     if (!message.trim() || !selectedChat || !user) return;

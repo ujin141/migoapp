@@ -144,6 +144,7 @@ ON CONFLICT (id) DO NOTHING;
 DO $$
 BEGIN
   RAISE NOTICE '✅ Schema fixes applied!';
+  UPDATE profiles SET setup_complete = true WHERE email LIKE '%@migo.app%';
   RAISE NOTICE '   profiles: setup_complete, sns_handle, last_active_at 추가';
   RAISE NOTICE '   messages: text 컬럼 추가 + content 동기화 트리거';
   RAISE NOTICE '   reports: reported_user_id 추가';

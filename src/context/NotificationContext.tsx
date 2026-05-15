@@ -234,10 +234,11 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             .eq("id", msg.sender_id)
             .single();
 
+          const rawText = msg.text || msg.content || "";
           const preview =
-            msg.content && msg.content.length > 50
-              ? msg.content.slice(0, 50) + "…"
-              : msg.content || i18n.t("notif.newMessage", "새 메시지");
+            rawText.length > 50
+              ? rawText.slice(0, 50) + "…"
+              : rawText || i18n.t("notif.newMessage", "새 메시지");
 
           setMessageBanner({
             threadId: msg.thread_id,

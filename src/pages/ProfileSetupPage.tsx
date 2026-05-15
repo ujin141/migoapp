@@ -111,6 +111,7 @@ const ProfileSetupPage = () => {
   // Step 0
   const [profilePhotos, setProfilePhotos] = useState<Array<{ file: File; url: string }>>([]);
   const [userType, setUserType] = useState<"traveler" | "local">("traveler");
+  const [nationality, setNationality] = useState("");
   const [bio, setBio] = useState("");
   const [travelMission, setTravelMission] = useState("");
   const [destination, setDestination] = useState("");
@@ -148,6 +149,13 @@ const ProfileSetupPage = () => {
     e.target.value = "";
   };
 
+  // 컴포넌트 언마운트 시 메모리 누수 방지
+  useEffect(() => {
+    return () => {
+      profilePhotos.forEach(p => URL.revokeObjectURL(p.url));
+    };
+  }, [profilePhotos]);
+
   // 사진 제거 시 Object URL revoke
   const handleRemovePhoto = (idx: number) => {
     setProfilePhotos(prev => {
@@ -157,19 +165,28 @@ const ProfileSetupPage = () => {
   };
   const MIN_PROFILE_PHOTOS = 2;
   const handleNext = async () => {
-    if (step === 0 && profilePhotos.length < MIN_PROFILE_PHOTOS) {
-      toast({
-        title: t("profileSetup.errPhoto", `사진을 최소 ${MIN_PROFILE_PHOTOS}장 업로드해주세요`),
-        variant: "destructive"
-      });
-      return;
-    }
-    if (step === 0 && !bio.trim()) {
-      toast({
-        title: t("profileSetup.errBio"),
-        variant: "destructive"
-      });
-      return;
+    if (step === 0) {
+      if (profilePhotos.length < MIN_PROFILE_PHOTOS) {
+        toast({
+          title: t("profileSetup.errPhoto", `사진을 최소 ${MIN_PROFILE_PHOTOS}장 업로드해주세요`),
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!nationality) {
+        toast({
+          title: t("auto.err_nationality", "국적을 선택해주세요"),
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!bio.trim()) {
+        toast({
+          title: t("profileSetup.errBio", "자기소개를 입력해주세요"),
+          variant: "destructive"
+        });
+        return;
+      }
     }
     if (step === 1 && styles.length === 0) {
       toast({
@@ -220,6 +237,7 @@ const ProfileSetupPage = () => {
         // profiles 업데이트
         const { error: updateErr } = await supabase.from("profiles").update({
           user_type: userType,
+          nationality,
           travel_mission: travelMission,
           bio,
           location: destination,
@@ -233,7 +251,9 @@ const ProfileSetupPage = () => {
             photo_url: photoUrl,
             photo_urls: uploadedUrls
           } : {}),
-          setup_complete: true
+          setup_complete: true,
+          lat: parseFloat(localStorage.getItem('migo_my_lat') || '0') || null,
+          lng: parseFloat(localStorage.getItem('migo_my_lng') || '0') || null
         }).eq("id", user.id);
 
         if (updateErr) {
@@ -419,6 +439,30 @@ const ProfileSetupPage = () => {
                 </button>
               </div>
 
+              {/* Nationality */}
+              <div>
+                <label className="text-xs font-bold text-foreground mb-1.5 flex items-center gap-1">
+                  {t("auto.nationality_label", "국적")} <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <select value={nationality} onChange={e => setNationality(e.target.value)} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
+                    <option value="" disabled>{t("auto.nationality_placeholder", "국적을 선택해주세요")}</option>
+                    <option value="South Korea">🇰🇷 대한민국 (South Korea)</option>
+                    <option value="United States">🇺🇸 미국 (United States)</option>
+                    <option value="Japan">🇯🇵 일본 (Japan)</option>
+                    <option value="China">🇨🇳 중국 (China)</option>
+                    <option value="Taiwan">🇹🇼 대만 (Taiwan)</option>
+                    <option value="United Kingdom">🇬🇧 영국 (UK)</option>
+                    <option value="Canada">🇨🇦 캐나다 (Canada)</option>
+                    <option value="Australia">🇦🇺 호주 (Australia)</option>
+                    <option value="France">🇫🇷 프랑스 (France)</option>
+                    <option value="Germany">🇩🇪 독일 (Germany)</option>
+                    <option value="Other">🌍 기타 (Other)</option>
+                  </select>
+                  <ChevronRight size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none rotate-90" />
+                </div>
+              </div>
+
               {/* Travel Mission */}
               <div>
                 <label className="text-xs font-bold text-foreground mb-1.5 block">{t("profileSetup.missionLabel", t("auto.x4099"))}</label>
@@ -600,11 +644,6 @@ const ProfileSetupPage = () => {
 
       {/* Bottom CTA */}
       <div className="px-6 pb-10 pt-2 z-10 shrink-0 truncate">
-        {step < SETUP_STEPS.length - 1 && <p className="text-xs text-center text-muted-foreground mb-2">
-            <button onClick={() => {
-          setStep(s => Math.min(s + 1, SETUP_STEPS.length - 1));
-        }} className="text-muted-foreground underline">{t('profileSetup.skip')}</button>
-          </p>}
         <motion.button whileTap={{
         scale: 0.97
       }} onClick={handleNext} className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-base shadow-float flex items-center justify-center gap-2">

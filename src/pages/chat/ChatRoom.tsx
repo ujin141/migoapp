@@ -157,37 +157,28 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   // 실제 렌더링에 사용할 메시지 배열
   const messages = localMessages;
 
-  // ── 번역해서 보내기 상태 (Free: 하루 3회, Plus 무제한) ──
+  // ── 번역해서 보내기 상태 (Edge Function에서 과금 및 무료제한 3회 검증) ──
   const [translateSending, setTranslateSending] = useState(false);
-  const FREE_DAILY_TRANSLATE_SEND = 3;
-  const todayKey = `migo_translate_send_${new Date().toISOString().slice(0, 10)}`;
-  const getTranslateSendCount = () => parseInt(localStorage.getItem(todayKey) || '0', 10);
-  const incrementTranslateSendCount = () => localStorage.setItem(todayKey, String(getTranslateSendCount() + 1));
 
   const handleTranslateSend = useCallback(async () => {
     if (!message.trim()) return;
-    if (!isPlus) {
-      const used = getTranslateSendCount();
-      if (used >= FREE_DAILY_TRANSLATE_SEND) {
-        setShowPlusModal(true);
-        return;
-      }
-    }
     setTranslateSending(true);
     try {
       const { translateText } = await import('@/lib/translateService');
       const translated = await translateText({ text: message, targetLang });
       const textToSend = (translated && translated !== message) ? translated : message;
-      // stale closure 판위: setMessage로 다음 렌더링에 sendMessage를 호출하는 대신
-      // 번역된 텍스트를 먼저 설정한 후 멀티프림 렀더 후에 전송 (플리플-플롭 회피)
+      // setState 후 sendMessage가 최신 값을 읽도록 setTimeout(0)으로 React batch flush 보장
       setMessage(textToSend);
-      // queueMicrotask로 React state flush 후 sendMessage 호출 보장
-      queueMicrotask(() => {
+      setTimeout(() => {
         sendMessage();
-      });
-      if (!isPlus && translated && translated !== message) incrementTranslateSendCount();
-    } catch {
-      sendMessage();
+      }, 0);
+    } catch (err: any) {
+      // API에서 요금제 제한(429) 에러 발생 시 결제 모달 띄우기
+      if (err?.message?.includes("limit reached") || err?.status === 429) {
+        setShowPlusModal(true);
+      } else {
+        sendMessage(); // 번역 실패 시 원본 그대로 전송
+      }
     } finally {
       setTranslateSending(false);
     }
@@ -420,15 +411,13 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                 whileTap={{ scale: 0.9 }}
                 onClick={handleTranslateSend}
                 disabled={translateSending}
-                title={isPlus ? t('chat.translateSend', `Translate & Send (${LANG_NAMES[targetLang]})`) : t('chat.translateSendFree', `Translate & Send (${Math.max(0, FREE_DAILY_TRANSLATE_SEND - getTranslateSendCount())} free left)`)}
+                title={isPlus ? t('chat.translateSend', `Translate & Send (${LANG_NAMES[targetLang]})`) : t('chat.translateSendFree', `Translate & Send (Free uses may apply)`)}
                 className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
                   translateSending
                     ? 'bg-indigo-400/30 text-indigo-400'
                     : isPlus
                       ? 'bg-indigo-500 text-white shadow-md'
-                      : getTranslateSendCount() >= FREE_DAILY_TRANSLATE_SEND
-                        ? 'bg-muted text-muted-foreground opacity-50'
-                        : 'bg-indigo-500/15 border border-indigo-500/40 text-indigo-500'
+                      : 'bg-indigo-500/15 border border-indigo-500/40 text-indigo-500'
                 }`}
               >
                 {translateSending

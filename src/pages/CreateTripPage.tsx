@@ -15,46 +15,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { useSubscription } from "@/context/SubscriptionContext";
 import MigoPlusModal from "@/components/MigoPlusModal";
 import { compressImage } from "@/lib/imageCompression";
-const popularDestinations = [{
-  name: "Bangkok",
-  country: "Thailand",
-  emoji: "🇹🇭"
-}, {
-  name: "Bali",
-  country: "Indonesia",
-  emoji: "🇮🇩"
-}, {
-  name: "Tokyo",
-  country: i18n.t("auto.g_0630", "일본"),
-  emoji: "🇯🇵"
-}, {
-  name: "Barcelona",
-  country: "Spain",
-  emoji: "🇪🇸"
-}, {
-  name: "Hanoi",
-  country: "Vietnam",
-  emoji: "🇻🇳"
-}, {
-  name: i18n.t("auto.g_0631", "치앙마이4"),
-  country: "Thailand",
-  emoji: "🇹🇭"
-}];
-const TRAVEL_STYLES = [
-  { id: i18n.t("auto.x4000", "카페"), i18nKey: "auto.g_0632" },
-  { id: i18n.t("auto.x4001", "야시장"), i18nKey: "auto.g_0633" },
-  { id: i18n.t("auto.x4002", "트레킹"), i18nKey: "auto.g_0634" },
-  { id: i18n.t("auto.x4003", "서핑"), i18nKey: "auto.g_0635" },
-  { id: i18n.t("auto.x4004", "사진"), i18nKey: "auto.g_0636" },
-  { id: i18n.t("auto.x4005", "음식"), i18nKey: "auto.g_0637" },
-  { id: i18n.t("auto.x4006", "건축"), i18nKey: "auto.g_0638" },
-  { id: i18n.t("auto.x4007", "자연"), i18nKey: "auto.g_0639" },
-  { id: i18n.t("auto.x4008", "예술"), i18nKey: "auto.g_0640" },
-  { id: i18n.t("auto.x4009", "쇼핑"), i18nKey: "auto.g_0641" },
-  { id: i18n.t("auto.x4010", "역사"), i18nKey: "auto.g_0642" },
-  { id: i18n.t("auto.x4011", "모험"), i18nKey: "auto.g_0643" }
-];
-
 interface CreateTripPageProps {
   onClose?: () => void;
 }
@@ -63,6 +23,48 @@ const CreateTripPage = ({ onClose }: CreateTripPageProps) => {
   const {
     t
   } = useTranslation();
+  
+  const popularDestinations = [{
+    name: "Bangkok",
+    country: "Thailand",
+    emoji: "🇹🇭"
+  }, {
+    name: "Bali",
+    country: "Indonesia",
+    emoji: "🇮🇩"
+  }, {
+    name: "Tokyo",
+    country: t("auto.g_0630", "일본"),
+    emoji: "🇯🇵"
+  }, {
+    name: "Barcelona",
+    country: "Spain",
+    emoji: "🇪🇸"
+  }, {
+    name: "Hanoi",
+    country: "Vietnam",
+    emoji: "🇻🇳"
+  }, {
+    name: t("auto.g_0631", "치앙마이4"),
+    country: "Thailand",
+    emoji: "🇹🇭"
+  }];
+  
+  const TRAVEL_STYLES = [
+    { id: t("auto.x4000", "카페"), i18nKey: "auto.g_0632" },
+    { id: t("auto.x4001", "야시장"), i18nKey: "auto.g_0633" },
+    { id: t("auto.x4002", "트레킹"), i18nKey: "auto.g_0634" },
+    { id: t("auto.x4003", "서핑"), i18nKey: "auto.g_0635" },
+    { id: t("auto.x4004", "사진"), i18nKey: "auto.g_0636" },
+    { id: t("auto.x4005", "음식"), i18nKey: "auto.g_0637" },
+    { id: t("auto.x4006", "건축"), i18nKey: "auto.g_0638" },
+    { id: t("auto.x4007", "자연"), i18nKey: "auto.g_0639" },
+    { id: t("auto.x4008", "예술"), i18nKey: "auto.g_0640" },
+    { id: t("auto.x4009", "쇼핑"), i18nKey: "auto.g_0641" },
+    { id: t("auto.x4010", "역사"), i18nKey: "auto.g_0642" },
+    { id: t("auto.x4011", "모험"), i18nKey: "auto.g_0643" }
+  ];
+
   const navigate = useNavigate();
   const {
     user
@@ -108,6 +110,13 @@ const CreateTripPage = ({ onClose }: CreateTripPageProps) => {
       });
       return;
     }
+    if (startDate > endDate) {
+      toast({
+        title: t("trip.dateError", "시작일이 종료일보다 늦을 수 없습니다"),
+        variant: "destructive"
+      });
+      return;
+    }
     if (loading) return; // 중복 제출 방지
     setLoading(true);
     try {
@@ -131,6 +140,7 @@ const CreateTripPage = ({ onClose }: CreateTripPageProps) => {
         }
       }
       const {
+        data,
         error
       } = await supabase.from('trip_groups').insert({
         title: title.trim(),
@@ -145,12 +155,21 @@ const CreateTripPage = ({ onClose }: CreateTripPageProps) => {
         status: visibility === "public" ? "recruiting" : "invite",
         cover_image: coverImageUrl,
         is_premium: isPremiumGroup
-      });
+      }).select('id').single();
       if (error) {
         toast({
           title: i18n.t("alert.t32Title")
         });
         return;
+      }
+      
+      if (data) {
+        await supabase.from('trip_group_members').insert({
+          group_id: data.id,
+          user_id: user.id,
+          status: 'approved',
+          role: 'host'
+        });
       }
       toast({
         title: i18n.t("alert.t33Title"),

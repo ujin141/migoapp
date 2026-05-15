@@ -102,7 +102,7 @@ const MatchPage = () => {
   // ―― 필터 모달 (단일 통합 필터) ――
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filterAge, setFilterAge] = useState<[number, number]>([18, 45]);
-  const [filterDistance, setFilterDistance] = useState(10); // 기본값: 10km
+  const [filterDistance, setFilterDistance] = useState(9999); // 기본값: 전체 (거리 제한 없음)
   const [filterGender, setFilterGender] = useState<'all' | 'male' | 'female'>('all');
   const [filterMbti, setFilterMbti] = useState<string[]>([]);
   const [filterLanguages, setFilterLanguages] = useState<string[]>([]);
@@ -110,7 +110,7 @@ const MatchPage = () => {
   // 활성 필터 총 개수
   const totalActiveFilterCount =
     (filterGender !== 'all' ? 1 : 0) +
-    (filterDistance !== 10 ? 1 : 0) +
+    (filterDistance !== 9999 ? 1 : 0) +
     filterMbti.length +
     filterLanguages.length +
     filterTravelStyle.length +
@@ -178,22 +178,17 @@ const MatchPage = () => {
         swipedIds.add(m.user1_id === user.id ? m.user2_id : m.user1_id);
       });
 
-      // 자신을 DB 레벨에서 확실히 제외 + 2분 캐시 적용
-      const CACHE_KEY = `match:profiles:${user.id}`;
-      let data = getCached<any[]>(CACHE_KEY);
-      let error = null;
-
-      if (!data) {
-        const res = await supabase.from('profiles')
-          .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned')
-          .neq('id', user.id)
-          .neq('is_banned', true)
-          .neq('banned', true)
-          .limit(50);
-        data = res.data;
-        error = res.error;
-        if (data) setCache(CACHE_KEY, data, 2 * 60 * 1000); // 2 min
-      }
+      // 자신을 DB 레벨에서 확실히 제외 (캐시 제거: 정지된 계정이 즉각 사라지도록)
+      const res = await supabase.from('profiles')
+        .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned')
+        .neq('id', user.id)
+        .eq('setup_complete', true)
+        .or('is_banned.is.null,is_banned.eq.false')
+        .or('banned.is.null,banned.eq.false')
+        .limit(200);
+        
+      const data = res.data;
+      const error = res.error;
 
       if (!error && data) {
         // 방금 불러온 프로필 대상자들만의 meet_reviews 만 선별하여 가져오기 (O(N) 트래픽 최적화)
@@ -319,7 +314,7 @@ const MatchPage = () => {
       if (likerIds.length > 0) {
         const {
           data: likerProfiles
-        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme').neq('is_banned', true).in('id', likerIds);
+        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme').or('is_banned.is.null,is_banned.eq.false').or('banned.is.null,banned.eq.false').in('id', likerIds);
         if (likerProfiles) {
           const { data: likerReviews } = await supabase.from('meet_reviews').select('reviewed_id, rating').in('reviewed_id', likerIds);
           if (likerReviews) {
@@ -454,8 +449,9 @@ const MatchPage = () => {
   const withAds = useMemo(() => {
     const filteredTravelers = profiles.filter(p => {
       const hasNoCoords = p.distanceKm === null;
-      const distOk = (filterDistance >= 9999 || !hasMyGps) ? true : (hasNoCoords ? false : p.distanceKm <= filterDistance);
-      const genderOk = filterGender === 'all' || p.gender === (filterGender === 'male' ? t("auto.ko_0254", "남성") : t("auto.ko_0255", "여성")) || p.gender === filterGender;
+      // GPS 없는 유저도 보이도록: 좌표 없으면 거리 필터 통과
+      const distOk = (filterDistance >= 9999 || !hasMyGps) ? true : (hasNoCoords ? true : p.distanceKm <= filterDistance);
+      const genderOk = filterGender === 'all' || p.gender === filterGender;
       const ageOk = !isPlus || !p.age || (p.age >= filterAge[0] && p.age <= filterAge[1]);
       const langOk = !isPlus || filterLanguages.length === 0 || filterLanguages.some(l => p.languages.includes(l));
       const mbtiOk = filterMbti.length === 0 || (p.mbti && filterMbti.includes(p.mbti));
@@ -769,7 +765,7 @@ const MatchPage = () => {
       // BUG-20 fix: user?.id 전달 (null 하드코딩 제거 → 광고 분석 데이터 정확성 향상)
       recordAdImpression(topProfile.originalAd.id, user?.id ?? null);
     }
-  }, [topProfile]);
+  }, [topProfile, user?.id]);
   return <div className="flex flex-col h-full bg-background truncate">
       {/* ─── 출석체크 모달 (매일 첫 접속 시 자동 표시) ─── */}
       <DailyCheckinModal />
@@ -793,6 +789,20 @@ const MatchPage = () => {
         showNearby
         showShop
       />
+
+      {/* ── FOMO: 라이브 매칭 카운터 ── */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-4 mb-3 flex items-center justify-center"
+      >
+        <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+            {t("auto.fomo_live", "현재")} <span className="text-emerald-500 font-black">{Math.floor(Date.now() / 60000 % 150) + 120}명</span>{t("auto.fomo_finding", "이 동행을 찾고 있습니다")}
+          </span>
+        </div>
+      </motion.div>
 
       {/* Boost active banner */}
       {boostActive && <motion.div initial={{

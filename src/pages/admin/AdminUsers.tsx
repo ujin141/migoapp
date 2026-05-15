@@ -22,6 +22,8 @@ export const AdminUsers = () => {
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [noteEdit, setNoteEdit] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [confirmingBan, setConfirmingBan] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   const load = async () => {
     setLoading(true);
     setLoadError("");
@@ -56,11 +58,11 @@ export const AdminUsers = () => {
       setUsers(prev => prev.map(u => u.id === id ? { ...u, verified: !currentVerified } : u));
       if (selectedUser?.id === id) setSelectedUser((p: any) => ({ ...p, verified: !currentVerified }));
       toast({
-        title: !currentVerified ? "✅ 인증 승인 완료" : "⚠️ 인증 취소",
-        description: !currentVerified ? "사용자에게 푸시 알림이 발송되었습니다." : "인증이 취소되었습니다."
+        title: !currentVerified ? t("auto.t_verif_approve", "✅ 인증 승인 완료") : t("auto.t_verif_cancel", "⚠️ 인증 취소"),
+        description: !currentVerified ? t("auto.t_verif_approve_desc", "사용자에게 푸시 알림이 발송되었습니다.") : t("auto.t_verif_cancel_desc", "인증이 취소되었습니다.")
       });
     } else {
-      toast({ title: "❌ 실패", description: "인증 상태 변경에 실패했습니다.", variant: "destructive" });
+      toast({ title: t("auto.t_fail", "❌ 실패"), description: t("auto.t_verif_fail", "인증 상태 변경에 실패했습니다."), variant: "destructive" });
     }
   };
   const cyclePlan = async (id: string, currentPlan: string, is_plus: boolean) => {
@@ -82,11 +84,12 @@ export const AdminUsers = () => {
     }
   };
   const toggleBan = async (id: string, currentBanned: boolean) => {
-    const label = currentBanned ? t("auto.g_1311", "정지를해제") : t("auto.g_1312", "계정을정지");
-    if (!confirm(i18n.t("admin.confirmBanUser", {
-      action: label,
-      defaultValue: `Are you sure you want to ${label} this user?`
-    }))) return;
+    if (confirmingBan !== id) {
+      setConfirmingBan(id);
+      setTimeout(() => setConfirmingBan(prev => prev === id ? null : prev), 3000);
+      return;
+    }
+    setConfirmingBan(null);
     // RPC 내장 함수 우선 시도 (ban_reason, banned_until 지원)
     const success = currentBanned
       ? await adminUnbanUser(id)
@@ -99,22 +102,27 @@ export const AdminUsers = () => {
       setUsers(prev => prev.map(u => u.id === id ? { ...u, banned: !currentBanned } : u));
       if (selectedUser?.id === id) setSelectedUser((p: any) => ({ ...p, banned: !currentBanned }));
       toast({
-        title: !currentBanned ? "🚫 계정 정지 완료" : "✅ 계정 정지 해제 완료",
-        description: !currentBanned ? "사용자에게 알림이 발송되었습니다." : "사용자가 다시 서비스를 이용할 수 있습니다."
+        title: !currentBanned ? t("auto.t_ban_complete", "🚫 계정 정지 완료") : t("auto.t_unban_complete", "✅ 계정 정지 해제 완료"),
+        description: !currentBanned ? t("auto.t_ban_complete_desc", "사용자에게 알림이 발송되었습니다.") : t("auto.t_unban_complete_desc", "사용자가 다시 서비스를 이용할 수 있습니다.")
       });
     } else {
-      toast({ title: "❌ 실패", description: "계정 정지/해제에 실패했습니다.", variant: "destructive" });
+      toast({ title: t("auto.t_fail", "❌ 실패"), description: t("auto.t_ban_fail", "계정 정지/해제에 실패했습니다."), variant: "destructive" });
     }
   };
   const handleDelete = async (id: string) => {
-    if (!confirm(t("auto.g_1313", "계정을영구"))) return;
+    if (confirmingDelete !== id) {
+      setConfirmingDelete(id);
+      setTimeout(() => setConfirmingDelete(prev => prev === id ? null : prev), 3000);
+      return;
+    }
+    setConfirmingDelete(null);
     const success = await deleteUserAccount(id);
     if (success) {
       setUsers(prev => prev.filter(u => u.id !== id));
       setSelectedUser(null);
-      toast({ title: "✅ 계정 영구 삭제 완료" });
+      toast({ title: t("auto.t_delete_complete", "✅ 계정 영구 삭제 완료") });
     } else {
-      toast({ title: "❌ 실패", description: "계정 삭제에 실패했습니다.", variant: "destructive" });
+      toast({ title: t("auto.t_fail", "❌ 실패"), description: t("auto.t_delete_fail", "계정 삭제에 실패했습니다."), variant: "destructive" });
     }
   };
   const saveNote = async () => {
@@ -166,13 +174,13 @@ export const AdminUsers = () => {
   return <div className="truncate">
     <div className="flex items-center justify-between mb-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-foreground truncate">유저 관리</h1>
-        <p className="text-sm text-muted-foreground truncate">전체 {users.length}명 등록 (실시간)</p>
+        <h1 className="text-2xl font-extrabold text-foreground truncate">{t("admin.userManagement", "유저 관리")}</h1>
+        <p className="text-sm text-muted-foreground truncate">{t("admin.totalUsersRealtime", { count: users.length, defaultValue: "전체 {{count}}명 등록 (실시간)" })}</p>
       </div>
       <motion.button whileTap={{
         scale: 0.95
       }} onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground text-sm transition-colors">
-        <RefreshCw size={14} className={loading ? "animate-spin" : ""} />새로고침
+        <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{t("admin.refresh", "새로고침")}
       </motion.button>
     </div>
 
@@ -338,39 +346,39 @@ export const AdminUsers = () => {
 
             {/* Profile Details */}
             <div className="space-y-2 mb-6 truncate">
-              <p className="text-[11px] text-muted-foreground font-bold mb-1 truncate">프로필 상세</p>
+              <p className="text-[11px] text-muted-foreground font-bold mb-1 truncate">{t("admin.profileDetails", "프로필 상세")}</p>
               {[{
-                label: "나이",
-                value: selectedUser.age ? `${selectedUser.age}세` : "-"
+                label: t("admin.age", "나이"),
+                value: selectedUser.age ? `${selectedUser.age}${t("admin.ageSuffix", "세")}` : "-"
               }, {
-                label: "성별",
+                label: t("admin.gender", "성별"),
                 value: selectedUser.gender || "-"
               }, {
-                label: "MBTI",
+                label: t("admin.mbti", "MBTI"),
                 value: selectedUser.mbti || "-"
               }, {
-                label: "관심사",
+                label: t("admin.interests", "관심사"),
                 value: Array.isArray(selectedUser.interests) && selectedUser.interests.length > 0 ? selectedUser.interests.join(", ") : "-"
               }, {
-                label: "언어",
+                label: t("admin.languages", "언어"),
                 value: Array.isArray(selectedUser.languages) && selectedUser.languages.length > 0 ? selectedUser.languages.join(", ") : "-"
               }, {
-                label: "여행 스타일",
+                label: t("admin.travelStyle", "여행 스타일"),
                 value: Array.isArray(selectedUser.travel_style) && selectedUser.travel_style.length > 0 ? selectedUser.travel_style.join(", ") : "-"
               }, {
-                label: "예산",
+                label: t("admin.budget", "예산"),
                 value: selectedUser.budget_range || "-"
               }, {
-                label: "거주지",
+                label: t("admin.residence", "거주지"),
                 value: selectedUser.home_city || "-"
               }, {
-                label: "선호 지역",
+                label: t("admin.preferredRegions", "선호 지역"),
                 value: Array.isArray(selectedUser.preferred_regions) && selectedUser.preferred_regions.length > 0 ? selectedUser.preferred_regions.join(", ") : "-"
               }, {
-                label: "여행 목적",
+                label: t("admin.travelMission", "여행 목적"),
                 value: selectedUser.travel_mission || "-"
               }, {
-                label: "방문 국가",
+                label: t("admin.visitedCountries", "방문 국가"),
                 value: Array.isArray(selectedUser.visited_countries) && selectedUser.visited_countries.length > 0 ? selectedUser.visited_countries.join(", ") : "-"
               }].map(i => <div key={i.label} className="flex justify-between py-2 border-b border-border/50">
                 <span className="text-xs text-muted-foreground shrink-0">{i.label}</span>
@@ -414,12 +422,12 @@ export const AdminUsers = () => {
                 scale: 0.97
               }} onClick={() => toggleBan(selectedUser.id, selectedUser.banned)} className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2
                       ${selectedUser.banned ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20" : "bg-red-500/10 text-red-400 hover:bg-red-500/20"}`}>
-                <Ban size={14} />{selectedUser.banned ? t("auto.g_1345", "계정정지해") : t("auto.g_1346", "계정정지6")}
+                <Ban size={14} />{confirmingBan === selectedUser.id ? t("auto.ko_confirm_ban", "정말로 진행하시겠습니까?") : selectedUser.banned ? t("auto.g_1345", "계정정지해") : t("auto.g_1346", "계정정지6")}
               </motion.button>
               <motion.button whileTap={{
                 scale: 0.97
               }} onClick={() => handleDelete(selectedUser.id)} className="w-full py-2.5 rounded-xl text-sm font-bold bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2">
-                <Trash2 size={14} />{t("auto.g_1347", "계정영구삭")}</motion.button>
+                <Trash2 size={14} />{confirmingDelete === selectedUser.id ? t("auto.ko_confirm_delete", "정말로 삭제하시겠습니까?") : t("auto.g_1347", "계정영구삭")}</motion.button>
             </div>
           </div>
         </motion.div>

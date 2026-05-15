@@ -93,7 +93,7 @@ const SOSModal = ({
         await supabase.from("blocks").upsert({ blocker_id: user.id, blocked_id: targetUserId });
       }
       if (targetGroupId) {
-        await supabase.from("trip_groups").delete().eq("id", targetGroupId);
+        await supabase.from("trip_groups").delete().eq("id", targetGroupId).eq("host_id", user.id);
       }
       toast({
         title: i18n.t("alert.t7Title"),

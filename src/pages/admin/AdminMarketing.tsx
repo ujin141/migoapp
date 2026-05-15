@@ -363,7 +363,10 @@ export const AdminMarketing = () => {
   const [slots, setSlots] = useState<AdSlot[]>([]);
   const [promos, setPromos] = useState<any[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [showPromoCreate, setShowPromoCreate] = useState(false);
+  const [promoCodeForm, setPromoCodeForm] = useState({ code: "", discount: "" });
   const [adFilter, setAdFilter] = useState<"all" | AdStatus>("all");
+  const [confirmDeletePromoId, setConfirmDeletePromoId] = useState<string | null>(null);
 
   // Push state
   const [pushTitle, setPushTitle] = useState("");
@@ -410,14 +413,14 @@ export const AdminMarketing = () => {
     const result = await broadcastNotification(pushTitle, pushBody, "system", filter);
     if (result.sent > 0) {
       setPushSent(true);
-      toast({ title: `✅ 알림 발송 완료`, description: `${result.sent}명에게 전송되었습니다.` });
+      toast({ title: t("auto.t_push_success", "✅ 알림 발송 완료"), description: t("auto.t_push_sent", { count: result.sent, defaultValue: `${result.sent}명에게 전송되었습니다.` }) });
       setTimeout(() => {
         setPushSent(false);
         setPushTitle("");
         setPushBody("");
       }, 3000);
     } else {
-      toast({ title: "⚠️ 발송 실패", description: "대상 유저가 없거나 권한이 부족합니다.", variant: "destructive" });
+      toast({ title: t("auto.t_push_fail", "⚠️ 발송 실패"), description: t("auto.t_push_fail_desc", "대상 유저가 없거나 권한이 부족합니다."), variant: "destructive" });
     }
   };
   const tabs: {
@@ -639,13 +642,9 @@ export const AdminMarketing = () => {
       {tab === "promo" && <div>
           <motion.button whileTap={{
         scale: 0.97
-      }} onClick={async () => {
-        const code = prompt(t("auto.g_1206", "프로모코드"));
-        const disc = prompt(t("auto.g_1207", "할인내용을"));
-        if (code && disc) {
-          const newCode = await createPromoCode(code, disc, 100);
-          if (newCode) setPromos(p => [newCode, ...p]);
-        }
+      }} onClick={() => {
+        setPromoCodeForm({ code: "", discount: "" });
+        setShowPromoCreate(true);
       }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-bold mb-4">
             <Plus size={14} />{t("auto.g_1208", "프로모코드")}</motion.button>
           <div className="space-y-3 truncate">
@@ -678,11 +677,15 @@ export const AdminMarketing = () => {
                     <motion.button whileTap={{
                 scale: 0.9
               }} onClick={async () => {
-                if (confirm(t("auto.g_1213", "삭제하겠습"))) {
-                  const success = await deletePromoCode(p.id);
-                  if (success) setPromos(prev => prev.filter(x => x.id !== p.id));
+                if (confirmDeletePromoId !== p.id) {
+                  setConfirmDeletePromoId(p.id);
+                  setTimeout(() => setConfirmDeletePromoId(prev => prev === p.id ? null : prev), 3000);
+                  return;
                 }
-              }} className="p-1.5 rounded-lg bg-red-500/10 text-red-400"><Trash2 size={12} /></motion.button>
+                setConfirmDeletePromoId(null);
+                const success = await deletePromoCode(p.id);
+                if (success) setPromos(prev => prev.filter(x => x.id !== p.id));
+              }} className={`p-1.5 rounded-lg transition-colors ${confirmDeletePromoId === p.id ? "bg-red-500 text-white" : "bg-red-500/10 text-red-400"}`} title={confirmDeletePromoId === p.id ? t("auto.t_confirm", "한 번 더 눌러 삭제") : t("auto.g_1213", "삭제하겠습")}><Trash2 size={12} /></motion.button>
                   </div>
                 </div>
               </motion.div>)}
@@ -739,6 +742,46 @@ export const AdminMarketing = () => {
       {/* Create Modal */}
       <AnimatePresence>
         {showCreate && <CreateAdModal slots={slots.filter(s => s.enabled)} onClose={() => setShowCreate(false)} onCreate={ad => setAds(prev => [ad, ...prev])} />}
+      </AnimatePresence>
+
+      {/* Promo Create Modal */}
+      <AnimatePresence>
+        {showPromoCreate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={() => setShowPromoCreate(false)} />
+            <motion.div className="relative z-10 w-full max-w-sm bg-card rounded-3xl p-6 shadow-float border border-border" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-extrabold text-foreground">{t("auto.g_1208", "프로모코드")} 만들기</h2>
+                <button onClick={() => setShowPromoCreate(false)} className="p-2 bg-muted rounded-full hover:bg-muted/80">
+                  <X size={16} className="text-muted-foreground" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground mb-1 block">프로모 코드</label>
+                  <input value={promoCodeForm.code} onChange={e => setPromoCodeForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="예: SUMMER2024" className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none uppercase" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground mb-1 block">할인 내용</label>
+                  <input value={promoCodeForm.discount} onChange={e => setPromoCodeForm(f => ({ ...f, discount: e.target.value }))} placeholder="예: 30% 할인" className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground outline-none" />
+                </div>
+                <button
+                  onClick={async () => {
+                    if (promoCodeForm.code && promoCodeForm.discount) {
+                      const newCode = await createPromoCode(promoCodeForm.code, promoCodeForm.discount, 100);
+                      if (newCode) setPromos(p => [newCode, ...p]);
+                      setShowPromoCreate(false);
+                    }
+                  }}
+                  disabled={!promoCodeForm.code || !promoCodeForm.discount}
+                  className="w-full py-3 mt-2 rounded-xl gradient-primary text-primary-foreground text-sm font-bold disabled:opacity-50"
+                >
+                  생성하기
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </div>;
 };

@@ -64,11 +64,13 @@ export default function DailyPicksCard({ onProfileClick }: { onProfileClick?: (i
       .eq("id", user.id)
       .single();
 
-    // 프로필 가져오기 (모의 유저 포함, 사진 있는 사람만)
+    // 프로필 가져오기 (모의 유저 포함, 사진 있는 사람만, 정지계정 제외)
     const { data: profiles } = await supabase
       .from("profiles")
       .select("id, name, age, photo_url, nationality, location, bio, interests, verified")
       .neq("id", user.id)
+      .or('is_banned.is.null,is_banned.eq.false')
+      .or('banned.is.null,banned.eq.false')
       .not("photo_url", "is", null)
       .limit(30);
 

@@ -30,8 +30,15 @@ export const AdminChat = () => {
     setMsgLoading(false);
   };
 
+  const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
+
   const handleDeactivate = async (roomId: string) => {
-    if (!confirm(t("admin.deactivateRoomConfirm", "이 채팅방을 비활성화하시겠습니까?"))) return;
+    if (confirmDeactivateId !== roomId) {
+      setConfirmDeactivateId(roomId);
+      setTimeout(() => setConfirmDeactivateId(prev => prev === roomId ? null : prev), 3000);
+      return;
+    }
+    setConfirmDeactivateId(null);
     const ok = await deactivateChatRoom(roomId);
     if (ok) {
       setRooms(prev => prev.map(r => r.id === roomId ? { ...r, is_active: false } : r));
@@ -133,7 +140,7 @@ export const AdminChat = () => {
                       </button>
                       {isActive && (
                         <button onClick={() => handleDeactivate(room.id)}
-                          className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title={t("admin.deactivateRoom", "채팅방 비활성화")}>
+                          className={`p-2 rounded-xl transition-colors ${confirmDeactivateId === room.id ? "bg-red-500 text-white" : "bg-red-500/10 text-red-400 hover:bg-red-500/20"}`} title={confirmDeactivateId === room.id ? t("auto.t_confirm", "한 번 더 눌러 비활성화") : t("admin.deactivateRoom", "채팅방 비활성화")}>
                           <PowerOff size={14} />
                         </button>
                       )}

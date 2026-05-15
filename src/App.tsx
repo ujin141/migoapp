@@ -130,12 +130,17 @@ const makePageVariants = (direction: "push" | "pop" | "tab") => ({
 
 const PUBLIC_ROUTES = ["/splash", "/onboarding", "/login", "/auth/callback", "/terms", "/privacy", "/download", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy"];
 
+import { useFomoActivity } from "@/hooks/useFomoActivity";
+
 const AppContent = () => {
   const navDirection = useNavigationDirection();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  
+  // 실시간 활동 토스트 시작 (로그인 상태일 때만)
+  useFomoActivity(!!user);
 
   // 강제 스플래시: 세션 중 최초 접속 시 무조건 2초 노출
   const [showInitialSplash, setShowInitialSplash] = useState(() => {
@@ -221,8 +226,8 @@ const AppContent = () => {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
     } else if (user) {
-      // 신규 유저: setup_complete가 false면 프로필 설정 페이지로 이동
-      if (user.setupComplete === false && location.pathname !== '/profile-setup') {
+      // 신규 유저: setup_complete가 true가 아니면 프로필 설정 페이지로 이동
+      if (user.setupComplete !== true && location.pathname !== '/profile-setup') {
         navigate('/profile-setup', { replace: true });
       }
       // 기존 유저: 로그인/온보딩 페이지에 있으면 홈으로 이동

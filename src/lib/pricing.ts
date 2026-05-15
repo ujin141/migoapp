@@ -202,17 +202,20 @@ export function formatJoinFee(krw: number, lang: string): string {
   return getLocalizedPrice(krw, lang);
 }
 
+// 성별 기반 가격 차등 정책 (일부 국가에서 성차별 법률 위반 가능, 기본값 비활성)
+const ENABLE_GENDER_PRICING = false;
+
 /**
  * 성별 기반 참여 비용
- *  - 여성: 무료 (성비 밸런스 인센티브)
- *  - 남성/기타: 티어 정가, Plus 구독 시 50% 할인
+ *  - ENABLE_GENDER_PRICING=true 시: 여성 무료 (성비 밸런스 인센티브)
+ *  - 기본값: 성별 무관 동일 가격, Plus 구독 시 50% 할인
  */
 export function getJoinFeeByGender(
   krw: number,
   gender: "male" | "female" | "other",
   isPlus: boolean
 ): number {
-  if (gender === "female") return 0;
+  if (ENABLE_GENDER_PRICING && gender === "female") return 0;
   return getJoinFeeAfterDiscount(krw, isPlus);
 }
 

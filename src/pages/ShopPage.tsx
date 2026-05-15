@@ -1,6 +1,6 @@
 
 import { useTranslation } from "react-i18next";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Star, Zap, Shield, Crown, Heart, MapPin, Gift, CheckCircle2, Sparkles, Package, Lock, RefreshCw, BadgeCheck, ShieldCheck, FileText, AlertCircle } from "lucide-react";
@@ -63,6 +63,14 @@ const ShopPage = () => {
   const [purchasingId, setPurchasingId] = useState<string | null>(null); // iPad 로딩 피드백용
   const [purchaseError, setPurchaseError] = useState<string | null>(null);   // inline error on card
   const purchaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // stuck-guard
+
+  useEffect(() => {
+    return () => {
+      if (purchaseTimeoutRef.current) {
+        clearTimeout(purchaseTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // ── Dynamic Pricing ──────────────────────────────────────────────────
   const subPricing = getMigoPlusPricing();

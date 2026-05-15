@@ -9,7 +9,6 @@ import type { GroupThread } from "@/context/ChatContext";
 export interface ChatThreadListProps {
   filteredThreads: any[];
   searchQuery: string;
-  removedChats: string[];
   swipedChatId: string | null;
   setSwipedChatId: (id: string | null) => void;
   mutedChats: string[];

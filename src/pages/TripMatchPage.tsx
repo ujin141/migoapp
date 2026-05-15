@@ -425,12 +425,9 @@ const TripMatchPage: React.FC = () => {
         { thread_id: tid, user_id: target.group.hostId }
       ]);
       
-      // 🚨 [Security Fix] Update real DB instant_meets_count instead of bypassable localStorage
+      // 🚨 [Security Fix] DB 업데이트는 14_match_security.sql DB 트리거에서 안전하게 자동 처리됨 (어뷰징 원천 차단)
       if (!isPlus) {
-        const nextCount = instantMeetsCount + 1;
-        setInstantMeetsCount(nextCount);
-        // DB 프로필 테이블에 사용 횟수 실반영 (어뷰징 차단)
-        await supabase.from('profiles').update({ instant_meets_count: nextCount }).eq('id', user.id);
+        setInstantMeetsCount(instantMeetsCount + 1);
       }
 
       setCreatedThreadId(tid);

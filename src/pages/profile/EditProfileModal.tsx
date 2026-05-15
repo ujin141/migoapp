@@ -113,14 +113,14 @@ export const EditProfileModal = ({
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   {profilePhotos.map((photo, idx) => <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-border">
                       <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                      {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">{"Main"}</div>}
+                      {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">{i18n.t("auto.g_main", "대표")}</div>}
                       <button onClick={() => setProfilePhotos(prev => prev.filter((_, i) => i !== idx))} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
                         <X size={10} className="text-white" />
                       </button>
                     </div>)}
                   {profilePhotos.length < MAX_PROFILE_PHOTOS && <button onClick={() => fileRef2.current?.click()} className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 bg-muted">
                       <Camera size={18} className="text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">{"Add Photo"}</span>
+                      <span className="text-[10px] text-muted-foreground">{i18n.t("auto.g_addphoto", "사진 추가")}</span>
                     </button>}
                 </div>
                 <input ref={fileRef2} type="file" accept="image/*" multiple className="hidden" onChange={e => {
@@ -186,7 +186,7 @@ export const EditProfileModal = ({
                   </select>}
               </div>
               <div className="truncate">
-                <label className="text-sm font-bold text-foreground mb-2 block">{"Travel Style Tags"}</label>
+                <label className="text-sm font-bold text-foreground mb-2 block">{i18n.t("auto.g_travelstyle_tags", "여행 스타일 태그")}</label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {tags.map(tag => <span key={tag} className="flex items-center gap-1 px-3 py-1 rounded-full bg-muted text-xs font-semibold text-muted-foreground">
                       {tag}
@@ -240,7 +240,7 @@ export const EditProfileModal = ({
               </div>
 
               <button onClick={saveProfile} disabled={saving} className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-card flex items-center justify-center gap-2 disabled:opacity-60">
-                {saving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Check size={16} /> {"Save"}</>}
+                {saving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Check size={16} /> {i18n.t("common.save", "저장")}</>}
               </button>
             </div>
           </motion.div>

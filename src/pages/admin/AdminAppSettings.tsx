@@ -158,8 +158,14 @@ export const AdminAppSettings = () => {
     setCustomValue("");
   };
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const handleDeleteCustom = async (key: string) => {
-    if (!confirm(`"${key}" 설정을 삭제하시겠습니까?`)) return;
+    if (confirmDeleteId !== key) {
+      setConfirmDeleteId(key);
+      setTimeout(() => setConfirmDeleteId(prev => prev === key ? null : prev), 3000);
+      return;
+    }
+    setConfirmDeleteId(null);
     await updateAppSetting(key, null);
     setCustomKeys(prev => prev.filter(c => c.key !== key));
     setSettings(prev => { const n = { ...prev }; delete n[key]; return n; });
@@ -174,12 +180,12 @@ export const AdminAppSettings = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-foreground flex items-center gap-2">
-            <Settings size={24} className="text-primary" /> 앱 설정
+            <Settings size={24} className="text-primary" /> {t("auto.t_app_settings_title", "앱 설정")}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">앱 전역 설정을 관리합니다. 변경사항은 즉시 반영됩니다.</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("auto.t_app_settings_desc", "앱 전역 설정을 관리합니다. 변경사항은 즉시 반영됩니다.")}</p>
         </div>
         <button onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-sm hover:text-foreground transition-colors">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> 새로고침
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> {t("auto.t_refresh", "새로고침")}
         </button>
       </div>
 
@@ -270,7 +276,7 @@ export const AdminAppSettings = () => {
                                 ) : (
                                   <Save size={12} />
                                 )}
-                                저장
+                                {t("auto.t_save", "저장")}
                               </button>
                             </div>
                           </div>
@@ -288,9 +294,9 @@ export const AdminAppSettings = () => {
             <div className="p-5 border-b border-border">
               <h3 className="font-extrabold text-foreground flex items-center gap-2">
                 <Settings size={16} className="text-muted-foreground" />
-                커스텀 설정값
+                {t("auto.t_custom_settings", "커스텀 설정값")}
               </h3>
-              <p className="text-xs text-muted-foreground mt-1">직접 키-값 쌍을 추가합니다</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("auto.t_custom_settings_desc", "직접 키-값 쌍을 추가합니다")}</p>
             </div>
 
             {/* Add new */}
@@ -299,13 +305,13 @@ export const AdminAppSettings = () => {
                 <input
                   value={customKey}
                   onChange={e => setCustomKey(e.target.value)}
-                  placeholder="키 이름 (ex: feature_flag_x)"
+                  placeholder={t("auto.t_custom_key_ph", "키 이름 (ex: feature_flag_x)")}
                   className="flex-1 px-3 py-2 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary font-mono"
                 />
                 <input
                   value={customValue}
                   onChange={e => setCustomValue(e.target.value)}
-                  placeholder='값 (ex: true, 42, "text")'
+                  placeholder={t("auto.t_custom_val_ph", '값 (ex: true, 42, "text")')}
                   className="flex-1 px-3 py-2 rounded-xl bg-muted border border-border text-sm text-foreground outline-none focus:border-primary"
                 />
                 <button
@@ -313,7 +319,7 @@ export const AdminAppSettings = () => {
                   disabled={!customKey.trim()}
                   className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-40 flex items-center gap-2"
                 >
-                  <Plus size={14} /> 추가
+                  <Plus size={14} /> {t("auto.t_custom_add", "추가")}
                 </button>
               </div>
             </div>
@@ -321,7 +327,7 @@ export const AdminAppSettings = () => {
             {/* List */}
             <div className="divide-y divide-border/50">
               {customKeys.length === 0 ? (
-                <div className="py-8 text-center text-sm text-muted-foreground">커스텀 설정이 없습니다</div>
+                <div className="py-8 text-center text-sm text-muted-foreground">{t("auto.t_custom_empty", "커스텀 설정이 없습니다")}</div>
               ) : customKeys.map(({ key, value }) => (
                 <div key={key} className="px-5 py-3.5 flex items-center gap-3">
                   <code className="text-xs font-mono text-primary flex-1">{key}</code>
@@ -330,7 +336,8 @@ export const AdminAppSettings = () => {
                   </span>
                   <button
                     onClick={() => handleDeleteCustom(key)}
-                    className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors shrink-0"
+                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${confirmDeleteId === key ? "bg-red-500 text-white" : "bg-red-500/10 text-red-400 hover:bg-red-500/20"}`}
+                    title={confirmDeleteId === key ? "한 번 더 눌러 삭제" : "삭제"}
                   >
                     <Trash2 size={12} />
                   </button>

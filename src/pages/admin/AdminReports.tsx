@@ -41,6 +41,7 @@ export const AdminReports = () => {
   const [status, setStatus] = useState<"all" | "pending" | "resolved" | "dismissed">("pending");
   const [selected, setSelected] = useState<any | null>(null);
   const [banning, setBanning] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const load = async () => {
     setLoading(true);
     const data = await fetchAdminReports();
@@ -75,7 +76,12 @@ export const AdminReports = () => {
     }
   };
   const banTarget = async (targetId: string, reportId: string) => {
-    if (!confirm(i18n.t("auto.z_\uC2E0\uACE0\uB300\uC0C1\uC720\uC800\uB97C\uC815\uC9C0\uD558_638", "\uC2E0\uACE0\uB300\uC0C1\uC720\uC800\uB97C\uC815\uC9C0\uD558"))) return;
+    if (confirmingId !== reportId) {
+      setConfirmingId(reportId);
+      setTimeout(() => setConfirmingId(prev => prev === reportId ? null : prev), 3000);
+      return;
+    }
+    setConfirmingId(null);
     setBanning(true);
     // adminBanUser RPC 우선 (push 알림 내장)
     const banOk = await adminBanUser(targetId) || await updateUserBan(targetId, true);
@@ -170,7 +176,7 @@ export const AdminReports = () => {
                 </div>
               </motion.div>;
       })}
-          {filtered.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground truncate">{t("auto.z_\uC2E0\uACE0\uB0B4\uC5ED\uC774\uC5C6\uC2B5\uB2C8\uB2E4_659", "\uC2E0\uACE0\uB0B4\uC5ED\uC774\uC5C6\uC2B5\uB2C8\uB2E4")}</div>}
+          {filtered.length === 0 && <div className="py-16 text-center text-sm text-muted-foreground truncate">{t("auto.z_\uC2E0\uACE0\uB0B4\uC5ED\uC774\uC5C6\uC74C_659", "\uC2E0\uACE0\uB0B4\uC5ED\uC774\uC5C6\uC2B5\uB2C8\uB2E4")}</div>}
         </div>}
 
       {/* Report detail panel */}
@@ -239,7 +245,7 @@ export const AdminReports = () => {
                     {selected.type === "user" && selected.target_id && <motion.button whileTap={{
                 scale: 0.97
               }} onClick={() => banTarget(selected.target_id, selected.id)} disabled={banning} className="w-full py-2.5 rounded-xl text-sm font-bold bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-                        {banning ? t("auto.z_\uCC98\uB9AC\uC911_673", "\uCC98\uB9AC\uC911") : t("auto.z_\uC2E0\uACE0\uB300\uC0C1\uACC4\uC815\uC815\uC9C0\uD574\uACB0_674", "\uC2E0\uACE0\uB300\uC0C1\uACC4\uC815\uC815\uC9C0\uD574\uACB0")}
+                        {banning ? t("auto.z_처리중_673", "처리중") : confirmingId === selected.id ? t("auto.ko_confirm_ban", "정말로 정지하시겠습니까?") : t("auto.z_신고대상계정정지해결_674", "신고대상계정정지해결")}
                       </motion.button>}
                     <motion.button whileTap={{
                 scale: 0.97

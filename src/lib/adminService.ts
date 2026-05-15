@@ -109,14 +109,16 @@ export async function updateUserValidation(userId: string, verified: boolean) {
   }).eq("id", userId);
   if (!error && verified) {
     // 인증 승인 알림 발송
+    const title = i18n.t("auto.t_id_verif_approved", "✅ 신분증 인증 승인");
+    const content = i18n.t("auto.t_id_verif_approved_desc", "회원님의 신분증 인증이 승인되었습니다. 이제 인증 뱃지가 표시됩니다!");
     await adminSupabase.from("in_app_notifications").insert({
       user_id: userId,
-      title: "✅ 신분증 인증 승인",
-      content: "회원님의 신분증 인증이 승인되었습니다. 이제 인증 뱃지가 표시됩니다!",
+      title: title,
+      content: content,
       type: "system",
       read: false,
     });
-    await sendPushViaEdgeFunction(userId, "✅ 신분증 인증 승인", "회원님의 신분증 인증이 승인되었습니다!", "system");
+    await sendPushViaEdgeFunction(userId, title, content, "system");
   }
   return !error;
 }
@@ -155,10 +157,10 @@ export async function updateUserBan(userId: string, banned: boolean) {
     invalidateCache('map:profiles:');
 
     // 계정정지/해제 알림 발송
-    const title = banned ? "🚫 계정 정지 안내" : "✅ 계정 정지 해제";
+    const title = banned ? i18n.t("auto.t_ban_notice", "🚫 계정 정지 안내") : i18n.t("auto.t_unban_notice", "✅ 계정 정지 해제");
     const content = banned
-      ? "커뮤니티 가이드라인 위반으로 계정이 정지되었습니다. 문의: support@migo.app"
-      : "계정 정지가 해제되었습니다. 다시 Migo를 이용하실 수 있습니다.";
+      ? i18n.t("auto.t_ban_desc", "커뮤니티 가이드라인 위반으로 계정이 정지되었습니다. 문의: support@migo.app")
+      : i18n.t("auto.t_unban_desc", "계정 정지가 해제되었습니다. 다시 Migo를 이용하실 수 있습니다.");
     await adminSupabase.from("in_app_notifications").insert({
       user_id: userId,
       title,

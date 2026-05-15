@@ -115,10 +115,16 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [hasProfileTheme, setHasProfileTheme] = useState(false);
   const [nearbyUnlockedUntil, setNearbyUnlockedUntil] = useState<Date | null>(null);
   // 열람한 채팅방 ID 목록 (localStorage 영속)
+  // BUG-M3 fix: 일별 리셋 — 오늘 날짜가 바뀌면 목록 초기화 (무료 유저 영구 잠금 방지)
   const [openedThreads, setOpenedThreads] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem('migo_opened_threads');
-      return stored ? new Set(JSON.parse(stored)) : new Set();
+      if (stored) {
+        const { date, ids } = JSON.parse(stored);
+        const today = new Date().toISOString().slice(0, 10);
+        if (date === today) return new Set(ids);
+      }
+      return new Set();
     } catch { return new Set(); }
   });
 
@@ -140,7 +146,10 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     setOpenedThreads(prev => {
       const next = new Set(prev);
       next.add(threadId);
-      try { localStorage.setItem('migo_opened_threads', JSON.stringify([...next])); } catch {}
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        localStorage.setItem('migo_opened_threads', JSON.stringify({ date: today, ids: [...next] }));
+      } catch {}
       return next;
     });
   }, [openedThreads]);

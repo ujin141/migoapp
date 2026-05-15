@@ -57,6 +57,11 @@ const AuthCallbackPage = () => {
     const access_token = tokenParams.get("access_token");
     const refresh_token = tokenParams.get("refresh_token");
 
+    // BUG-H5 fix: async 내부 return은 useEffect cleanup으로 전달되지 않으므로
+    // cleanup 참조를 외부에 두고 할당
+    let cleanupTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    let cleanupSubscription: { unsubscribe: () => void } | undefined;
+
     const handleAuth = async () => {
       try {
         // PKCE 코드 교환
@@ -90,27 +95,21 @@ const AuthCallbackPage = () => {
         }
 
         // 세션이 아직 없으면 onAuthStateChange로 대기
-        let timeoutId: ReturnType<typeof setTimeout>;
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
           if (session) {
-            clearTimeout(timeoutId);
+            clearTimeout(cleanupTimeoutId);
             subscription.unsubscribe();
             Browser.close().catch(() => {});
             navigate("/", { replace: true });
           }
         });
+        cleanupSubscription = subscription;
         // 8초 타임아웃 — 실패 시 로그인 페이지로 (5초→8초: 네트워크 느린 환경 대응)
-        timeoutId = setTimeout(() => {
+        cleanupTimeoutId = setTimeout(() => {
           subscription.unsubscribe();
           console.warn("[AuthCallback] Timeout - redirecting to login");
           navigate("/login", { replace: true });
         }, 8000);
-
-        // 💡 컴포넌트 언마운트 시 메모리 누수 방지
-        return () => {
-          clearTimeout(timeoutId);
-          subscription.unsubscribe();
-        };
       } catch (err) {
         console.error("[AuthCallback] Unexpected error:", err);
         navigate("/login", { replace: true });
@@ -118,6 +117,12 @@ const AuthCallbackPage = () => {
     };
 
     handleAuth();
+
+    // 컴포넌트 언마운트 시 메모리 누수 방지
+    return () => {
+      if (cleanupTimeoutId) clearTimeout(cleanupTimeoutId);
+      if (cleanupSubscription) cleanupSubscription.unsubscribe();
+    };
   }, [navigate]);
   return <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">

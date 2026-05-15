@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Search, Eye, EyeOff, Pin, RefreshCw } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { fetchAdminPosts, deletePost, updatePostHidden, updatePostPinned } from "@/lib/adminService";
 export const AdminPosts = () => {
   const {
@@ -29,10 +30,17 @@ export const AdminPosts = () => {
     if (filter === "pinned") return p.pinned;
     return true;
   });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const handleDelete = async (id: string) => {
-    if (!confirm(t("auto.g_1268", "정말로이게"))) return;
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId(prev => prev === id ? null : prev), 3000);
+      return;
+    }
+    setConfirmDeleteId(null);
     const success = await deletePost(id);
-    if (success) setPosts(prev => prev.filter(p => p.id !== id));else alert(t("auto.g_1269", "게시글삭제"));
+    if (success) setPosts(prev => prev.filter(p => p.id !== id));
+    else toast({ title: t("auto.g_1269", "게시글삭제"), variant: "destructive" });
   };
   const handleToggleHidden = async (id: string, currentHidden: boolean) => {
     const success = await updatePostHidden(id, !currentHidden);
@@ -129,7 +137,7 @@ export const AdminPosts = () => {
                     </motion.button>
                     <motion.button whileTap={{
                 scale: 0.9
-              }} onClick={() => handleDelete(p.id)} className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors" title={t("auto.g_1282", "게시글삭제")}>
+              }} onClick={() => handleDelete(p.id)} className={`p-2 rounded-xl transition-colors ${confirmDeleteId === p.id ? "bg-red-500 text-white" : "bg-red-500/10 text-red-400 hover:bg-red-500/20"}`} title={confirmDeleteId === p.id ? t("auto.t_confirm", "한 번 더 눌러 삭제") : t("auto.g_1282", "게시글삭제")}>
                       <Trash2 size={14} />
                     </motion.button>
                   </div>

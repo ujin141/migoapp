@@ -338,7 +338,8 @@ const TripCalendarPage = () => {
     }
   };
   const removeTrip = async (id: string) => {
-    await supabase.from('trips').delete().eq('id', id);
+    if (!user) return;
+    await supabase.from('trips').delete().eq('id', id).eq('user_id', user.id);
     setTrips(prev => prev.filter(t => t.id !== id));
     toast({
       title: t("trip.deleted")

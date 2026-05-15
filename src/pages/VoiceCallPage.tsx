@@ -196,7 +196,7 @@ const VoiceCallPage = () => {
 
         {/* End call / Leave room */}
         <AnimatePresence mode="wait">
-          {callState === "connected" && (
+          {(callState === "connected" || callState === "ringing") && (
             <motion.div key="call" className="flex justify-center" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
               <motion.button
                 whileTap={{ scale: 0.88 }}

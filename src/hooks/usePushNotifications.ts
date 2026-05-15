@@ -95,5 +95,5 @@ export const usePushNotifications = (
     return () => {
       cleanup?.();
     };
-  }, [userId]);
+  }, [userId, onForegroundNotif, onNotificationAction]);
 };

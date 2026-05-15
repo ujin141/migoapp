@@ -68,12 +68,15 @@ export function mockGroupRating(group: TripGroup): number {
 // ──────────────────────────────────────────────
 import { inferGroupTier, getJoinFeeAfterDiscount, getTierConfig } from "@/lib/pricing";
 
+// 성별 기반 가격 차등 정책 (일부 국가에서 성차별 법률 위반 가능, 기본값 비활성)
+const ENABLE_GENDER_PRICING = false;
+
 export function getFeeForUser(
   group: TripGroup,
   gender: UserGender,
   isPlus: boolean
 ): { fee: number; isFree: boolean } {
-  if (gender === "female") return { fee: 0, isFree: true };
+  if (ENABLE_GENDER_PRICING && gender === "female") return { fee: 0, isFree: true };
   const tier = inferGroupTier(group.tags, group.title, group.isPremiumGroup);
   const cfg = getTierConfig(tier);
   const fee = getJoinFeeAfterDiscount(cfg.krw, isPlus);

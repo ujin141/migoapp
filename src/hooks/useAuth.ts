@@ -1,5 +1,6 @@
 import i18n from "@/i18n";
 import { useState, useEffect } from "react";
+import { toast } from "./use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import type { User, Session } from "@supabase/supabase-js";
 export interface AuthUser {
@@ -12,9 +13,9 @@ export interface AuthUser {
 }
 
 // profiles.photo_url 을 DB에서 가져와 user.photoUrl에 반영 (캐시 버스팅 포함)
-async function enrichWithProfilePhoto(user: AuthUser, retries = 1): Promise<AuthUser> {
+async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<AuthUser> {
   try {
-    // 타임아웃 추가: 4초 이상 걸리면 실패 반환 (3→4초로 충분히 여유 있게, 재시도 횟수 줄임)
+    // 타임아웃 추가: 4초 이상 걸리면 실패 반환
     const timeoutPromise = new Promise<{ data: null, error: any }>((_, reject) => 
       setTimeout(() => reject(new Error('timeout')), 4000)
     );
@@ -24,15 +25,14 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 1): Promise<Auth
     ]);
     
     // DB 트리거(handle_new_user)가 아직 완료되지 않아 프로필이 없는 경우 재시도 (Race Condition 방지)
-    // 재시도 1회 + 500ms 대기 (기존 3회 + 1000ms → 최대 블로킹 500ms로 단축)
     if (error && error.code === 'PGRST116' && retries > 0) {
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 600)); // 600ms 대기
       return enrichWithProfilePhoto(user, retries - 1);
     }
 
     if (data) {
       if (data.is_banned || data.banned) {
-        alert("이 계정은 이용 수칙 위반으로 영구 정지되었습니다.");
+        toast({ title: i18n.t("auto.g_1068", "이 계정은 이용 수칙 위반으로 영구 정지되었습니다."), variant: "destructive" });
         await supabase.auth.signOut();
         window.location.href = '/login';
         return { ...user, id: '' }; // Invalidated user
@@ -52,9 +52,9 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 1): Promise<Auth
   } catch (err) {
     console.error("enrichWithProfilePhoto error:", err);
   }
-  // 프로필 조회 실패 시: setupComplete를 명시적 false로 설정하지 않음.
-  // undefined인 경우 이미 있는 user.setupComplete 값을 유지하여 온보딩 루프 방지.
-  return { ...user };
+  // 프로필 조회가 실패하거나 없는 경우: 새로 가입한 소셜 로그인 유저일 확률이 높음
+  // setupComplete가 undefined라면 false로 강제하여 온보딩으로 넘기도록 함
+  return { ...user, setupComplete: user.setupComplete ?? false };
 }
 let globalSession: Session | null = null;
 let globalUser: AuthUser | null = null;
@@ -129,14 +129,19 @@ if (!isSupabaseConfigured) {
       const base = mapUser(session.user);
       // 토큰 갱신 시에는 로딩 걸지 않음
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        globalUser = globalUser ? { ...globalUser, ...base } : base;
+        // ⚠️ base에는 setupComplete가 false(기본값)이므로,
+        // 기존 globalUser에서 enriched된 setupComplete를 보존해야 함
+        const preservedSetup = globalUser?.setupComplete;
+        globalUser = globalUser ? { ...globalUser, ...base, setupComplete: preservedSetup ?? base.setupComplete } : base;
         notifyAuthListeners();
-        const enriched = await enrichWithProfilePhoto(base);
+        const enriched = await enrichWithProfilePhoto(globalUser);
         globalUser = enriched;
         notifyAuthListeners();
       } else if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
         globalLoading = true; // Wait for profile enrichment to prevent flashing home screen for new users
-        globalUser = globalUser ? { ...globalUser, ...base } : base;
+        // ⚠️ base.setupComplete는 항상 false이므로, 기존 enriched 값 보존
+        const preservedSetup = globalUser?.setupComplete;
+        globalUser = globalUser ? { ...globalUser, ...base, setupComplete: preservedSetup ?? base.setupComplete } : base;
         notifyAuthListeners();
         
         const enriched = await enrichWithProfilePhoto(base);
@@ -268,6 +273,8 @@ function mapUser(u: User): AuthUser {
     email: u.email ?? "",
     name: u.user_metadata?.name,
     photoUrl: u.user_metadata?.avatar_url || "",
-    verified: u.user_metadata?.verified ?? false
+    verified: u.user_metadata?.verified ?? false,
+    // ⚠️ 반드시 false로 초기화해야 enrichWithProfilePhoto 전까지 guard가 정상 동작
+    setupComplete: false
   };
 }
