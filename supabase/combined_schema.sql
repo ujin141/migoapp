@@ -1620,28 +1620,7 @@ $$;
 -- ─────────────────────────────────────────────
 
 -- SOS 활성 체크인 뷰
-DROP VIEW IF EXISTS admin_sos_active CASCADE;
-CREATE OR REPLACE VIEW admin_sos_active AS
-SELECT
-  sc.id, sc.user_id, sc.location_name, sc.latitude, sc.longitude,
-  sc.status, sc.is_sos, sc.created_at, sc.updated_at,
-  p.name AS user_name, p.photo_url AS user_photo, p.email AS user_email
-FROM safety_checkins sc
-JOIN profiles p ON p.id = sc.user_id
-WHERE sc.is_sos = true AND sc.status != 'resolved'
-ORDER BY sc.created_at DESC;
-
 -- 채팅방 요약 뷰 (trip_groups 기반)
-DROP VIEW IF EXISTS admin_chat_room_summary CASCADE;
-CREATE OR REPLACE VIEW admin_chat_room_summary AS
-SELECT
-  tg.id, tg.title, tg.description, tg.is_active, tg.member_count, tg.max_members,
-  tg.created_at, COALESCE(tg.host_id, tg.created_by) AS created_by,
-  p.name AS creator_name, p.photo_url AS creator_photo
-FROM trip_groups tg
-LEFT JOIN profiles p ON p.id = COALESCE(tg.host_id, tg.created_by)
-ORDER BY tg.created_at DESC;
-
 -- 유저 요약 뷰
 DROP VIEW IF EXISTS admin_user_summary CASCADE;
 CREATE OR REPLACE VIEW admin_user_summary AS
@@ -3015,6 +2994,7 @@ CREATE POLICY "promo_admin" ON promo_codes FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
 
 -- ── admin_sos_active (VIEW: 활성 SOS 알림) ─────────────────
+DROP VIEW IF EXISTS admin_sos_active CASCADE;
 CREATE OR REPLACE VIEW admin_sos_active AS
   SELECT
     s.id, s.user_id, s.lat, s.lng, s.address, s.message, s.status, s.created_at,
@@ -3025,6 +3005,7 @@ CREATE OR REPLACE VIEW admin_sos_active AS
   ORDER BY s.created_at DESC;
 
 -- ── admin_chat_room_summary (VIEW: 채팅방 요약) ─────────────
+DROP VIEW IF EXISTS admin_chat_room_summary CASCADE;
 CREATE OR REPLACE VIEW admin_chat_room_summary AS
   SELECT
     ct.id AS thread_id,
