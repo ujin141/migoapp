@@ -3012,13 +3012,11 @@ CREATE OR REPLACE VIEW admin_chat_room_summary AS
     ct.is_group,
     ct.name,
     ct.last_message,
-    ct.last_message_at,
     ct.created_at,
-    COUNT(cm.id) AS member_count,
-    ARRAY_AGG(p.name ORDER BY cm.id) FILTER (WHERE p.name IS NOT NULL) AS member_names
+    COUNT(cm.user_id) AS member_count,
+    ARRAY_AGG(p.name) FILTER (WHERE p.name IS NOT NULL) AS member_names
   FROM chat_threads ct
   LEFT JOIN chat_members cm ON cm.thread_id = ct.id
   LEFT JOIN profiles p ON p.id = cm.user_id
   GROUP BY ct.id
-  ORDER BY ct.last_message_at DESC NULLS LAST;
-
+  ORDER BY ct.created_at DESC NULLS LAST;
