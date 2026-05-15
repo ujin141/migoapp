@@ -103,7 +103,6 @@ DROP POLICY IF EXISTS "likes_select"     ON likes;
 DROP POLICY IF EXISTS "likes_insert_own" ON likes;
 DROP POLICY IF EXISTS "likes_delete_own" ON likes;
 CREATE POLICY "likes_select"     ON likes FOR SELECT USING (auth.uid() = from_user OR auth.uid() = to_user);
-CREATE POLICY "likes_insert_own" ON likes FOR INSERT WITH CHECK (auth.uid() = from_user);
 CREATE POLICY "likes_delete_own" ON likes FOR DELETE USING (auth.uid() = from_user);
 
 -- ======================== matches ========================
@@ -119,8 +118,6 @@ ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "matches_select" ON matches;
 DROP POLICY IF EXISTS "matches_insert" ON matches;
 CREATE POLICY "matches_select" ON matches FOR SELECT USING (auth.uid() = user1_id OR auth.uid() = user2_id);
-CREATE POLICY "matches_insert" ON matches FOR INSERT WITH CHECK (true);
-
 -- ======================== chat_threads ========================
 CREATE TABLE IF NOT EXISTS chat_threads (
   id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -143,13 +140,6 @@ CREATE POLICY "threads_select" ON chat_threads FOR SELECT USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid()) OR is_group = true
 );
 CREATE POLICY "threads_insert" ON chat_threads FOR INSERT WITH CHECK (true);
-CREATE POLICY "threads_delete" ON chat_threads FOR DELETE USING (
-  EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
-);
-CREATE POLICY "threads_update" ON chat_threads FOR UPDATE USING (
-  EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
-);
-
 -- ======================== chat_members ========================
 CREATE TABLE IF NOT EXISTS chat_members (
   id        UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -172,12 +162,6 @@ $$ LANGUAGE sql SECURITY DEFINER;
 DROP POLICY IF EXISTS "members_select" ON chat_members;
 CREATE POLICY "members_select" ON chat_members FOR SELECT USING (
   check_is_chat_member(thread_id)
-);
-DROP POLICY IF EXISTS "members_insert" ON chat_members;
-CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (
-  auth.uid() = user_id
-  OR EXISTS (SELECT 1 FROM chat_threads WHERE id = thread_id AND created_by = auth.uid())
-  OR check_is_chat_member(thread_id)
 );
 -- ============================================================
 -- 01b_tables_community.sql - messages, notifications, posts, comments
@@ -476,8 +460,6 @@ DROP POLICY IF EXISTS "idv_insert_own" ON id_verifications;
 DROP POLICY IF EXISTS "idv_admin"      ON id_verifications;
 CREATE POLICY "idv_select_own" ON id_verifications FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "idv_insert_own" ON id_verifications FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "idv_admin"      ON id_verifications FOR ALL TO authenticated USING (true) WITH CHECK (true);
-
 -- ======================== marketplace_items ========================
 CREATE TABLE IF NOT EXISTS marketplace_items (
   id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -500,8 +482,6 @@ ALTER TABLE marketplace_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "marketplace_select" ON marketplace_items;
 DROP POLICY IF EXISTS "marketplace_admin"  ON marketplace_items;
 CREATE POLICY "marketplace_select" ON marketplace_items FOR SELECT USING (is_active = true);
-CREATE POLICY "marketplace_admin"  ON marketplace_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
-
 -- ======================== meet_reviews ========================
 CREATE TABLE IF NOT EXISTS meet_reviews (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -960,25 +940,6 @@ CREATE TRIGGER trigger_calculate_trust_score
   FOR EACH ROW EXECUTE FUNCTION secure_calculate_trust_score();
 
 -- 민감 필드 변조 방지
-CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF auth.role() = 'authenticated' THEN
-    IF NEW.instant_meets_count < OLD.instant_meets_count THEN
-      NEW.instant_meets_count := OLD.instant_meets_count;
-    END IF;
-    IF NEW.no_show_count < OLD.no_show_count THEN
-      NEW.no_show_count := OLD.no_show_count;
-    END IF;
-    IF NEW.is_banned != OLD.is_banned THEN
-      NEW.is_banned := OLD.is_banned;
-    END IF;
-    IF NEW.id_verified != OLD.id_verified THEN NEW.id_verified := OLD.id_verified; END IF;
-    IF NEW.phone_verified != OLD.phone_verified THEN NEW.phone_verified := OLD.phone_verified; END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trigger_block_sensitive_update ON public.profiles;
 CREATE TRIGGER trigger_block_sensitive_update
@@ -2061,12 +2022,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 로그인/앱열기 시 last_active_at 갱신하는 함수 (프론트에서 RPC 호출)
-CREATE OR REPLACE FUNCTION touch_active(p_user_id UUID)
-RETURNS void AS $$
-BEGIN
-  UPDATE profiles SET last_active_at = NOW() WHERE id = p_user_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
 -- 미접속 유저 푸시 발송 함수 (pg_cron에서 호출)
@@ -2548,47 +2503,6 @@ CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (
 -- ============================================================
 
 
-CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- 서비스 롤(관리자)이 아닌 일반 유저의 직접 수정 요청인 경우
-  IF auth.role() IN ('authenticated', 'anon') THEN
-    
-    -- 기존 차단 로직 (횟수 감소 차단 및 주요 상태 변경 차단)
-    IF NEW.instant_meets_count < OLD.instant_meets_count THEN
-      NEW.instant_meets_count := OLD.instant_meets_count;
-    END IF;
-    IF NEW.no_show_count < OLD.no_show_count THEN
-      NEW.no_show_count := OLD.no_show_count;
-    END IF;
-    IF NEW.is_banned != OLD.is_banned THEN NEW.is_banned := OLD.is_banned; END IF;
-    IF NEW.banned != OLD.banned THEN NEW.banned := OLD.banned; END IF;
-    IF NEW.id_verified != OLD.id_verified THEN NEW.id_verified := OLD.id_verified; END IF;
-    IF NEW.phone_verified != OLD.phone_verified THEN NEW.phone_verified := OLD.phone_verified; END IF;
-    IF NEW.email_verified != OLD.email_verified THEN NEW.email_verified := OLD.email_verified; END IF;
-
-    -- [신규] 관리자 권한 상승 방어
-    IF NEW.is_admin != OLD.is_admin THEN NEW.is_admin := OLD.is_admin; END IF;
-    IF NEW.role != OLD.role THEN NEW.role := OLD.role; END IF;
-    
-    -- [신규] 결제 및 구독 관련 상태 조작 방어
-    IF NEW.is_plus != OLD.is_plus THEN NEW.is_plus := OLD.is_plus; END IF;
-    IF NEW.plan != OLD.plan THEN NEW.plan := OLD.plan; END IF;
-    IF NEW.plus_expires_at != OLD.plus_expires_at THEN NEW.plus_expires_at := OLD.plus_expires_at; END IF;
-    IF NEW.boost_expires_at != OLD.boost_expires_at THEN NEW.boost_expires_at := OLD.boost_expires_at; END IF;
-    IF NEW.super_likes_left > OLD.super_likes_left THEN NEW.super_likes_left := OLD.super_likes_left; END IF;
-    
-    -- [신규] 신뢰도 점수 및 리뷰 횟수 조작 방어
-    IF NEW.trust_score != OLD.trust_score THEN NEW.trust_score := OLD.trust_score; END IF;
-    IF NEW.avg_rating != OLD.avg_rating THEN NEW.avg_rating := OLD.avg_rating; END IF;
-    IF NEW.review_count != OLD.review_count THEN NEW.review_count := OLD.review_count; END IF;
-
-  END IF;
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- ============================================================
 -- 14_match_security.sql (v2)
 -- 강제 1:1 채팅 개설(Forced Chat) 취약점 방어 및 바로모임 자동 차감
@@ -2778,6 +2692,7 @@ CREATE POLICY "marketplace_host_all" ON public.marketplace_items
 DROP POLICY IF EXISTS "ui_own" ON public.user_items;
 
 -- 조회는 본인만 가능
+DROP POLICY IF EXISTS "ui_select" ON user_items;
 CREATE POLICY "ui_select" ON public.user_items 
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -2806,6 +2721,7 @@ CREATE TRIGGER trigger_block_item_forging
   FOR EACH ROW EXECUTE FUNCTION block_item_forging();
 
 -- 업데이트 정책 (수량 증가 시도는 위의 트리거가 막음, 차감은 허용)
+DROP POLICY IF EXISTS "ui_update" ON user_items;
 CREATE POLICY "ui_update" ON public.user_items 
   FOR UPDATE USING (auth.uid() = user_id);
 
@@ -2816,11 +2732,13 @@ CREATE POLICY "ui_update" ON public.user_items
 -- 2. purchases & subscriptions 내역 위조 방지
 -- (기존) 유저가 스스로 구매 내역이나 구독 기록을 생성하여 유료 회원을 가장할 수 있었습니다.
 DROP POLICY IF EXISTS "purchase_own" ON public.purchases;
+DROP POLICY IF EXISTS "purchase_own_select" ON purchases;
 CREATE POLICY "purchase_own_select" ON public.purchases 
   FOR SELECT USING (auth.uid() = user_id);
 -- 인서트는 오직 서버 사이드(결제 웹훅/RPC)에서만 허용
 
 DROP POLICY IF EXISTS "sub_own" ON public.subscriptions;
+DROP POLICY IF EXISTS "sub_own_select" ON subscriptions;
 CREATE POLICY "sub_own_select" ON public.subscriptions 
   FOR SELECT USING (auth.uid() = user_id);
 -- 인서트는 오직 서버 사이드(결제 웹훅/RPC)에서만 허용
@@ -2850,54 +2768,6 @@ DROP POLICY IF EXISTS "matches_delete" ON public.matches;
 -- 관리자 전용 메모 및 차단 사유 변조 방어
 -- ============================================================
 
-
-CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- 서비스 롤(관리자)이 아닌 일반 유저의 직접 수정 요청인 경우
-  IF auth.role() IN ('authenticated', 'anon') THEN
-    
-    -- 기존 차단 로직 (횟수 감소 차단 및 주요 상태 변경 차단)
-    IF NEW.instant_meets_count < OLD.instant_meets_count THEN
-      NEW.instant_meets_count := OLD.instant_meets_count;
-    END IF;
-    IF NEW.no_show_count < OLD.no_show_count THEN
-      NEW.no_show_count := OLD.no_show_count;
-    END IF;
-    IF NEW.is_banned != OLD.is_banned THEN NEW.is_banned := OLD.is_banned; END IF;
-    IF NEW.banned != OLD.banned THEN NEW.banned := OLD.banned; END IF;
-    IF NEW.id_verified != OLD.id_verified THEN NEW.id_verified := OLD.id_verified; END IF;
-    IF NEW.phone_verified != OLD.phone_verified THEN NEW.phone_verified := OLD.phone_verified; END IF;
-    IF NEW.email_verified != OLD.email_verified THEN NEW.email_verified := OLD.email_verified; END IF;
-
-    -- 관리자 전용 필드(메모, 차단 사유, 차단 기한 등) 임의 조작 방지
-    IF NEW.admin_note != OLD.admin_note THEN NEW.admin_note := OLD.admin_note; END IF;
-    IF NEW.ban_reason != OLD.ban_reason THEN NEW.ban_reason := OLD.ban_reason; END IF;
-    IF NEW.banned_until != OLD.banned_until THEN NEW.banned_until := OLD.banned_until; END IF;
-
-    -- 관리자 권한 상승 방어
-    IF NEW.is_admin != OLD.is_admin THEN NEW.is_admin := OLD.is_admin; END IF;
-    IF NEW.role != OLD.role THEN NEW.role := OLD.role; END IF;
-    
-    -- 결제 및 구독 관련 상태 조작 방어
-    IF NEW.is_plus != OLD.is_plus THEN NEW.is_plus := OLD.is_plus; END IF;
-    IF NEW.plan != OLD.plan THEN NEW.plan := OLD.plan; END IF;
-    IF NEW.plus_expires_at != OLD.plus_expires_at THEN NEW.plus_expires_at := OLD.plus_expires_at; END IF;
-    IF NEW.boost_expires_at != OLD.boost_expires_at THEN NEW.boost_expires_at := OLD.boost_expires_at; END IF;
-    IF NEW.super_likes_left > OLD.super_likes_left THEN NEW.super_likes_left := OLD.super_likes_left; END IF;
-    
-    -- 신뢰도 점수 및 리뷰 횟수, 뱃지 등 조작 방어
-    IF NEW.trust_score != OLD.trust_score THEN NEW.trust_score := OLD.trust_score; END IF;
-    IF NEW.avg_rating != OLD.avg_rating THEN NEW.avg_rating := OLD.avg_rating; END IF;
-    IF NEW.review_count != OLD.review_count THEN NEW.review_count := OLD.review_count; END IF;
-    IF NEW.has_badge != OLD.has_badge THEN NEW.has_badge := OLD.has_badge; END IF;
-    IF NEW.earned_badges != OLD.earned_badges THEN NEW.earned_badges := OLD.earned_badges; END IF;
-
-  END IF;
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
 -- 20_chat_threads_security.sql
