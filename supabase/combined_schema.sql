@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   lng                   DOUBLE PRECISION,
   languages             TEXT[] DEFAULT '{}',
   interests             TEXT[] DEFAULT '{}',
+  personality_tags      TEXT[] DEFAULT '{}',
   mbti                  TEXT,
   travel_dates          TEXT,
   verified              BOOLEAN DEFAULT false,
@@ -238,6 +239,7 @@ CREATE TABLE IF NOT EXISTS posts (
   content    TEXT NOT NULL,
   image_url  TEXT,
   image_urls TEXT[] DEFAULT '{}',
+  tags       TEXT[] DEFAULT '{}',
   hidden     BOOLEAN DEFAULT false,
   pinned     BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -1867,76 +1869,6 @@ CREATE POLICY "checkin_select_own" ON daily_checkins FOR SELECT USING (auth.uid(
 CREATE POLICY "checkin_insert_own" ON daily_checkins FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE INDEX IF NOT EXISTS idx_daily_checkins_user ON daily_checkins(user_id, checked_at DESC);
 
--- ============================================================
--- FUNCTION: 신규 가입자에게 자동 좋아요 생성
--- profiles INSERT 후 실행 (handle_new_user 이후 자동 트리거)
--- ============================================================
-CREATE OR REPLACE FUNCTION auto_generate_welcome_likes()
-RETURNS TRIGGER AS $$
-DECLARE
-  mock_id UUID;
-  mock_ids UUID[];
-  cnt INTEGER;
-  target_count INTEGER;
-BEGIN
-  -- 모의 유저(seed/mock/hotmock/global/intl)만 선별
-  SELECT array_agg(id ORDER BY random())
-  INTO mock_ids
-  FROM profiles
-  WHERE id != NEW.id
-    AND email LIKE '%@migo.app'
-    AND photo_url IS NOT NULL
-    AND photo_url != '';
-
-  IF mock_ids IS NULL OR array_length(mock_ids, 1) < 5 THEN
-    RETURN NEW; -- 모의 유저가 충분하지 않으면 스킵
-  END IF;
-
-  -- 10~15명 랜덤 선택
-  target_count := 10 + floor(random() * 6)::INTEGER;
-  IF target_count > array_length(mock_ids, 1) THEN
-    target_count := array_length(mock_ids, 1);
-  END IF;
-
-  cnt := 0;
-  FOREACH mock_id IN ARRAY mock_ids LOOP
-    EXIT WHEN cnt >= target_count;
-    
-    -- 좋아요 생성 (모의 유저 → 신규 유저)
-    INSERT INTO likes(from_user, to_user, kind, created_at)
-    VALUES(mock_id, NEW.id, 'like', NOW() - (random() * INTERVAL '48 hours'))
-    ON CONFLICT(from_user, to_user) DO NOTHING;
-    
-    -- 인앱 알림 생성 (최근 3명만 — 알림 폭탄 방지)
-    IF cnt < 3 THEN
-      INSERT INTO in_app_notifications(user_id, title, content, type)
-      VALUES(
-        NEW.id,
-        '새로운 좋아요! 💕',
-        (SELECT name FROM profiles WHERE id = mock_id) || '님이 회원님을 좋아합니다!',
-        'like'
-      );
-    END IF;
-    
-    cnt := cnt + 1;
-  END LOOP;
-
-  -- 전체 좋아요 수 알림 (한 개의 요약 알림)
-  INSERT INTO notifications(user_id, type, target_text)
-  VALUES(NEW.id, 'welcome_likes', cnt::TEXT || '명이 회원님을 좋아합니다! 지금 확인해보세요 💕');
-
-  RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-  -- 에러가 나도 가입 자체는 차단하지 않음
-  RAISE LOG 'auto_generate_welcome_likes error (non-blocking): %', SQLERRM;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS trg_welcome_likes ON profiles;
-CREATE TRIGGER trg_welcome_likes
-  AFTER INSERT ON profiles
-  FOR EACH ROW EXECUTE FUNCTION auto_generate_welcome_likes();
 
 -- ============================================================
 -- FUNCTION: 출석체크 처리 (프론트에서 RPC 호출)
@@ -1991,7 +1923,7 @@ BEGIN
 
   -- 보상 적용 (badge_only는 아무것도 지급하지 않음)
   IF v_reward = 'super_like_1' THEN
-    UPDATE profiles SET super_likes_left = COALESCE(super_likes_left, 0) + 1 WHERE id = p_user_id;
+    UPDATE user_items SET super_likes = COALESCE(super_likes, 0) + 1 WHERE user_id = p_user_id;
   ELSIF v_reward = 'boost_30m' THEN
     UPDATE profiles SET boost_expires_at = NOW() + INTERVAL '30 minutes' WHERE id = p_user_id;
   END IF;
@@ -2082,7 +2014,7 @@ BEGIN
       AND p.email NOT LIKE '%@migo.app'
   LOOP
     -- 슈퍼라이크 3개 보상
-    UPDATE profiles SET super_likes_left = COALESCE(super_likes_left, 0) + 3 WHERE id = r.id;
+    UPDATE user_items SET super_likes = COALESCE(super_likes, 0) + 3 WHERE user_id = r.id;
     INSERT INTO in_app_notifications(user_id, title, content, type)
     VALUES(r.id, '🎁 슈퍼라이크 3개 선물!', '돌아오셔서 감사해요! 슈퍼라이크 3개가 지급되었습니다 ⭐', 'retention_72h')
     ON CONFLICT DO NOTHING;
@@ -2952,7 +2884,6 @@ BEGIN
     IF NEW.plan != OLD.plan THEN NEW.plan := OLD.plan; END IF;
     IF NEW.plus_expires_at != OLD.plus_expires_at THEN NEW.plus_expires_at := OLD.plus_expires_at; END IF;
     IF NEW.boost_expires_at != OLD.boost_expires_at THEN NEW.boost_expires_at := OLD.boost_expires_at; END IF;
-    IF NEW.super_likes_left > OLD.super_likes_left THEN NEW.super_likes_left := OLD.super_likes_left; END IF;
     IF NEW.trust_score != OLD.trust_score THEN NEW.trust_score := OLD.trust_score; END IF;
     IF NEW.avg_rating != OLD.avg_rating THEN NEW.avg_rating := OLD.avg_rating; END IF;
     IF NEW.review_count != OLD.review_count THEN NEW.review_count := OLD.review_count; END IF;

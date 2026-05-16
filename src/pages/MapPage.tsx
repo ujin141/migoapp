@@ -286,11 +286,8 @@ const MapPage = () => {
         .select('id,name,photo_url,age,gender,nationality,location,lat,lng,languages,interests,mbti,verified,bio')
         .neq('id', user?.id ?? '')
         .neq('is_banned', true)
-        .eq('setup_complete', true)
-        .not('lat', 'is', null)
-        .not('lng', 'is', null)
         .order('id')
-        .limit(200);
+        .limit(1000);
       if (!error && data) {
         const parsedData = data.filter(p => p.id !== user?.id).map(p => {
           const distKm = me?.lat && me?.lng && p.lat && p.lng ? haversineKm({ lat: me.lat, lng: me.lng }, { lat: p.lat, lng: p.lng }) : null;
@@ -375,6 +372,13 @@ const MapPage = () => {
         });
         setCache(CACHE_KEY, postsWithLocation, 5 * 60 * 1000); // 5분 캐시
         setCommunityPosts(postsWithLocation);
+        
+        // 50명 노출 한도(view_count) 추적을 위해 RPC 호출
+        if (data && data.length > 0) {
+          supabase.rpc('increment_post_views', { p_ids: data.map((d: any) => d.id) }).then(({ error: rpcErr }) => {
+            if (rpcErr) console.error("increment_post_views error:", rpcErr);
+          });
+        }
       }
     };
     fetchCommunityPosts();
@@ -388,7 +392,7 @@ const MapPage = () => {
         id, title, destination, dates, max_members, tags, status, entry_fee, is_premium, description,
         host_id, profiles:host_id(name, photo_url, bio),
         trip_group_members(user_id, profiles(name, photo_url, gender))
-      `).in("status", ["recruiting", "almost_full"]).order("created_at", { ascending: false });
+      `).in("status", ["recruiting", "almost_full", "active"]).order("created_at", { ascending: false });
       
       const { data, error } = await query;
       if (!error && data) {
@@ -1621,21 +1625,23 @@ const MapPage = () => {
           </div>}
 
         {/* ── 우측 버튼 전체 (카드 없을 때만 표시) ── */}
+        {/* iOS WKWebView fix: pointer-events-none on parent blocks touch even if children have pointer-events-auto */}
         <div
-          className="absolute right-4 z-30 flex flex-col items-end pointer-events-none"
+          className="absolute right-4 z-30 flex flex-col items-end"
           style={{
-            top: displayMode === 'restaurants' || displayMode === 'hotplaces' ? '100px' : '16px',
+            top: '12px',
             visibility: (selectedRestaurant || selectedTraveler || selectedHotplace || selectedPost || selectedGroup) ? 'hidden' : 'visible',
+            pointerEvents: 'none',
           }}
         >
           {/* 🛏️ Lodging Trends */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowLodgingTrends(true)}
-            style={{ marginBottom: '12px' }}
-            className="w-10 h-10 bg-gradient-to-tr from-rose-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 text-white relative pointer-events-auto"
+            style={{ marginBottom: '12px', pointerEvents: 'auto', touchAction: 'manipulation' }}
+            className="w-12 h-12 bg-gradient-to-tr from-rose-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/20 text-white relative"
           >
-            <span className="text-lg leading-none">🛏️</span>
+            <span className="text-xl leading-none">🛏️</span>
             <div className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-white animate-pulse shadow-sm" />
           </motion.button>
 
@@ -1643,26 +1649,27 @@ const MapPage = () => {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowFlightTrends(true)}
-            style={{ marginBottom: '12px' }}
-            className="w-10 h-10 bg-gradient-to-tr from-sky-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-sky-500/20 text-white pointer-events-auto"
+            style={{ marginBottom: '12px', pointerEvents: 'auto', touchAction: 'manipulation' }}
+            className="w-12 h-12 bg-gradient-to-tr from-sky-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-sky-500/20 text-white"
           >
-            <span className="text-lg leading-none">✈️</span>
+            <span className="text-xl leading-none">✈️</span>
           </motion.button>
 
           {/* ⚡ Lightning Match */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowRightNowModal(true)}
-            style={{ marginBottom: '16px' }}
-            className="w-10 h-10 bg-amber-500 border border-amber-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 text-white pointer-events-auto"
+            style={{ marginBottom: '16px', pointerEvents: 'auto', touchAction: 'manipulation' }}
+            className="w-12 h-12 bg-amber-500 border border-amber-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 text-white"
           >
             <Zap size={18} fill="currentColor" />
           </motion.button>
 
-          {/* 🧭 Re-center — 구분선 역할의 여백 후 배치 */}
+          {/* 🧭 Re-center */}
           <button
             onClick={handleReCenter}
-            className="bg-card rounded-2xl p-3 shadow-float border border-border transition-transform active:scale-90 pointer-events-auto"
+            style={{ pointerEvents: 'auto', touchAction: 'manipulation' }}
+            className="bg-card rounded-2xl p-3 shadow-float border border-border transition-transform active:scale-90"
           >
             <Navigation size={18} className={`text-primary ${centerAnim ? 'animate-pulse' : ''}`} />
           </button>

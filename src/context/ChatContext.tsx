@@ -77,6 +77,8 @@ export const ChatProvider = ({
     const threadIds = data.map((m: any) => m.chat_threads?.id).filter(Boolean);
     if (threadIds.length === 0) {
       setThreads([]);
+      setUnreadMap({});
+      try { localStorage.removeItem('migo_unread_map'); } catch {}
       return;
     }
 
@@ -99,6 +101,22 @@ export const ChatProvider = ({
 
     let localUnreadMap: Record<string, number> = {};
     try { localUnreadMap = JSON.parse(localStorage.getItem('migo_unread_map') || '{}'); } catch {}
+
+    // ── 이전 계정의 쓰레기 데이터 청소 (Stale data prune) ──
+    let isStale = false;
+    const validUnreadMap: Record<string, number> = {};
+    for (const tid of Object.keys(localUnreadMap)) {
+      if (threadIds.includes(tid)) {
+        validUnreadMap[tid] = localUnreadMap[tid];
+      } else {
+        isStale = true;
+      }
+    }
+    if (isStale) {
+      setUnreadMap(validUnreadMap);
+      try { localStorage.setItem('migo_unread_map', JSON.stringify(validUnreadMap)); } catch {}
+    }
+    localUnreadMap = validUnreadMap;
 
     const mapped: GroupThread[] = data.map((m: any) => {
       const thread = m.chat_threads;

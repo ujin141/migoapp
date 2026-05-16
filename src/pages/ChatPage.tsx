@@ -213,8 +213,9 @@ const ChatPage = () => {
     handleTranslate(last.id, last.text);
   }, [messages, autoTranslate, handleTranslate, translateMap]); // BUG-16 fix: handleTranslate dep 추가
 
-  const sendMessage = async () => {
-    if (!message.trim() || !selectedChat || !user) return;
+  const sendMessage = async (overrideText?: string) => {
+    const finalMessage = overrideText || message;
+    if (!finalMessage.trim() || !selectedChat || !user) return;
     if (!canSendDm) {
       setShowPlusModal(true);
       return;
@@ -226,7 +227,7 @@ const ChatPage = () => {
     }
 
     // 낙관적 UI: 먼저 메시지 clear, 실패 시 복원
-    const textToSend = message.trim();
+    const textToSend = finalMessage.trim();
     setMessage("");
 
     // Insert to DB (컨럼명: text)
@@ -602,7 +603,7 @@ const ChatPage = () => {
       </div>
 
       {/* Ad Banner */}
-      {ads.length > 0 && (
+      {!isPlus && !isPremium && ads.length > 0 && (
         <div className="px-5 mb-3">
           {ads.map((ad, i) => {
             if (i > 0) return null;

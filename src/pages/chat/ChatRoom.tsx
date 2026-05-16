@@ -34,7 +34,7 @@ export interface ChatRoomProps {
   handleToggleMute: (chatId: string, name: string) => void;
   handleNoShowReport: () => void;
   handleShareLocation: () => void;
-  sendMessage: () => void;
+  sendMessage: (overrideText?: string) => void;
   handleDeleteChat: (chatId: string) => void;
   handleReport: () => void;
   handleMeetProposal: () => void;
@@ -167,11 +167,8 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       const { translateText } = await import('@/lib/translateService');
       const translated = await translateText({ text: message, targetLang });
       const textToSend = (translated && translated !== message) ? translated : message;
-      // setState 후 sendMessage가 최신 값을 읽도록 setTimeout(0)으로 React batch flush 보장
-      setMessage(textToSend);
-      setTimeout(() => {
-        sendMessage();
-      }, 0);
+      // 직접 번역된 텍스트를 인자로 넘겨서 전송 (클로저 문제 해결)
+      sendMessage(textToSend);
     } catch (err: any) {
       // API에서 요금제 제한(429) 에러 발생 시 결제 모달 띄우기
       if (err?.message?.includes("limit reached") || err?.status === 429) {
@@ -362,8 +359,8 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       )}
 
       {/* Bottom area: quick actions + input — 한 덩어리로 묶어 항상 화면 안에 */}
-      <div className="shrink-0 px-3 pt-1 pb-safe bg-background/95 backdrop-blur-xl border-t border-border/40 z-20"
-           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 8px), 8px)' }}>
+      <div className="shrink-0 px-3 pt-1 bg-background/95 backdrop-blur-xl border-t border-border/40 z-20"
+           style={{ paddingBottom: 'calc(max(env(safe-area-inset-bottom, 8px), 8px) + var(--kb-height, 0px))' }}>
 
         {/* Quick action chips — 얇은 한 줄 */}
         <div className="flex gap-1.5 mb-2 overflow-x-auto scrollbar-hide">

@@ -44,6 +44,15 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
+    // ── Google AdMob ─────────────────────────────────────────────
+    // iOS:     https://apps.admob.com → 앱 → 앱 설정 → 앱 ID
+    // Android: 별도 android/app/src/main/AndroidManifest.xml에도 추가 필요
+    AdMob: {
+      appId: {
+        ios: 'ca-app-pub-2237857753220220~5402641159',     // User provided App ID
+        android: 'ca-app-pub-2237857753220220~5402641159', // User provided App ID
+      },
+    },
     Geolocation: {
       // iOS 위치 권한 메시지
     },

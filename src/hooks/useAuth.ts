@@ -121,6 +121,7 @@ if (!isSupabaseConfigured) {
       globalLoading = false;
       localStorage.removeItem('migo_my_lat');
       localStorage.removeItem('migo_my_lng');
+      localStorage.removeItem('migo_unread_map');
       notifyAuthListeners();
       return;
     }
@@ -224,6 +225,7 @@ export const useAuth = () => {
     await supabase.auth.signOut();
     localStorage.removeItem('migo_my_lat');
     localStorage.removeItem('migo_my_lng');
+    localStorage.removeItem('migo_unread_map');
   };
   const updateProfile = async (updates: Partial<AuthUser>) => {
     if (!isSupabaseConfigured || !globalUser) return {

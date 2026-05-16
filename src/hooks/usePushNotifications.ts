@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
+import { FCM } from "@capacitor-community/fcm";
 import { supabase } from "@/lib/supabaseClient";
 
 /**
@@ -48,9 +49,16 @@ export const usePushNotifications = (
         // 토큰 등록 완료 → DB 저장
         await PushNotifications.addListener("registration", async (token) => {
           try {
+            let finalToken = token.value;
+            // iOS의 경우 PushNotifications.addListener는 APNs 토큰을 반환하므로 FCM 토큰을 별도로 가져옵니다.
+            if (Capacitor.getPlatform() === 'ios') {
+              const fcmTokenResult = await FCM.getToken();
+              finalToken = fcmTokenResult.token;
+            }
+
             await supabase
               .from("profiles")
-              .update({ fcm_token: token.value })
+              .update({ fcm_token: finalToken })
               .eq("id", userId);
           } catch {
             // 토큰 저장 실패는 조용히 무시 (앱 동작에 영향 없음)

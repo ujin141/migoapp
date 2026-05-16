@@ -7,21 +7,32 @@ export const useFomoActivity = (enabled: boolean = true) => {
   const { t } = useTranslation();
   const timerRef = useRef<NodeJS.Timeout>();
 
-  const FOMO_MESSAGES = useMemo(() => [
-    t("fomo.msg1", "🇺🇸 Sarah님이 방금 파리 동행을 찾기 시작했어요!"),
-    t("fomo.msg2", "🔥 현재 12명이 런던 일정을 보고 있습니다."),
-    t("fomo.msg3", "✨ 방금 도쿄에서 새로운 매칭이 성사되었습니다!"),
-    t("fomo.msg4", "🇬🇧 David님이 방금 앱에 접속했습니다."),
-    t("fomo.msg5", "👀 누군가 회원님의 프로필을 방금 조회했습니다."),
-    t("fomo.msg6", "✈️ 28명이 다가오는 주말에 방콕 여행을 계획 중입니다."),
-    t("fomo.msg7", "💡 이번 달 가장 인기 있는 여행지는 오사카입니다.")
-  ], [t]);
+  const NAMES = useMemo(() => ["Sarah", "David", "Emma", "James", "Yuki", "Jin", "Clara", "Leo", "Mia", "Oliver", "Sophia", "Lucas"], []);
+  const FLAGS = useMemo(() => ["🇺🇸", "🇬🇧", "🇦🇺", "🇨🇦", "🇯🇵", "🇰🇷", "🇪🇸", "🇫🇷", "🇮🇹", "🇩🇪"], []);
+  const LOCATIONS = useMemo(() => ["파리", "런던", "도쿄", "제주도", "오사카", "뉴욕", "로마", "방콕", "바르셀로나", "발리"], []);
 
   useEffect(() => {
     if (!enabled) return;
 
     const showRandomToast = () => {
-      const randomMsg = FOMO_MESSAGES[Math.floor(Math.random() * FOMO_MESSAGES.length)];
+      const name = NAMES[Math.floor(Math.random() * NAMES.length)];
+      const flag = FLAGS[Math.floor(Math.random() * FLAGS.length)];
+      const loc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+      const count1 = Math.floor(Math.random() * 20) + 5; 
+      const count2 = Math.floor(Math.random() * 30) + 10;
+
+      const dynamicMessages = [
+        t("fomo.msg1_dyn", "{{flag}} {{name}}님이 방금 {{loc}} 동행을 찾기 시작했어요!", { flag, name, loc }),
+        t("fomo.msg2_dyn", "🔥 현재 {{count}}명이 {{loc}} 일정을 보고 있습니다.", { count: count1, loc }),
+        t("fomo.msg3_dyn", "✨ 방금 {{loc}}에서 새로운 매칭이 성사되었습니다!", { loc }),
+        t("fomo.msg4_dyn", "{{flag}} {{name}}님이 방금 앱에 접속했습니다.", { flag, name }),
+        t("fomo.msg5", "👀 누군가 회원님의 프로필을 방금 조회했습니다."),
+        t("fomo.msg6_dyn", "✈️ {{count}}명이 다가오는 주말에 {{loc}} 여행을 계획 중입니다.", { count: count2, loc }),
+        t("fomo.msg7_dyn", "💡 이번 달 가장 인기 있는 여행지는 {{loc}}입니다.", { loc })
+      ];
+
+      const randomMsg = dynamicMessages[Math.floor(Math.random() * dynamicMessages.length)];
+      
       toast({
         title: t("fomo.title", "⚡ 실시간 활동"),
         description: randomMsg,
@@ -39,5 +50,5 @@ export const useFomoActivity = (enabled: boolean = true) => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [enabled, toast, t, FOMO_MESSAGES]);
+  }, [enabled, toast, t, NAMES, FLAGS, LOCATIONS]);
 };

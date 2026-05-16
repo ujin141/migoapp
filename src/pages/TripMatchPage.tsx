@@ -176,7 +176,7 @@ const TripMatchPage: React.FC = () => {
   // ── Load real groups from Supabase — GlobalFilter 연동 ──
   useEffect(() => {
     setLoading(true);
-    let query = supabase.from("trip_groups").select("*, profiles:host_id(name, photo_url, trust_score), trip_group_members(user_id, profiles(gender))").eq("status", "active").order("created_at", {
+    let query = supabase.from("trip_groups").select("*, profiles!trip_groups_host_id_fkey(name, photo_url, trust_score), trip_group_members(user_id, profiles(gender))").in("status", ["active", "recruiting"]).order("created_at", {
       ascending: false
     }).limit(60);
 
@@ -197,6 +197,7 @@ const TripMatchPage: React.FC = () => {
         id: g.id,
         title: g.title,
         destination: g.destination || "",
+        departure: g.departure || "",
         dates: g.dates || "",
         currentMembers: (g.trip_group_members || []).length,
         maxMembers: g.max_members ?? 6,

@@ -683,6 +683,13 @@ const DiscoverPage = () => {
           };
         });
         setPosts(mapped);
+        
+        // 50명 노출 한도(view_count) 추적을 위해 RPC 호출
+        if (data && data.length > 0) {
+          supabase.rpc('increment_post_views', { p_ids: data.map(d => d.id) }).then(({ error: rpcErr }) => {
+            if (rpcErr) console.error("increment_post_views error:", rpcErr);
+          });
+        }
       } catch (err: any) {
         const msg = err?.message || "";
         // Lock steal 에러는 무시 (Supabase 내부 일시적 경쟁 현상)
@@ -702,11 +709,11 @@ const DiscoverPage = () => {
       setLoadingGroups(true);
       try {
         let query = supabase.from("trip_groups").select(`
-            id, title, destination, dates, max_members, tags, description,
+            id, title, destination, departure, dates, max_members, tags, description,
             entry_fee, is_premium, host_id,
             profiles:host_id(name, photo_url, bio, lat, lng),
             trip_group_members(user_id, profiles(name, photo_url))
-          `).in("status", ["recruiting", "almost_full"])
+          `).in("status", ["recruiting", "almost_full", "active"])
           .order("created_at", {
           ascending: false
         }).limit(50);

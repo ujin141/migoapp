@@ -14,6 +14,7 @@ const notifIcon = (type: NotifType) => {
     case "superlike": return { Icon: Star, color: "bg-indigo-500/10 text-indigo-400" };
     case "comment": return { Icon: MessageSquare, color: "bg-primary/10 text-primary" };
     case "match": return { Icon: UserRound, color: "bg-accent/30 text-accent-foreground" };
+    default: return { Icon: Bell, color: "bg-gray-500/10 text-gray-500" };
   }
 };
 
@@ -29,6 +30,7 @@ const NotificationPage = () => {
       case "superlike":  return n.target ? t("notif.superlikedTarget", {target: n.target}) : t("notif.superliked");
       case "comment":    return t("notif.commentedTarget", {target: n.target});
       case "match":      return t("notif.matched");
+      default:           return t("notif.defaultMsg", "새로운 알림이 도착했습니다.");
     }
   };
 
@@ -159,10 +161,17 @@ const NotificationPage = () => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground leading-snug">
-                    <span className="font-bold truncate">{["profile_view", "like", "superlike"].includes(n.type) && !isPlus ? t("notif.someone") : n.actor}</span>
-                    {notifMessage(n)}
-                  </p>
+                  {n.title ? (
+                    <>
+                      <p className="text-sm font-bold text-foreground leading-snug truncate">{n.title}</p>
+                      <p className="text-sm text-foreground leading-snug truncate">{n.content || n.target}</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-foreground leading-snug">
+                      <span className="font-bold truncate">{["profile_view", "like", "superlike"].includes(n.type) && !isPlus ? t("notif.someone") : n.actor}</span>
+                      {notifMessage(n)}
+                    </p>
+                  )}
                   <p className="text-[10px] text-muted-foreground mt-1">{n.time}</p>
                 </div>
 

@@ -17,9 +17,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>$(MARKETING_VERSION)</string>
+	<string>1.0.3</string>
 	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<string>41</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -64,5 +64,7 @@
 	<string>Migo uses your location to show nearby travelers and local hotspots on the map. Location is only collected while the app is open and is not shared with advertisers.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Migo uses the microphone to enable voice messages and voice calls with your matched travelers. Audio is only recorded when you actively initiate a call or voice message.</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-2237857753220220~5402641159</string>
 </dict>
 </plist>

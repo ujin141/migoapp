@@ -25,6 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 import { getCurrentLocation } from "@/lib/locationService";
 import { checkInStreak } from "@/lib/streakService";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useLocalNotifications } from "@/hooks/useLocalNotifications";
+import DailyCheckinModal from "@/components/DailyCheckinModal";
 
 import i18n from "./i18n";
 
@@ -188,7 +190,27 @@ const AppContent = () => {
   useNetworkStatus();
 
   // ── 네이티브 푸시 권한 및 토큰 레지스터 (백그라운드 알림용) ──
-  usePushNotifications(user?.id);
+  usePushNotifications(
+    user?.id,
+    // 포그라운드 수신 → in-app 토스트
+    (title, body, data) => {
+      toast({ title, description: body, duration: 4000 });
+      // 채팅 메시지면 unread badge 수동 증가 (실시간 채널이 이미 처리하지만 혹시 모를 경우 대비)
+      // ChatContext의 Realtime이 우선이므로 별도 addUnread는 하지 않음
+    },
+    // 알림 탭(백그라운드/종료 상태) → 딥링크 이동
+    (data) => {
+      if (data?.type === 'message' && data?.thread_id) {
+        navigate('/chat', { state: { threadId: data.thread_id } });
+      } else if (data?.type === 'match' && data?.thread_id) {
+        navigate('/chat', { state: { threadId: data.thread_id } });
+      } else if (data?.type === 'like' || data?.type === 'superlike') {
+        navigate('/');
+      } else {
+        navigate('/notifications');
+      }
+    },
+  );
 
 
 
@@ -473,6 +495,9 @@ const AppContent = () => {
           </div>
         </div>
       )}
+
+      {/* 매일 최초 진입 시 출석체크 보상 팝업 */}
+      <DailyCheckinModal />
     </div>
   );
 };

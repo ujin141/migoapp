@@ -22,12 +22,15 @@ import { useAuth } from "@/hooks/useAuth";
 import ReportBlockActionSheet from "@/components/ReportBlockActionSheet";
 import CheckInModal from "@/components/CheckInModal";
 import { getMyCheckIn, CheckIn } from "@/lib/checkInService";
-import DailyCheckinModal from "@/components/DailyCheckinModal";
 import MatchResultCard from "@/components/MatchResultCard";
 import { recordSwipe, personalize } from "@/lib/personalizeService";
 import { requestNotificationPermission, notifyMatch } from "@/lib/notificationService";
 import { MoreHorizontal } from "lucide-react";
 import { MissionModal, LikePopupModal, PassPopupModal, SuperLikeModal, LoginGateModal, FilterModal } from "./match/MatchModals";
+import { useAdMob } from "@/hooks/useAdMob";
+import AdBanner from "@/components/AdBanner";
+import { BannerAdPosition } from '@capacitor-community/admob';
+
 const MatchPage = () => {
   const {
     t
@@ -63,6 +66,10 @@ const MatchPage = () => {
   const [showMissionModal, setShowMissionModal] = useState(false);
   const [myDailyMission, setMyDailyMission] = useState<string>("");
   const [checkInCityTravelers, setCheckInCityTravelers] = useState<any[]>([]);
+
+  // ── AdMob ──
+  const { showInterstitial } = useAdMob();
+  const [swipeCount, setSwipeCount] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -182,7 +189,6 @@ const MatchPage = () => {
       const res = await supabase.from('profiles')
         .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned')
         .neq('id', user.id)
-        .eq('setup_complete', true)
         .or('is_banned.is.null,is_banned.eq.false')
         .or('banned.is.null,banned.eq.false')
         .limit(200);
@@ -466,7 +472,7 @@ const MatchPage = () => {
       if ((i + 1) % 3 === 0) {
         if (likerIdx < pendingLikers.length) {
           result.push(pendingLikers[likerIdx++]);
-        } else if (!isPlus && ads.length > 0) {
+        } else if (!isPlus && !isPremium && ads.length > 0) {
           const ad = ads[adIdx % ads.length];
           result.push({
             id: `ad-${ad.id}-${i}`,
@@ -520,7 +526,12 @@ const MatchPage = () => {
       matchTimersRef.current.timeouts.push(tPass);
     }
     setCurrentIndex(i => i + 1);
-  }, [currentIndex, withAds]);
+    setSwipeCount(s => {
+      const next = s + 1;
+      if (!isPlus && !isPremium && next % 5 === 0) showInterstitial();
+      return next;
+    });
+  }, [currentIndex, withAds, isPlus, isPremium, showInterstitial]);
   const saveLikeAndCheckMatch = useCallback(async (toUserId: string, kind: 'like' | 'superlike' = 'like', message?: string) => {
     if (!user) return false;
     // 1. like 저장 → DB 트리거(trg_notify_on_like)가 자동으로 notifications INSERT
@@ -632,6 +643,11 @@ const MatchPage = () => {
       age: profile.age
     }, true);
     setCurrentIndex(i => i + 1);
+    setSwipeCount(s => {
+      const next = s + 1;
+      if (!isPlus && !isPremium && next % 5 === 0) showInterstitial();
+      return next;
+    });
     if (!isPlus && !profile.isLiker) setDailyLikesUsed(n => n + 1);
 
     // DB 저장 + 매칭 확인
@@ -767,9 +783,6 @@ const MatchPage = () => {
     }
   }, [topProfile, user?.id]);
   return <div className="flex flex-col h-full bg-background truncate">
-      {/* ─── 출석체크 모달 (매일 첫 접속 시 자동 표시) ─── */}
-      <DailyCheckinModal />
-
       {/* ─── In-app notification banner (Like / SuperLike received) ─── */}
       <InAppNotifBanner notif={inAppNotif} onClose={() => setInAppNotif(null)} />
 
@@ -781,6 +794,10 @@ const MatchPage = () => {
       />
 
       {/* Header */}
+      {/* 무료 유저에게만 상단 배너 표시 */}
+      {!isPlus && !isPremium && (
+        <AdBanner position={BannerAdPosition.TOP_CENTER} reservedHeight={50} />
+      )}
       <TopHeader
         activeCheckIn={activeCheckIn}
         onCheckInClick={() => setShowCheckInModal(true)}

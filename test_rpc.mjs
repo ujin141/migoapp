@@ -1,15 +1,20 @@
-import { createClient } from "@supabase/supabase-js";
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-async function testFunction() {
-  const { data: user, error: signUpError } = await supabase.auth.signUp({
-    email: 'test_rpc_delete_345@example.com',
-    password: 'password123'
-  });
-  console.log("Signed up:", user);
-  const { data, error } = await supabase.rpc('delete_user');
-  console.log("RPC Error:", error);
-  console.log("RPC Data:", data);
+import { createClient } from '@supabase/supabase-js'
+import fs from 'fs'
+
+const envFile = fs.readFileSync('.env.local', 'utf-8');
+const envUrl = envFile.split('\n').find(l => l.startsWith('VITE_SUPABASE_URL')).split('=')[1].replace(/["']/g, '').trim();
+const envKey = envFile.split('\n').find(l => l.startsWith('VITE_SUPABASE_ANON_KEY')).split('=')[1].replace(/["']/g, '').trim();
+
+const supabase = createClient(envUrl, envKey);
+
+async function test() {
+  const { data, error } = await supabase.from('trip_groups').select('id, title, status, profiles!trip_groups_host_id_fkey(name, photo_url)').limit(5).order('created_at', {ascending: false});
+  console.log("Using profiles!trip_groups_host_id_fkey:", JSON.stringify(data, null, 2), error);
+  
+  const { data: d2, error: e2 } = await supabase.from('trip_groups').select('id, title, status, profiles:host_id(name, photo_url)').limit(5).order('created_at', {ascending: false});
+  console.log("Using profiles:host_id:", JSON.stringify(d2, null, 2), e2);
+  
+  const { data: d3, error: e3 } = await supabase.from('trip_groups').select('id, title, status, profiles:profiles!trip_groups_host_id_fkey(name, photo_url)').limit(5).order('created_at', {ascending: false});
+  console.log("Using profiles:profiles!trip_groups_host_id_fkey:", JSON.stringify(d3, null, 2), e3);
 }
-testFunction();
+test();

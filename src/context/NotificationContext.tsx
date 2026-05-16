@@ -30,6 +30,8 @@ export interface Notif {
   actor: string;
   actorPhoto: string;
   target?: string;
+  title?: string;
+  content?: string;
   time: string;
   read: boolean;
 }
@@ -101,16 +103,26 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !sessionReady) return;
 
     const fetchNotifs = async () => {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("id, type, actor_id, target_text, is_read, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      const [notifsRes, inAppRes] = await Promise.all([
+        supabase
+          .from("notifications")
+          .select("id, type, actor_id, target_text, is_read, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("in_app_notifications")
+          .select("id, type, title, content, is_read, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      ]);
 
-      if (!error && data && data.length > 0) {
+      let combined: Notif[] = [];
+
+      if (notifsRes.data && notifsRes.data.length > 0) {
         const actorIds = [
-          ...new Set(data.map((n: any) => n.actor_id).filter(Boolean)),
+          ...new Set(notifsRes.data.map((n: any) => n.actor_id).filter(Boolean)),
         ];
         const { data: actorProfiles } = await supabase
           .from("profiles")
@@ -120,21 +132,41 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         const profileMap: Record<string, any> = {};
         for (const p of actorProfiles || []) profileMap[p.id] = p;
 
-        setNotifs(
-          data.map((n: any) => ({
+        combined.push(
+          ...notifsRes.data.map((n: any) => ({
             id: n.id,
             type: n.type,
             actorId: n.actor_id,
-            actor:
-              profileMap[n.actor_id]?.name ||
-              i18n.t("auto.g_0321", "Anonymous"),
+            actor: profileMap[n.actor_id]?.name || i18n.t("auto.g_0321", "Anonymous"),
             actorPhoto: profileMap[n.actor_id]?.photo_url || "",
             target: n.target_text || undefined,
             time: formatTime(n.created_at),
             read: (n.is_read ?? false) || readIdsRef.current.has(n.id),
-          }))
+            _createdAt: new Date(n.created_at).getTime()
+          } as Notif & { _createdAt: number }))
         );
       }
+
+      if (inAppRes.data && inAppRes.data.length > 0) {
+        combined.push(
+          ...inAppRes.data.map((n: any) => ({
+            id: n.id,
+            type: n.type || "admin",
+            actorId: "",
+            actor: "System",
+            actorPhoto: "",
+            title: n.title,
+            content: n.content,
+            target: n.content || undefined,
+            time: formatTime(n.created_at),
+            read: (n.is_read ?? false) || readIdsRef.current.has(n.id),
+            _createdAt: new Date(n.created_at).getTime()
+          } as Notif & { _createdAt: number }))
+        );
+      }
+
+      combined.sort((a: any, b: any) => b._createdAt - a._createdAt);
+      setNotifs(combined.slice(0, 50));
     };
 
     fetchNotifs();
@@ -192,10 +224,12 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           setNotifs((prev) => [
             {
               id: n.id,
-              type: n.type || "comment",
+              type: n.type || "admin",
               actorId: "",
-              actor: "",
+              actor: "System",
               actorPhoto: "",
+              title: n.title,
+              content: n.content,
               target: n.message || n.content || undefined,
               time: formatTime(n.created_at || new Date().toISOString()),
               read: false,
