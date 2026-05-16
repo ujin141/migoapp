@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { Capacitor } from "@capacitor/core";
 import {
   purchaseSubscription as iapPurchaseSubscription,
   purchaseConsumable as iapPurchaseConsumable,
@@ -258,7 +259,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       // TODO: 영수증(Receipt) 토큰을 Edge Function으로 넘겨 Apple Server와 
       // 2차 검증(Server-to-Server)을 거친 뒤 서버에서 DB를 업데이트하도록 아키텍처를 변경해야 합니다.
       await Promise.all([
-        supabase.from("profiles").update({ is_plus: true, plan }).eq("id", user.id),
+        supabase.from("profiles").update({ is_plus: true, plan, plus_expires_at: expiresAt }).eq("id", user.id),
         supabase.from("subscriptions").insert({
           user_id: user.id, plan, status: 'active', expires_at: expiresAt,
           price_krw: plan === 'premium' ? 19900 : 9900
@@ -273,30 +274,36 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   // ── StoreKit IAP: 구독 구매 ──────────────────────────────────────────────
   const purchaseSubscriptionIAP = useCallback(async (productId: IAPProductId) => {
     const result = await iapPurchaseSubscription(productId);
-    if (result.success) {
-      const plan = getSubscriptionPlanFromProductId(productId);
-      if (plan && user) {
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        const bonusBoosts = plan === 'premium' ? 5 : 1;
-        const bonusSuperLikes = plan === 'premium' ? 9999 : 5;
-        setIsPlus(true);
-        if (plan === 'premium') setIsPremium(true);
-        setBoostsCount(prev => prev + bonusBoosts);
-        setSuperLikesLeft(prev => prev + bonusSuperLikes);
-        const { data: itemData } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
-        const currentBoosts = itemData?.boosts ?? 0;
-        await Promise.all([
-          supabase.from("profiles").update({ is_plus: true, plan, plus_expires_at: expiresAt }).eq("id", user.id),
-          supabase.from("subscriptions").insert({
-            user_id: user.id, plan, status: 'active', expires_at: expiresAt,
-            price_krw: plan === 'premium' ? 99900 : 14900,
-            iap_product_id: productId,
-            iap_transaction_id: result.transactionId,
-          }),
-          supabase.from("user_items").upsert({
-            user_id: user.id, boosts: currentBoosts + bonusBoosts
-          }, { onConflict: 'user_id' }),
-        ]);
+    if (result.success && result.transactionId) {
+      try {
+        const platform = Capacitor.getPlatform();
+        const { data, error } = await supabase.functions.invoke('verify-iap', {
+          body: {
+            platform: platform === 'web' ? 'android' : platform, // For testing purpose fallback
+            productId,
+            purchaseToken: result.transactionId,
+            isSubscription: true
+          }
+        });
+
+        if (error || !data?.success) {
+          console.error("verify-iap error:", error || data?.error);
+          return { success: false, error: data?.error || 'Verification failed' };
+        }
+
+        // 서버 검증 성공 시 로컬 상태 업데이트
+        const plan = getSubscriptionPlanFromProductId(productId);
+        if (plan && user) {
+          setIsPlus(true);
+          if (plan === 'premium') setIsPremium(true);
+          
+          const bonusBoosts = plan === 'premium' ? 5 : 1;
+          const bonusSuperLikes = plan === 'premium' ? 9999 : 5;
+          setBoostsCount(prev => prev + bonusBoosts);
+          setSuperLikesLeft(prev => prev + bonusSuperLikes);
+        }
+      } catch (err: any) {
+        return { success: false, error: err.message };
       }
     }
     return result;
@@ -306,40 +313,50 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const purchaseItemIAP = useCallback(async (shopItemId: string) => {
     const productId = SHOP_ITEM_PRODUCT_MAP[shopItemId];
     if (!productId) return { success: false, error: 'unknown_item' };
+    
     const result = await iapPurchaseConsumable(productId);
-    if (result.success && user) {
-      // 아이템 종류별 처리 — 선언 순서 문제를 피하기 위해 setState + Supabase 직접 처리
-      if (shopItemId.startsWith('superlike_')) {
-        let amount = 0;
-        if (shopItemId === 'superlike_3') amount = 3;
-        else if (shopItemId === 'superlike_10') amount = 10;
-        else if (shopItemId === 'superlike_30') amount = 30;
-        setSuperLikesLeft(prev => prev + amount);
-        const { data } = await supabase.from("user_items").select("super_likes").eq("user_id", user.id).maybeSingle();
-        await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + amount }, { onConflict: 'user_id' });
-      } else if (shopItemId.startsWith('boost_')) {
-        let amount = 0;
-        if (shopItemId === 'boost_1') amount = 1;
-        else if (shopItemId === 'boost_5') amount = 5;
-        else if (shopItemId === 'boost_15') amount = 15;
-        setBoostsCount(prev => prev + amount);
-        const { data } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
-        await supabase.from("user_items").upsert({ user_id: user.id, boosts: (data?.boosts ?? 0) + amount }, { onConflict: 'user_id' });
-      } else if (shopItemId === 'travel_pack') {
-        setSuperLikesLeft(prev => prev + 10);
-        setBoostsCount(prev => prev + 1);
-        const { data } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", user.id).maybeSingle();
-        await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + 10, boosts: (data?.boosts ?? 0) + 1 }, { onConflict: 'user_id' });
-      } else if (shopItemId === 'verified_badge') {
-        setHasVerifiedBadge(true);
-        await supabase.from("profiles").update({ has_badge: true }).eq("id", user.id);
-      } else if (shopItemId === 'profile_theme') {
-        setHasProfileTheme(true);
-        await supabase.from("profiles").update({ profile_theme: 'aurora' }).eq("id", user.id); // default theme upon buying
-      } else if (shopItemId === 'nearby_unlock') {
-        const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-        setNearbyUnlockedUntil(expires);
-        await supabase.from("profiles").update({ nearby_expires_at: expires.toISOString() }).eq("id", user.id);
+    if (result.success && result.transactionId && user) {
+      try {
+        const platform = Capacitor.getPlatform();
+        const { data, error } = await supabase.functions.invoke('verify-iap', {
+          body: {
+            platform: platform === 'web' ? 'android' : platform,
+            productId,
+            purchaseToken: result.transactionId,
+            isSubscription: false
+          }
+        });
+
+        if (error || !data?.success) {
+          console.error("verify-iap error:", error || data?.error);
+          return { success: false, error: data?.error || 'Verification failed' };
+        }
+
+        // 서버 검증 성공 시 로컬 UI 상태 낙관적 업데이트
+        if (shopItemId.startsWith('superlike_')) {
+          let amount = 0;
+          if (shopItemId === 'superlike_3') amount = 3;
+          else if (shopItemId === 'superlike_10') amount = 10;
+          else if (shopItemId === 'superlike_30') amount = 30;
+          setSuperLikesLeft(prev => prev + amount);
+        } else if (shopItemId.startsWith('boost_')) {
+          let amount = 0;
+          if (shopItemId === 'boost_1') amount = 1;
+          else if (shopItemId === 'boost_5') amount = 5;
+          else if (shopItemId === 'boost_15') amount = 15;
+          setBoostsCount(prev => prev + amount);
+        } else if (shopItemId === 'travel_pack') {
+          setSuperLikesLeft(prev => prev + 10);
+          setBoostsCount(prev => prev + 1);
+        } else if (shopItemId === 'verified_badge') {
+          setHasVerifiedBadge(true);
+        } else if (shopItemId === 'profile_theme') {
+          setHasProfileTheme(true);
+        } else if (shopItemId === 'nearby_unlock') {
+          setNearbyUnlockedUntil(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+        }
+      } catch (err: any) {
+        return { success: false, error: err.message };
       }
     }
     return result;

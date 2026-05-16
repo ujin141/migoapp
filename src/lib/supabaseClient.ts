@@ -100,12 +100,24 @@ if (!window.__SUPABASE__ && isSupabaseConfigured) {
   // 패치 2: getSession — 락 획득 중(초기화가 진행 중)일 때만 localStorage에서 직접 읽기
   // ⚠️ initializePromise는 완료 후에도 truthy(resolved Promise)로 남아
   //    정상 getSession 흐름을 계속 우회하게 되어 401을 유발함 → lockAcquired만 체크
+  // ✅ 추가 안전장치: localStorage에서 읽은 토큰이 이미 만료된 경우에는
+  //    원본 getSession()으로 폴백 → Supabase가 refresh_token으로 정상 갱신하도록 허용
   const _origGetSession = a.getSession.bind(a);
   a.getSession = async function () {
     if (this.lockAcquired) {
       // 초기화 진행 중: localStorage에서 직접 읽어 deadlock 회피
       const stored = _readSessionFromStorage();
-      return { data: { session: stored }, error: null };
+      if (stored) {
+        // expires_at은 Unix 초(seconds) 단위 — 만료 여부 확인 (30초 여유)
+        const expiresAt: number | undefined = (stored as any).expires_at;
+        const isExpired = expiresAt != null && expiresAt * 1000 < Date.now() + 30_000;
+        if (!isExpired) {
+          return { data: { session: stored }, error: null };
+        }
+        // 토큰이 만료됐다면 lockAcquired 중이더라도 원본으로 폴백 (refresh 허용)
+        console.info('[Supabase] stored token expired during lock — falling through to original getSession');
+      }
+      return { data: { session: null }, error: null };
     }
     return _origGetSession();
   };

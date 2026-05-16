@@ -267,20 +267,33 @@ const AppContent = () => {
         if (data.url && data.url.includes('login-callback')) {
           // 인앱 브라우저 닫기
           Browser.close().catch(() => {});
-          const urlObj = new URL(data.url);
-          const code = urlObj.searchParams.get('code');
-          if (code) {
-             await supabase.auth.exchangeCodeForSession(code);
-             return;
-          }
-          const urlParts = data.url.split('#');
-          if (urlParts.length > 1) {
-            const searchParams = new URLSearchParams(urlParts[1]); 
-            const access_token = searchParams.get('access_token');
-            const refresh_token = searchParams.get('refresh_token');
-            if (access_token && refresh_token) {
-              await supabase.auth.setSession({ access_token, refresh_token });
+          try {
+            const urlObj = new URL(data.url);
+            const code = urlObj.searchParams.get('code');
+            if (code) {
+               const { error } = await supabase.auth.exchangeCodeForSession(code);
+               if (error) {
+                 console.error('[Auth] OAuth Code Exchange Error:', error);
+                 alert(i18n.t("auto.g_0052", "구글 로그인 오류") + ": " + error.message);
+               }
+               return;
             }
+            const urlParts = data.url.split('#');
+            if (urlParts.length > 1) {
+              const searchParams = new URLSearchParams(urlParts[1]); 
+              const access_token = searchParams.get('access_token');
+              const refresh_token = searchParams.get('refresh_token');
+              if (access_token && refresh_token) {
+                const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+                if (error) {
+                  console.error('[Auth] OAuth Set Session Error:', error);
+                  alert(i18n.t("auto.g_0052", "구글 로그인 오류") + ": " + error.message);
+                }
+              }
+            }
+          } catch (err: any) {
+             console.error('[Auth] URL Parsing Error:', err);
+             alert(i18n.t("auto.g_0052", "구글 로그인 오류") + ": " + err?.message);
           }
         }
       });

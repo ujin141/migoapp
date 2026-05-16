@@ -114,6 +114,24 @@ if (!isSupabaseConfigured) {
   // 🚨 싱글톤 리스너: 모듈 레벨에서 딱 한 번만 등록해서 Lock 탈취 원천 차단
   supabase.auth.onAuthStateChange(async (event, session) => {
     globalSession = session;
+
+    // ✅ refresh_token 만료/무효 시 (400 에러) — 세션 초기화 후 재로그인 유도
+    if (event === 'TOKEN_REFRESH_FAILED') {
+      console.warn('[useAuth] Refresh token expired or invalid. Clearing session.');
+      globalUser = null;
+      globalSession = null;
+      globalLoading = false;
+      globalSessionReady = true;
+      // localStorage의 만료된 세션 키 제거
+      try {
+        const projectRef = new URL(import.meta.env.VITE_SUPABASE_URL ?? '').hostname.split('.')[0];
+        localStorage.removeItem(`sb-${projectRef}-auth-token`);
+      } catch { /* ignore */ }
+      localStorage.removeItem('migo_my_lat');
+      localStorage.removeItem('migo_my_lng');
+      notifyAuthListeners();
+      return;
+    }
     
     // 로그아웃 시 즉각 정리
     if (event === 'SIGNED_OUT' || !session?.user) {

@@ -246,7 +246,10 @@ const MatchPage = () => {
           const commonInterests = myInterests.filter(i => pInterests.includes(i)).length;
           const commonLangs = myLangs.filter(l => pLangs.includes(l)).length;
           const mbtiBonus = me.mbti && p.mbti && me.mbti === p.mbti ? 5 : 0;
-          const commonStyle = myInterests.filter(i => pInterests.includes(i)).length; // Travel style
+          // travel_style은 별도 필드로 계산 (interests와 중복 계산 방지)
+          const myStyles: string[] = me.travel_style || [];
+          const pStyles: string[] = p.travel_style || [];
+          const commonStyle = myStyles.filter(s => pStyles.includes(s)).length;
           const base = 50;
           const score = Math.min(99, base + commonInterests * 8 + commonLangs * 6 + commonStyle * 6 + mbtiBonus);
           return score;
@@ -548,7 +551,7 @@ const MatchPage = () => {
       data: mutual
     } = await supabase.from('likes').select('from_user').eq('from_user', toUserId).eq('to_user', user.id).maybeSingle();
     if (mutual) {
-      // 이미 채팅방이 있는지 먼저 확인 (중복 방지)
+      // 이미 둘 사이 매치/채팅방이 있는지 먼저 확인 (중복 방지)
       const [u1, u2] = [user.id, toUserId].sort();
       const { data: existingMatch } = await supabase
         .from('matches')
@@ -557,37 +560,50 @@ const MatchPage = () => {
         .eq('user2_id', u2)
         .maybeSingle();
 
-      if (existingMatch?.thread_id) {
-        return existingMatch.thread_id; // 이미 채팅방 존재 → 재사용
-      }
+      let threadId: string | null = existingMatch?.thread_id ?? null;
 
-      // 3. chat_thread 생성
-      const {
-        data: thread
-      } = await supabase.from('chat_threads').insert({
-        is_group: false
-      }).select('id').single();
-      if (thread) {
-        await supabase.from('chat_members').insert([{
-          thread_id: thread.id,
-          user_id: user.id
-        }, {
-          thread_id: thread.id,
-          user_id: toUserId
-        }]);
-        // 4. matches 테이블 저장 → DB 트리거(trg_notify_on_match)가 자동으로 양쪽 notifications INSERT
-        await supabase.from('matches').upsert({
-          user1_id: u1,
-          user2_id: u2,
-          thread_id: thread.id
-        }, {
-          onConflict: 'user1_id,user2_id'
-        });
-        // 5. 로컬 Web Push 알림 (포그라운드 시)
-        const matchedProfile = withAds.find((p: any) => p.id === toUserId);
-        if (matchedProfile?.name) notifyMatch(matchedProfile.name);
+      if (!threadId) {
+        // 4. chat_thread 신규 생성
+        const {
+          data: thread
+        } = await supabase.from('chat_threads').insert({
+          is_group: false
+        }).select('id').single();
+        if (thread) {
+          threadId = thread.id;
+          await supabase.from('chat_members').insert([{
+            thread_id: threadId,
+            user_id: user.id
+          }, {
+            thread_id: threadId,
+            user_id: toUserId
+          }]);
+          // 5. matches 테이블 저장 → DB 트리거(trg_notify_on_match)가 자동으로 양쪽 notifications INSERT
+          await supabase.from('matches').upsert({
+            user1_id: u1,
+            user2_id: u2,
+            thread_id: threadId
+          }, {
+            onConflict: 'user1_id,user2_id'
+          });
+        }
       }
-      return thread?.id ?? true; // matched! (thread.id 또는 true)
+      // 6. 로컬 Web Push 알림 (포그라운드 시)
+      const matchedProfile = withAds.find((p: any) => p.id === toUserId);
+      if (matchedProfile?.name) notifyMatch(matchedProfile.name);
+      await supabase.from('notifications').insert({
+        user_id: toUserId,
+        type: 'match',
+        actor_id: user.id
+      });
+      await supabase.from('in_app_notifications').insert({
+        user_id: toUserId,
+        type: 'match',
+        title: t("auto.p524"),
+        content: t("auto.t_0043", `${user.name}님과 매칭되었습니다!`)
+      });
+      setMatchedThreadId(threadId);
+      return threadId ?? true;
     }
     // 좋아요/슈퍼라이크: DB 트리거가 notifications 처리함 → 클라이언트 중복 INSERT 제거
     // in_app_notifications는 채팅 없이 즉각적인 Realtime 배너 표시 목적으로 유지

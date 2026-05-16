@@ -130,10 +130,10 @@ export const ChatProvider = ({
       if (!thread.is_group) {
         const p = others[0]?.profiles;
         if (p) {
-          name = p.name || i18n.t("chat.unknownUser", "Unknown User");
+          name = p.name || i18n.t("chat.unknownUser") || i18n.t("auto.g_0318", "알 수 없음");
           photo = p.photo_url || "";
         } else {
-          name = i18n.t("chat.unknownUser", "Unknown User");
+          name = i18n.t("chat.unknownUser") || i18n.t("auto.g_0319", "알 수 없음");
         }
       } else {
         memberPhotos = members.map((mb: any) => mb.profiles?.photo_url).filter(Boolean);
@@ -144,7 +144,7 @@ export const ChatProvider = ({
         name,
         photo,
         lastMessage: lastMsg?.text ?? "New conversation",
-        time: lastMsg ? new Intl.DateTimeFormat(i18n.language || 'en', {
+        time: lastMsg ? new Intl.DateTimeFormat(i18n.language || 'ko', {
           hour: 'numeric',
           minute: 'numeric'
         }).format(new Date(lastMsg.created_at)) : "",
@@ -182,7 +182,7 @@ export const ChatProvider = ({
           return {
             ...th,
             lastMessage: newMsg.text,
-            time: new Intl.DateTimeFormat(i18n.language || 'en', {
+            time: new Intl.DateTimeFormat(i18n.language || 'ko', {
               hour: 'numeric',
               minute: 'numeric'
             }).format(new Date(newMsg.created_at)),

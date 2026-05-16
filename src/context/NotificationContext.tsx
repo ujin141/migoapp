@@ -131,9 +131,14 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
         const profileMap: Record<string, any> = {};
         for (const p of actorProfiles || []) profileMap[p.id] = p;
+<<<<<<< HEAD
 
         combined.push(
           ...notifsRes.data.map((n: any) => ({
+=======
+        setNotifs(
+          data.map((n: any) => ({
+>>>>>>> b08463e (feat: Google Play Console 등록 준비 - v3.0.0 (versionCode 28))
             id: n.id,
             type: n.type,
             actorId: n.actor_id,
@@ -170,7 +175,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     };
 
     fetchNotifs();
-
     // ── 단일 채널: notifications + in_app_notifications + messages ──
     const channel = supabase
       .channel(`notifs_all:${user.id}`)
@@ -285,7 +289,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => setMessageBanner(null), 4000);
         }
       )
-
       .subscribe();
 
     return () => {

@@ -328,7 +328,7 @@ export function getLocalizedPrice(krwAmount: number, lang: string = 'ko'): strin
 
   let currency = 'USD';
   let rate = RATES.USD;
-  let fractionDigits = 2;
+  const fractionDigits = 2;
 
   const baseLang = lang.split('-')[0];
 

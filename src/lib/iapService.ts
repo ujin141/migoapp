@@ -1,7 +1,7 @@
 /**
  * iapService.ts
  * Native StoreKit IAP 연동 서비스 (Apple Guideline 3.1.1)
- * @capgo/native-purchases v6 사용
+ * @capgo/native-purchases v8 사용 (Google Play Billing Library 8.3.0)
  */
 import { NativePurchases, PURCHASE_TYPE } from '@capgo/native-purchases';
 import { Capacitor } from '@capacitor/core';
@@ -12,7 +12,7 @@ export const IAP_PRODUCT_IDS = {
   PLUS_MONTHLY:   'com.lunaticsgroup.migo.sub.plus.m1',
   PLUS_QUARTERLY: 'com.lunaticsgroup.migo.sub.plus.q1', // 3개월 구독
   PLUS_YEARLY:    'com.lunaticsgroup.migo.sub.plus.y1',
-  PREMIUM_MONTHLY:'com.lunaticsgroup.migo.sub.premium.m1',
+  PREMIUM_MONTHLY:'com.lunaticsgroup.migo.sub.premium.', // Play Console 등록 ID (trailing dot 포함)
 
   // 소비성 아이템
   SUPERLIKE_3:    'com.lunaticsgroup.migo.superlike3',
@@ -126,14 +126,25 @@ export const purchaseSubscription = async (productId: IAPProductId): Promise<Pur
   if (!isNativePlatform()) {
     return { success: false, error: 'not_native' };
   }
-  // Note: @capgo/native-purchases v6 uses StoreKit 2 directly — no setup() call needed.
-  // purchaseProduct() first calls Product.products(for: [id]); if empty it rejects
-  // with "Cannot find product for id ...". This typically means the product is not
-  // in "Ready to Submit" status in App Store Connect, or the Paid Apps Agreement
-  // is not active. We surface this as a distinct error code.
+  
   try {
+    let planIdentifier = productId; // 기본값 (iOS에서는 무시됨)
+    
+    // Android v8에서는 planIdentifier(기본 요금제 ID)가 필수입니다.
+    // @capgo/native-purchases에서 Product.identifier = base plan ID
+    if (isAndroid()) {
+      const products = await getIAPProducts([productId], true);
+      if (!products || products.length === 0) {
+        // 상품이 Play Console에 등록되지 않았거나 활성화되지 않은 경우
+        console.warn('[IAP] Product not found in Play Console:', productId);
+        return { success: false, error: 'product_not_found' };
+      }
+      planIdentifier = products[0].identifier; // base plan ID (e.g. "monthly")
+    }
+
     const transaction = await NativePurchases.purchaseProduct({
       productIdentifier: productId,
+      planIdentifier: planIdentifier,
       productType: PURCHASE_TYPE.SUBS,
     });
     return { success: true, transactionId: String(transaction.transactionId) };
@@ -187,10 +198,17 @@ export const restoreIAPPurchases = async (): Promise<{
     return { restored: false, activeSubscriptions: [], error: 'not_native' };
   }
   try {
-    const { customerInfo } = await NativePurchases.restorePurchases();
+    // v8: restorePurchases() returns void — use getPurchases() to get active subscriptions
+    await NativePurchases.restorePurchases();
+    const { purchases } = await NativePurchases.getPurchases({
+      productType: PURCHASE_TYPE.SUBS,
+    });
+    const activeSubscriptions = purchases
+      .filter((p) => p.productIdentifier)
+      .map((p) => p.productIdentifier);
     return {
       restored: true,
-      activeSubscriptions: customerInfo.activeSubscriptions as unknown as string[],
+      activeSubscriptions,
     };
   } catch (e: any) {
     // 에러 메시지를 외부에 노출하지 않고 오류 코드만 전달

@@ -1,12 +1,5 @@
 apply plugin: 'com.android.application'
 
-// ── 릴리즈 서명 키 로드 ──────────────────────────────────────────
-def keystorePropertiesFile = rootProject.file("key.properties")
-def keystoreProperties = new Properties()
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
 android {
     namespace "com.migo.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -14,8 +7,8 @@ android {
         applicationId "com.migo.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 22
-        versionName "2.9"
+        versionCode 28
+        versionName "3.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -23,27 +16,26 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // ── 릴리즈 서명 설정 ────────────────────────────────────────
+    // ── 릴리즈 서명 설정 (직접 지정) ─────────────────────────────
     signingConfigs {
         release {
-            if (keystorePropertiesFile.exists()) {
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-            }
+            storeFile     file('C:/Users/ujin1/Desktop/migoapp/android/release/migo-release.jks')
+            storePassword '2dhfl2'
+            keyAlias      'migo'
+            keyPassword   '2dhfl2'
         }
     }
     buildTypes {
         release {
             signingConfig signingConfigs.release
+
             // R8 최적화 활성화 (Google Play 권장, 번들 크기 ~30% 감소)
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
-            applicationIdSuffix ".debug"
+            // applicationIdSuffix ".debug" // 주석 처리하여 com.migo.app 패키지명을 사용하게 함
             versionNameSuffix "-debug"
             minifyEnabled false
         }

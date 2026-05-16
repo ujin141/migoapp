@@ -14,38 +14,10 @@ import { RefundPolicyModal } from "./login/LoginModals";
 import { SignupStep0, SignupStep1, SignupStep2, SignupStep3, SignupStep4, LoginForm } from "./login/LoginForms";
 
 // ─── Constants ───
-const TRAVEL_STYLES: string[] = []; // loaded inside component
-const LANGUAGES = [i18n.t("auto.g_0673", "한국어"), "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
-const REGIONS: string[] = []; // loaded inside component
 const MAX_PHOTOS = 6;
-const NATIONALITIES: string[] = []; // loaded inside component via i18n.t()
-
 const GLOBAL_DIAL_CODES = ["+82 🇰🇷", "+1 🇺🇸", "+1 🇨🇦", "+44 🇬🇧", "+61 🇦🇺", "+81 🇯🇵", "+86 🇨🇳", "+49 🇩🇪", "+33 🇫🇷", "+39 🇮🇹", "+34 🇪🇸", "+7 🇷🇺", "+55 🇧🇷", "+52 🇲🇽", "+91 🇮🇳", "+62 🇮🇩", "+90 🇹🇷", "+27 🇿🇦", "+54 🇦🇷", "+56 🇨🇱", "+57 🇨🇴", "+51 🇵🇪", "+66 🇹🇭", "+84 🇻🇳", "+60 🇲🇾", "+63 🇵🇭", "+65 🇸🇬", "+886 🇹🇼", "+852 🇭🇰", "+853 🇲🇴", "+971 🇦🇪", "+966 🇸🇦", "+972 🇮🇱", "+20 🇪🇬", "+212 🇲🇦", "+234 🇳🇬", "+254 🇰🇪", "+46 🇸🇪", "+47 🇳🇴", "+45 🇩🇰", "+358 🇫🇮", "+31 🇳🇱", "+32 🇧🇪", "+41 🇨🇭", "+43 🇦🇹", "+48 🇵🇱", "+420 🇨🇿", "+36 🇭🇺", "+30 🇬🇷", "+351 🇵🇹", "+353 🇮🇪", "+64 🇳🇿", "+53 🇨🇺", "+593 🇪🇨", "+598 🇺🇾", "+58 🇻🇪", "+506 🇨🇷"];
-const PURPOSE_OPTIONS_STATIC = [{
-  id: "companion",
-  emoji: "✈️",
-  titleKey: "login.purpose.companion",
-  descKey: "login.purpose.companionDesc",
-  fbTitle: i18n.t("auto.g_0674", "여행 동행 찾기"),
-  fbDesc: i18n.t("auto.g_0675", "같이 다닐 여행 메이트를 찾고 싶어요"),
-  gradient: "from-violet-500 to-indigo-500"
-}, {
-  id: "post",
-  emoji: "📝",
-  titleKey: "login.purpose.post",
-  descKey: "login.purpose.postDesc",
-  fbTitle: i18n.t("auto.g_0676", "게시글 공유하기"),
-  fbDesc: i18n.t("auto.g_0677", "여행 꿀팁이나 일상을 공유하고 싶어요"),
-  gradient: "from-rose-500 to-orange-400"
-}, {
-  id: "both",
-  emoji: "🌍",
-  titleKey: "login.purpose.both",
-  descKey: "login.purpose.bothDesc",
-  fbTitle: i18n.t("auto.g_0678", "둘 다 할래요"),
-  fbDesc: i18n.t("auto.g_0679", "동행도 찾고 즐겁게 소통할래요"),
-  gradient: "from-emerald-500 to-teal-400"
-}];
+// ⚠️ PURPOSE_OPTIONS_STATIC은 모듈 최상위에서 i18n.t() 를 호출하면 i18n 초기화 전에 평가되어
+// 언어가 항상 한국어로 고정되는 버그가 발생합니다. 컴포넌트 내부에서 정의합니다.
 const getPasswordStrength = (pw: string): {
   level: number;
   label: string;
@@ -97,19 +69,32 @@ const LoginPage = () => {
     });
     return Array.isArray(v) && v.length ? v : fb;
   };
-  const TRAVEL_STYLES = getArr("travelStyles", [t("auto.g_0680", "배낭여행"), t("auto.g_0681", "럭셔리"), t("auto.g_0682", "자연트레킹"), t("auto.g_0683", "맛집탐방"), t("auto.g_0684", "문화역사"), t("auto.g_0685", "휴양/호캉스"), t("auto.g_0686", "사진촬영"), t("auto.g_0687", "나이트라이프"), t("auto.g_0688", "쇼핑"), t("auto.g_0689", "요가/힐링"), t("auto.g_0690", "현지체험"), t("auto.g_0691", "로드트립")]);
-  const REGIONS = getArr("regions", [t("auto.g_0692", "동남아"), t("auto.g_0693", "유럽"), t("auto.g_0694", "일본"), t("auto.g_0695", "미주/캐나다"), t("auto.g_0696", "중남미"), t("auto.g_0697", "중동/아프리카"), t("auto.g_0698", "대양주"), t("auto.g_0699", "국내"), t("auto.g_0700", "중화권"), t("auto.g_0701", "인도권")]);
-  const STEP_LABELS_I18N = getArr("login.stepLabels", [t("auto.g_0702", "가입 정보"), t("auto.g_0703", "계정"), t("auto.g_0704", "프로필설정"), t("auto.g_0705", "휴대폰인증"), t("auto.g_0706", "약관 동의"), t("auto.g_0707", "완료")]);
-  const NATIONALITIES = getArr("login.nationalities", [t("auto.g_0708", "대한민국"), t("auto.g_0709", "미국"), t("auto.g_0710", "일본"), t("auto.g_0711", "중국"), t("auto.g_0712", "영국"), t("auto.g_0713", "호주"), t("auto.g_0714", "캐나다")]);
-  const PURPOSE_OPTIONS = PURPOSE_OPTIONS_STATIC.map(p => {
-    const title = t(p.titleKey);
-    const desc = t(p.descKey);
-    return {
-      ...p,
-      title: title === p.titleKey ? p.fbTitle : title,
-      desc: desc === p.descKey ? p.fbDesc : desc
-    };
-  });
+  const TRAVEL_STYLES = getArr("travelStyles", [t("auto.g_0680", "Backpacking"), t("auto.g_0681", "Luxury"), t("auto.g_0682", "Nature Trekking"), t("auto.g_0683", "Food Tour"), t("auto.g_0684", "Culture & History"), t("auto.g_0685", "Resort/Staycation"), t("auto.g_0686", "Photography"), t("auto.g_0687", "Nightlife"), t("auto.g_0688", "Shopping"), t("auto.g_0689", "Yoga/Healing"), t("auto.g_0690", "Local Experience"), t("auto.g_0691", "Road Trip")]);
+  const REGIONS = getArr("regions", [t("auto.g_0692", "Southeast Asia"), t("auto.g_0693", "Europe"), t("auto.g_0694", "Japan"), t("auto.g_0695", "Americas/Canada"), t("auto.g_0696", "Latin America"), t("auto.g_0697", "Middle East/Africa"), t("auto.g_0698", "Oceania"), t("auto.g_0699", "Domestic"), t("auto.g_0700", "China/Taiwan"), t("auto.g_0701", "India")]);
+  const STEP_LABELS_I18N = getArr("login.stepLabels", [t("auto.g_0702", "Info"), t("auto.g_0703", "Account"), t("auto.g_0704", "Profile"), t("auto.g_0705", "Phone"), t("auto.g_0706", "Terms"), t("auto.g_0707", "Done")]);
+  const NATIONALITIES = getArr("login.nationalities", [t("auto.g_0708", "South Korea 🇰🇷"), t("auto.g_0709", "USA 🇺🇸"), t("auto.g_0710", "Japan 🇯🇵"), t("auto.g_0711", "China 🇨🇳"), t("auto.g_0712", "UK 🇬🇧"), t("auto.g_0713", "Australia 🇦🇺"), t("auto.g_0714", "Canada 🇨🇦")]);
+  // ✅ LANGUAGES & PURPOSE_OPTIONS — 컴포넌트 내부에서 t()로 생성해야 언어 변경 시 반영됨
+  const LANGUAGES = [t("auto.g_0673", "Korean"), "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"];
+  const PURPOSE_OPTIONS = [
+    {
+      id: "companion", emoji: "✈️",
+      title: t("login.purpose.companion") || t("auto.g_0674", "Find Travel Companion"),
+      desc:  t("login.purpose.companionDesc") || t("auto.g_0675", "Looking for a travel buddy to go with"),
+      gradient: "from-violet-500 to-indigo-500"
+    },
+    {
+      id: "post", emoji: "📝",
+      title: t("login.purpose.post") || t("auto.g_0676", "Share a Post"),
+      desc:  t("login.purpose.postDesc") || t("auto.g_0677", "Share travel tips and reviews with the community"),
+      gradient: "from-rose-500 to-orange-400"
+    },
+    {
+      id: "both", emoji: "🌍",
+      title: t("login.purpose.both") || t("auto.g_0678", "Both!"),
+      desc:  t("login.purpose.bothDesc") || t("auto.g_0679", "Find companions and enjoy the community"),
+      gradient: "from-emerald-500 to-teal-400"
+    }
+  ];
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [signupStep, setSignupStep] = useState(0);
   const [signupPurpose, setSignupPurpose] = useState("");

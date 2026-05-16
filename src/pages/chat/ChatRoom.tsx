@@ -166,6 +166,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     try {
       const { translateText } = await import('@/lib/translateService');
       const translated = await translateText({ text: message, targetLang });
+<<<<<<< HEAD
       const textToSend = (translated && translated !== message) ? translated : message;
       // 직접 번역된 텍스트를 인자로 넘겨서 전송 (클로저 문제 해결)
       sendMessage(textToSend);
@@ -176,6 +177,20 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       } else {
         sendMessage(); // 번역 실패 시 원본 그대로 전송
       }
+=======
+      if (translated && translated !== message) {
+        // stale closure 완전 해결: 번역된 텍스트를 sendMessage에 직접 전달
+        // (message state 변경 없이 overrideText로 DB에 직접 주입)
+        setMessage(""); // 입력란 초기화
+        await sendMessage(translated);
+        if (!isPlus) incrementTranslateSendCount();
+      } else {
+        // 번역 불필요 시 원본 전송
+        await sendMessage();
+      }
+    } catch {
+      await sendMessage();
+>>>>>>> b08463e (feat: Google Play Console 등록 준비 - v3.0.0 (versionCode 28))
     } finally {
       setTranslateSending(false);
     }

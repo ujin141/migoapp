@@ -125,7 +125,7 @@ export const HotplaceSheet = ({
       setActiveTab("info");
       loadSeekers();
     }
-  }, [hotplace?.id]);
+  }, [hotplace?.id, loadSeekers]);
 
   // ── 구인 등록 ─────────────────────────────────────────────────
   const handleRegisterSeeker = async () => {
@@ -214,7 +214,7 @@ export const HotplaceSheet = ({
         user_id: seeker.user_id,
         type: "match",
         title: t("hotplace.joinNotifTitle", "동반자 신청이 왔어요! 🎉"),
-        content: t("hotplace.joinNotifBody", `${user.name || "누군가"}님이 ${hotplace.name.split(" (")[0]}에서 함께 가고 싶어합니다!`),
+        message: t("hotplace.joinNotifBody", `${ user.email?.split('@')[0] || "누군가"}님이 ${hotplace.name.split(" (")[0]}에서 함께 가고 싶어합니다!`),
       });
 
       toast({

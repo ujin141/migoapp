@@ -9,7 +9,10 @@ android {
 
 apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
+<<<<<<< HEAD
     implementation project(':capacitor-community-admob')
+=======
+>>>>>>> b08463e (feat: Google Play Console 등록 준비 - v3.0.0 (versionCode 28))
     implementation project(':capacitor-community-apple-sign-in')
     implementation project(':capacitor-app')
     implementation project(':capacitor-browser')
