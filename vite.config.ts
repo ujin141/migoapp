@@ -6,7 +6,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === "production" ? "./" : "/",
+  base: "/",
   esbuild: {
     // 프로덕션 빌드에서 console.log/debug 완전 제거 (번들 크기 절감 + 정보 보호)
     drop: mode === "production" ? ["console", "debugger"] : [],
