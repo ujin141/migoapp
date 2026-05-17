@@ -28,10 +28,10 @@ const IOS_IDS = {
 };
 
 const ANDROID_IDS = {
-  // 실제 Android 광고 단위 ID 적용
-  banner:       'ca-app-pub-2237857753220220/1502084272', // User provided Android Banner
-  interstitial: 'ca-app-pub-2237857753220220/5191259293', // User provided Android Interstitial
-  rewarded:     'ca-app-pub-2237857753220220/9189002604', // User provided Android Rewarded
+  // 실제 Android 광고 단위 ID (2025-05 재발급)
+  banner:       'ca-app-pub-2237857753220220/4530582610', // Android Banner
+  interstitial: 'ca-app-pub-2237857753220220/3303314161', // Android Interstitial
+  rewarded:     'ca-app-pub-2237857753220220/5600121706', // Android Rewarded
 };
 
 function getAdIds() {

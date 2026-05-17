@@ -51,12 +51,14 @@ const MatchPage = () => {
     startBoost,
     consumeSuperLike,
     canGlobalMatch,
-    canTravelDNAFull
+    canTravelDNAFull,
+    addSuperLikes,
   } = useSubscription();
   const {
     user
   } = useAuth();
   const [showPlusModal, setShowPlusModal] = useState(false);
+  const [showBoostAnim, setShowBoostAnim] = useState(false);
   const [showLoginGate, setShowLoginGate] = useState(false);
   const [actionSheetProfile, setActionSheetProfile] = useState<any>(null);
   // ―― GPS 체크인 ――
@@ -68,7 +70,7 @@ const MatchPage = () => {
   const [checkInCityTravelers, setCheckInCityTravelers] = useState<any[]>([]);
 
   // ── AdMob ──
-  const { showInterstitial } = useAdMob();
+  const { showInterstitial, showRewarded } = useAdMob();
   const [swipeCount, setSwipeCount] = useState(0);
 
   useEffect(() => {
@@ -698,20 +700,40 @@ const MatchPage = () => {
       return;
     }
     if (!isPlus && superLikesLeft <= 0) {
-      toast({
-        title: t("alert.t63Title"),
-        description: t("alert.t63Desc"),
-        variant: "destructive"
+      // ── 보상형 광고로 슈퍼라이크 +1 충전 ──────────────────────────
+      showRewarded(async () => {
+        // 광고 시청 완료 콜백: DB에 슈퍼라이크 +1 지급
+        await addSuperLikes(1);
+        toast({
+          title: '⭐ 슈퍼라이크 +1 획득!',
+          description: '광고를 시청해 주셔서 슈퍼라이크 1개를 드렸습니다.',
+        });
+        // 지급 후 바로 슈퍼라이크 모달 열기
+        const profile = withAds[currentIndex];
+        if (profile && !profile.isAd) {
+          setPendingSuperProfile(profile);
+          setSuperMsg('');
+          setShowSuperLikeModal(true);
+        }
+      }).then((watched) => {
+        if (!watched) {
+          // 광고 시청 실패 / 거부 → Plus 업그레이드 안내
+          toast({
+            title: t('alert.t63Title'),
+            description: t('alert.t63Desc'),
+            variant: 'destructive',
+          });
+          setShowPlusModal(true);
+        }
       });
-      setShowPlusModal(true);
       return;
     }
     const profile = withAds[currentIndex];
     if (!profile || profile.isAd) return;
     setPendingSuperProfile(profile);
-    setSuperMsg("");
+    setSuperMsg('');
     setShowSuperLikeModal(true);
-  }, [currentIndex, withAds, superLikesLeft, isPlus]);
+  }, [currentIndex, withAds, superLikesLeft, isPlus, showRewarded, addSuperLikes]);
   const confirmSuperLike = useCallback(() => {
     if (!pendingSuperProfile) return;
     const profile = pendingSuperProfile;
@@ -857,9 +879,14 @@ const MatchPage = () => {
 
 
       {/* Card Stack */}
-      <div className="flex-1 relative w-full px-4 mx-auto pb-4 truncate" style={{
+      <div className={`flex-1 relative w-full px-4 mx-auto pb-4 truncate transition-all duration-1000 ${boostActive ? 'ring-4 ring-purple-500/30 rounded-3xl shadow-[0_0_40px_rgba(168,85,247,0.2)]' : ''}`} style={{
       minHeight: 0, maxWidth: "420px"
     }}>
+        {boostActive && (
+          <div className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden border-2 border-fuchsia-500/20">
+            <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 via-transparent to-pink-500/5 animate-pulse" />
+          </div>
+        )}
         {remaining.length > 0 ? (
           <AnimatePresence>
             {remaining.map((profile, i) => <SwipeCard key={profile.id} profile={profile} onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} isTop={i === remaining.length - 1} isSuperLiked={superLikedId === profile.id} onProfileView={sendProfileViewNotif} myProfile={user} myDailyMission={myDailyMission} />)}
@@ -920,6 +947,8 @@ const MatchPage = () => {
             return;
           }
           await startBoost();
+          setShowBoostAnim(true);
+          setTimeout(() => setShowBoostAnim(false), 2500);
           toast({
             title: t("alert.t64Title"),
             description: t("alert.t64Desc")
@@ -1052,6 +1081,81 @@ const MatchPage = () => {
       setCheckInCityTravelers(travelers);
       setShowCheckInModal(false);
     }} />
+
+      {/* 🚀 부스트 가동 애니메이션 (전체 화면 오버레이) */}
+      <AnimatePresence>
+        {showBoostAnim && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[99999] flex flex-col items-center justify-center pointer-events-none"
+          >
+            {/* Background Dim */}
+            <motion.div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            
+            {/* Energy Wave Effect */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0.8 }}
+              animate={{ scale: [0, 4, 8], opacity: [0.8, 0.4, 0] }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              className="absolute w-32 h-32 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 blur-3xl"
+            />
+
+            {/* Main Zap Icon */}
+            <motion.div
+              initial={{ scale: 0, rotate: -45 }}
+              animate={{ scale: [0, 1.5, 1], rotate: [-45, 15, 0] }}
+              transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.1 }}
+              className="relative z-10 w-32 h-32 rounded-3xl bg-gradient-to-br from-purple-600 to-pink-600 shadow-[0_0_80px_rgba(217,70,239,0.6)] flex items-center justify-center border-4 border-white/20"
+            >
+              <Zap size={64} className="text-white drop-shadow-lg" fill="white" />
+            </motion.div>
+
+            {/* Text Message */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, type: "spring" }}
+              className="relative z-10 mt-8 text-center"
+            >
+              <h2 className="text-3xl font-black text-white italic tracking-wider drop-shadow-lg uppercase">
+                {t("auto.ko_0263", "Boost Activated!")}
+              </h2>
+              <p className="text-white/90 text-sm mt-2 font-bold drop-shadow-md">
+                {t("auto.t_0020", "프로필이 30분 동안 상단에 노출됩니다 🚀")}
+              </p>
+            </motion.div>
+
+            {/* Particles (simplified) */}
+            {Array.from({ length: 8 }).map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ 
+                  x: 0, y: 0, opacity: 1, scale: 0 
+                }}
+                animate={{ 
+                  x: (Math.random() - 0.5) * window.innerWidth,
+                  y: (Math.random() - 0.5) * window.innerHeight,
+                  opacity: 0,
+                  scale: Math.random() * 2 + 1,
+                  rotate: Math.random() * 360
+                }}
+                transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+                className="absolute z-0"
+              >
+                <Star size={16 + Math.random() * 16} className="text-yellow-400" fill="currentColor" />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>;
 };
 export default MatchPage;

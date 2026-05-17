@@ -52,9 +52,9 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
   } catch (err) {
     console.error("enrichWithProfilePhoto error:", err);
   }
-  // 프로필 조회가 실패하거나 없는 경우: 새로 가입한 소셜 로그인 유저일 확률이 높음
-  // setupComplete가 undefined라면 false로 강제하여 온보딩으로 넘기도록 함
-  return { ...user, setupComplete: user.setupComplete ?? false };
+  // 프로필 조회가 실패하거나 없는 경우
+  // setupComplete가 undefined인 경우 그대로 유지 — App.tsx에서 리다이렉트 판단 보류
+  return { ...user, setupComplete: user.setupComplete };
 }
 let globalSession: Session | null = null;
 let globalUser: AuthUser | null = null;
@@ -294,7 +294,8 @@ function mapUser(u: User): AuthUser {
     name: u.user_metadata?.name,
     photoUrl: u.user_metadata?.avatar_url || "",
     verified: u.user_metadata?.verified ?? false,
-    // ⚠️ 반드시 false로 초기화해야 enrichWithProfilePhoto 전까지 guard가 정상 동작
-    setupComplete: false
+    // undefined = enrichWithProfilePhoto 완료 전 상태 (App.tsx의 리다이렉트 가드가 이를 감지)
+    // enrichment 완료 후 DB의 setup_complete 값으로 덮어씀
+    setupComplete: undefined
   };
 }

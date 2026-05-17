@@ -15,6 +15,7 @@ import { getMigoPlusPricing } from "@/lib/pricing";
 import { supabase } from "@/lib/supabaseClient";
 import { PLUS_BILLING_CYCLE_MAP, IAP_PRODUCT_IDS, isNativePlatform } from "@/lib/iapService";
 import { toast } from "@/hooks/use-toast";
+import CancelRetentionModal from "./CancelRetentionModal";
 
 interface MigoPlusModalProps {
   isOpen: boolean;
@@ -59,6 +60,8 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
   // step은 더 이상 iapNotice 없이 plan만
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  // ── 해지 이탈 방지 팝업 ──────────────────────────────────────
+  const [showRetention, setShowRetention] = useState(false);
 
   const pricing = getMigoPlusPricing();
 
@@ -136,7 +139,12 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
   };
 
   const handleClose = () => {
-    onClose();
+    // 미구독 유저가 닫으려 할 때만 retention 팝업 표시
+    if (!alreadySubscribed) {
+      setShowRetention(true);
+    } else {
+      onClose();
+    }
   };
 
   // ── 현재 이미 구독 중인지 ────────────────────────────────
@@ -407,6 +415,19 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
       )}
     </AnimatePresence>,
     document.body
+  );
+
+  return (
+    <>
+      {portal}
+      {/* ── 해지 이탈 방지 팝업 ── */}
+      <CancelRetentionModal
+        isOpen={showRetention}
+        onKeep={() => setShowRetention(false)}
+        onConfirmClose={() => { setShowRetention(false); onClose(); }}
+        plan={activePlan}
+      />
+    </>
   );
 };
 

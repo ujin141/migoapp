@@ -402,6 +402,20 @@ export const SuperLikeModal = ({
                 </span>
               </div>
 
+              {/* 슈퍼라이크 소진 시 광고 시청 유도 배너 */}
+              {!isPlus && superLikesLeft <= 0 && (
+                <div className="flex items-center gap-2.5 mb-4 px-3 py-2.5 rounded-2xl" style={{
+                  background: "rgba(251,191,36,0.08)",
+                  border: "1px solid rgba(251,191,36,0.3)"
+                }}>
+                  <span className="text-base">📺</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-extrabold text-amber-300 truncate">광고 보고 슈퍼라이크 +1개 받기</p>
+                    <p className="text-[10px] text-white/40 truncate">닫고 ⭐ 버튼을 다시 누르면 광고가 재생됩니다</p>
+                  </div>
+                </div>
+              )}
+
               {/* Message input */}
               <div className="mb-3">
                 <label className="text-xs font-bold text-white/60 mb-2 block">{i18n.t("auto.j507")}<span className="text-white/30 font-normal">{i18n.t("auto.j508")}</span></label>

@@ -242,18 +242,21 @@ const AppContent = () => {
 
   // ── 인증 상태 중앙 감지: 미로그인 시 스플래시/로그인으로 자동 이동 등 ──
   useEffect(() => {
+    // loading 중에는 절대 이동하지 않음 (enrichWithProfilePhoto 완료 전 setupComplete=false 오판 방지)
     if (loading) return;
     const isPublicRoute = PUBLIC_ROUTES.some(r => location.pathname.startsWith(r));
     if (!user && !isPublicRoute) {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
     } else if (user) {
-      // 신규 유저: setup_complete가 true가 아니면 프로필 설정 페이지로 이동
-      if (user.setupComplete !== true && location.pathname !== '/profile-setup') {
+      // setupComplete가 명확히 false인 경우에만 /profile-setup으로 이동
+      // undefined = enrichment 진행 중 → 이동하지 않음 (기존 유저 반복 리다이렉트 방지)
+      const setupDone = user.setupComplete;
+      if (setupDone === false && location.pathname !== '/profile-setup') {
         navigate('/profile-setup', { replace: true });
       }
       // 기존 유저: 로그인/온보딩 페이지에 있으면 홈으로 이동
-      else if (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding') {
+      else if (setupDone !== false && (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding')) {
         navigate('/', { replace: true });
       }
     }
