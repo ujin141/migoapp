@@ -55,10 +55,11 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
   } catch (err) {
     console.error("enrichWithProfilePhoto error:", err);
   }
-  // 프로필 조회 실패(네트워크 오류 등): setupComplete를 undefined로 유지
-  // false로 강제하면 기존 유저가 DB 오류 시 /profile-setup으로 튕겨나가는 버그 발생
-  // App.tsx 가드는 setupComplete === false일 때만 리다이렉트하므로 안전
-  return { ...user, setupComplete: user.setupComplete };
+  // 프로필 조회 실패(네트워크 오류 등):
+  // - 신규 유저는 profiles 행이 아직 없을 수 있음 → setup_complete=false로 강제
+  // - 기존 유저가 일시적 DB 오류 → 기존 setupComplete 유지 (undefined이면 false)
+  // App.tsx 가드는 setupComplete !== true이면 /profile-setup으로 이동
+  return { ...user, setupComplete: user.setupComplete === true ? true : false };
 }
 let globalSession: Session | null = null;
 let globalUser: AuthUser | null = null;
@@ -187,7 +188,7 @@ if (!isSupabaseConfigured) {
           photoUrl: bustedUrl || globalUser.photoUrl || "",
           name: p.name || globalUser.name,
           verified: p.verified ?? globalUser.verified,
-          setupComplete: p.setup_complete ?? globalUser.setupComplete
+        setupComplete: p.setup_complete === true ? true : (globalUser.setupComplete === true ? true : false)
         };
         notifyAuthListeners();
       })

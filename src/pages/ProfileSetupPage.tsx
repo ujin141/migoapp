@@ -167,9 +167,16 @@ const ProfileSetupPage = () => {
       }).eq("id", user.id);
 
       if (error) { toast({ title: "저장 실패", description: error.message, variant: "destructive" }); setSaving(false); return; }
+
+      // ✅ refreshPhotoUrl을 await로 완전 완료 후 navigate
+      // (refreshPhotoUrl 내부에서 enrichWithProfilePhoto → DB에서 setup_complete=true 읽어
+      //  globalUser.setupComplete = true로 반영되어야 App.tsx 가드가 통과시켜줌)
       await refreshPhotoUrl?.();
+
       toast({ title: "🎉 프로필 완성!", description: "Migo에 오신 걸 환영해요 ✈️" });
-      setTimeout(() => navigate("/"), 600);
+      // 토스트가 잠깐 보이도록 짧게 대기 후 이동
+      await new Promise(r => setTimeout(r, 300));
+      navigate("/", { replace: true });
     } catch {
       toast({ title: "오류가 발생했습니다. 다시 시도해주세요", variant: "destructive" });
     } finally {
