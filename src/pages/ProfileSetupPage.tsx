@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Check, ChevronRight, Sparkles, X, ArrowLeft, User } from "lucide-react";
@@ -7,26 +7,94 @@ import siteLogo from "@/assets/site-logo.png";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { compressImage } from "@/lib/imageCompression";
+import { useTranslation } from "react-i18next";
 
-/* ─── 데이터 상수 ──────────────────────────────── */
-const TRAVEL_STYLES = [
-  "배낭여행 🎒", "럭셔리 ✈️", "자연/트레킹 🏔️", "맛집탐방 🍜",
-  "문화/역사 🏛️", "해변/휴양 🏖️", "사진촬영 📸", "나이트라이프 🌙",
-  "쇼핑 🛍️", "힐링/요가 🧘", "로컬체험 🎭", "드라이브 🚗",
+// 국가 코드(ISO 3166-1 alpha-2) 기반 국적 목록 — Intl.DisplayNames로 현재 언어에 맞게 자동 변환
+const NATIONALITY_CODES: Array<{ code: string; flag: string; fallback: string }> = [
+  // ── 아시아 ──
+  { code: "KR", flag: "🇰🇷", fallback: "South Korea" },
+  { code: "JP", flag: "🇯🇵", fallback: "Japan" },
+  { code: "CN", flag: "🇨🇳", fallback: "China" },
+  { code: "TW", flag: "🇹🇼", fallback: "Taiwan" },
+  { code: "HK", flag: "🇭🇰", fallback: "Hong Kong" },
+  { code: "VN", flag: "🇻🇳", fallback: "Vietnam" },
+  { code: "TH", flag: "🇹🇭", fallback: "Thailand" },
+  { code: "PH", flag: "🇵🇭", fallback: "Philippines" },
+  { code: "ID", flag: "🇮🇩", fallback: "Indonesia" },
+  { code: "MY", flag: "🇲🇾", fallback: "Malaysia" },
+  { code: "SG", flag: "🇸🇬", fallback: "Singapore" },
+  { code: "MM", flag: "🇲🇲", fallback: "Myanmar" },
+  { code: "KH", flag: "🇰🇭", fallback: "Cambodia" },
+  { code: "IN", flag: "🇮🇳", fallback: "India" },
+  { code: "NP", flag: "🇳🇵", fallback: "Nepal" },
+  { code: "LK", flag: "🇱🇰", fallback: "Sri Lanka" },
+  { code: "BD", flag: "🇧🇩", fallback: "Bangladesh" },
+  { code: "PK", flag: "🇵🇰", fallback: "Pakistan" },
+  { code: "MN", flag: "🇲🇳", fallback: "Mongolia" },
+  { code: "KZ", flag: "🇰🇿", fallback: "Kazakhstan" },
+  { code: "UZ", flag: "🇺🇿", fallback: "Uzbekistan" },
+  // ── 유럽 ──
+  { code: "GB", flag: "🇬🇧", fallback: "United Kingdom" },
+  { code: "FR", flag: "🇫🇷", fallback: "France" },
+  { code: "DE", flag: "🇩🇪", fallback: "Germany" },
+  { code: "ES", flag: "🇪🇸", fallback: "Spain" },
+  { code: "IT", flag: "🇮🇹", fallback: "Italy" },
+  { code: "NL", flag: "🇳🇱", fallback: "Netherlands" },
+  { code: "BE", flag: "🇧🇪", fallback: "Belgium" },
+  { code: "CH", flag: "🇨🇭", fallback: "Switzerland" },
+  { code: "AT", flag: "🇦🇹", fallback: "Austria" },
+  { code: "SE", flag: "🇸🇪", fallback: "Sweden" },
+  { code: "NO", flag: "🇳🇴", fallback: "Norway" },
+  { code: "DK", flag: "🇩🇰", fallback: "Denmark" },
+  { code: "FI", flag: "🇫🇮", fallback: "Finland" },
+  { code: "PT", flag: "🇵🇹", fallback: "Portugal" },
+  { code: "PL", flag: "🇵🇱", fallback: "Poland" },
+  { code: "CZ", flag: "🇨🇿", fallback: "Czech Republic" },
+  { code: "HU", flag: "🇭🇺", fallback: "Hungary" },
+  { code: "RO", flag: "🇷🇴", fallback: "Romania" },
+  { code: "GR", flag: "🇬🇷", fallback: "Greece" },
+  { code: "RU", flag: "🇷🇺", fallback: "Russia" },
+  { code: "UA", flag: "🇺🇦", fallback: "Ukraine" },
+  { code: "TR", flag: "🇹🇷", fallback: "Turkey" },
+  { code: "IE", flag: "🇮🇪", fallback: "Ireland" },
+  // ── 아메리카 ──
+  { code: "US", flag: "🇺🇸", fallback: "United States" },
+  { code: "CA", flag: "🇨🇦", fallback: "Canada" },
+  { code: "MX", flag: "🇲🇽", fallback: "Mexico" },
+  { code: "BR", flag: "🇧🇷", fallback: "Brazil" },
+  { code: "AR", flag: "🇦🇷", fallback: "Argentina" },
+  { code: "CL", flag: "🇨🇱", fallback: "Chile" },
+  { code: "CO", flag: "🇨🇴", fallback: "Colombia" },
+  { code: "PE", flag: "🇵🇪", fallback: "Peru" },
+  // ── 중동 ──
+  { code: "AE", flag: "🇦🇪", fallback: "UAE" },
+  { code: "SA", flag: "🇸🇦", fallback: "Saudi Arabia" },
+  { code: "IL", flag: "🇮🇱", fallback: "Israel" },
+  { code: "IR", flag: "🇮🇷", fallback: "Iran" },
+  { code: "JO", flag: "🇯🇴", fallback: "Jordan" },
+  // ── 아프리카 ──
+  { code: "ZA", flag: "🇿🇦", fallback: "South Africa" },
+  { code: "EG", flag: "🇪🇬", fallback: "Egypt" },
+  { code: "MA", flag: "🇲🇦", fallback: "Morocco" },
+  { code: "NG", flag: "🇳🇬", fallback: "Nigeria" },
+  { code: "KE", flag: "🇰🇪", fallback: "Kenya" },
+  { code: "ET", flag: "🇪🇹", fallback: "Ethiopia" },
+  // ── 오세아니아 ──
+  { code: "AU", flag: "🇦🇺", fallback: "Australia" },
+  { code: "NZ", flag: "🇳🇿", fallback: "New Zealand" },
+  { code: "FJ", flag: "🇫🇯", fallback: "Fiji" },
 ];
-const REGIONS = [
-  "동남아 🌴", "유럽 🏰", "일본 🗾", "미국/캐나다 🗽",
-  "중남미 🌎", "오세아니아 🦘", "중동/아프리카 🌍",
-  "국내여행 🇰🇷", "중국/대만 🐉", "인도 🕌",
-];
-const PERSONALITIES = [
-  { id: "planner", emoji: "📋", label: "계획형 플래너" },
-  { id: "free",    emoji: "🌊", label: "자유로운 영혼" },
-  { id: "social",  emoji: "🤝", label: "소셜 버터플라이" },
-  { id: "solo",    emoji: "🎧", label: "나홀로 여행자" },
-  { id: "photo",   emoji: "📸", label: "사진 수집가" },
-  { id: "food",    emoji: "🍽️", label: "미식 탐험가" },
-];
+
+/** Intl.DisplayNames로 언어별 국가명 반환. 지원 안 하는 언어는 fallback(English) */
+function getCountryName(code: string, locale: string, fallback: string): string {
+  try {
+    const dn = new Intl.DisplayNames([locale, 'en'], { type: 'region' });
+    return dn.of(code) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 const MBTI_LIST = ["INTJ","INTP","ENTJ","ENTP","INFJ","INFP","ENFJ","ENFP","ISTJ","ISFJ","ESTJ","ESFJ","ISTP","ISFP","ESTP","ESFP"];
 const MBTI_COLOR: Record<string,string> = {
   INTJ:"indigo",INTP:"indigo",ENTJ:"purple",ENTP:"purple",
@@ -34,88 +102,6 @@ const MBTI_COLOR: Record<string,string> = {
   ISTJ:"blue",ISFJ:"blue",ESTJ:"orange",ESFJ:"orange",
   ISTP:"slate",ISFP:"pink",ESTP:"red",ESFP:"yellow",
 };
-const NATIONALITIES = [
-  // ── 아시아 ──
-  { v:"South Korea",    f:"🇰🇷", l:"대한민국" },
-  { v:"Japan",          f:"🇯🇵", l:"일본" },
-  { v:"China",          f:"🇨🇳", l:"중국" },
-  { v:"Taiwan",         f:"🇹🇼", l:"대만" },
-  { v:"Hong Kong",      f:"🇭🇰", l:"홍콩" },
-  { v:"Vietnam",        f:"🇻🇳", l:"베트남" },
-  { v:"Thailand",       f:"🇹🇭", l:"태국" },
-  { v:"Philippines",    f:"🇵🇭", l:"필리핀" },
-  { v:"Indonesia",      f:"🇮🇩", l:"인도네시아" },
-  { v:"Malaysia",       f:"🇲🇾", l:"말레이시아" },
-  { v:"Singapore",      f:"🇸🇬", l:"싱가포르" },
-  { v:"Myanmar",        f:"🇲🇲", l:"미얀마" },
-  { v:"Cambodia",       f:"🇰🇭", l:"캄보디아" },
-  { v:"India",          f:"🇮🇳", l:"인도" },
-  { v:"Nepal",          f:"🇳🇵", l:"네팔" },
-  { v:"Sri Lanka",      f:"🇱🇰", l:"스리랑카" },
-  { v:"Bangladesh",     f:"🇧🇩", l:"방글라데시" },
-  { v:"Pakistan",       f:"🇵🇰", l:"파키스탄" },
-  { v:"Mongolia",       f:"🇲🇳", l:"몽골" },
-  { v:"Kazakhstan",     f:"🇰🇿", l:"카자흐스탄" },
-  { v:"Uzbekistan",     f:"🇺🇿", l:"우즈베키스탄" },
-  // ── 유럽 ──
-  { v:"United Kingdom", f:"🇬🇧", l:"영국" },
-  { v:"France",         f:"🇫🇷", l:"프랑스" },
-  { v:"Germany",        f:"🇩🇪", l:"독일" },
-  { v:"Spain",          f:"🇪🇸", l:"스페인" },
-  { v:"Italy",          f:"🇮🇹", l:"이탈리아" },
-  { v:"Netherlands",    f:"🇳🇱", l:"네덜란드" },
-  { v:"Belgium",        f:"🇧🇪", l:"벨기에" },
-  { v:"Switzerland",    f:"🇨🇭", l:"스위스" },
-  { v:"Austria",        f:"🇦🇹", l:"오스트리아" },
-  { v:"Sweden",         f:"🇸🇪", l:"스웨덴" },
-  { v:"Norway",         f:"🇳🇴", l:"노르웨이" },
-  { v:"Denmark",        f:"🇩🇰", l:"덴마크" },
-  { v:"Finland",        f:"🇫🇮", l:"핀란드" },
-  { v:"Portugal",       f:"🇵🇹", l:"포르투갈" },
-  { v:"Poland",         f:"🇵🇱", l:"폴란드" },
-  { v:"Czech Republic", f:"🇨🇿", l:"체코" },
-  { v:"Hungary",        f:"🇭🇺", l:"헝가리" },
-  { v:"Romania",        f:"🇷🇴", l:"루마니아" },
-  { v:"Greece",         f:"🇬🇷", l:"그리스" },
-  { v:"Russia",         f:"🇷🇺", l:"러시아" },
-  { v:"Ukraine",        f:"🇺🇦", l:"우크라이나" },
-  { v:"Turkey",         f:"🇹🇷", l:"터키" },
-  { v:"Ireland",        f:"🇮🇪", l:"아일랜드" },
-  // ── 아메리카 ──
-  { v:"United States",  f:"🇺🇸", l:"미국" },
-  { v:"Canada",         f:"🇨🇦", l:"캐나다" },
-  { v:"Mexico",         f:"🇲🇽", l:"멕시코" },
-  { v:"Brazil",         f:"🇧🇷", l:"브라질" },
-  { v:"Argentina",      f:"🇦🇷", l:"아르헨티나" },
-  { v:"Chile",          f:"🇨🇱", l:"칠레" },
-  { v:"Colombia",       f:"🇨🇴", l:"콜롬비아" },
-  { v:"Peru",           f:"🇵🇪", l:"페루" },
-  // ── 중동 ──
-  { v:"UAE",            f:"🇦🇪", l:"UAE" },
-  { v:"Saudi Arabia",   f:"🇸🇦", l:"사우디" },
-  { v:"Israel",         f:"🇮🇱", l:"이스라엘" },
-  { v:"Iran",           f:"🇮🇷", l:"이란" },
-  { v:"Jordan",         f:"🇯🇴", l:"요르단" },
-  // ── 아프리카 ──
-  { v:"South Africa",   f:"🇿🇦", l:"남아공" },
-  { v:"Egypt",          f:"🇪🇬", l:"이집트" },
-  { v:"Morocco",        f:"🇲🇦", l:"모로코" },
-  { v:"Nigeria",        f:"🇳🇬", l:"나이지리아" },
-  { v:"Kenya",          f:"🇰🇪", l:"케냐" },
-  { v:"Ethiopia",       f:"🇪🇹", l:"에티오피아" },
-  // ── 오세아니아 ──
-  { v:"Australia",      f:"🇦🇺", l:"호주" },
-  { v:"New Zealand",    f:"🇳🇿", l:"뉴질랜드" },
-  { v:"Fiji",           f:"🇫🇯", l:"피지" },
-  // ── 기타 ──
-  { v:"Other",          f:"🌍", l:"기타" },
-];
-
-const STEPS = [
-  { emoji: "🤳", title: "프로필 사진", sub: "첫인상이 중요해요" },
-  { emoji: "✈️", title: "여행 취향", sub: "어떻게 여행하나요?" },
-  { emoji: "🧠", title: "나는 어떤 여행자?", sub: "선택 사항이에요" },
-];
 
 /* ─── 애니메이션 variants ─────────────────────── */
 const slide = (dir: number) => ({
@@ -144,7 +130,29 @@ const Chip = ({ label, selected, onClick, disabled }: { label:string; selected:b
 const ProfileSetupPage = () => {
   const navigate = useNavigate();
   const { user, refreshPhotoUrl } = useAuth();
+  const { i18n } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // 언어 변경 시 자동으로 국가명 재계산 (Intl.DisplayNames 활용)
+  const NATIONALITIES = useMemo(() => {
+    const locale = i18n.language || 'ko';
+    const otherLabel = (() => {
+      if (locale.startsWith('ko')) return '기타';
+      if (locale.startsWith('ja')) return 'その他';
+      if (locale.startsWith('zh')) return '其他';
+      if (locale.startsWith('fr')) return 'Autre';
+      if (locale.startsWith('de')) return 'Andere';
+      if (locale.startsWith('es')) return 'Otro';
+      return 'Other';
+    })();
+    const list = NATIONALITY_CODES.map(({ code, flag, fallback }) => ({
+      v: code,
+      f: flag,
+      l: getCountryName(code, locale, fallback),
+    }));
+    list.push({ v: 'Other', f: '🌍', l: otherLabel });
+    return list;
+  }, [i18n.language]);
 
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
