@@ -20,7 +20,7 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
       setTimeout(() => reject(new Error('timeout')), 4000)
     );
     const { data, error } = await Promise.race([
-      supabase.from("profiles").select("photo_url, photo_urls, name, verified, setup_complete, is_banned, banned").eq("id", user.id).single(),
+      supabase.from("profiles").select("photo_url, photo_urls, name, verified, setup_complete, is_banned, banned, nationality").eq("id", user.id).single(),
       timeoutPromise
     ]);
     
@@ -41,19 +41,22 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
       // 표시용으로만 캐시 버스팅 추가 (DB에는 클린 URL 저장)
       const cleanUrl = bestPhoto?.replace(/[?&]t=\d+/, "") || "";
       const bustedUrl = cleanUrl ? `${cleanUrl}?t=${Date.now()}` : "";
+      // 방어 로직: 과거 사용자 중 setup_complete가 누락되었어도 국적이 설정되어 있으면 완료로 간주
+      const isActuallyComplete = data.setup_complete || (!!data.nationality && data.nationality !== '');
       return {
         ...user,
         photoUrl: bustedUrl || user.photoUrl || "",
         name: data.name || user.name,
         verified: data.verified ?? user.verified,
-        setupComplete: data.setup_complete ?? false
+        setupComplete: isActuallyComplete
       };
     }
   } catch (err) {
     console.error("enrichWithProfilePhoto error:", err);
   }
-  // 프로필 조회가 실패하거나 없는 경우
-  // setupComplete가 undefined인 경우 그대로 유지 — App.tsx에서 리다이렉트 판단 보류
+  // 프로필 조회 실패(네트워크 오류 등): setupComplete를 undefined로 유지
+  // false로 강제하면 기존 유저가 DB 오류 시 /profile-setup으로 튕겨나가는 버그 발생
+  // App.tsx 가드는 setupComplete === false일 때만 리다이렉트하므로 안전
   return { ...user, setupComplete: user.setupComplete };
 }
 let globalSession: Session | null = null;
@@ -171,6 +174,54 @@ if (!isSupabaseConfigured) {
         globalUser = globalUser ? { ...globalUser, ...base } : base;
         globalLoading = false;
         notifyAuthListeners();
+      }
+    }
+  });
+
+  // 🚨 프로필 실시간 데이터 갱신 리스너 (글로벌 1회 등록)
+  let profileChannel: ReturnType<typeof supabase.channel> | null = null;
+  
+  const setupProfileListener = (userId: string) => {
+    if (profileChannel) supabase.removeChannel(profileChannel);
+    profileChannel = supabase.channel(`auth_profile_realtime_${userId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, async (payload) => {
+        if (!globalUser || globalUser.id !== userId) return;
+        
+        const p = payload.new as any;
+        if (p.is_banned || p.banned) {
+          toast({ title: i18n.t("auto.g_1068", "이 계정은 이용 수칙 위반으로 영구 정지되었습니다."), variant: "destructive" });
+          await supabase.auth.signOut();
+          window.location.href = '/login';
+          return;
+        }
+
+        const bestPhoto = (p.photo_urls && p.photo_urls.length > 0) ? p.photo_urls[0] : p.photo_url;
+        const cleanUrl = bestPhoto?.replace(/[?&]t=\d+/, "") || "";
+        const bustedUrl = cleanUrl ? `${cleanUrl}?t=${Date.now()}` : "";
+
+        globalUser = {
+          ...globalUser,
+          photoUrl: bustedUrl || globalUser.photoUrl || "",
+          name: p.name || globalUser.name,
+          verified: p.verified ?? globalUser.verified,
+          setupComplete: p.setup_complete ?? globalUser.setupComplete
+        };
+        notifyAuthListeners();
+      })
+      .subscribe();
+  };
+
+  // 로그인 상태가 변할 때마다 리스너 재설정
+  authListeners.add(() => {
+    if (globalUser?.id) {
+      // 이미 해당 유저 채널이 구독중인지 확인
+      if (!profileChannel || !profileChannel.topic.includes(globalUser.id)) {
+        setupProfileListener(globalUser.id);
+      }
+    } else {
+      if (profileChannel) {
+        supabase.removeChannel(profileChannel);
+        profileChannel = null;
       }
     }
   });
@@ -294,8 +345,8 @@ function mapUser(u: User): AuthUser {
     name: u.user_metadata?.name,
     photoUrl: u.user_metadata?.avatar_url || "",
     verified: u.user_metadata?.verified ?? false,
-    // undefined = enrichWithProfilePhoto 완료 전 상태 (App.tsx의 리다이렉트 가드가 이를 감지)
-    // enrichment 완료 후 DB의 setup_complete 값으로 덮어씀
+    // ⚠️ undefined로 초기화: enrichWithProfilePhoto 완료 전까지 가드가 오작동하지 않도록 함
+    // enrichWithProfilePhoto가 DB에서 setup_complete를 읽어 false로 확정해야 /profile-setup 이동
     setupComplete: undefined
   };
 }

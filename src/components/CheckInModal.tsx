@@ -6,6 +6,7 @@ import { MapPin, X, Loader2, CheckCircle2, LogOut, Users, Plane } from "lucide-r
 import { checkIn, checkOut, getMyCheckIn, fetchCityTravelers, CheckIn } from "@/lib/checkInService";
 import { getCurrentLocation } from "@/lib/locationService";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/context/SubscriptionContext";
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -22,6 +23,8 @@ export default function CheckInModal({
   const {
     user
   } = useAuth();
+  const { isPlus, isPremium } = useSubscription();
+  const hasAds = !isPlus && !isPremium;
   const [step, setStep] = useState<"idle" | "locating" | "confirming" | "done">("idle");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
@@ -122,8 +125,8 @@ export default function CheckInModal({
     }} onClick={e => {
       if (e.target === e.currentTarget) onClose();
     }}>
-          <motion.div className="w-full max-w-md bg-card rounded-3xl mb-4 sm:mb-8 shadow-2xl overflow-hidden" style={{
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + var(--nav-height) + 1rem)"
+          <motion.div className="w-full max-w-md bg-card rounded-t-3xl shadow-2xl overflow-hidden" style={{
+        paddingBottom: hasAds ? "170px" : "calc(env(safe-area-inset-bottom, 0px) + var(--nav-height) + 1rem)"
       }} initial={{
         y: "100%"
       }} animate={{

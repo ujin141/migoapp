@@ -42,6 +42,8 @@ import { compressImage } from "@/lib/imageCompression";
 import { Post, TripGroup, PostComment } from "@/types";
 import TodayContent from "@/components/TodayContent";
 import DailyPicksCard from "@/components/DailyPicksCard";
+import AdBanner from "@/components/AdBanner";
+import { BannerAdPosition, BannerAdSize } from "@capacitor-community/admob";
 
 interface JoinPopupState {
   group: TripGroup;
@@ -74,6 +76,7 @@ const DiscoverPage = () => {
   } = useAuth();
   const {
     isPlus,
+    isPremium,
     canJoinPremiumGroups
   } = useSubscription();
   const {
@@ -135,6 +138,18 @@ const DiscoverPage = () => {
   useEffect(() => {
     return () => clearAllTimers();
   }, [clearAllTimers]);
+
+  // ── 광고 유무에 따른 Toast 기본 여백 조정 ──
+  useEffect(() => {
+    if (!isPlus) {
+      document.documentElement.style.setProperty('--toast-pb', '170px');
+    } else {
+      document.documentElement.style.removeProperty('--toast-pb');
+    }
+    return () => {
+      document.documentElement.style.removeProperty('--toast-pb');
+    };
+  }, [isPlus]);
 
   // Group data
   const [tripGroups, setTripGroups] = useState<TripGroup[]>([]);
@@ -217,11 +232,12 @@ const DiscoverPage = () => {
 
   const startLightningMatch = () => {
     if (!user) return toast({ title: i18n.t("auto.p407") });
-    if (isPlus) {
-      setShowVipLightningFilter(true);
-    } else {
-      executeLightningMatch(false);
+    if (!isPlus) {
+      // 무료 유저는 번개매칭 사용 불가 → Plus 모달
+      setShowPlusModal(true);
+      return;
     }
+    setShowVipLightningFilter(true);
   };
 
   const executeLightningMatch = (isVipMode: boolean) => {
@@ -2135,7 +2151,8 @@ const DiscoverPage = () => {
             transition={{ type: "spring", stiffness: 380, damping: 28 }}
             whileTap={{ scale: 0.94 }}
             onClick={() => setShowGroupCreate(true)}
-            className="fixed bottom-24 right-5 z-40 flex items-center gap-2 px-5 py-3.5 rounded-2xl gradient-primary text-white font-extrabold text-sm shadow-float"
+            className="fixed right-5 z-40 flex items-center gap-2 px-5 py-3.5 rounded-2xl gradient-primary text-white font-extrabold text-sm shadow-float"
+            style={{ bottom: (!isPlus && !isPremium) ? "170px" : "120px" }}
           >
             <span className="text-base leading-none">✈️</span>
             {t("auto.ko_0013", "동행 구하기")}</motion.button>
@@ -2511,6 +2528,16 @@ const DiscoverPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── 배너 광고 (무료 유저만) ── */}
+      {!isPlus && (
+        <AdBanner
+          position={BannerAdPosition.BOTTOM_CENTER}
+          size={BannerAdSize.ADAPTIVE_BANNER}
+          reservedHeight={80}
+          margin={55}
+        />
       )}
 
     </div>;

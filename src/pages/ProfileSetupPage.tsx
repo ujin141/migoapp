@@ -111,6 +111,10 @@ const ProfileSetupPage = () => {
   // Step 0
   const [profilePhotos, setProfilePhotos] = useState<Array<{ file: File; url: string }>>([]);
   const [userType, setUserType] = useState<"traveler" | "local">("traveler");
+  const [nickname, setNickname] = useState(() => {
+    // 구글/애플 로그인시 자동으로 설정된 이름을 기본값으로 가져오기
+    return "";
+  });
   const [nationality, setNationality] = useState("");
   const [bio, setBio] = useState("");
   const [travelMission, setTravelMission] = useState("");
@@ -169,6 +173,13 @@ const ProfileSetupPage = () => {
       if (profilePhotos.length < MIN_PROFILE_PHOTOS) {
         toast({
           title: t("profileSetup.errPhoto", `사진을 최소 ${MIN_PROFILE_PHOTOS}장 업로드해주세요`),
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!nickname.trim()) {
+        toast({
+          title: t("profileSetup.errNickname", "닉네임을 입력해주세요"),
           variant: "destructive"
         });
         return;
@@ -236,6 +247,7 @@ const ProfileSetupPage = () => {
 
         // profiles 업데이트
         const { error: updateErr } = await supabase.from("profiles").update({
+          name: nickname.trim() || undefined, // 비어있으면 기존 값 유지
           user_type: userType,
           nationality,
           travel_mission: travelMission,
@@ -437,6 +449,22 @@ const ProfileSetupPage = () => {
                 <button className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${userType === 'local' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`} onClick={() => setUserType('local')}>
                   {t('profileSetup.localGuide', t("auto.x4098"))}
                 </button>
+              </div>
+
+              {/* ─── 닉네임 입력 (필수) ─── */}
+              <div>
+                <label className="text-xs font-bold text-foreground mb-1.5 flex items-center gap-1">
+                  {t("profileSetup.nicknameLabel", "닉네임")} <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={nickname}
+                  onChange={e => setNickname(e.target.value)}
+                  maxLength={20}
+                  placeholder={t("profileSetup.nicknamePlaceholder", "예) 미고여행자")}
+                  className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <p className="text-[10px] text-muted-foreground text-right mt-1">{nickname.length}/20</p>
               </div>
 
               {/* Nationality */}

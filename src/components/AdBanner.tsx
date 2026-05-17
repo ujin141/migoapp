@@ -17,15 +17,18 @@ interface AdBannerProps {
   size?: BannerAdSize;
   /** 배너가 차지하는 여백 높이(px) - 콘텐츠 밀림 방지용 */
   reservedHeight?: number;
+  /** 하단 네비게이션 바 등과의 겹침 방지용 여백 (DP) */
+  margin?: number;
 }
 
 export default function AdBanner({
   position = BannerAdPosition.BOTTOM_CENTER,
   size = BannerAdSize.ADAPTIVE_BANNER,
   reservedHeight = 60,
+  margin = 0,
 }: AdBannerProps) {
   // 네이티브 배너를 마운트/언마운트 시 자동 show/remove
-  useAdMobBanner(position, size);
+  useAdMobBanner(position, size, margin);
 
   // 웹에서는 렌더링 없음
   if (!Capacitor.isNativePlatform()) return null;

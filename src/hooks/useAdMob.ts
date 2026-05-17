@@ -21,10 +21,9 @@ import {
 // ── 광고 유닛 ID ─────────────────────────────────────────────────
 // ⚠️ 테스트 중에는 테스트 ID 사용 (실 계정 ID로 교체 시 주석에 명시)
 const IOS_IDS = {
-  // 실제 iOS 광고 단위 ID 적용
-  banner:       'ca-app-pub-2237857753220220/3435324499', // User provided iOS Banner
-  interstitial: 'ca-app-pub-2237857753220220/4551148350', // User provided iOS Interstitial
-  rewarded:     'ca-app-pub-2237857753220220/9938977497', // User provided iOS Rewarded
+  banner:       'ca-app-pub-2237857753220220/1413464680', // iOS Banner
+  interstitial: 'ca-app-pub-2237857753220220/7487918441', // iOS Interstitial (전면)
+  rewarded:     'ca-app-pub-2237857753220220/7787301346', // iOS Rewarded (보상형)
 };
 
 const ANDROID_IDS = {
@@ -143,6 +142,7 @@ export function useAdMob() {
 export function useAdMobBanner(
   position: BannerAdPosition = BannerAdPosition.BOTTOM_CENTER,
   size: BannerAdSize = BannerAdSize.ADAPTIVE_BANNER,
+  marginDp: number = 0
 ) {
   const shownRef = useRef(false);
 
@@ -159,7 +159,7 @@ export function useAdMobBanner(
           adId: getAdIds().banner,
           adSize: size,
           position,
-          margin: 0,
+          margin: marginDp,
           isTesting: false,
         };
         await AdMob.showBanner(options);

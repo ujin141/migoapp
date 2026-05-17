@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { PLUS_BILLING_CYCLE_MAP, IAP_PRODUCT_IDS, isNativePlatform } from "@/lib/iapService";
 import { toast } from "@/hooks/use-toast";
 import CancelRetentionModal from "./CancelRetentionModal";
+import CancelGuardModal from "@/components/CancelGuardModal";
 
 interface MigoPlusModalProps {
   isOpen: boolean;
@@ -62,6 +63,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
   const [restoring, setRestoring] = useState(false);
   // ── 해지 이탈 방지 팝업 ──────────────────────────────────────
   const [showRetention, setShowRetention] = useState(false);
+  const [showCancelGuard, setShowCancelGuard] = useState(false);
 
   const pricing = getMigoPlusPricing();
 
@@ -153,21 +155,22 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
     (activePlan === "premium" && isPremium);
 
   return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-[9999] flex items-end justify-center"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        >
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={handleClose} />
-
+    <>
+      <AnimatePresence>
+        {isOpen && (
           <motion.div
-            className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float flex flex-col"
-            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            style={{ maxHeight: "92vh" }}
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[9999] flex items-end justify-center"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={handleClose} />
+
+            <motion.div
+              className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl shadow-float flex flex-col"
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              style={{ maxHeight: "92vh" }}
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* ── 닫기 버튼 & 드래그 핸들 ── */}
             <div className="flex items-center justify-between px-5 pt-4 pb-1 shrink-0">
               <div className="w-8" /> {/* 밸런스용 빈 공간 */}
@@ -394,15 +397,24 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                           : <RefreshCw size={11} />}
                         {t('iap.restore', 'Restore Purchase')}
                       </button>
-                      {/* Apple Guideline 3.1.1: 구독 관리 링크 (필수) */}
-                      <a
-                        href="https://apps.apple.com/account/subscriptions"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-center text-[10px] text-primary underline mt-1"
-                      >
-                        {t("auto.g_0101", "구독 관리 · App Store에서 취소하기")}
-                      </a>
+                      {/* Apple Guideline 3.1.1: 구독 관리 링크 (필수) — 구독 중이면 이탈 방지 팝업 거침 */}
+                      {(isPlus || isPremium) ? (
+                        <button
+                          onClick={() => setShowCancelGuard(true)}
+                          className="block w-full text-center text-[10px] text-primary underline mt-1"
+                        >
+                          {t("auto.g_0101", "구독 관리 · App Store에서 취소하기")}
+                        </button>
+                      ) : (
+                        <a
+                          href="https://apps.apple.com/account/subscriptions"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-center text-[10px] text-primary underline mt-1"
+                        >
+                          {t("auto.g_0101", "구독 관리 · App Store에서 취소하기")}
+                        </a>
+                      )}
                     </>
                   )}
                 </div>
@@ -413,7 +425,17 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>,
+    </AnimatePresence>
+    <CancelGuardModal
+      isOpen={showCancelGuard}
+      onClose={() => setShowCancelGuard(false)}
+      onProceed={() => {
+        setShowCancelGuard(false);
+        window.open("https://apps.apple.com/account/subscriptions", "_blank", "noopener");
+      }}
+      onKeep={() => setShowCancelGuard(false)}
+    />
+    </>,
     document.body
   );
 

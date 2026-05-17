@@ -27,6 +27,8 @@ import { checkInStreak } from "@/lib/streakService";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useLocalNotifications } from "@/hooks/useLocalNotifications";
 import DailyCheckinModal from "@/components/DailyCheckinModal";
+import SubscriptionExpiryBanner from "@/components/SubscriptionExpiryBanner";
+import MigoPlusModal from "@/components/MigoPlusModal";
 
 import i18n from "./i18n";
 
@@ -139,7 +141,7 @@ const AppContent = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, sessionReady } = useAuth();
   
   // 실시간 활동 토스트 시작 (로그인 상태일 때만)
   useFomoActivity(!!user);
@@ -153,6 +155,8 @@ const AppContent = () => {
   const [showEula, setShowEula] = useState(false);
   const [eulaScrolled, setEulaScrolled] = useState(false);
   const eulaRef = useRef<HTMLDivElement>(null);
+  // 배너에서 열리는 App 레벨 Plus 모달
+  const [showAppPlusModal, setShowAppPlusModal] = useState(false);
 
   useEffect(() => {
     if (user && !localStorage.getItem('migo_eula_agreed')) {
@@ -242,17 +246,16 @@ const AppContent = () => {
 
   // ── 인증 상태 중앙 감지: 미로그인 시 스플래시/로그인으로 자동 이동 등 ──
   useEffect(() => {
-    // loading 중에는 절대 이동하지 않음 (enrichWithProfilePhoto 완료 전 setupComplete=false 오판 방지)
-    if (loading) return;
+    // sessionReady + loading 둘 다 체크: enrichWithProfilePhoto가 완료되기 전에 가드 실행 방지
+    if (!sessionReady || loading) return;
     const isPublicRoute = PUBLIC_ROUTES.some(r => location.pathname.startsWith(r));
     if (!user && !isPublicRoute) {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
     } else if (user) {
-      // setupComplete가 명확히 false인 경우에만 /profile-setup으로 이동
-      // undefined = enrichment 진행 중 → 이동하지 않음 (기존 유저 반복 리다이렉트 방지)
-      const setupDone = user.setupComplete;
-      if (setupDone === false && location.pathname !== '/profile-setup') {
+      // 신규 유저: setup_complete가 명확히 false일 때만 리다이렉트
+      // undefined/null은 DB 조회 중일 수 있으므로 제외 (레이스 컨디션 방지)
+      if (user.setupComplete === false && location.pathname !== '/profile-setup') {
         navigate('/profile-setup', { replace: true });
       }
       // 기존 유저: 로그인/온보딩 페이지에 있으면 홈으로 이동
@@ -260,7 +263,7 @@ const AppContent = () => {
         navigate('/', { replace: true });
       }
     }
-  }, [user, loading, location.pathname, navigate]);
+  }, [user, loading, sessionReady, location.pathname, navigate]);
 
   // ── 네이티브 앱 OAuth 딥링크 수신 핸들러 ──
   useEffect(() => {
@@ -390,6 +393,9 @@ const AppContent = () => {
 
   return (
     <div className="relative h-screen overflow-hidden w-full">
+      {/* ── 구독 만료 경고 배너 (D-7 ~ D-0) ── */}
+      <SubscriptionExpiryBanner onOpenPlusModal={() => setShowAppPlusModal(true)} />
+      <MigoPlusModal isOpen={showAppPlusModal} onClose={() => setShowAppPlusModal(false)} />
       {/* ── 페이지 스크롤 컨테이너: BottomNav 위만큼만 차지 ── */}
       <div className="h-full overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>

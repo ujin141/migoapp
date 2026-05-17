@@ -29,7 +29,7 @@ import { MoreHorizontal } from "lucide-react";
 import { MissionModal, LikePopupModal, PassPopupModal, SuperLikeModal, LoginGateModal, FilterModal } from "./match/MatchModals";
 import { useAdMob } from "@/hooks/useAdMob";
 import AdBanner from "@/components/AdBanner";
-import { BannerAdPosition } from '@capacitor-community/admob';
+import { BannerAdPosition, BannerAdSize } from '@capacitor-community/admob';
 
 const MatchPage = () => {
   const {
@@ -72,6 +72,9 @@ const MatchPage = () => {
   // ── AdMob ──
   const { showInterstitial, showRewarded } = useAdMob();
   const [swipeCount, setSwipeCount] = useState(0);
+  const [showRewardedAdOffer, setShowRewardedAdOffer] = useState(false);
+  // ── 부스트 활성화 플래시 효과 ──
+  const [boostJustActivated, setBoostJustActivated] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -189,10 +192,13 @@ const MatchPage = () => {
 
       // 자신을 DB 레벨에서 확실히 제외 (캐시 제거: 정지된 계정이 즉각 사라지도록)
       const res = await supabase.from('profiles')
-        .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned')
+        .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned,setup_complete,is_admin,role')
         .neq('id', user.id)
         .or('is_banned.is.null,is_banned.eq.false')
         .or('banned.is.null,banned.eq.false')
+        .or('is_admin.is.null,is_admin.eq.false')   // 어드민 제외
+        .neq('role', 'admin')                        // role='admin' 제외
+        .eq('setup_complete', true)                  // 프로필 미완성 제외
         .limit(200);
         
       const data = res.data;
@@ -257,8 +263,15 @@ const MatchPage = () => {
           return score;
         };
 
-        // 이미 스와이프한 상대 클라이언트 필터 + 정지 계정 이중 필터 (캐시 stale 대응)
-        const filtered = data.filter(p => !swipedIds.has(p.id) && !p.is_banned && !p.banned);
+        // 이미 스와이프한 상대 클라이언트 필터 + 정지 계정 이중 필터 + 어드민/미완성 제외
+        const filtered = data.filter(p =>
+          !swipedIds.has(p.id)
+          && !p.is_banned
+          && !p.banned
+          && !p.is_admin               // 어드민 계정 제외 (이중 안전장치)
+          && p.role !== 'admin'
+          && p.setup_complete === true  // 프로필 미완성 제외
+        );
         // localStorage GPS fallback: DB lat/lng 없으면 앱 시작 시 저장된 좌표 사용
         const myLat = me?.lat || parseFloat(localStorage.getItem('migo_my_lat') || '0') || null;
         const myLng = me?.lng || parseFloat(localStorage.getItem('migo_my_lng') || '0') || null;
@@ -269,7 +282,7 @@ const MatchPage = () => {
           const isBoosted = p.boost_expires_at && new Date(p.boost_expires_at).getTime() > Date.now();
           return {
             id: p.id,
-            name: p.name || t("auto.ko_0246", "알수없음9"),
+            name: p.name || t("match.unknownUser", "Migo User"),
             age: p.age || 25,
             nationality: p.nationality || '',
             gender: p.gender || '',
@@ -338,7 +351,7 @@ const MatchPage = () => {
 
           const mappedLikers = likerProfiles.map(p => ({
             id: p.id,
-            name: p.name || t("auto.ko_0250", "알수없음"),
+            name: p.name || t("match.unknownUser", "Migo User"),
             age: p.age || 25,
             nationality: p.nationality || '',
             gender: p.gender || '',
@@ -437,6 +450,18 @@ const MatchPage = () => {
     );
   }, [onlineMap]);
 
+  // ── 광고 유무에 따른 하단 여백 대폭 상향 (네이티브 배너 높이 + safe-area 반영) ──
+  useEffect(() => {
+    if (!isPlus && !isPremium) {
+      document.documentElement.style.setProperty('--toast-pb', '170px');
+    } else {
+      document.documentElement.style.removeProperty('--toast-pb');
+    }
+    return () => {
+      document.documentElement.style.removeProperty('--toast-pb');
+    };
+  }, [isPlus, isPremium]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchProfile, setMatchProfile] = useState<any | null>(null);
   const [showMatch, setShowMatch] = useState(false);
@@ -460,11 +485,12 @@ const MatchPage = () => {
   const withAds = useMemo(() => {
     const filteredTravelers = profiles.filter(p => {
       const hasNoCoords = p.distanceKm === null;
-      // GPS 없는 유저도 보이도록: 좌표 없으면 거리 필터 통과
-      const distOk = (filterDistance >= 9999 || !hasMyGps) ? true : (hasNoCoords ? true : p.distanceKm <= filterDistance);
-      const genderOk = filterGender === 'all' || p.gender === filterGender;
-      const ageOk = !isPlus || !p.age || (p.age >= filterAge[0] && p.age <= filterAge[1]);
-      const langOk = !isPlus || filterLanguages.length === 0 || filterLanguages.some(l => p.languages.includes(l));
+      // 프리 유저는 글로벌 매칭 불가. 기본적으로 최대 100km로 제한 (또는 설정된 filterDistance)
+      const effectiveDist = isPlus ? filterDistance : Math.min(filterDistance, 100);
+      const distOk = (effectiveDist >= 9999 || !hasMyGps) ? true : (hasNoCoords ? true : p.distanceKm <= effectiveDist);
+      const genderOk = !isPlus || filterGender === 'all' || p.gender === filterGender;  // Plus 전용
+      const ageOk = !isPlus || !p.age || (p.age >= filterAge[0] && p.age <= filterAge[1]);  // Plus 전용
+      const langOk = !isPlus || filterLanguages.length === 0 || filterLanguages.some(l => p.languages.includes(l));  // Plus 전용
       const mbtiOk = filterMbti.length === 0 || (p.mbti && filterMbti.includes(p.mbti));
       const styleOk = filterTravelStyle.length === 0 || filterTravelStyle.some(tag => p.travelStyle.includes(tag));
       return distOk && genderOk && ageOk && langOk && mbtiOk && styleOk;
@@ -536,6 +562,20 @@ const MatchPage = () => {
       if (!isPlus && !isPremium && next % 5 === 0) showInterstitial();
       return next;
     });
+
+    // ── FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기 ──
+    if (!isPlus && Math.random() < 0.1) {
+      toast({
+        title: "누군가 회원님을 마음에 들어합니다! 👀",
+        description: "Migo Plus로 업그레이드하고 누군지 확인해보세요.",
+        action: (
+          <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
+            확인하기
+          </button>
+        ),
+        duration: 5000,
+      });
+    }
   }, [currentIndex, withAds, isPlus, isPremium, showInterstitial]);
   const saveLikeAndCheckMatch = useCallback(async (toUserId: string, kind: 'like' | 'superlike' = 'like', message?: string) => {
     if (!user) return false;
@@ -690,9 +730,23 @@ const MatchPage = () => {
              });
            }, 300);
            matchTimersRef.current.timeouts.push(tMatch);
-         }
-      }
+          }
+        }
     });
+
+    // ── FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기 ──
+    if (!isPlus && Math.random() < 0.1) {
+      toast({
+        title: "누군가 회원님을 마음에 들어합니다! 👀",
+        description: "Migo Plus로 업그레이드하고 누군지 확인해보세요.",
+        action: (
+          <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
+            확인하기
+          </button>
+        ),
+        duration: 5000,
+      });
+    }
   }, [currentIndex, withAds, addUnread, saveLikeAndCheckMatch, isPlus, dailyLikesUsed]);
   const openSuperLikeModal = useCallback(() => {
     if (!isLoggedIn()) {
@@ -700,32 +754,8 @@ const MatchPage = () => {
       return;
     }
     if (!isPlus && superLikesLeft <= 0) {
-      // ── 보상형 광고로 슈퍼라이크 +1 충전 ──────────────────────────
-      showRewarded(async () => {
-        // 광고 시청 완료 콜백: DB에 슈퍼라이크 +1 지급
-        await addSuperLikes(1);
-        toast({
-          title: '⭐ 슈퍼라이크 +1 획득!',
-          description: '광고를 시청해 주셔서 슈퍼라이크 1개를 드렸습니다.',
-        });
-        // 지급 후 바로 슈퍼라이크 모달 열기
-        const profile = withAds[currentIndex];
-        if (profile && !profile.isAd) {
-          setPendingSuperProfile(profile);
-          setSuperMsg('');
-          setShowSuperLikeModal(true);
-        }
-      }).then((watched) => {
-        if (!watched) {
-          // 광고 시청 실패 / 거부 → Plus 업그레이드 안내
-          toast({
-            title: t('alert.t63Title'),
-            description: t('alert.t63Desc'),
-            variant: 'destructive',
-          });
-          setShowPlusModal(true);
-        }
-      });
+      // 보상형 광고 먼저 제안 → 광고 보고 슈퍼라이크 1개 충전
+      setShowRewardedAdOffer(true);
       return;
     }
     const profile = withAds[currentIndex];
@@ -832,15 +862,14 @@ const MatchPage = () => {
       />
 
       {/* Header */}
-      {/* 무료 유저에게만 상단 배너 표시 */}
-      {!isPlus && !isPremium && (
-        <AdBanner position={BannerAdPosition.TOP_CENTER} reservedHeight={50} />
-      )}
       <TopHeader
         activeCheckIn={activeCheckIn}
         onCheckInClick={() => setShowCheckInModal(true)}
         filterCount={totalActiveFilterCount}
-        onFilterClick={() => setShowFilterModal(true)}
+        onFilterClick={() => {
+          if (!isPlus) { setShowPlusModal(true); return; }
+          setShowFilterModal(true);
+        }}
         showNearby
         showShop
       />
@@ -859,25 +888,94 @@ const MatchPage = () => {
         </div>
       </motion.div>
 
+      {/* ─── 부스트 활성화 플래시 효과 ─── */}
+      <AnimatePresence>
+        {boostJustActivated && (
+          <motion.div
+            className="fixed inset-0 z-[150] pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.6, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.6, times: [0, 0.15, 1] }}
+          >
+            {/* 빜백 반짙 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/40 via-pink-500/30 to-transparent" />
+            {/* 중앙 파틱콘 아이콘 */}
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center"
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: [0.3, 1.4, 1.1], opacity: [0, 1, 0] }}
+              transition={{ duration: 1.4 }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-6xl">⚡</div>
+                <p className="text-white text-lg font-extrabold drop-shadow-lg">Boost ON!</p>
+              </div>
+            </motion.div>
+            {/* 린 원 파틱콖들 */}
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-3 h-3 rounded-full bg-purple-400/70"
+                initial={{ x: "50vw", y: "50vh", scale: 0, opacity: 1 }}
+                animate={{
+                  x: `${50 + Math.cos((i / 8) * Math.PI * 2) * 45}vw`,
+                  y: `${50 + Math.sin((i / 8) * Math.PI * 2) * 45}vh`,
+                  scale: [0, 1.5, 0],
+                  opacity: [1, 0.8, 0],
+                }}
+                transition={{ duration: 1.2, delay: i * 0.05 }}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Boost active banner */}
-      {boostActive && <motion.div initial={{
-      opacity: 0,
-      y: -10
-    }} animate={{
-      opacity: 1,
-      y: 0
-    }} className="mx-4 mb-1 px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap size={14} className="text-white" fill="white" />
-            <span className="text-white text-xs font-bold truncate">{t("auto.j500")}</span>
+      {boostActive && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          className="overflow-hidden"
+        >
+          <div className="mx-4 mb-1 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 overflow-hidden">
+            {/* 타이머 진행률 바 */}
+            <motion.div
+              className="h-0.5 bg-white/40"
+              initial={{ width: "100%" }}
+              animate={{ width: "0%" }}
+              transition={{ duration: 30 * 60, ease: "linear" }}
+            />
+            <div className="px-4 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {/* 팬스 애니메이션 */}
+                <motion.div
+                  animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                >
+                  <Zap size={16} className="text-white" fill="white" />
+                </motion.div>
+                <div>
+                  <p className="text-white text-xs font-extrabold leading-none">{t("auto.j500")}</p>
+                  <p className="text-white/70 text-[10px] mt-0.5">{t("boost.activeDesc", "내 프로필이 최상단에 노출되고 있어요")}</p>
+                </div>
+              </div>
+              {/* 카운트다운 */}
+              <div className="flex flex-col items-end">
+                <span className="text-white font-mono text-sm font-extrabold">
+                  {String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:{String(boostSecondsLeft % 60).padStart(2, "0")}
+                </span>
+                <span className="text-white/60 text-[9px]">{t("boost.remaining", "남음")}</span>
+              </div>
+            </div>
           </div>
-          <span className="text-white/80 text-xs font-mono truncate">
-            {String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:{String(boostSecondsLeft % 60).padStart(2, "0")}
-          </span>
-        </motion.div>}
+        </motion.div>
+      )}
 
 
 
+<<<<<<< HEAD
       {/* Card Stack */}
       <div className={`flex-1 relative w-full px-4 mx-auto pb-4 truncate transition-all duration-1000 ${boostActive ? 'ring-4 ring-purple-500/30 rounded-3xl shadow-[0_0_40px_rgba(168,85,247,0.2)]' : ''}`} style={{
       minHeight: 0, maxWidth: "420px"
@@ -886,10 +984,34 @@ const MatchPage = () => {
           <div className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden border-2 border-fuchsia-500/20">
             <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 via-transparent to-pink-500/5 animate-pulse" />
           </div>
+=======
+      {/* Card Stack — 부스는 글로우 링 없음 */}
+      <div
+        className="flex-1 relative w-full px-4 mx-auto pb-4 truncate"
+        style={{
+          minHeight: 0,
+          maxWidth: "420px",
+        }}
+      >
+        {/* 부스트 중 글로우 효과 */}
+        {boostActive && (
+          <motion.div
+            className="absolute inset-0 rounded-3xl pointer-events-none z-0"
+            animate={{
+              boxShadow: [
+                "0 0 0px 0px rgba(168,85,247,0)",
+                "0 0 30px 8px rgba(168,85,247,0.35)",
+                "0 0 20px 4px rgba(236,72,153,0.25)",
+                "0 0 30px 8px rgba(168,85,247,0.35)",
+              ],
+            }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          />
+>>>>>>> origin/fix/ui-padding-admob
         )}
         {remaining.length > 0 ? (
           <AnimatePresence>
-            {remaining.map((profile, i) => <SwipeCard key={profile.id} profile={profile} onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} isTop={i === remaining.length - 1} isSuperLiked={superLikedId === profile.id} onProfileView={sendProfileViewNotif} myProfile={user} myDailyMission={myDailyMission} />)}
+            {remaining.map((profile, i) => <SwipeCard key={profile.id} profile={profile} onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} isTop={i === remaining.length - 1} isSuperLiked={superLikedId === profile.id} onProfileView={sendProfileViewNotif} myProfile={user} myDailyMission={myDailyMission} onPremiumClick={() => setShowPlusModal(true)} />)}
           </AnimatePresence>
         ) : (
           <motion.div 
@@ -947,8 +1069,14 @@ const MatchPage = () => {
             return;
           }
           await startBoost();
+<<<<<<< HEAD
           setShowBoostAnim(true);
           setTimeout(() => setShowBoostAnim(false), 2500);
+=======
+          // 부스트 활성화 플래시 효과
+          setBoostJustActivated(true);
+          setTimeout(() => setBoostJustActivated(false), 1800);
+>>>>>>> origin/fix/ui-padding-admob
           toast({
             title: t("alert.t64Title"),
             description: t("alert.t64Desc")
@@ -1082,6 +1210,7 @@ const MatchPage = () => {
       setShowCheckInModal(false);
     }} />
 
+<<<<<<< HEAD
       {/* 🚀 부스트 가동 애니메이션 (전체 화면 오버레이) */}
       <AnimatePresence>
         {showBoostAnim && (
@@ -1156,6 +1285,100 @@ const MatchPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+=======
+      {/* ─── Peak Time 현질 유도 모달 ─── */}
+      <AnimatePresence>
+        {!isPlus && showCheckInModal === false && new Date().getHours() >= 20 && new Date().getHours() <= 23 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed left-4 right-4 z-40 bg-card rounded-2xl p-4 shadow-float border border-primary/20 flex items-center justify-between gap-4"
+            style={{ bottom: 'var(--toast-pb, 6rem)' }}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Zap size={14} className="text-primary fill-primary" />
+                <span className="text-xs font-extrabold text-primary">피크 타임 진행중!</span>
+              </div>
+              <p className="text-sm font-bold text-foreground truncate">지금 접속자가 가장 많아요.</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">Migo Plus로 부스트를 사용해보세요!</p>
+            </div>
+            <button onClick={() => setShowPlusModal(true)} className="shrink-0 px-4 py-2 gradient-primary text-primary-foreground font-bold text-xs rounded-xl shadow-md active:scale-95 transition-transform">
+              시작하기
+            </button>
+            <button onClick={(e) => { e.currentTarget.parentElement!.style.display = 'none'; }} className="absolute -top-2 -right-2 w-6 h-6 bg-muted rounded-full flex items-center justify-center shadow-sm border border-border">
+              <X size={12} className="text-muted-foreground" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── 슈퍼라이크 보상형 광고 오퍼 모달 ─── */}
+      {showRewardedAdOffer && (
+        <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center px-6">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-float border border-border">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2">⭐</div>
+              <h3 className="text-lg font-extrabold text-foreground">
+                {t("auto.ad_superlike_title", "슈퍼라이크 충전")}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t("auto.ad_superlike_desc", "짧은 광고를 보고 슈퍼라이크 1개를 무료로 충전하세요!")}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={async () => {
+                  setShowRewardedAdOffer(false);
+                  const ok = await showRewarded((_reward) => {
+                    // 보상 지급: superLike 1개 충전 (consumeSuperLike 역방향)
+                    // addSuperLike가 없으므로 toast로 안내 후 바로 슈퍼라이크 모달 열기
+                    toast({ title: t("auto.ad_reward_ok", "⭐ 슈퍼라이크 1개 충전 완료!") });
+                    const profile = withAds[currentIndex];
+                    if (profile && !profile.isAd) {
+                      setPendingSuperProfile(profile);
+                      setSuperMsg("");
+                      setShowSuperLikeModal(true);
+                    }
+                  });
+                  if (!ok) {
+                    // 광고 로드 실패 시 Plus 모달로 fallback
+                    toast({ title: t("auto.ad_load_fail", "광고를 불러오지 못했습니다"), variant: "destructive" });
+                    setShowPlusModal(true);
+                  }
+                }}
+                className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm flex items-center justify-center gap-2"
+              >
+                📺 {t("auto.ad_watch_btn", "광고 보고 충전하기")}
+              </button>
+              <button
+                onClick={() => { setShowRewardedAdOffer(false); setShowPlusModal(true); }}
+                className="w-full py-3 rounded-2xl bg-muted text-muted-foreground font-semibold text-sm"
+              >
+                {t("auto.ad_upgrade_btn", "Migo+ 구독하기")}
+              </button>
+              <button
+                onClick={() => setShowRewardedAdOffer(false)}
+                className="text-xs text-muted-foreground text-center py-1"
+              >
+                {t("common.cancel", "취소")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 무료 유저에게만 배너 표시 (하단 여백 확보) */}
+      {!isPlus && !isPremium && (
+        <AdBanner 
+          position={BannerAdPosition.BOTTOM_CENTER} 
+          size={BannerAdSize.ADAPTIVE_BANNER} 
+          reservedHeight={80} 
+          margin={55} 
+        />
+      )}
+>>>>>>> origin/fix/ui-padding-admob
     </div>;
 };
 export default MatchPage;

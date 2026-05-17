@@ -2,13 +2,26 @@ import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Search, Crown, Ban, Trash2, X, FileText, ChevronDown, RefreshCw } from "lucide-react";
+import { Check, Search, Crown, Ban, Trash2, X, FileText, RefreshCw, Calendar, AlertTriangle, Shield } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
   fetchAdminUsers, updateUserValidation, updateUserPlan,
   updateUserBan, deleteUserAccount, updateUserNote,
   adminBanUser, adminUnbanUser
 } from "@/lib/adminService";
+import { supabase } from "@/lib/supabaseClient";
+
+// 구독 만료일 상태 계산
+function getSubStatus(u: any): { label: string; color: string; urgent: boolean } {
+  if (!u.is_plus && u.plan === 'free') return { label: 'Free', color: 'bg-muted text-muted-foreground', urgent: false };
+  if (!u.plus_expires_at) return { label: u.plan === 'premium' ? 'Premium (만료일없음⚠️)' : 'Plus (만료일없음⚠️)', color: 'bg-orange-500/15 text-orange-400', urgent: true };
+  const exp = new Date(u.plus_expires_at);
+  const now = new Date();
+  const daysLeft = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (exp < now) return { label: `만료됨 (${exp.toLocaleDateString('ko-KR')})`, color: 'bg-red-500/15 text-red-400', urgent: true };
+  if (daysLeft <= 5) return { label: `D-${daysLeft} 만료임박`, color: 'bg-amber-500/15 text-amber-400', urgent: true };
+  return { label: `${u.plan === 'premium' ? 'Premium' : 'Plus'} (~${exp.toLocaleDateString('ko-KR')})`, color: 'bg-emerald-500/10 text-emerald-400', urgent: false };
+}
 type FilterType = "all" | "verified" | "unverified" | "plus" | "premium" | "banned";
 export const AdminUsers = () => {
   const {
@@ -19,6 +32,10 @@ export const AdminUsers = () => {
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
+  // 구독 직접 설정 state
+  const [subPlan, setSubPlan] = useState<'free'|'plus'|'premium'>('free');
+  const [subDays, setSubDays] = useState(30);
+  const [savingSub, setSavingSub] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [noteEdit, setNoteEdit] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -71,16 +88,29 @@ export const AdminUsers = () => {
     if (plan === 'free') nextPlan = 'plus'; else if (plan === 'plus') nextPlan = 'premium'; else nextPlan = 'free';
     const success = await updateUserPlan(id, nextPlan);
     if (success) {
-      setUsers(prev => prev.map(u => u.id === id ? {
-        ...u,
-        plan: nextPlan,
-        is_plus: nextPlan !== 'free'
-      } : u));
-      if (selectedUser?.id === id) setSelectedUser((p: any) => ({
-        ...p,
-        plan: nextPlan,
-        is_plus: nextPlan !== 'free'
-      }));
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, plan: nextPlan, is_plus: nextPlan !== 'free' } : u));
+      if (selectedUser?.id === id) setSelectedUser((p: any) => ({ ...p, plan: nextPlan, is_plus: nextPlan !== 'free' }));
+    }
+  };
+
+  // 구독 직접 부여/해제 (만료일 포함)
+  const applySubPlan = async () => {
+    if (!selectedUser) return;
+    setSavingSub(true);
+    const is_plus = subPlan !== 'free';
+    const plus_expires_at = is_plus
+      ? new Date(Date.now() + subDays * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+    const { error } = await supabase.from('profiles').update({
+      plan: subPlan, is_plus, plus_expires_at
+    }).eq('id', selectedUser.id);
+    setSavingSub(false);
+    if (!error) {
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, plan: subPlan, is_plus, plus_expires_at } : u));
+      setSelectedUser((p: any) => ({ ...p, plan: subPlan, is_plus, plus_expires_at }));
+      toast({ title: subPlan === 'free' ? '✅ 구독 해제 완료' : `✅ ${subPlan} ${subDays}일 부여 완료` });
+    } else {
+      toast({ title: '❌ 실패', description: error.message, variant: 'destructive' });
     }
   };
   const toggleBan = async (id: string, currentBanned: boolean) => {
@@ -212,7 +242,8 @@ export const AdminUsers = () => {
         <thead>
           <tr className="border-b border-border bg-muted/40">
             <th className="text-left text-[11px] font-extrabold text-muted-foreground px-3 py-3 uppercase tracking-wide">{t("admin.colUser")}</th>
-            <th className="text-left text-[11px] font-extrabold text-muted-foreground px-3 py-3 uppercase tracking-wide">{t("admin.colPlanStatus")}</th>
+            <th className="text-left text-[11px] font-extrabold text-muted-foreground px-3 py-3 uppercase tracking-wide">구독 상태</th>
+            <th className="text-left text-[11px] font-extrabold text-muted-foreground px-3 py-3 uppercase tracking-wide">만료일</th>
             <th className="text-left text-[11px] font-extrabold text-muted-foreground px-3 py-3 uppercase tracking-wide">{t("admin.colAction")}</th>
           </tr>
         </thead>
@@ -245,10 +276,24 @@ export const AdminUsers = () => {
               </div>
             </td>
             <td className="px-3 py-3">
-              <div className="flex flex-col gap-1 truncate">
-                {u.plan === 'premium' ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-500/10 text-purple-400 w-fit"><Crown size={9} />Premium</span> : u.plan === 'plus' || u.is_plus ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/10 text-amber-400 w-fit"><Crown size={9} />Plus</span> : <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-muted text-muted-foreground w-fit">Free</span>}
-                {u.verified ? <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold w-fit truncate">{t("auto.g_1322", "인증됨")}</span> : <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold w-fit truncate">{t("auto.g_1323", "미인증")}</span>}
-              </div>
+              {(() => { const s = getSubStatus(u); return (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold w-fit ${s.color}`}>
+                  {s.urgent && <AlertTriangle size={9} />}
+                  <Crown size={9} />{u.plan === 'premium' ? 'Premium' : u.is_plus ? 'Plus' : 'Free'}
+                </span>
+              ); })()}
+              {u.verified
+                ? <span className="block mt-0.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold w-fit">인증됨</span>
+                : <span className="block mt-0.5 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold w-fit">미인증</span>}
+            </td>
+            <td className="px-3 py-3">
+              {u.plus_expires_at ? (
+                <span className={`text-[10px] font-mono ${new Date(u.plus_expires_at) < new Date() ? 'text-red-400' : 'text-muted-foreground'}`}>
+                  {new Date(u.plus_expires_at).toLocaleDateString('ko-KR')}
+                </span>
+              ) : u.is_plus ? (
+                <span className="text-[10px] text-orange-400 font-bold">⚠️ 미설정</span>
+              ) : <span className="text-[10px] text-muted-foreground">-</span>}
             </td>
             <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
               <div className="flex items-center gap-1">
@@ -392,13 +437,57 @@ export const AdminUsers = () => {
               <p className="text-xs text-foreground leading-relaxed">{selectedUser.bio}</p>
             </div>}
 
+            {/* 구독 직접 설정 */}
+            <div className="mb-6 p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
+              <p className="text-xs font-extrabold text-amber-400 mb-3 flex items-center gap-1.5">
+                <Crown size={11} />구독 직접 설정
+              </p>
+              {/* 현재 구독 상태 */}
+              {(() => { const s = getSubStatus(selectedUser); return (
+                <div className={`mb-3 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${s.color} border border-current/20`}>
+                  {s.urgent && <AlertTriangle size={11} />}
+                  현재: {s.label}
+                </div>
+              ); })()}
+              <div className="grid grid-cols-3 gap-1.5 mb-3">
+                {(['free', 'plus', 'premium'] as const).map(p => (
+                  <button key={p} onClick={() => setSubPlan(p)}
+                    className={`py-2 rounded-xl text-xs font-bold border transition-all capitalize
+                      ${subPlan === p
+                        ? p === 'free' ? 'bg-muted text-foreground border-border'
+                          : p === 'plus' ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                          : 'bg-purple-500/20 text-purple-400 border-purple-500/40'
+                        : 'bg-muted/50 text-muted-foreground border-border/50'}`}>
+                    {p === 'free' ? '🔓 Free' : p === 'plus' ? '⭐ Plus' : '👑 Premium'}
+                  </button>
+                ))}
+              </div>
+              {subPlan !== 'free' && (
+                <div className="mb-3">
+                  <p className="text-[10px] text-muted-foreground mb-1.5 flex items-center gap-1"><Calendar size={9} />구독 기간</p>
+                  <div className="grid grid-cols-4 gap-1">
+                    {[7, 30, 90, 365].map(d => (
+                      <button key={d} onClick={() => setSubDays(d)}
+                        className={`py-1.5 rounded-lg text-[10px] font-bold transition-all
+                          ${subDays === d ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                        {d === 365 ? '1년' : `${d}일`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <motion.button whileTap={{ scale: 0.97 }} onClick={applySubPlan} disabled={savingSub}
+                className={`w-full py-2.5 rounded-xl text-xs font-extrabold transition-all disabled:opacity-50
+                  ${subPlan === 'free' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'}`}>
+                {savingSub ? '처리중...' : subPlan === 'free' ? '🔓 구독 해제' : `✅ ${subPlan} ${subDays}일 부여`}
+              </motion.button>
+            </div>
+
             {/* Admin Note */}
             <div className="mb-6">
               <label className="text-xs font-bold text-muted-foreground mb-1.5 flex items-center gap-1"><FileText size={11} />{t("auto.g_1338", "관리자메모")}</label>
               <textarea value={noteEdit} onChange={e => setNoteEdit(e.target.value)} rows={3} placeholder={t("auto.g_1339", "이유저에대")} className="w-full px-3 py-2 rounded-xl bg-muted border border-border text-xs text-foreground outline-none focus:border-primary resize-none transition-colors" />
-              <motion.button whileTap={{
-                scale: 0.97
-              }} onClick={saveNote} disabled={savingNote} className="w-full mt-2 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold disabled:opacity-50 transition-colors hover:bg-primary/20">
+              <motion.button whileTap={{ scale: 0.97 }} onClick={saveNote} disabled={savingNote} className="w-full mt-2 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold disabled:opacity-50 transition-colors hover:bg-primary/20">
                 {savingNote ? t("auto.g_1340", "저장중") : t("auto.g_1341", "메모저장6")}
               </motion.button>
             </div>

@@ -55,6 +55,7 @@ const ProfilePage = () => {
   const [showLicenseModal, setShowLicenseModal] = useState(false);
   const [showProfileViews, setShowProfileViews] = useState(false);
   const [showRefundPolicyModal, setShowRefundPolicyModal] = useState(false);
+  const [boostJustActivated, setBoostJustActivated] = useState(false);
 
   // ─── 실시간 DB 데이터 state ───
   const [matchedUsers, setMatchedUsers] = useState<any[]>([]);
@@ -62,6 +63,7 @@ const ProfilePage = () => {
   const [myMeetings, setMyMeetings] = useState<any[]>([]);
   const [myPosts, setMyPosts] = useState<any[]>([]);
   const [likers, setLikers] = useState<any[]>([]); // 나를 좋아한 사람들
+  const [visitors, setVisitors] = useState<any[]>([]); // 최근 프로필 방문자
   const [showMyPosts, setShowMyPosts] = useState(false);
   const [selectedLiker, setSelectedLiker] = useState<any | null>(null);
   const [selectedLikerIdx, setSelectedLikerIdx] = useState<number>(0);
@@ -583,6 +585,38 @@ const ProfilePage = () => {
         }
       } catch(e) { console.error(e); }
 
+      // ─── 프로필 방문자 ───
+      try {
+        const { data: pvData } = await supabase
+          .from('profile_views')
+          .select('viewer_id')
+          .eq('viewed_id', user.id)
+          .order('viewed_at', { ascending: false })
+          .limit(10);
+        if (pvData && pvData.length > 0) {
+          const viewerIds = pvData.map((r: any) => r.viewer_id);
+          const { data: viewerProfiles } = await supabase
+            .from('profiles')
+            .select('id, name, photo_url, location, age, bio, languages, interests, mbti, nationality')
+            .in('id', viewerIds);
+          if (viewerProfiles) {
+            const uniqueViewers = Array.from(new Map(viewerProfiles.map((p: any) => [p.id, p])).values());
+            setVisitors(uniqueViewers.map((p: any) => ({
+              id: p.id,
+              name: p.name || t("match.traveler", "Traveler"),
+              photo: p.photo_url || '',
+              location: p.location || '',
+              age: p.age || '',
+              bio: p.bio || '',
+              languages: p.languages || [],
+              interests: p.interests || [],
+              mbti: p.mbti || '',
+              nationality: p.nationality || '',
+            })));
+          }
+        }
+      } catch(e) { console.error(e); }
+
       // ─── 내 게시글: posts 테이블 ───
       try {
       const {
@@ -855,6 +889,47 @@ const ProfilePage = () => {
       </AnimatePresence>
       {/* ── Decorative background (테마 반영) ── */}
       <div className={`absolute top-0 left-0 w-full h-[280px] bg-gradient-to-b ${theme.decorBg} to-transparent z-0 pointer-events-none transition-all duration-500`} />
+      
+      {/* ─── 부스트 활성화 플래시 효과 ─── */}
+      <AnimatePresence>
+        {boostJustActivated && (
+          <motion.div
+            className="fixed inset-0 z-[500] pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.6, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.6, times: [0, 0.15, 1] }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/40 via-pink-500/30 to-transparent" />
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center"
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: [0.3, 1.4, 1.1], opacity: [0, 1, 0] }}
+              transition={{ duration: 1.4 }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-6xl">⚡</div>
+                <p className="text-white text-lg font-extrabold drop-shadow-lg">Boost ON!</p>
+              </div>
+            </motion.div>
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-3 h-3 rounded-full bg-purple-400/70"
+                initial={{ x: "50vw", y: "50vh", scale: 0, opacity: 1 }}
+                animate={{
+                  x: `${50 + Math.cos((i / 8) * Math.PI * 2) * 45}vw`,
+                  y: `${50 + Math.sin((i / 8) * Math.PI * 2) * 45}vh`,
+                  scale: [0, 1.5, 0],
+                  opacity: [1, 0.8, 0],
+                }}
+                transition={{ duration: 1.2, delay: i * 0.05 }}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="relative z-10">
 
       {/* ── Top Bar ── */}
@@ -1039,9 +1114,15 @@ const ProfilePage = () => {
 
             <motion.button
               whileTap={{ scale: 0.96 }}
-              onClick={() => {
+              onClick={async () => {
                 if (boostActive) return;
-                startBoost();
+                await startBoost();
+                setBoostJustActivated(true);
+                setTimeout(() => setBoostJustActivated(false), 1800);
+                toast({
+                  title: t("alert.t64Title", "프로필 부스트가 활성화되었습니다!"),
+                  description: t("alert.t64Desc", "30분 동안 매칭 화면 최상단에 노출됩니다.")
+                });
               }}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-[12px] transition-all ${
                 boostActive
@@ -1277,6 +1358,73 @@ const ProfilePage = () => {
               <span className="text-[14px] relative z-10">{t("auto.g_0891", "지금 확인하기 — Migo Plus")}</span>
               <Crown size={16} className="text-yellow-300 relative z-10" />
             </motion.button>
+          )}
+        </div>
+      )}
+
+      {/* ─── 최근 방문자 (현질 유도 탭) ─── */}
+      {visitors.length > 0 && (
+        <div className="mx-5 mt-6 pb-2 relative">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center">
+                <span className="text-[12px]">👀</span>
+              </div>
+              <h3 className="text-[16px] font-black text-foreground">최근 방문자</h3>
+            </div>
+            {!isPlus && (
+              <span className="text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Crown size={10} /> Plus
+              </span>
+            )}
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
+            {visitors.slice(0, isPlus ? 10 : 3).map((v, idx) => (
+              <motion.div
+                key={v.id}
+                whileTap={{ scale: 0.95 }}
+                className="relative w-16 h-16 shrink-0 rounded-full overflow-hidden cursor-pointer shadow-sm border border-border"
+                onClick={() => {
+                  if (!isPlus) setShowPlusModal(true);
+                  else { setSelectedLiker(v); setSelectedLikerIdx(idx); } // Reuse liker modal for simplicity
+                }}
+              >
+                {v.photo ? (
+                  <img
+                    src={v.photo}
+                    alt={v.name}
+                    className="w-full h-full object-cover"
+                    style={!isPlus ? { filter: 'blur(8px)', transform: 'scale(1.15)' } : {}}
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center bg-violet-500/20"
+                    style={!isPlus ? { filter: 'blur(8px)' } : {}}
+                  >
+                    <span className="text-foreground text-xl font-black opacity-60">{v.name[0]}</span>
+                  </div>
+                )}
+                
+                {!isPlus && (
+                  <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                    <Lock size={12} className="text-white drop-shadow-md" />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+          
+          {!isPlus && (
+            <div className="mt-1 bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border/50">
+              <div>
+                <p className="text-[12px] font-bold text-foreground">누가 나를 봤을까요?</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{visitors.length}명이 내 프로필을 확인했어요.</p>
+              </div>
+              <button onClick={() => setShowPlusModal(true)} className="px-3 py-1.5 bg-violet-500/10 text-violet-500 text-[11px] font-bold rounded-lg border border-violet-500/20">
+                확인하기
+              </button>
+            </div>
           )}
         </div>
       )}

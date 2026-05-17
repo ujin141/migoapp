@@ -19,7 +19,7 @@ const ToastViewport = React.forwardRef<
       className,
     )}
     style={{
-      paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
+      paddingBottom: "calc(var(--toast-pb, 80px) + env(safe-area-inset-bottom, 0px))",
     }}
     {...props}
   />

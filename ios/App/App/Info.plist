@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Migo - Meet Travelers</string>
+	<string>Migo - Meet Travelers</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -17,9 +17,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.3</string>
-	<key>CFBundleVersion</key>
-	<string>41</string>
+	<string>1.0.4</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -31,8 +29,20 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleVersion</key>
+	<string>42</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-2237857753220220~5402641159</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Migo needs camera access to let you take profile photos and share travel moments.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Migo uses your location to show nearby travelers and local hotspots on the map. Location is only collected while the app is open and is not shared with advertisers.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Migo uses the microphone to enable voice messages and voice calls with your matched travelers. Audio is only recorded when you actively initiate a call or voice message.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Migo needs photo library access to let you upload profile photos and travel images.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -56,15 +66,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Migo needs camera access to let you take profile photos and share travel moments.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Migo needs photo library access to let you upload profile photos and travel images.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Migo uses your location to show nearby travelers and local hotspots on the map. Location is only collected while the app is open and is not shared with advertisers.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Migo uses the microphone to enable voice messages and voice calls with your matched travelers. Audio is only recorded when you actively initiate a call or voice message.</string>
-	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-2237857753220220~5402641159</string>
 </dict>
 </plist>
