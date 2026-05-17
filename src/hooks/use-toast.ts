@@ -156,6 +156,11 @@ function toast({ ...props }: Toast) {
     },
   });
 
+  // 모바일 환경에서 터치 후 hover 상태가 풀리지 않아 알림이 안 사라지는 현상 방지
+  setTimeout(() => {
+    dismiss();
+  }, props.duration || 3000); // 명시된 duration이 없으면 3초 후 강제 종료
+
   return {
     id: id,
     dismiss,
