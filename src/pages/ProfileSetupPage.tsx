@@ -35,17 +35,80 @@ const MBTI_COLOR: Record<string,string> = {
   ISTP:"slate",ISFP:"pink",ESTP:"red",ESFP:"yellow",
 };
 const NATIONALITIES = [
-  { v:"South Korea", f:"🇰🇷", l:"대한민국" },
-  { v:"United States", f:"🇺🇸", l:"미국" },
-  { v:"Japan", f:"🇯🇵", l:"일본" },
-  { v:"China", f:"🇨🇳", l:"중국" },
-  { v:"Taiwan", f:"🇹🇼", l:"대만" },
+  // ── 아시아 ──
+  { v:"South Korea",    f:"🇰🇷", l:"대한민국" },
+  { v:"Japan",          f:"🇯🇵", l:"일본" },
+  { v:"China",          f:"🇨🇳", l:"중국" },
+  { v:"Taiwan",         f:"🇹🇼", l:"대만" },
+  { v:"Hong Kong",      f:"🇭🇰", l:"홍콩" },
+  { v:"Vietnam",        f:"🇻🇳", l:"베트남" },
+  { v:"Thailand",       f:"🇹🇭", l:"태국" },
+  { v:"Philippines",    f:"🇵🇭", l:"필리핀" },
+  { v:"Indonesia",      f:"🇮🇩", l:"인도네시아" },
+  { v:"Malaysia",       f:"🇲🇾", l:"말레이시아" },
+  { v:"Singapore",      f:"🇸🇬", l:"싱가포르" },
+  { v:"Myanmar",        f:"🇲🇲", l:"미얀마" },
+  { v:"Cambodia",       f:"🇰🇭", l:"캄보디아" },
+  { v:"India",          f:"🇮🇳", l:"인도" },
+  { v:"Nepal",          f:"🇳🇵", l:"네팔" },
+  { v:"Sri Lanka",      f:"🇱🇰", l:"스리랑카" },
+  { v:"Bangladesh",     f:"🇧🇩", l:"방글라데시" },
+  { v:"Pakistan",       f:"🇵🇰", l:"파키스탄" },
+  { v:"Mongolia",       f:"🇲🇳", l:"몽골" },
+  { v:"Kazakhstan",     f:"🇰🇿", l:"카자흐스탄" },
+  { v:"Uzbekistan",     f:"🇺🇿", l:"우즈베키스탄" },
+  // ── 유럽 ──
   { v:"United Kingdom", f:"🇬🇧", l:"영국" },
-  { v:"Canada", f:"🇨🇦", l:"캐나다" },
-  { v:"Australia", f:"🇦🇺", l:"호주" },
-  { v:"France", f:"🇫🇷", l:"프랑스" },
-  { v:"Germany", f:"🇩🇪", l:"독일" },
-  { v:"Other", f:"🌍", l:"기타" },
+  { v:"France",         f:"🇫🇷", l:"프랑스" },
+  { v:"Germany",        f:"🇩🇪", l:"독일" },
+  { v:"Spain",          f:"🇪🇸", l:"스페인" },
+  { v:"Italy",          f:"🇮🇹", l:"이탈리아" },
+  { v:"Netherlands",    f:"🇳🇱", l:"네덜란드" },
+  { v:"Belgium",        f:"🇧🇪", l:"벨기에" },
+  { v:"Switzerland",    f:"🇨🇭", l:"스위스" },
+  { v:"Austria",        f:"🇦🇹", l:"오스트리아" },
+  { v:"Sweden",         f:"🇸🇪", l:"스웨덴" },
+  { v:"Norway",         f:"🇳🇴", l:"노르웨이" },
+  { v:"Denmark",        f:"🇩🇰", l:"덴마크" },
+  { v:"Finland",        f:"🇫🇮", l:"핀란드" },
+  { v:"Portugal",       f:"🇵🇹", l:"포르투갈" },
+  { v:"Poland",         f:"🇵🇱", l:"폴란드" },
+  { v:"Czech Republic", f:"🇨🇿", l:"체코" },
+  { v:"Hungary",        f:"🇭🇺", l:"헝가리" },
+  { v:"Romania",        f:"🇷🇴", l:"루마니아" },
+  { v:"Greece",         f:"🇬🇷", l:"그리스" },
+  { v:"Russia",         f:"🇷🇺", l:"러시아" },
+  { v:"Ukraine",        f:"🇺🇦", l:"우크라이나" },
+  { v:"Turkey",         f:"🇹🇷", l:"터키" },
+  { v:"Ireland",        f:"🇮🇪", l:"아일랜드" },
+  // ── 아메리카 ──
+  { v:"United States",  f:"🇺🇸", l:"미국" },
+  { v:"Canada",         f:"🇨🇦", l:"캐나다" },
+  { v:"Mexico",         f:"🇲🇽", l:"멕시코" },
+  { v:"Brazil",         f:"🇧🇷", l:"브라질" },
+  { v:"Argentina",      f:"🇦🇷", l:"아르헨티나" },
+  { v:"Chile",          f:"🇨🇱", l:"칠레" },
+  { v:"Colombia",       f:"🇨🇴", l:"콜롬비아" },
+  { v:"Peru",           f:"🇵🇪", l:"페루" },
+  // ── 중동 ──
+  { v:"UAE",            f:"🇦🇪", l:"UAE" },
+  { v:"Saudi Arabia",   f:"🇸🇦", l:"사우디" },
+  { v:"Israel",         f:"🇮🇱", l:"이스라엘" },
+  { v:"Iran",           f:"🇮🇷", l:"이란" },
+  { v:"Jordan",         f:"🇯🇴", l:"요르단" },
+  // ── 아프리카 ──
+  { v:"South Africa",   f:"🇿🇦", l:"남아공" },
+  { v:"Egypt",          f:"🇪🇬", l:"이집트" },
+  { v:"Morocco",        f:"🇲🇦", l:"모로코" },
+  { v:"Nigeria",        f:"🇳🇬", l:"나이지리아" },
+  { v:"Kenya",          f:"🇰🇪", l:"케냐" },
+  { v:"Ethiopia",       f:"🇪🇹", l:"에티오피아" },
+  // ── 오세아니아 ──
+  { v:"Australia",      f:"🇦🇺", l:"호주" },
+  { v:"New Zealand",    f:"🇳🇿", l:"뉴질랜드" },
+  { v:"Fiji",           f:"🇫🇯", l:"피지" },
+  // ── 기타 ──
+  { v:"Other",          f:"🌍", l:"기타" },
 ];
 
 const STEPS = [
@@ -91,6 +154,7 @@ const ProfileSetupPage = () => {
   const [userType, setUserType] = useState<"traveler"|"local">("traveler");
   const [nickname, setNickname] = useState("");
   const [nationality, setNationality] = useState("");
+  const [natSearch, setNatSearch] = useState("");
   const [bio, setBio] = useState("");
 
   /* Step 1 */
@@ -312,17 +376,46 @@ const ProfileSetupPage = () => {
               <div className="space-y-2">
                 <label className="text-[13px] font-bold text-foreground flex items-center gap-1">
                   국적 <span className="text-rose-500">*</span>
+                  {nationality && <span className="ml-auto text-primary text-[12px]">✓ 선택됨</span>}
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {NATIONALITIES.map(n => (
+                {/* 검색 */}
+                <div className="flex items-center bg-muted rounded-xl px-3 h-9 gap-2 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+                  <span className="text-muted-foreground text-sm">🔍</span>
+                  <input
+                    type="text"
+                    value={natSearch}
+                    onChange={e => setNatSearch(e.target.value)}
+                    placeholder="국가 검색..."
+                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                  />
+                  {natSearch && (
+                    <button onClick={() => setNatSearch('')} className="text-muted-foreground">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+                {/* 선택된 국적 미리보기 */}
+                {nationality && (
+                  <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-xl px-3 py-2">
+                    <span className="text-xl">{NATIONALITIES.find(n => n.v === nationality)?.f}</span>
+                    <span className="text-sm font-bold text-primary">{NATIONALITIES.find(n => n.v === nationality)?.l}</span>
+                    <span className="text-xs text-primary/70 ml-auto">{nationality}</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto overscroll-contain pr-0.5">
+                  {NATIONALITIES.filter(n =>
+                    !natSearch ||
+                    n.l.includes(natSearch) ||
+                    n.v.toLowerCase().includes(natSearch.toLowerCase())
+                  ).map(n => (
                     <motion.button key={n.v} whileTap={{ scale:0.94 }} onClick={() => setNationality(n.v)}
-                      className={`flex flex-col items-center gap-0.5 py-3 rounded-2xl border-2 text-sm transition-all ${
+                      className={`flex flex-col items-center gap-0.5 py-2.5 rounded-2xl border-2 text-sm transition-all ${
                         nationality === n.v
                           ? "border-primary bg-primary/8 text-foreground"
                           : "border-border bg-card text-muted-foreground"
                       }`}>
                       <span className="text-xl leading-none">{n.f}</span>
-                      <span className="text-[11px] font-semibold">{n.l}</span>
+                      <span className="text-[10px] font-semibold text-center leading-tight px-1">{n.l}</span>
                     </motion.button>
                   ))}
                 </div>
