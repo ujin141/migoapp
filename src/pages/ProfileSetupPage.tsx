@@ -3,298 +3,149 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Check, ChevronRight, Sparkles, Globe, MapPin, Calendar, User, Heart, X } from "lucide-react";
+import { Camera, Check, ChevronRight, Sparkles, X, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import siteLogo from "@/assets/site-logo.png";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { compressImage } from "@/lib/imageCompression";
+
 const MBTI_COLOR: Record<string, string> = {
-  INTJ: "bg-indigo-500/20 text-indigo-500 border-indigo-500/40",
-  INTP: "bg-indigo-500/20 text-indigo-500 border-indigo-500/40",
-  ENTJ: "bg-purple-500/20 text-purple-500 border-purple-500/40",
-  ENTP: "bg-purple-500/20 text-purple-500 border-purple-500/40",
-  INFJ: "bg-teal-500/20 text-teal-500 border-teal-500/40",
-  INFP: "bg-teal-500/20 text-teal-500 border-teal-500/40",
-  ENFJ: "bg-green-500/20 text-green-500 border-green-500/40",
-  ENFP: "bg-green-500/20 text-green-500 border-green-500/40",
-  ISTJ: "bg-blue-500/20 text-blue-500 border-blue-500/40",
-  ISFJ: "bg-blue-500/20 text-blue-500 border-blue-500/40",
-  ESTJ: "bg-orange-500/20 text-orange-500 border-orange-500/40",
-  ESFJ: "bg-orange-500/20 text-orange-500 border-orange-500/40",
-  ISTP: "bg-gray-500/20 text-gray-500 border-gray-500/40",
-  ISFP: "bg-pink-500/20 text-pink-500 border-pink-500/40",
-  ESTP: "bg-red-500/20 text-red-500 border-red-500/40",
-  ESFP: "bg-yellow-500/20 text-yellow-500 border-yellow-500/40"
+  INTJ:"bg-indigo-500/20 text-indigo-500 border-indigo-500/40", INTP:"bg-indigo-500/20 text-indigo-500 border-indigo-500/40",
+  ENTJ:"bg-purple-500/20 text-purple-500 border-purple-500/40", ENTP:"bg-purple-500/20 text-purple-500 border-purple-500/40",
+  INFJ:"bg-teal-500/20 text-teal-500 border-teal-500/40",   INFP:"bg-teal-500/20 text-teal-500 border-teal-500/40",
+  ENFJ:"bg-green-500/20 text-green-500 border-green-500/40", ENFP:"bg-green-500/20 text-green-500 border-green-500/40",
+  ISTJ:"bg-blue-500/20 text-blue-500 border-blue-500/40",  ISFJ:"bg-blue-500/20 text-blue-500 border-blue-500/40",
+  ESTJ:"bg-orange-500/20 text-orange-500 border-orange-500/40", ESFJ:"bg-orange-500/20 text-orange-500 border-orange-500/40",
+  ISTP:"bg-gray-500/20 text-gray-500 border-gray-500/40",  ISFP:"bg-pink-500/20 text-pink-500 border-pink-500/40",
+  ESTP:"bg-red-500/20 text-red-500 border-red-500/40",    ESFP:"bg-yellow-500/20 text-yellow-500 border-yellow-500/40",
 };
 const MBTI_TYPES = Object.keys(MBTI_COLOR);
 
-// Setup steps: 0=photo/bio, 1=style, 2=destination, 3=personality, 4=done
+const TRAVEL_STYLES = ["배낭여행 🎒","럭셔리 ✈️","자연/트레킹 🏔️","맛집탐방 🍜","문화/역사 🏛️","해변/휴양 🏖️","사진촬영 📸","나이트라이프 🌙","쇼핑 🛍️","힐링/요가 🧘"];
+const REGIONS = ["동남아 🌴","유럽 🏰","일본 🗾","미국/캐나다 🗽","중남미 🌎","오세아니아 🦘","중동/아프리카 🌍","국내여행 🇰🇷","중국/대만 🐉","인도 🕌"];
+const PERSONALITIES = [
+  { id:"planner", emoji:"📋", label:"계획형 플래너" },
+  { id:"free",    emoji:"🌊", label:"자유로운 영혼" },
+  { id:"social",  emoji:"🤝", label:"소셜 버터플라이" },
+  { id:"solo",    emoji:"🎧", label:"나홀로 여행자" },
+  { id:"photo",   emoji:"📸", label:"사진 수집가" },
+  { id:"food",    emoji:"🍽️", label:"미식 탐험가" },
+];
+
+const NATIONALITIES = [
+  { value:"South Korea", label:"🇰🇷 대한민국" },
+  { value:"United States", label:"🇺🇸 미국" },
+  { value:"Japan", label:"🇯🇵 일본" },
+  { value:"China", label:"🇨🇳 중국" },
+  { value:"Taiwan", label:"🇹🇼 대만" },
+  { value:"United Kingdom", label:"🇬🇧 영국" },
+  { value:"Canada", label:"🇨🇦 캐나다" },
+  { value:"Australia", label:"🇦🇺 호주" },
+  { value:"France", label:"🇫🇷 프랑스" },
+  { value:"Germany", label:"🇩🇪 독일" },
+  { value:"Other", label:"🌍 기타" },
+];
+
+const STEPS = [
+  { icon:"🤳", title:"나를 소개해요", sub:"사진과 기본 정보를 알려주세요" },
+  { icon:"✈️", title:"여행 스타일", sub:"어떻게 여행하나요?" },
+  { icon:"🧠", title:"성격 유형", sub:"선택하지 않아도 됩니다 (선택)" },
+];
+
+const pageVariants = {
+  initial: { opacity: 0, x: 40 },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.22 } },
+  exit: { opacity: 0, x: -40, transition: { duration: 0.18 } },
+};
 
 const ProfileSetupPage = () => {
-  const {
-    t
-  } = useTranslation();
-  const getArr = (k: string, fb: any[]) => {
-    const v = t(k, {
-      returnObjects: true
-    });
-    return Array.isArray(v) && v.length ? v : fb;
-  };
-  const TRAVEL_STYLES = getArr("travelStyles", [i18n.t("auto.g_0906", "배낭여행 🎒"), i18n.t("auto.g_0907", "럭셔리 ✈️"), i18n.t("auto.g_0908", "자연/트레킹 🏔️"), i18n.t("auto.g_0909", "맛집탐방 🍜"), i18n.t("auto.g_0910", "문화/역사 🏛️"), i18n.t("auto.g_0911", "해변/휴양 🏖️"), i18n.t("auto.g_0912", "사진촬영 📸"), i18n.t("auto.g_0913", "나이트라이프 🌙"), i18n.t("auto.g_0914", "쇼핑 🛍️"), i18n.t("auto.g_0915", "힐링/요가 🧘"), i18n.t("auto.g_0916", "로컬체험 🎭"), i18n.t("auto.g_0917", "드라이브 🚗")]);
-  const REGIONS = getArr("regions", [i18n.t("auto.g_0918", "동남아"), i18n.t("auto.g_0919", "유럽"), i18n.t("auto.g_0920", "일본"), i18n.t("auto.g_0921", "미국/캐나다"), i18n.t("auto.g_0922", "중남미"), i18n.t("auto.g_0923", "중동/아프리카"), i18n.t("auto.g_0924", "오세아니아"), i18n.t("auto.g_0925", "국내여행"), i18n.t("auto.g_0926", "중국/대만"), i18n.t("auto.g_0927", "인도")]);
-  const LANGUAGES = getArr("login.languages", [i18n.t("auto.g_0928", "한국어"), "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"]);
-  const PERSONALITIES = [{
-    id: "planner",
-    emoji: "📋",
-    titleKey: "profileSetup.personality0",
-    fb: i18n.t("auto.p534")
-  }, {
-    id: "free",
-    emoji: "🌊",
-    titleKey: "login.personality1Title",
-    fb: i18n.t("login.personality1Title")
-  }, {
-    id: "social",
-    emoji: "🤝",
-    titleKey: "login.personality2Title",
-    fb: i18n.t("login.personality2Title")
-  }, {
-    id: "solo",
-    emoji: "🎧",
-    titleKey: "login.personality3Title",
-    fb: i18n.t("login.personality3Title")
-  }, {
-    id: "photo",
-    emoji: "📸",
-    titleKey: "login.personality4Title",
-    fb: i18n.t("login.personality4Title")
-  }, {
-    id: "food",
-    emoji: "🍽️",
-    titleKey: "login.personality5Title",
-    fb: i18n.t("login.personality5Title")
-  }].map(p => ({
-    ...p,
-    label: t(p.titleKey) === p.titleKey ? p.fb : t(p.titleKey)
-  }));
-  const SETUP_STEPS = getArr("profileSetup.steps", [{
-    title: t("auto.p535"),
-    sub: t("auto.p536"),
-    icon: "🤳"
-  }, {
-    title: t("auto.p537"),
-    sub: t("auto.p538"),
-    icon: "✈️"
-  }, {
-    title: t("auto.p539"),
-    sub: t("auto.p540"),
-    icon: "🗺️"
-  }, {
-    title: t("auto.p541"),
-    sub: t("auto.p542"),
-    icon: "🧭"
-  }, {
-    title: t("profileSetup.step5Title"),
-    sub: t("profileSetup.step5Sub"),
-    icon: "🧠"
-  }]);
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const {
-    user,
-    refreshPhotoUrl
-  } = useAuth();
+  const { user, refreshPhotoUrl } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
+
   const [step, setStep] = useState(0);
-  const MAX_PROFILE_PHOTOS = 6;
 
   // Step 0
-  const [profilePhotos, setProfilePhotos] = useState<Array<{ file: File; url: string }>>([]);
-  const [userType, setUserType] = useState<"traveler" | "local">("traveler");
-  const [nickname, setNickname] = useState(() => {
-    // 구글/애플 로그인시 자동으로 설정된 이름을 기본값으로 가져오기
-    return "";
-  });
+  const [photos, setPhotos] = useState<Array<{ file: File; url: string }>>([]);
+  const [nickname, setNickname] = useState("");
   const [nationality, setNationality] = useState("");
   const [bio, setBio] = useState("");
-  const [travelMission, setTravelMission] = useState("");
-  const [destination, setDestination] = useState("");
-  const [travelDate, setTravelDate] = useState("");
+  const [userType, setUserType] = useState<"traveler"|"local">("traveler");
 
   // Step 1
   const [styles, setStyles] = useState<string[]>([]);
+  const [regions, setRegions] = useState<string[]>([]);
 
   // Step 2
-  const [regions, setRegions] = useState<string[]>([]);
-  const [languages, setLanguages] = useState<string[]>([t("profileSetup.langDefault", "한국어")]);
-
-  // Step 3
   const [personality, setPersonality] = useState<string[]>([]);
-  // Step 4 - MBTI
-  const [mbti, setMbti] = useState<string | null>(null);
+  const [mbti, setMbti] = useState<string|null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => () => { photos.forEach(p => URL.revokeObjectURL(p.url)); }, []);
+
   const toggleItem = (item: string, list: string[], setList: (v: string[]) => void, max = 99) => {
-    if (list.includes(item)) {
-      setList(list.filter(i => i !== item));
-    } else if (list.length < max) {
-      setList([...list, item]);
-    }
+    setList(list.includes(item) ? list.filter(i => i !== item) : list.length < max ? [...list, item] : list);
   };
+
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const remaining = MAX_PROFILE_PHOTOS - profilePhotos.length;
-    const toAdd = files.slice(0, remaining).map(file => ({
-      file,
-      url: URL.createObjectURL(file)
-    }));
-    if (toAdd.length) {
-      setProfilePhotos(prev => [...prev, ...toAdd]);
-    }
+    const toAdd = files.slice(0, 6 - photos.length).map(f => ({ file: f, url: URL.createObjectURL(f) }));
+    if (toAdd.length) setPhotos(prev => [...prev, ...toAdd]);
     e.target.value = "";
   };
 
-  // 컴포넌트 언마운트 시 메모리 누수 방지
-  useEffect(() => {
-    return () => {
-      profilePhotos.forEach(p => URL.revokeObjectURL(p.url));
-    };
-  }, [profilePhotos]);
-
-  // 사진 제거 시 Object URL revoke
   const handleRemovePhoto = (idx: number) => {
-    setProfilePhotos(prev => {
-      URL.revokeObjectURL(prev[idx].url);
-      return prev.filter((_, i) => i !== idx);
-    });
+    setPhotos(prev => { URL.revokeObjectURL(prev[idx].url); return prev.filter((_, i) => i !== idx); });
   };
-  const MIN_PROFILE_PHOTOS = 2;
+
   const handleNext = async () => {
     if (step === 0) {
-      if (profilePhotos.length < MIN_PROFILE_PHOTOS) {
-        toast({
-          title: t("profileSetup.errPhoto", `사진을 최소 ${MIN_PROFILE_PHOTOS}장 업로드해주세요`),
-          variant: "destructive"
-        });
-        return;
-      }
-      if (!nickname.trim()) {
-        toast({
-          title: t("profileSetup.errNickname", "닉네임을 입력해주세요"),
-          variant: "destructive"
-        });
-        return;
-      }
-      if (!nationality) {
-        toast({
-          title: t("auto.err_nationality", "국적을 선택해주세요"),
-          variant: "destructive"
-        });
-        return;
-      }
-      if (!bio.trim()) {
-        toast({
-          title: t("profileSetup.errBio", "자기소개를 입력해주세요"),
-          variant: "destructive"
-        });
-        return;
-      }
+      if (photos.length === 0) { toast({ title: "사진을 1장 이상 추가해주세요 📸", variant: "destructive" }); return; }
+      if (!nickname.trim()) { toast({ title: "닉네임을 입력해주세요", variant: "destructive" }); return; }
+      if (!nationality) { toast({ title: "국적을 선택해주세요", variant: "destructive" }); return; }
     }
     if (step === 1 && styles.length === 0) {
-      toast({
-        title: t("profileSetup.errStyle"),
-        variant: "destructive"
-      });
-      return;
+      toast({ title: "여행 스타일을 1개 이상 선택해주세요", variant: "destructive" }); return;
     }
-    if (step === 2 && regions.length === 0) {
-      toast({
-        title: t("profileSetup.errRegion"),
-        variant: "destructive"
-      });
-      return;
-    }
-    if (step === 3) {
-      // MBTI 선택 (스킵 가능)
-      setStep(s => s + 1);
-      return;
-    }
-    if (step === 4) {
-      if (!user) {
-        navigate("/");
-        return;
-      }
+    if (step === 2) {
+      // 저장
+      if (!user) { navigate("/"); return; }
       setSaving(true);
       try {
         let uploadedUrls: string[] = [];
-
-        // 사진 업로드
-        for (let i = 0; i < profilePhotos.length; i++) {
-          const file = profilePhotos[i].file;
-          const compressedFile = await compressImage(file);
-          const ext = compressedFile.name.split(".").pop();
+        for (let i = 0; i < photos.length; i++) {
+          const compressed = await compressImage(photos[i].file);
+          const ext = compressed.name.split(".").pop();
           const path = `${user.id}/profile_${Date.now()}_${i}.${ext}`;
-          const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
-            upsert: true,
-            contentType: compressedFile.type
-          });
+          const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressed, { upsert: true, contentType: compressed.type });
           if (!upErr) {
             const { data } = supabase.storage.from("avatars").getPublicUrl(path);
             uploadedUrls.push(data.publicUrl);
           }
         }
-        
-        const photoUrl = uploadedUrls[0];
-
-        // profiles 업데이트
-        const { error: updateErr } = await supabase.from("profiles").update({
-          name: nickname.trim() || undefined, // 비어있으면 기존 값 유지
+        const { error } = await supabase.from("profiles").update({
+          name: nickname.trim(),
           user_type: userType,
           nationality,
-          travel_mission: travelMission,
-          bio,
-          location: destination,
-          travel_dates: travelDate,
+          bio: bio.trim() || null,
           interests: styles,
-          languages,
           preferred_regions: regions,
           personality_tags: personality,
           mbti: mbti || null,
-          ...(photoUrl ? {
-            photo_url: photoUrl,
-            photo_urls: uploadedUrls
-          } : {}),
+          ...(uploadedUrls.length ? { photo_url: uploadedUrls[0], photo_urls: uploadedUrls } : {}),
           setup_complete: true,
-          lat: parseFloat(localStorage.getItem('migo_my_lat') || '0') || null,
-          lng: parseFloat(localStorage.getItem('migo_my_lng') || '0') || null
+          lat: parseFloat(localStorage.getItem("migo_my_lat") || "0") || null,
+          lng: parseFloat(localStorage.getItem("migo_my_lng") || "0") || null,
         }).eq("id", user.id);
 
-        if (updateErr) {
-          console.error("Profile update error:", updateErr);
-          toast({
-            title: t("profileSetup.errSave"),
-            description: updateErr.message,
-            variant: "destructive"
-          });
-          setSaving(false);
-          return;
-        }
-        
-        // refreshPhotoUrl로 globalUser.setupComplete = true 동기화
-        if (refreshPhotoUrl) {
-          await refreshPhotoUrl();
-        }
-
-        toast({
-          title: t("profileSetup.doneTitle"),
-          description: t("profileSetup.doneDesc")
-        });
-        setTimeout(() => navigate("/"), 800);
+        if (error) { toast({ title: "저장 실패", description: error.message, variant: "destructive" }); setSaving(false); return; }
+        await refreshPhotoUrl?.();
+        toast({ title: "🎉 프로필이 완성됐어요!", description: "여행 친구를 만나러 가볼까요?" });
+        setTimeout(() => navigate("/"), 700);
       } catch {
-        toast({
-          title: t("profileSetup.errSave"),
-          description: t("profileSetup.errSaveDesc"),
-          variant: "destructive"
-        });
+        toast({ title: "저장 중 오류가 발생했습니다", variant: "destructive" });
       } finally {
         setSaving(false);
       }
@@ -302,382 +153,280 @@ const ProfileSetupPage = () => {
     }
     setStep(s => s + 1);
   };
-  const progress = step / (SETUP_STEPS.length - 1) * 100;
-  return <div className="fixed inset-0 flex flex-col bg-background overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div className="absolute w-96 h-96 rounded-full bg-primary/10 blur-3xl" animate={{
-        scale: [1, 1.1, 1],
-        x: [0, 30, 0],
-        y: [0, -20, 0]
-      }} transition={{
-        duration: 8,
-        repeat: Infinity,
-        ease: "easeInOut"
-      }} style={{
-        top: "-20%",
-        right: "-20%"
-      }} />
-        <motion.div className="absolute w-72 h-72 rounded-full bg-accent/10 blur-3xl" animate={{
-        scale: [1, 1.15, 1],
-        y: [0, 20, 0]
-      }} transition={{
-        duration: 6,
-        repeat: Infinity,
-        ease: "easeInOut",
-        delay: 2
-      }} style={{
-        bottom: "5%",
-        left: "-15%"
-      }} />
+
+  const progress = (step / (STEPS.length - 1)) * 100;
+
+  return (
+    <div className="fixed inset-0 flex flex-col bg-background overflow-hidden">
+      {/* Animated blobs */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <motion.div className="absolute w-80 h-80 rounded-full bg-primary/10 blur-3xl"
+          animate={{ scale:[1,1.1,1], x:[0,30,0], y:[0,-20,0] }}
+          transition={{ duration:8, repeat:Infinity, ease:"easeInOut" }}
+          style={{ top:"-20%", right:"-20%" }} />
+        <motion.div className="absolute w-64 h-64 rounded-full bg-accent/10 blur-3xl"
+          animate={{ scale:[1,1.15,1], y:[0,20,0] }}
+          transition={{ duration:6, repeat:Infinity, ease:"easeInOut", delay:2 }}
+          style={{ bottom:"5%", left:"-15%" }} />
       </div>
 
       {/* Header */}
-      <div className="px-5 pt-12 pb-4 z-10 shrink-0">
+      <div className="px-5 pt-12 pb-3 z-10 shrink-0">
         <div className="flex items-center justify-between mb-3">
-          <img src={siteLogo} alt="Migo" className="h-10 object-contain" />
-          <span className="text-xs font-bold text-muted-foreground">{step + 1}/{SETUP_STEPS.length}</span>
+          <div className="flex items-center gap-3">
+            {step > 0 && (
+              <button onClick={() => setStep(s => s - 1)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-90 transition-transform">
+                <ArrowLeft size={16} className="text-foreground" />
+              </button>
+            )}
+            <img src={siteLogo} alt="Migo" className="h-8 object-contain" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-muted-foreground">{step + 1} / {STEPS.length}</span>
+          </div>
         </div>
-        {/* Progress bar */}
+        {/* Progress */}
         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-          <motion.div className="h-full rounded-full gradient-primary" animate={{
-          width: `${progress}%`
-        }} transition={{
-          type: "spring",
-          damping: 20
-        }} />
+          <motion.div className="h-full rounded-full gradient-primary"
+            animate={{ width:`${progress}%` }}
+            transition={{ type:"spring", damping:20 }} />
         </div>
       </div>
 
       {/* Step title */}
       <AnimatePresence mode="wait">
-        <motion.div key={step} initial={{
-        opacity: 0,
-        y: 12
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} exit={{
-        opacity: 0,
-        y: -12
-      }} transition={{
-        duration: 0.25
-      }} className="px-6 pb-4 z-10 shrink-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">{SETUP_STEPS[step].icon}</span>
-            <h2 className="text-xl font-extrabold text-foreground whitespace-pre-line">{SETUP_STEPS[step].title}</h2>
+        <motion.div key={`title-${step}`} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }}
+          transition={{ duration:0.2 }} className="px-6 pb-3 z-10 shrink-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-2xl">{STEPS[step].icon}</span>
+            <h2 className="text-xl font-extrabold text-foreground">{STEPS[step].title}</h2>
           </div>
-          <p className="text-sm text-muted-foreground ml-9">{SETUP_STEPS[step].sub}</p>
+          <p className="text-sm text-muted-foreground ml-9">{STEPS[step].sub}</p>
         </motion.div>
       </AnimatePresence>
 
-      {/* Form area */}
+      {/* Form */}
       <div className="flex-1 overflow-y-auto z-10">
         <AnimatePresence mode="wait">
 
-          {/* ─── STEP 0: PHOTO + BIO ─── */}
-          {step === 0 && <motion.div key="step0" className="px-6 pb-6 space-y-5" initial={{
-          opacity: 0,
-          x: 30
-        }} animate={{
-          opacity: 1,
-          x: 0
-        }} exit={{
-          opacity: 0,
-          x: -30
-        }} transition={{
-          duration: 0.25
-        }}>
+          {/* ── STEP 0: 사진 + 기본정보 ── */}
+          {step === 0 && (
+            <motion.div key="s0" variants={pageVariants} initial="initial" animate="animate" exit="exit"
+              className="px-5 pb-6 space-y-4">
 
-              {/* Photo picker */}
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-foreground truncate">{t("profileSetup.addPhoto")}</span>
-                    <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                      {t("profileSetup.photoRequired", "최소 2장 필수")}
-                    </span>
-                  </div>
-                  <span className={`text-[10px] font-bold ${profilePhotos.length >= MIN_PROFILE_PHOTOS ? 'text-green-400' : 'text-rose-400'}`}>
-                    {profilePhotos.length}/{MAX_PROFILE_PHOTOS}
-                  </span>
+              {/* 사진 */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-foreground">프로필 사진 <span className="text-rose-500">*</span></span>
+                  <span className={`text-[10px] font-bold ${photos.length > 0 ? "text-green-400" : "text-rose-400"}`}>{photos.length}/6</span>
                 </div>
-                <div className={`grid grid-cols-3 gap-2 truncate p-2 rounded-2xl transition-all ${profilePhotos.length < MIN_PROFILE_PHOTOS ? 'ring-2 ring-rose-500/40 bg-rose-500/5' : 'ring-2 ring-green-500/30 bg-transparent'}`}>
-                  {profilePhotos.map((photoItem, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-border shadow-sm">
-                      <img src={photoItem.url} alt="" className="w-full h-full object-cover" />
-                      {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full z-10">Main</div>}
-                      <button onClick={(e) => { e.stopPropagation(); handleRemovePhoto(idx); }} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center z-10">
+                <div className={`grid grid-cols-3 gap-2 p-2 rounded-2xl transition-all ${photos.length === 0 ? "ring-2 ring-rose-500/40 bg-rose-500/5" : "ring-2 ring-green-500/20"}`}>
+                  {photos.map((p, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border-2 border-border">
+                      <img src={p.url} alt="" className="w-full h-full object-cover" />
+                      {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[8px] font-extrabold px-1.5 py-0.5 rounded-full">대표</div>}
+                      <button onClick={() => handleRemovePhoto(idx)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
                         <X size={10} className="text-white" />
                       </button>
                     </div>
                   ))}
-                  {profilePhotos.length < MAX_PROFILE_PHOTOS && (
-                    <motion.div whileTap={{ scale: 0.95 }} onClick={() => fileRef.current?.click()} className={`aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                      profilePhotos.length < MIN_PROFILE_PHOTOS
-                        ? 'border-rose-400/60 bg-rose-500/10'
-                        : 'border-primary/30 bg-muted'
-                    }`}>
-                      <Camera size={18} className={profilePhotos.length < MIN_PROFILE_PHOTOS ? 'text-rose-400' : 'text-primary/60'} />
-                      <span className={`text-[10px] truncate ${profilePhotos.length < MIN_PROFILE_PHOTOS ? 'text-rose-400 font-bold' : 'text-primary/60'}`}>
-                        {profilePhotos.length < MIN_PROFILE_PHOTOS
-                          ? t("profileSetup.photoAddMore", `${MIN_PROFILE_PHOTOS - profilePhotos.length}장 더 추가`)
-                          : t("profileSetup.addPhoto", "Add Photo")}
+                  {photos.length < 6 && (
+                    <motion.div whileTap={{ scale:0.95 }} onClick={() => fileRef.current?.click()}
+                      className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer ${photos.length === 0 ? "border-rose-400/60 bg-rose-500/10" : "border-primary/30 bg-muted"}`}>
+                      <Camera size={20} className={photos.length === 0 ? "text-rose-400" : "text-primary/60"} />
+                      <span className={`text-[10px] font-bold ${photos.length === 0 ? "text-rose-400" : "text-primary/60"}`}>
+                        {photos.length === 0 ? "사진 추가" : "+ 추가"}
                       </span>
                     </motion.div>
                   )}
                 </div>
-                {/* 빈 슬롯 힌트 (2장 미만일 때) */}
-                {profilePhotos.length < MIN_PROFILE_PHOTOS && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-xs text-rose-400 font-semibold text-center mt-0.5"
-                  >
-                    📸 {t("profileSetup.photoMinHint", `프로필 사진을 최소 ${MIN_PROFILE_PHOTOS}장 업로드해야 합니다`)}
-                  </motion.p>
-                )}
                 <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelect} />
-                <p className="text-xs text-muted-foreground mt-1 text-center truncate">{t("profileSetup.photoHint1")} <span className="text-primary font-bold truncate">{t("profileSetup.photoHint2")}</span> {t("profileSetup.photoHint3")}</p>
+                <p className="text-[10px] text-muted-foreground text-center mt-1.5">첫 번째 사진이 대표 사진으로 사용됩니다</p>
               </div>
 
-              {/* User Type */}
-              <div className="flex bg-muted rounded-2xl p-1 mb-2">
-                <button className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${userType === 'traveler' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`} onClick={() => setUserType('traveler')}>
-                  {t('profileSetup.traveler', t("auto.x4097"))}
-                </button>
-                <button className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${userType === 'local' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'}`} onClick={() => setUserType('local')}>
-                  {t('profileSetup.localGuide', t("auto.x4098"))}
-                </button>
+              {/* 여행자/로컬 */}
+              <div className="flex bg-muted rounded-2xl p-1">
+                {(["traveler","local"] as const).map(type => (
+                  <button key={type} onClick={() => setUserType(type)}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${userType === type ? "bg-card shadow text-foreground" : "text-muted-foreground"}`}>
+                    {type === "traveler" ? "✈️ 여행자" : "🏡 로컬 가이드"}
+                  </button>
+                ))}
               </div>
 
-              {/* ─── 닉네임 입력 (필수) ─── */}
+              {/* 닉네임 */}
               <div>
                 <label className="text-xs font-bold text-foreground mb-1.5 flex items-center gap-1">
-                  {t("profileSetup.nicknameLabel", "닉네임")} <span className="text-rose-500">*</span>
+                  닉네임 <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={nickname}
-                  onChange={e => setNickname(e.target.value)}
-                  maxLength={20}
-                  placeholder={t("profileSetup.nicknamePlaceholder", "예) 미고여행자")}
-                  className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
-                />
+                <input type="text" value={nickname} onChange={e => setNickname(e.target.value)} maxLength={20}
+                  placeholder="예) 미고여행자" autoComplete="off"
+                  className="w-full bg-muted rounded-2xl px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
                 <p className="text-[10px] text-muted-foreground text-right mt-1">{nickname.length}/20</p>
               </div>
 
-              {/* Nationality */}
+              {/* 국적 */}
               <div>
                 <label className="text-xs font-bold text-foreground mb-1.5 flex items-center gap-1">
-                  {t("auto.nationality_label", "국적")} <span className="text-rose-500">*</span>
+                  국적 <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <select value={nationality} onChange={e => setNationality(e.target.value)} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
-                    <option value="" disabled>{t("auto.nationality_placeholder", "국적을 선택해주세요")}</option>
-                    <option value="South Korea">🇰🇷 대한민국 (South Korea)</option>
-                    <option value="United States">🇺🇸 미국 (United States)</option>
-                    <option value="Japan">🇯🇵 일본 (Japan)</option>
-                    <option value="China">🇨🇳 중국 (China)</option>
-                    <option value="Taiwan">🇹🇼 대만 (Taiwan)</option>
-                    <option value="United Kingdom">🇬🇧 영국 (UK)</option>
-                    <option value="Canada">🇨🇦 캐나다 (Canada)</option>
-                    <option value="Australia">🇦🇺 호주 (Australia)</option>
-                    <option value="France">🇫🇷 프랑스 (France)</option>
-                    <option value="Germany">🇩🇪 독일 (Germany)</option>
-                    <option value="Other">🌍 기타 (Other)</option>
-                  </select>
-                  <ChevronRight size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none rotate-90" />
+                <div className="grid grid-cols-2 gap-2">
+                  {NATIONALITIES.map(n => (
+                    <motion.button key={n.value} whileTap={{ scale:0.96 }}
+                      onClick={() => setNationality(n.value)}
+                      className={`py-2.5 px-3 rounded-xl text-sm font-semibold text-left transition-all border-2 flex items-center gap-2 ${nationality === n.value ? "border-primary bg-primary/10 text-foreground" : "border-border bg-muted text-muted-foreground"}`}>
+                      {nationality === n.value && <Check size={12} className="text-primary shrink-0" />}
+                      <span className="truncate">{n.label}</span>
+                    </motion.button>
+                  ))}
                 </div>
               </div>
 
-              {/* Travel Mission */}
+              {/* 자기소개 (선택) */}
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("profileSetup.missionLabel", t("auto.x4099"))}</label>
-                <input type="text" value={travelMission} onChange={e => setTravelMission(e.target.value)} maxLength={50} placeholder={t("profileSetup.missionPlaceholder", t("auto.x4100"))} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+                <label className="text-xs font-bold text-foreground mb-1.5 flex items-center gap-1">
+                  자기소개 <span className="text-muted-foreground font-normal">(선택)</span>
+                </label>
+                <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={100} rows={2}
+                  placeholder="어떤 여행을 좋아하나요? 짧게 소개해주세요 ✈️"
+                  className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30" />
+                <p className="text-[10px] text-muted-foreground text-right mt-1">{bio.length}/100</p>
               </div>
+            </motion.div>
+          )}
 
-              {/* Bio */}
+          {/* ── STEP 1: 여행 스타일 + 관심 지역 ── */}
+          {step === 1 && (
+            <motion.div key="s1" variants={pageVariants} initial="initial" animate="animate" exit="exit"
+              className="px-5 pb-6 space-y-5">
+
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("profileSetup.bioLabel")}</label>
-                <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={120} rows={3} placeholder={t("profileSetup.bioPlaceholder")} className="w-full bg-muted rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none focus:ring-2 focus:ring-primary/30" />
-                <p className="text-[10px] text-muted-foreground text-right mt-1">{bio.length}/120</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold text-foreground">여행 스타일 <span className="text-rose-500">*</span></p>
+                  <span className="text-[10px] text-muted-foreground font-bold">{styles.length}/5 선택</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {TRAVEL_STYLES.map(s => {
+                    const sel = styles.includes(s);
+                    const disabled = !sel && styles.length >= 5;
+                    return (
+                      <motion.button key={s} whileTap={{ scale:0.95 }}
+                        onClick={() => toggleItem(s, styles, setStyles, 5)}
+                        className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-all border-2 ${sel ? "gradient-primary text-primary-foreground border-transparent shadow-sm" : "bg-muted text-muted-foreground border-transparent"} ${disabled ? "opacity-30" : ""}`}>
+                        {s}
+                      </motion.button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Next travel destination */}
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("profileSetup.destLabel")}</label>
-                <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3">
-                  <MapPin size={16} className="text-primary shrink-0" />
-                  <input type="text" value={destination} onChange={e => setDestination(e.target.value)} placeholder={t("profileSetup.destPlaceholder")} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                <p className="text-xs font-bold text-foreground mb-2">관심 여행지 <span className="text-muted-foreground font-normal">(선택, 복수 가능)</span></p>
+                <div className="flex flex-wrap gap-2">
+                  {REGIONS.map(r => {
+                    const sel = regions.includes(r);
+                    return (
+                      <motion.button key={r} whileTap={{ scale:0.95 }}
+                        onClick={() => toggleItem(r, regions, setRegions)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border-2 ${sel ? "gradient-primary text-primary-foreground border-transparent shadow-sm" : "bg-muted text-muted-foreground border-transparent"}`}>
+                        {r}
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </div>
+            </motion.div>
+          )}
 
-              {/* Travel dates */}
+          {/* ── STEP 2: 퍼스낼리티 + MBTI (선택) ── */}
+          {step === 2 && (
+            <motion.div key="s2" variants={pageVariants} initial="initial" animate="animate" exit="exit"
+              className="px-5 pb-6 space-y-5">
+
               <div>
-                <label className="text-xs font-bold text-foreground mb-1.5 block">{t("profileSetup.dateLabel")}</label>
-                <div className="flex items-center gap-3 bg-muted rounded-2xl px-4 py-3">
-                  <Calendar size={16} className="text-primary shrink-0" />
-                  <input type="text" value={travelDate} onChange={e => setTravelDate(e.target.value)} placeholder={t("profileSetup.datePlaceholder")} className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+                <p className="text-xs font-bold text-foreground mb-3">나는 어떤 여행자? <span className="text-muted-foreground font-normal">(복수 선택)</span></p>
+                <div className="grid grid-cols-2 gap-3">
+                  {PERSONALITIES.map(p => {
+                    const sel = personality.includes(p.id);
+                    return (
+                      <motion.button key={p.id} whileTap={{ scale:0.95 }}
+                        onClick={() => toggleItem(p.id, personality, setPersonality)}
+                        className={`flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all text-left ${sel ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card"}`}>
+                        <span className="text-2xl shrink-0">{p.emoji}</span>
+                        <span className="text-xs font-semibold text-foreground leading-tight">{p.label}</span>
+                        {sel && <div className="ml-auto w-5 h-5 rounded-full gradient-primary flex items-center justify-center shrink-0"><Check size={10} className="text-primary-foreground" /></div>}
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </div>
-            </motion.div>}
 
-          {/* ─── STEP 1: TRAVEL STYLE ─── */}
-          {step === 1 && <motion.div key="step1" className="px-6 pb-6" initial={{
-          opacity: 0,
-          x: 30
-        }} animate={{
-          opacity: 1,
-          x: 0
-        }} exit={{
-          opacity: 0,
-          x: -30
-        }} transition={{
-          duration: 0.25
-        }}>
-              <p className="text-xs text-muted-foreground mb-3 truncate">{t("profileSetup.maxFive")} <span className="text-foreground font-bold">({styles.length}/5)</span></p>
-              <div className="flex flex-wrap gap-2">
-                {TRAVEL_STYLES.map(s => {
-              const selected = styles.includes(s);
-              return <motion.button key={s} whileTap={{
-                scale: 0.95
-              }} onClick={() => toggleItem(s, styles, setStyles, 5)} className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-all border-2 ${selected ? "gradient-primary text-primary-foreground border-transparent shadow-card" : "bg-muted text-muted-foreground border-transparent hover:border-primary/30"} ${!selected && styles.length >= 5 ? "opacity-40" : ""}`}>
-                      {s}
-                    </motion.button>;
-            })}
-              </div>
-            </motion.div>}
-
-          {/* ─── STEP 2: REGIONS + LANGUAGES ─── */}
-          {step === 2 && <motion.div key="step2" className="px-6 pb-6 space-y-5" initial={{
-          opacity: 0,
-          x: 30
-        }} animate={{
-          opacity: 1,
-          x: 0
-        }} exit={{
-          opacity: 0,
-          x: -30
-        }} transition={{
-          duration: 0.25
-        }}>
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Globe size={14} className="text-primary" />
-                  <p className="text-xs font-bold text-foreground truncate">{t("profileSetup.regionsLabel")} <span className="text-muted-foreground font-normal truncate">{t("profileSetup.multi")}</span></p>
+                <p className="text-xs font-bold text-foreground mb-3">MBTI <span className="text-muted-foreground font-normal">(선택)</span></p>
+                <div className="grid grid-cols-4 gap-2">
+                  {MBTI_TYPES.map(type => {
+                    const sel = mbti === type;
+                    const color = MBTI_COLOR[type];
+                    return (
+                      <motion.button key={type} whileTap={{ scale:0.92 }}
+                        onClick={() => setMbti(sel ? null : type)}
+                        className={`py-3 rounded-2xl border-2 font-extrabold text-sm transition-all ${sel ? `${color} shadow-sm scale-105` : "border-border bg-card text-muted-foreground"}`}>
+                        {type}
+                      </motion.button>
+                    );
+                  })}
                 </div>
-                <div className="flex flex-wrap gap-2 truncate">
-                  {REGIONS.map(r => <button key={r} onClick={() => toggleItem(r, regions, setRegions)} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border-2 ${regions.includes(r) ? "gradient-primary text-primary-foreground border-transparent shadow-card" : "bg-muted text-muted-foreground border-transparent"}`}>{r}</button>)}
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <User size={14} className="text-primary" />
-                  <p className="text-xs font-bold text-foreground truncate">{t("profileSetup.langLabel")}</p>
-                </div>
-                <div className="flex flex-wrap gap-2 truncate">
-                  {LANGUAGES.map(l => <button key={l} onClick={() => toggleItem(l, languages, setLanguages)} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border-2 ${languages.includes(l) ? "gradient-primary text-primary-foreground border-transparent shadow-card" : "bg-muted text-muted-foreground border-transparent"}`}>{l}</button>)}
-                </div>
-              </div>
-            </motion.div>}
-
-          {/* ─── STEP 3: PERSONALITY ─── */}
-          {step === 3 && <motion.div key="step3" className="px-6 pb-6" initial={{
-          opacity: 0,
-          x: 30
-        }} animate={{
-          opacity: 1,
-          x: 0
-        }} exit={{
-          opacity: 0,
-          x: -30
-        }} transition={{
-          duration: 0.25
-        }}>
-              <p className="text-xs text-muted-foreground mb-3 truncate">{t("profileSetup.selectAll")}</p>
-              <div className="grid grid-cols-2 gap-3 truncate">
-                {PERSONALITIES.map(p => {
-              const selected = personality.includes(p.id);
-              return <motion.button key={p.id} whileTap={{
-                scale: 0.95
-              }} onClick={() => toggleItem(p.id, personality, setPersonality)} className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${selected ? "border-primary bg-primary/5 shadow-card" : "border-border bg-card"}`}>
-                      <span className="text-3xl">{p.emoji}</span>
-                      <span className="text-xs font-semibold text-foreground text-center leading-tight">{p.label}</span>
-                      {selected && <div className="w-5 h-5 rounded-full gradient-primary flex items-center justify-center"><Check size={12} className="text-primary-foreground" /></div>}
-                    </motion.button>;
-            })}
+                {mbti && (
+                  <motion.div initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
+                    className="mt-3 p-3 rounded-2xl bg-card border border-border text-center">
+                    <p className="text-2xl font-black">{mbti}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">나중에 언제든지 변경할 수 있어요</p>
+                  </motion.div>
+                )}
               </div>
 
-              {/* Profile preview */}
-              <div className="mt-5 p-4 rounded-2xl bg-card border border-border shadow-card">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-3 truncate">{t("profileSetup.preview")}</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl overflow-hidden bg-muted shrink-0">
-                    {profilePhotos[0]?.url ? <img src={profilePhotos[0].url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><User size={20} className="text-muted-foreground" /></div>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="font-bold text-sm text-foreground truncate">{t("profileSetup.me")}</p>
-                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-500/40 text-[8px] font-extrabold text-sky-400 truncate">✅ {t("profileSetup.verified")}</span>
+              {/* 프로필 미리보기 */}
+              {nickname && (
+                <div className="p-4 rounded-2xl bg-card border border-border">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-3">미리보기</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl overflow-hidden bg-muted shrink-0">
+                      {photos[0]?.url
+                        ? <img src={photos[0].url} alt="" className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center text-xl">👤</div>}
                     </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{bio || t("profileSetup.noBio")}</p>
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {styles.slice(0, 3).map(s => <span key={s} className="px-2 py-0.5 rounded-full bg-muted text-[9px] font-semibold text-muted-foreground">{s}</span>)}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm text-foreground truncate">{nickname}</p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{bio || "자기소개 없음"}</p>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {styles.slice(0,3).map(s => <span key={s} className="px-2 py-0.5 rounded-full bg-muted text-[9px] font-semibold text-muted-foreground">{s}</span>)}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>}
+              )}
+            </motion.div>
+          )}
 
-          {/* ─── STEP 4: MBTI ─── */}
-          {step === 4 && <motion.div key="step4" className="px-6 pb-6" initial={{
-          opacity: 0,
-          x: 30
-        }} animate={{
-          opacity: 1,
-          x: 0
-        }} exit={{
-          opacity: 0,
-          x: -30
-        }} transition={{
-          duration: 0.25
-        }}>
-              <p className="text-xs text-muted-foreground mb-4 truncate">{t('profileSetup.mbtiSelect')}</p>
-              <div className="grid grid-cols-4 gap-2">
-                {MBTI_TYPES.map(type => {
-              const selected = mbti === type;
-              const colorClass = MBTI_COLOR[type] || "bg-muted text-foreground border-border";
-              return <motion.button key={type} whileTap={{
-                scale: 0.92
-              }} onClick={() => setMbti(selected ? null : type)} className={`py-3 rounded-2xl border-2 font-extrabold text-sm transition-all ${selected ? `${colorClass} shadow-card scale-105` : "border-border bg-card text-muted-foreground"}`}>
-                      {type}
-                    </motion.button>;
-            })}
-              </div>
-              {mbti && <motion.div initial={{
-            opacity: 0,
-            y: 8
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} className="mt-5 p-4 rounded-2xl bg-card border border-border shadow-card text-center">
-                  <p className="text-xs text-muted-foreground mb-1 truncate">{t("profileSetup.selectedMbti")}</p>
-                  <p className={`text-3xl font-black`}>{mbti}</p>
-                  <p className="text-xs text-muted-foreground mt-1 truncate">{t("profileSetup.mbtiNotice")}</p>
-                </motion.div>}
-            </motion.div>}
         </AnimatePresence>
       </div>
 
-      {/* Bottom CTA */}
-      <div className="px-6 pb-10 pt-2 z-10 shrink-0 truncate">
-        <motion.button whileTap={{
-        scale: 0.97
-      }} onClick={handleNext} className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-base shadow-float flex items-center justify-center gap-2">
-          {step === SETUP_STEPS.length - 1 ? <><Sparkles size={18} /> {t("profileSetup.start")}</> : <>{t("profileSetup.next")} <ChevronRight size={18} /></>}
+      {/* CTA */}
+      <div className="px-5 pb-10 pt-3 z-10 shrink-0">
+        {step === 2 && (
+          <p className="text-center text-xs text-muted-foreground mb-3">성격/MBTI는 건너뛰어도 됩니다 👌</p>
+        )}
+        <motion.button whileTap={{ scale:0.97 }} onClick={handleNext} disabled={saving}
+          className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-base shadow-lg flex items-center justify-center gap-2 disabled:opacity-60">
+          {saving
+            ? <><motion.div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full" animate={{ rotate:360 }} transition={{ duration:0.7, repeat:Infinity, ease:"linear" }} /> 저장 중...</>
+            : step === STEPS.length - 1
+              ? <><Sparkles size={18} /> 프로필 완성하기 🎉</>
+              : <>다음 <ChevronRight size={18} /></>}
         </motion.button>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default ProfileSetupPage;
