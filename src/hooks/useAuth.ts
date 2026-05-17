@@ -41,8 +41,9 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
       // 표시용으로만 캐시 버스팅 추가 (DB에는 클린 URL 저장)
       const cleanUrl = bestPhoto?.replace(/[?&]t=\d+/, "") || "";
       const bustedUrl = cleanUrl ? `${cleanUrl}?t=${Date.now()}` : "";
-      // 방어 로직: 과거 사용자 중 setup_complete가 누락되었어도 국적이 설정되어 있으면 완료로 간주
-      const isActuallyComplete = data.setup_complete || (!!data.nationality && data.nationality !== '');
+      // setup_complete만을 완료 기준으로 사용 (nationality 우회 제거)
+      // nationality가 있어도 setup_complete=false면 반드시 프로필 설정을 완료해야 함
+      const isActuallyComplete = data.setup_complete === true;
       return {
         ...user,
         photoUrl: bustedUrl || user.photoUrl || "",
