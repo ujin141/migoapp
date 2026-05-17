@@ -275,7 +275,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
           return (
             <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"} gap-1`}>
               <div className={`max-w-[78%] px-4 py-3 text-[14.5px] leading-relaxed whitespace-pre-line shadow-sm border border-black/5 dark:border-white/5 ${isMe ? "bg-primary text-primary-foreground rounded-[22px] rounded-br-[4px]" : "bg-card text-foreground rounded-[22px] rounded-bl-[4px]"}`}>
-                {msg.text.startsWith(i18n.t("auto.g_1378", "현재위치공")) ? (
+                {msg.text.startsWith(i18n.t("auto.t_0019", "📍 현재 위치 공유")) ? (
                   <div className="flex gap-3.5 items-center">
                     <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-blue-500/15">
                       <MapPin size={22} className="text-blue-500" />
@@ -286,7 +286,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                       <a href={msg.text.split('\n')[2] || "#"} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-blue-500 hover:text-blue-600 transition-colors underline underline-offset-2">{i18n.t('chat.openMap')}</a>
                     </div>
                   </div>
-                ) : msg.text.startsWith(i18n.t("auto.g_1379", "만남제안4")) ? (
+                ) : msg.text.startsWith(i18n.t("auto.t_0021", "🤝 만남 제안")) ? (
                   <div className="flex gap-3.5 items-center">
                     <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-orange-500/15">
                       <Calendar size={22} className="text-orange-500" />
@@ -297,7 +297,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                       <p className="text-[12px] font-semibold text-muted-foreground truncate">{msg.text.split('\n')[2]?.replace(i18n.t("auto.g_1381", "장소"), '') || ""}</p>
                     </div>
                   </div>
-                ) : msg.text.startsWith(i18n.t("auto.g_1382", "여행일정공")) ? (
+                ) : msg.text.startsWith(i18n.t("auto.t_0020", "📅 일정 공유")) ? (
                   <div className="flex gap-3.5 items-start">
                     <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-green-500/15 mt-1">
                       <Map size={22} className="text-green-500" />
@@ -388,7 +388,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             </button>
             <AnimatePresence>
               {showLangPicker && (
-                <motion.div className="absolute bottom-8 left-0 bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-xl p-1.5 z-50 min-w-[130px] max-h-48 overflow-y-auto"
+                <motion.div className="fixed bottom-[90px] right-4 bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-1.5 z-[100] min-w-[130px] max-h-48 overflow-y-auto"
                   initial={{ opacity: 0, scale: 0.95, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 4 }}>
                   <div className="fixed inset-0 z-[-1]" onClick={() => setShowLangPicker(false)} />
                   {(Object.entries(LANG_NAMES) as [SupportedLang, string][]).map(([code, name]) => (

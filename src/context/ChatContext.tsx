@@ -137,7 +137,9 @@ export const ChatProvider = ({
         }
       } else {
         memberPhotos = members.map((mb: any) => mb.profiles?.photo_url).filter(Boolean);
-        name = i18n.t("chat.groupChat") || "Group Chat";
+        const otherNames = others.map((mb: any) => mb.profiles?.name).filter(Boolean);
+        name = otherNames.length > 0 ? otherNames.join(', ') : i18n.t("chat.groupChat") || "Group Chat";
+        photo = others[0]?.profiles?.photo_url || "";
       }
       return {
         id: thread.id,
