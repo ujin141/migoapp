@@ -187,7 +187,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
 
 
   return (
-    <div className="flex flex-col bg-background overflow-hidden" style={{ height: '100dvh' }}>
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--background)', overflow: 'hidden' }}>
       {/* Header (Backdrop Blur) */}
       <header className="sticky top-0 z-20 pt-safe bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
