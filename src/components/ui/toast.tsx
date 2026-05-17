@@ -14,12 +14,12 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      // 항상 하단 표시, 탭바(80px) + safe-area-inset-bottom 위로 올림
-      "fixed bottom-0 left-0 right-0 z-[100] flex max-h-screen w-full flex-col-reverse px-4 pt-4 md:max-w-[420px] md:right-0 md:left-auto",
+      // 항상 상단 표시, 노치(safe-area-inset-top) 아래로 내림
+      "fixed top-0 left-0 right-0 z-[150] flex max-h-screen w-full flex-col px-4 pb-4 md:max-w-[420px] md:right-0 md:left-auto",
       className,
     )}
     style={{
-      paddingBottom: "calc(var(--toast-pb, 80px) + env(safe-area-inset-bottom, 0px))",
+      paddingTop: "calc(env(safe-area-inset-top, 40px) + 16px)",
     }}
     {...props}
   />
@@ -27,7 +27,7 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-2xl border p-5 shadow-float transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full border-t border-t-white/30 backdrop-blur-xl",
+  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-2xl border p-5 shadow-float transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full border-t border-t-white/30 backdrop-blur-xl",
   {
     variants: {
       variant: {
