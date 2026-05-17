@@ -1213,96 +1213,113 @@ const DiscoverPage = () => {
         group_id: group.id,
         user_id: user.id
       });
-      if (error) {
-        toast({ title: t("alert.t47Title") });
+      if (error && error.code !== '23505') { // 23505 = already member (unique constraint)
+        toast({ title: t("alert.t47Title"), variant: 'destructive' });
         return;
       }
+
+      // ── DB에서 실제 인원 수 재조회 (정확한 카운트 보장) ──
+      const { data: memberRows } = await supabase
+        .from('trip_group_members')
+        .select('user_id, profiles(gender)')
+        .eq('group_id', group.id);
+
+      const realCount = memberRows?.length ?? group.currentMembers + 1;
+      const realGenders: ('male' | 'female' | 'unknown')[] = (memberRows || []).map((m: any) => {
+        const g = m.profiles?.gender?.toLowerCase();
+        return g === 'male' ? 'male' : g === 'female' ? 'female' : 'unknown';
+      });
+
+      // ── 로컬 그룹 리스트 즉시 업데이트 (Optimistic UI) ──
+      setTripGroups(prev => prev.map(g => g.id === group.id ? {
+        ...g,
+        joined: true,
+        currentMembers: realCount,
+        memberGenders: realGenders,
+      } : g));
+
+      // ── 그룹 채팅방 자동 개설 (없으면 새로 만들기) ──
+      try {
+        const threadName = `${group.title.substring(0, 25)}...`;
+        const { data: existingThread } = await supabase
+          .from('chat_threads')
+          .select('id')
+          .eq('group_id', group.id)
+          .maybeSingle();
+
+        let threadId: string | null = existingThread?.id || null;
+
+        if (!threadId) {
+          const { data: newThread } = await supabase.from('chat_threads').insert({
+            name: threadName,
+            photo: group.hostPhoto || null,
+            group_id: group.id,
+            last_message: t('groupPopup.chatCreated', '그룹 채팅방이 개설되었습니다 🎉'),
+          }).select('id').single();
+          threadId = newThread?.id || null;
+
+          if (threadId) {
+            // 호스트 + 나 추가
+            await supabase.from('chat_members').upsert([
+              { thread_id: threadId, user_id: group.hostId },
+              { thread_id: threadId, user_id: user.id },
+            ], { onConflict: 'thread_id,user_id' });
+          }
+        } else {
+          // 기존 채팅방에 나만 추가
+          await supabase.from('chat_members').upsert(
+            { thread_id: threadId, user_id: user.id },
+            { onConflict: 'thread_id,user_id' }
+          );
+        }
+      } catch (chatErr) {
+        console.warn('[joinGroup] Chat thread creation failed:', chatErr);
+        // 채팅방 실패해도 참여는 유지
+      }
+
+      // 팝업 표시용 변수
+      const newCount = realCount;
+      const allGenders = realGenders;
+
+      const validDaysLeft = typeof group.daysLeft === 'number' && !isNaN(group.daysLeft) ? group.daysLeft : 1;
+      const deadlineMs = Date.now() + validDaysLeft * 24 * 60 * 60 * 1000;
+      clearAllTimers();
+      setJoinPopup({ group: { ...group, currentMembers: newCount, memberGenders: allGenders }, newCount, genders: allGenders, deadlineMs });
+
+      let extras = 0;
+      const intervalId = setInterval(() => {
+        if (extras >= 2 || newCount + extras >= group.maxMembers - 1) { clearInterval(intervalId); return; }
+        extras++;
+        const randGender: 'male' | 'female' = Math.random() > 0.5 ? 'male' : 'female';
+        setJoinPopup(prev => {
+          if (!prev) return null;
+          return { ...prev, newCount: prev.newCount + 1, genders: [...prev.genders, randGender] };
+        });
+      }, 3500);
+      timersRef.current.intervals.push(intervalId);
+
+      const msTo1h = deadlineMs - Date.now() - 60 * 60 * 1000;
+      if (msTo1h > 0) { const t1 = setTimeout(() => { setCountdownAlert({ type: '1hour', groupTitle: group.title }); timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 8000)); }, msTo1h); timersRef.current.timeouts.push(t1); }
+      const msTo30min = deadlineMs - Date.now() - 30 * 60 * 1000;
+      if (msTo30min > 0) { const t2 = setTimeout(() => { setCountdownAlert({ type: '30min', groupTitle: group.title }); timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 8000)); }, msTo30min); timersRef.current.timeouts.push(t2); }
+      const msToExpiry = deadlineMs - Date.now();
+      if (msToExpiry > 0) { const t3 = setTimeout(() => { clearInterval(intervalId); setJoinPopup(null); setCountdownAlert({ type: 'expired', groupTitle: group.title }); timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 10000)); }, msToExpiry); timersRef.current.timeouts.push(t3); }
+      timersRef.current.timeouts.push(setTimeout(() => clearInterval(intervalId), 15000));
+      return; // early return for real groups
     }
 
-    // 로컬 상태 업데이트 (단톡방 X)
+    // 목업 그룹 fallback
     const newCount = group.currentMembers + 1;
-    // 내 성별 추가
     const { data: myProfile } = await supabase.from('profiles').select('gender').eq('id', user.id).single();
-    const myGender: 'male' | 'female' | 'unknown' =
-      myProfile?.gender === 'male' ? 'male' :
-      myProfile?.gender === 'female' ? 'female' : 'unknown';
-
-    // 기존 멤버 성별 추정 (이름 기반 fallback: 실제로는 DB에서 가져와야 함)
-    const existingGenders: ('male' | 'female' | 'unknown')[] =
-      group.memberGenders ?? Array(group.currentMembers).fill('unknown');
+    const myGender: 'male' | 'female' | 'unknown' = myProfile?.gender === 'male' ? 'male' : myProfile?.gender === 'female' ? 'female' : 'unknown';
+    const existingGenders: ('male' | 'female' | 'unknown')[] = group.memberGenders ?? Array(group.currentMembers).fill('unknown');
     const allGenders = [...existingGenders, myGender];
-
-    setTripGroups(prev => prev.map(g => g.id === group.id ? {
-      ...g,
-      joined: true,
-      currentMembers: newCount,
-      memberGenders: allGenders
-    } : g));
-
-    // 마감 시간 계산 (daysLeft 예외 방어코드 추가. 비정상 값이면 1일로 간주)
+    setTripGroups(prev => prev.map(g => g.id === group.id ? { ...g, joined: true, currentMembers: newCount, memberGenders: allGenders } : g));
     const validDaysLeft = typeof group.daysLeft === 'number' && !isNaN(group.daysLeft) ? group.daysLeft : 1;
     const deadlineMs = Date.now() + validDaysLeft * 24 * 60 * 60 * 1000;
-
-    // 팝업 새로 띄울 때 기존 타이머 모두 초기화 (레이스 컨디션 차단)
     clearAllTimers();
-
-    // 실시간 팝업 표시 (단톡방 생성 X)
     setJoinPopup({ group: { ...group, currentMembers: newCount, memberGenders: allGenders }, newCount, genders: allGenders, deadlineMs });
-
-    // 실시간으로 인원 늘어나는 효과 (3초마다 랜덤하게 1명 추가 시뮬레이션, 최대 2회)
-    let extras = 0;
-    const intervalId = setInterval(() => {
-      if (extras >= 2 || newCount + extras >= group.maxMembers - 1) {
-        clearInterval(intervalId);
-        return;
-      }
-      extras++;
-      const randGender: 'male' | 'female' = Math.random() > 0.5 ? 'male' : 'female';
-      setJoinPopup(prev => {
-        if (!prev) return null;
-        const updatedGenders = [...prev.genders, randGender];
-        const updatedCount = prev.newCount + 1;
-        // BUG-10 fix: setTripGroups 제거 — 시뮬레이션은 팝업 오버레이만 업데이트
-        // 실제 DB 인원 수(tripGroups)를 바꾸면 탭 이동 후 원복되어 혼란 발생
-        return { ...prev, newCount: updatedCount, genders: updatedGenders };
-      });
-    }, 3500);
-    timersRef.current.intervals.push(intervalId);
-
-    // ─── 1시간 전 알림 ───────────────────────────────────
-    const msTo1h = deadlineMs - Date.now() - 60 * 60 * 1000;
-    if (msTo1h > 0) {
-      const t1 = setTimeout(() => {
-        setCountdownAlert({ type: '1hour', groupTitle: group.title });
-        timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 8000));
-      }, msTo1h);
-      timersRef.current.timeouts.push(t1);
-    }
-
-    // ─── 30분 전 알림 ────────────────────────────────────
-    const msTo30min = deadlineMs - Date.now() - 30 * 60 * 1000;
-    if (msTo30min > 0) {
-      const t2 = setTimeout(() => {
-        setCountdownAlert({ type: '30min', groupTitle: group.title });
-        timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 8000));
-      }, msTo30min);
-      timersRef.current.timeouts.push(t2);
-    }
-
-    // ─── 마감 알림 ────────────────────────────────────────
-    const msToExpiry = deadlineMs - Date.now();
-    if (msToExpiry > 0) {
-      const t3 = setTimeout(() => {
-        clearInterval(intervalId);
-        setJoinPopup(null);
-        setCountdownAlert({ type: 'expired', groupTitle: group.title });
-        timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 10000));
-      }, msToExpiry);
-      timersRef.current.timeouts.push(t3);
-    }
-
-    // 팝업 인원 애니메이션 종료 방어막
-    const tClose = setTimeout(() => clearInterval(intervalId), 15000);
+    const tClose = setTimeout(() => setJoinPopup(null), 15000);
     timersRef.current.timeouts.push(tClose);
   };
 
@@ -1633,7 +1650,8 @@ const DiscoverPage = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 60, scale: 0.92 }}
               transition={{ type: "spring", damping: 22, stiffness: 280 }}
-              className="fixed bottom-24 left-4 right-4 z-50 max-w-sm mx-auto"
+              className="fixed left-4 right-4 z-50 max-w-sm mx-auto"
+              style={{ bottom: (!isPlus && !isPremium) ? '185px' : '100px' }}
             >
               <div className="bg-card border border-border rounded-3xl shadow-float overflow-hidden">
                 {/* 상단 헤더 */}
