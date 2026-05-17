@@ -27,6 +27,8 @@ import { getMyCheckIn } from "@/lib/checkInService";
 import { SlidersHorizontal } from "lucide-react";
 import PageGuide from "@/components/PageGuide";
 import TopHeader from "@/components/TopHeader";
+import { useSubscription } from "@/context/SubscriptionContext";
+import MigoPlusModal from "@/components/MigoPlusModal";
 const MAP_LIBRARIES: ("places")[] = ["places"];
 const mapStyles = [
   // ── 도로 스타일 ──────────────────────────────────────
@@ -78,6 +80,9 @@ const MapPage = () => {
   const {
     user
   } = useAuth();
+  const { isPlus, nearbyUnlockedUntil } = useSubscription();
+  const canViewTravelers = isPlus || (nearbyUnlockedUntil !== null && nearbyUnlockedUntil > new Date());
+  const [showPlusModal, setShowPlusModal] = useState(false);
   const {
     isLoaded
   } = useLoadScript({
@@ -987,6 +992,11 @@ const MapPage = () => {
   }, [displayMode, communityPosts, selectedPost]);
 
   const handleModeChange = (mode: "travelers" | "hotplaces" | "community" | "groups" | "restaurants") => {
+    // 여행자 탭은 Plus 또는 nearby 언락 판매 필요
+    if (mode === "travelers" && !canViewTravelers) {
+      setShowPlusModal(true);
+      return;
+    }
     setDisplayMode(mode);
     setIsTravelerCycleActive(true);
     setSelectedTraveler(null);
@@ -1048,7 +1058,10 @@ const MapPage = () => {
       {/* Map Mode Toggles */}
       <div className="z-30 w-full px-4 pb-2 pointer-events-auto">
         <div className="w-full bg-card/90 backdrop-blur-md rounded-full border border-border/50 p-1 flex shadow-sm overflow-x-auto hide-scrollbar">
-           <button onClick={() => handleModeChange("travelers")} className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${displayMode === "travelers" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}>{t("auto.ko_0120", "👥 여행자")}</button>
+           <button onClick={() => handleModeChange("travelers")} className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${displayMode === "travelers" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}>
+              {t("auto.ko_0120", "👥 여행자")}
+              {!canViewTravelers && <span className="ml-1 text-[8px] text-amber-400 font-extrabold">👑</span>}
+            </button>
            <button onClick={() => handleModeChange("groups")} className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${displayMode === "groups" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}>{t("auto.ko_0121", "🍻 모임")}</button>
            <button onClick={() => handleModeChange("community")} className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${displayMode === "community" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}>{t("auto.ko_0122", "📸 피드")}</button>
            <button onClick={() => handleModeChange("hotplaces")} className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${displayMode === "hotplaces" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}>{t("auto.ko_0123", "🌍 핫플")}</button>
@@ -2246,6 +2259,8 @@ const MapPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Plus 모달 (여행자 탭 게이트) */}
+      <MigoPlusModal isOpen={showPlusModal} onClose={() => setShowPlusModal(false)} />
     </div>;
 
 };

@@ -1603,8 +1603,52 @@ $$;
 CREATE OR REPLACE FUNCTION admin_delete_user_account(p_user_id UUID)
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
+  -- 1. 좋아요 / 슈퍼라이크 데이터 삭제
+  DELETE FROM likes WHERE from_user = p_user_id OR to_user = p_user_id;
+
+  -- 2. 매칭 및 채팅 삭제
+  DELETE FROM chat_members WHERE user_id = p_user_id;
+  DELETE FROM matches
+    WHERE user1_id = p_user_id OR user2_id = p_user_id;
+
+  -- 3. 메시지 (sender 기준)
+  DELETE FROM messages WHERE sender_id = p_user_id;
+
+  -- 4. 게시물 / 댓글 / 좋아요
+  DELETE FROM post_likes WHERE user_id = p_user_id;
+  DELETE FROM comments WHERE author_id = p_user_id;
+  DELETE FROM posts WHERE author_id = p_user_id;
+
+  -- 5. 신고 기록
+  DELETE FROM reports
+    WHERE reporter_id = p_user_id OR reported_user_id = p_user_id;
+
+  -- 6. 그룹 멤버 / 호스트 그룹
+  DELETE FROM trip_group_members WHERE user_id = p_user_id;
+  UPDATE trip_groups SET status = 'cancelled' WHERE host_id = p_user_id;
+
+  -- 7. 아이템 / 구독
+  DELETE FROM user_items WHERE user_id = p_user_id;
+
+  -- 8. 알림
+  DELETE FROM in_app_notifications WHERE user_id = p_user_id;
+  DELETE FROM notifications WHERE user_id = p_user_id;
+
+  -- 9. 온라인 상태
+  DELETE FROM online_status WHERE user_id = p_user_id;
+
+  -- 10. SOS 체크인
+  DELETE FROM sos_checkins WHERE user_id = p_user_id;
+
+  -- 11. 마지막으로 profiles 삭제 (auth.users는 클라이언트에서 별도 삭제)
   DELETE FROM profiles WHERE id = p_user_id;
+
   RETURN FOUND;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'admin_delete_user_account error for %: %', p_user_id, SQLERRM;
+  -- 부분 삭제라도 완료하기 위해 profiles는 반드시 삭제
+  DELETE FROM profiles WHERE id = p_user_id;
+  RETURN TRUE;
 END;
 $$;
 
@@ -2951,3 +2995,40 @@ CREATE OR REPLACE VIEW admin_chat_room_summary AS
   LEFT JOIN profiles p ON p.id = cm.user_id
   GROUP BY ct.id
   ORDER BY ct.created_at DESC NULLS LAST;
+
+-- ============================================================
+-- DATA FIXES (2026-05-17)
+-- combined_schema.sql 실행 후 아래 쿼리를 순서대로 실행하세요
+-- ============================================================
+
+-- [FIX-1] 구독 버그: plus_expires_at이 NULL인데 is_plus=true인 계정 → free로 초기화
+-- 실제 결제하지 않고 잘못 세팅된 계정 정리 (어드민 계정은 유지)
+UPDATE profiles
+SET
+  plan = 'free',
+  is_plus = false,
+  plus_expires_at = NULL
+WHERE
+  (is_plus = true OR plan IN ('plus', 'premium'))
+  AND plus_expires_at IS NULL
+  AND (is_admin IS NULL OR is_admin = false)
+  AND (role IS NULL OR role != 'admin');
+
+-- [FIX-2] 닉네임 빈 유저: 이메일 앞자리를 임시 닉네임으로 설정
+UPDATE profiles
+SET name = SPLIT_PART(email, '@', 1)
+WHERE (name IS NULL OR name = '')
+  AND email IS NOT NULL
+  AND email != '';
+
+-- [FIX-3] setup_complete 컬럼 보장 + 기존 완성 프로필 true로 설정
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS setup_complete BOOLEAN DEFAULT false;
+
+UPDATE profiles
+SET setup_complete = true
+WHERE
+  photo_url IS NOT NULL
+  AND photo_url != ''
+  AND nationality IS NOT NULL
+  AND nationality != ''
+  AND (setup_complete IS NULL OR setup_complete = false);

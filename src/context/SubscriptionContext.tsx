@@ -88,7 +88,7 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
 export const useSubscription = () => useContext(SubscriptionContext);
 
 const BOOST_DURATION = 30 * 60;
-const MAX_FREE_DM = 10;
+const MAX_FREE_DM = 3; // 무료 유저 하루 DM 제한 (3개)
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const { user, sessionReady } = useAuth();
@@ -128,11 +128,11 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     } catch { return new Set(); }
   });
 
-  const maxSuperLikes = isPremium ? Infinity : (isPlus ? 5 : 0);
+  const maxSuperLikes = isPremium ? Infinity : (isPlus ? 5 : 0); // 무료 유저 슬루퍼라이크 0개
   const maxDailyDm = isPlus ? Infinity : MAX_FREE_DM;
   const canSendDm = isPlus || dailyDmCount < MAX_FREE_DM;
-  // 채팅 열람 제한
-  const maxChatThreads = isPremium ? Infinity : (isPlus ? 20 : 3);
+  // 채팅 열람 제한: 다음 채팅을 열수 없으면 걸잠 (Premium: 무제한, Plus: 20개, 무료: 2개)
+  const maxChatThreads = isPremium ? Infinity : (isPlus ? 20 : 2);
   const openedThreadCount = openedThreads.size;
 
   const canOpenChat = useCallback((threadId: string): boolean => {
@@ -172,29 +172,33 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
           if (exp > new Date()) setNearbyUnlockedUntil(exp);
         }
         const now = new Date();
-        // BUG-09 fix: plus_expires_at 이 null 이면 '만료 없음(영구)' 으로 처리
+        // 구독 상태 판단:
+        // 1. is_plus 또는 plan이 plus/premium 이어야 함
+        // 2. plus_expires_at이 설정되어 있으면 → 현재보다 미래여야 함
+        // 3. plus_expires_at이 null이면 → DB에 설정된 is_plus 값 그대로 신뢰 (어드민 부여 등)
         const expiresAt = data?.plus_expires_at ? new Date(data.plus_expires_at) : null;
-        const isExpired = expiresAt !== null && expiresAt < now; // null이면 만료 안 됨
+        const isExpired = expiresAt !== null && expiresAt < now;
+        // DB에서 실제로 구독 상태인지 확인 (is_plus 필드 우선)
+        const dbIsPlus = !!(data?.is_plus || data?.plan === 'plus' || data?.plan === 'premium');
 
-        if (!isExpired) {
+        if (dbIsPlus && !isExpired) {
           if (data?.plan === 'premium') {
             setIsPremium(true);
             setIsPlus(true);
-          } else if (data?.is_plus || data?.plan === 'plus') {
+          } else {
             setIsPlus(true);
           }
         } else {
-          // 체험 기간 또는 구독 기간 만료 시 로컬 상태 초기화
+          // 만료되었거나 DB에 구독 상태 아님 → free로 초기화
           setIsPremium(false);
           setIsPlus(false);
 
-          // 만료됐지만 아직 DB에 premium/plus로 남아있다면 해제 업데이트 (Pseudo-cron)
+          // 만료됐지만 아직 DB에 plus/premium으로 남아있다면 즉시 정리
           if (data?.plan && data.plan !== 'free') {
             supabase.from('profiles')
               .update({ plan: 'free', is_plus: false })
               .eq('id', user.id)
               .then(({ error }) => {
-                // 업데이트 실패는 로컈에만 기록 (DB와 로컈 간 불일치는 다음 앱 실행 시 처리됨)
                 if (error) console.warn('[Sub] 만료 해제 DB 업데이트 실패:', error.message);
               });
           }
@@ -217,13 +221,45 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         }
       });
 
-    // 실시간 아이템 잔량 업데이트 구독 (부스터/슈퍼라이크)
-    const channel = supabase.channel('user_items_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_items', filter: `user_id=eq.${user.id}` }, (payload) => {
+    // 실시간 데이터 업데이트 구독 (아이템 + 구독 상태)
+    const channel = supabase.channel('user_subscription_realtime')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user_items', filter: `user_id=eq.${user.id}` }, (payload) => {
         if (payload.new) {
           const newItem = payload.new as any;
           if (newItem.boosts !== undefined) setBoostsCount(newItem.boosts);
           if (newItem.super_likes !== undefined) setSuperLikesLeft(newItem.super_likes);
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
+        if (payload.new) {
+          const p = payload.new as any;
+          // 아이템 뱃지/테마 갱신
+          if (p.has_badge !== undefined) setHasVerifiedBadge(p.has_badge);
+          if (p.profile_theme !== undefined) setHasProfileTheme(p.profile_theme && p.profile_theme !== 'default');
+          if (p.nearby_expires_at) {
+            const exp = new Date(p.nearby_expires_at);
+            if (exp > new Date()) setNearbyUnlockedUntil(exp);
+            else setNearbyUnlockedUntil(null);
+          }
+          
+          // 구독 상태 실시간 갱신
+          const now = new Date();
+          const expiresAt = p.plus_expires_at ? new Date(p.plus_expires_at) : null;
+          const isExpired = expiresAt !== null && expiresAt < now;
+          const dbIsPlus = !!(p.is_plus || p.plan === 'plus' || p.plan === 'premium');
+
+          if (dbIsPlus && !isExpired) {
+            if (p.plan === 'premium') {
+              setIsPremium(true);
+              setIsPlus(true);
+            } else {
+              setIsPremium(false);
+              setIsPlus(true);
+            }
+          } else {
+            setIsPremium(false);
+            setIsPlus(false);
+          }
         }
       })
       .subscribe();

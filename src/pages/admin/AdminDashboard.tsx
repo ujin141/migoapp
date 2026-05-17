@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Users, Heart, Plane, TrendingUp, FileText, Flag, Crown, Check, Clock, DollarSign, Bell, X, Plus, Megaphone, RefreshCw } from "lucide-react";
 import { fetchAdminStats, fetchAdminUsers, fetchAdminReports, fetchAnnouncements, createAnnouncement, deleteAnnouncement, fetchWeeklyStats, fetchTodayStats } from "@/lib/adminService";
 import { fetchAds } from "@/lib/adService";
+import { Crown, AlertTriangle } from "lucide-react";
 const CustomTooltip = ({
   active,
   payload,
@@ -39,6 +40,7 @@ export const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState("");
   const [todayStats, setTodayStats] = useState({ newUsers: 0, sosCheckins: 0, activeChats: 0, newReports: 0 });
+  const [subStats, setSubStats] = useState({ plus: 0, premium: 0, expiringSoon: 0, expiredButActive: 0 });
 
   // Announcement form
   const [showAnnounce, setShowAnnounce] = useState(false);
@@ -67,6 +69,22 @@ export const AdminDashboard = () => {
       setRecentReports((reports || []).filter((r: any) => r.status === "pending").slice(0, 4));
       setAnnouncements(anns || []);
       setTodayStats(today);
+      // 구독 통계 계산
+      const now = new Date();
+      const plusUsers = (users || []).filter((u: any) => u.is_plus || u.plan === 'plus' || u.plan === 'premium');
+      const premiumCount = (users || []).filter((u: any) => u.plan === 'premium').length;
+      const plusCount = (users || []).filter((u: any) => (u.plan === 'plus' || u.is_plus) && u.plan !== 'premium').length;
+      const expiringCount = plusUsers.filter((u: any) => {
+        if (!u.plus_expires_at) return false;
+        const exp = new Date(u.plus_expires_at);
+        const days = (exp.getTime() - now.getTime()) / (1000*60*60*24);
+        return days > 0 && days <= 7;
+      }).length;
+      const expiredButActive = plusUsers.filter((u: any) => {
+        if (!u.plus_expires_at) return true; // 만료일 미설정인데 plus
+        return new Date(u.plus_expires_at) < now;
+      }).length;
+      setSubStats({ plus: plusCount, premium: premiumCount, expiringSoon: expiringCount, expiredButActive });
       setLiveChartData(weekly.length ? weekly : Array.from({
         length: 7
       }).map((_, i) => ({
@@ -161,6 +179,36 @@ export const AdminDashboard = () => {
             <Megaphone size={14} />공지 발행</button>
           <button onClick={load} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-sm hover:text-foreground transition-colors">
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />새로고침</button>
+        </div>
+      </div>
+
+      {/* Subscription KPI */}
+      <div className="mb-6">
+        <h2 className="text-sm font-extrabold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <Crown size={13} className="text-amber-400" />구독 현황
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'Plus 구독자', value: subStats.plus, color: 'from-amber-500 to-orange-500', icon: Crown },
+            { label: 'Premium 구독자', value: subStats.premium, color: 'from-violet-500 to-purple-600', icon: Crown },
+            { label: '만료 임박 (7일)', value: subStats.expiringSoon, color: 'from-orange-400 to-amber-400', urgent: subStats.expiringSoon > 0, icon: AlertTriangle },
+            { label: '만료됐지만 Plus', value: subStats.expiredButActive, color: 'from-red-500 to-rose-600', urgent: subStats.expiredButActive > 0, icon: AlertTriangle },
+          ].map((s: any) => (
+            <div key={s.label} className={`bg-card rounded-2xl p-3 border flex items-center gap-3 ${
+              s.urgent && s.value > 0 ? 'border-red-500/40 shadow-[0_0_16px_rgba(239,68,68,0.1)]' : 'border-border'
+            }`}>
+              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center shrink-0`}>
+                <s.icon size={14} className="text-white" />
+              </div>
+              <div>
+                <p className={`text-2xl font-extrabold ${s.urgent && s.value > 0 ? 'text-red-400' : 'text-foreground'}`}>
+                  {loading ? '—' : s.value}
+                  {s.urgent && s.value > 0 && <span className="ml-1 text-xs animate-pulse">●</span>}
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-tight break-keep">{s.label}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

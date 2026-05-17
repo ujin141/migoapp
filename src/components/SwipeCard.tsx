@@ -98,6 +98,7 @@ interface SwipeCardProps {
   onProfileView?: (profileId: string) => void;
   myProfile?: any; // 내 프로필 (호환성 계산용)
   myDailyMission?: string;
+  onPremiumClick?: () => void;
 }
 const SwipeCard = ({
   profile,
@@ -107,7 +108,8 @@ const SwipeCard = ({
   isSuperLiked,
   onProfileView,
   myProfile,
-  myDailyMission
+  myDailyMission,
+  onPremiumClick
 }: SwipeCardProps) => {
   const {
     t,
@@ -209,6 +211,10 @@ const SwipeCard = ({
   };
   const handleTap = () => {
     if (isDragging.current || dragDistance.current > 8) return;
+    if (isBlurTarget) {
+      if (onPremiumClick) onPremiumClick();
+      return;
+    }
     if (profile?.id) onProfileView?.(profile.id);
     setShowDetail(true);
   };
@@ -439,6 +445,10 @@ const SwipeCard = ({
                {/* Info Button */}
                <button onClick={e => {
                  e.stopPropagation();
+                 if (isBlurTarget) {
+                   if (onPremiumClick) onPremiumClick();
+                   return;
+                 }
                  Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
                  if (profile?.id) onProfileView?.(profile.id);
                  setShowDetail(true);

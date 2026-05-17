@@ -55,6 +55,7 @@ const ProfilePage = () => {
   const [showLicenseModal, setShowLicenseModal] = useState(false);
   const [showProfileViews, setShowProfileViews] = useState(false);
   const [showRefundPolicyModal, setShowRefundPolicyModal] = useState(false);
+  const [boostJustActivated, setBoostJustActivated] = useState(false);
 
   // ─── 실시간 DB 데이터 state ───
   const [matchedUsers, setMatchedUsers] = useState<any[]>([]);
@@ -855,6 +856,47 @@ const ProfilePage = () => {
       </AnimatePresence>
       {/* ── Decorative background (테마 반영) ── */}
       <div className={`absolute top-0 left-0 w-full h-[280px] bg-gradient-to-b ${theme.decorBg} to-transparent z-0 pointer-events-none transition-all duration-500`} />
+      
+      {/* ─── 부스트 활성화 플래시 효과 ─── */}
+      <AnimatePresence>
+        {boostJustActivated && (
+          <motion.div
+            className="fixed inset-0 z-[500] pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.6, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.6, times: [0, 0.15, 1] }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/40 via-pink-500/30 to-transparent" />
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center"
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: [0.3, 1.4, 1.1], opacity: [0, 1, 0] }}
+              transition={{ duration: 1.4 }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-6xl">⚡</div>
+                <p className="text-white text-lg font-extrabold drop-shadow-lg">Boost ON!</p>
+              </div>
+            </motion.div>
+            {[...Array(8)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-3 h-3 rounded-full bg-purple-400/70"
+                initial={{ x: "50vw", y: "50vh", scale: 0, opacity: 1 }}
+                animate={{
+                  x: `${50 + Math.cos((i / 8) * Math.PI * 2) * 45}vw`,
+                  y: `${50 + Math.sin((i / 8) * Math.PI * 2) * 45}vh`,
+                  scale: [0, 1.5, 0],
+                  opacity: [1, 0.8, 0],
+                }}
+                transition={{ duration: 1.2, delay: i * 0.05 }}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="relative z-10">
 
       {/* ── Top Bar ── */}
@@ -1039,9 +1081,15 @@ const ProfilePage = () => {
 
             <motion.button
               whileTap={{ scale: 0.96 }}
-              onClick={() => {
+              onClick={async () => {
                 if (boostActive) return;
-                startBoost();
+                await startBoost();
+                setBoostJustActivated(true);
+                setTimeout(() => setBoostJustActivated(false), 1800);
+                toast({
+                  title: t("alert.t64Title", "프로필 부스트가 활성화되었습니다!"),
+                  description: t("alert.t64Desc", "30분 동안 매칭 화면 최상단에 노출됩니다.")
+                });
               }}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-[12px] transition-all ${
                 boostActive

@@ -125,21 +125,26 @@ export async function updateUserValidation(userId: string, verified: boolean) {
 export async function updateUserPlan(userId: string, plan: 'free' | 'plus' | 'premium') {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const is_plus = plan === 'plus' || plan === 'premium';
-  const {
-    error
-  } = await adminSupabase.from("profiles").update({
+  // plus/premium으로 변경 시 30일 만료일 설정, free 시 null 로 취소 모델링
+  const plus_expires_at = is_plus
+    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+  const { error } = await adminSupabase.from("profiles").update({
     plan,
-    is_plus
+    is_plus,
+    plus_expires_at,
   }).eq("id", userId);
   return !error;
 }
 export async function updateUserPlus(userId: string, is_plus: boolean) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  const {
-    error
-  } = await adminSupabase.from("profiles").update({
+  const plus_expires_at = is_plus
+    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    : null;
+  const { error } = await adminSupabase.from("profiles").update({
     is_plus,
-    plan: is_plus ? 'plus' : 'free'
+    plan: is_plus ? 'plus' : 'free',
+    plus_expires_at,
   }).eq("id", userId);
   return !error;
 }
@@ -174,11 +179,22 @@ export async function updateUserBan(userId: string, banned: boolean) {
 }
 export async function deleteUserAccount(userId: string) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
-  const { error } = await adminSupabase.rpc("admin_delete_user_account", { p_user_id: userId });
-  if (error) {
-    console.error("deleteUserAccount error:", error);
+  
+  // 1. 퍼블릭 데이터 (profiles, matches, chats 등) 삭제
+  const { error: dbError } = await adminSupabase.rpc("admin_delete_user_account", { p_user_id: userId });
+  if (dbError) {
+    console.error("deleteUserAccount DB error:", dbError);
     return false;
   }
+
+  // 2. Auth (로그인 계정) 삭제
+  const { error: authError } = await adminSupabase.auth.admin.deleteUser(userId);
+  if (authError) {
+    console.error("deleteUserAccount Auth error:", authError);
+    // auth 삭제 실패시 DB는 이미 삭제되었을 수 있으나, 완전 삭제 실패로 간주
+    return false;
+  }
+  
   return true;
 }
 export async function updateUserNote(userId: string, admin_note: string) {
