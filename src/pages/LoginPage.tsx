@@ -538,7 +538,7 @@ const LoginPage = () => {
           interests: selectedStyles,
           agree_marketing: agreeMarketing,
           created_at: new Date().toISOString(),
-          setup_complete: true,
+          setup_complete: false,  // ✅ ProfileSetupPage에서만 true로 바꿈 — 여기서 true 세팅 금지
           // GPS 위치 (앱 시작 시 허용한 경우 즉시 저장)
           lat: parseFloat(localStorage.getItem('migo_my_lat') || '0') || null,
           lng: parseFloat(localStorage.getItem('migo_my_lng') || '0') || null
@@ -548,7 +548,8 @@ const LoginPage = () => {
         toast({
           title: t('login.signupDone')
         });
-        setTimeout(() => navigate("/"), 800);
+        // ✅ 회원가입 후 반드시 프로필 설정 화면으로 이동 (setup_complete=false 이므로 App.tsx 가드도 profile-setup 유지)
+        setTimeout(() => navigate("/profile-setup", { replace: true }), 800);
       }
     } catch (e: unknown) {
       let msg = e instanceof Error ? e.message : t("auto.g_0720", "알 수 없는 오류가 발생했습니다.");

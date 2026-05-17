@@ -3021,14 +3021,7 @@ WHERE (name IS NULL OR name = '')
   AND email IS NOT NULL
   AND email != '';
 
--- [FIX-3] setup_complete 컬럼 보장 + 기존 완성 프로필 true로 설정
+-- [FIX-3] setup_complete 컬럼 보장
+-- ⚠️ setup_complete는 오직 ProfileSetupPage에서만 true로 세팅됩니다.
+-- 자동으로 true를 세팅하는 배치 쿼리는 신규 유저 온보딩을 우회시키므로 제거되었습니다.
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS setup_complete BOOLEAN DEFAULT false;
-
-UPDATE profiles
-SET setup_complete = true
-WHERE
-  photo_url IS NOT NULL
-  AND photo_url != ''
-  AND nationality IS NOT NULL
-  AND nationality != ''
-  AND (setup_complete IS NULL OR setup_complete = false);
