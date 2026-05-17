@@ -445,10 +445,10 @@ const MatchPage = () => {
     );
   }, [onlineMap]);
 
-  // ── 광고 유무에 따른 Toast 기본 여백 조정 ──
+  // ── 광고 유무에 따른 하단 여백 대폭 상향 (네이티브 배너 높이 + safe-area 반영) ──
   useEffect(() => {
     if (!isPlus && !isPremium) {
-      document.documentElement.style.setProperty('--toast-pb', '120px');
+      document.documentElement.style.setProperty('--toast-pb', '170px');
     } else {
       document.documentElement.style.removeProperty('--toast-pb');
     }
@@ -557,6 +557,20 @@ const MatchPage = () => {
       if (!isPlus && !isPremium && next % 5 === 0) showInterstitial();
       return next;
     });
+
+    // ── FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기 ──
+    if (!isPlus && Math.random() < 0.1) {
+      toast({
+        title: "누군가 회원님을 마음에 들어합니다! 👀",
+        description: "Migo Plus로 업그레이드하고 누군지 확인해보세요.",
+        action: (
+          <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
+            확인하기
+          </button>
+        ),
+        duration: 5000,
+      });
+    }
   }, [currentIndex, withAds, isPlus, isPremium, showInterstitial]);
   const saveLikeAndCheckMatch = useCallback(async (toUserId: string, kind: 'like' | 'superlike' = 'like', message?: string) => {
     if (!user) return false;
@@ -698,9 +712,23 @@ const MatchPage = () => {
              });
            }, 300);
            matchTimersRef.current.timeouts.push(tMatch);
-         }
-      }
+          }
+        }
     });
+
+    // ── FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기 ──
+    if (!isPlus && Math.random() < 0.1) {
+      toast({
+        title: "누군가 회원님을 마음에 들어합니다! 👀",
+        description: "Migo Plus로 업그레이드하고 누군지 확인해보세요.",
+        action: (
+          <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
+            확인하기
+          </button>
+        ),
+        duration: 5000,
+      });
+    }
   }, [currentIndex, withAds, addUnread, saveLikeAndCheckMatch, isPlus, dailyLikesUsed]);
   const openSuperLikeModal = useCallback(() => {
     if (!isLoggedIn()) {
@@ -1147,6 +1175,34 @@ const MatchPage = () => {
       setCheckInCityTravelers(travelers);
       setShowCheckInModal(false);
     }} />
+
+      {/* ─── Peak Time 현질 유도 모달 ─── */}
+      <AnimatePresence>
+        {!isPlus && showCheckInModal === false && new Date().getHours() >= 20 && new Date().getHours() <= 23 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed left-4 right-4 z-40 bg-card rounded-2xl p-4 shadow-float border border-primary/20 flex items-center justify-between gap-4"
+            style={{ bottom: 'var(--toast-pb, 6rem)' }}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Zap size={14} className="text-primary fill-primary" />
+                <span className="text-xs font-extrabold text-primary">피크 타임 진행중!</span>
+              </div>
+              <p className="text-sm font-bold text-foreground truncate">지금 접속자가 가장 많아요.</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">Migo Plus로 부스트를 사용해보세요!</p>
+            </div>
+            <button onClick={() => setShowPlusModal(true)} className="shrink-0 px-4 py-2 gradient-primary text-primary-foreground font-bold text-xs rounded-xl shadow-md active:scale-95 transition-transform">
+              시작하기
+            </button>
+            <button onClick={(e) => { e.currentTarget.parentElement!.style.display = 'none'; }} className="absolute -top-2 -right-2 w-6 h-6 bg-muted rounded-full flex items-center justify-center shadow-sm border border-border">
+              <X size={12} className="text-muted-foreground" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── 슈퍼라이크 보상형 광고 오퍼 모달 ─── */}
       {showRewardedAdOffer && (

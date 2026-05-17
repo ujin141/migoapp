@@ -152,7 +152,7 @@ const TripMatchPage: React.FC = () => {
   // ── 광고 유무에 따른 Toast 기본 여백 조정 ──
   useEffect(() => {
     if (!isPlus && !isPremium) {
-      document.documentElement.style.setProperty('--toast-pb', '120px');
+      document.documentElement.style.setProperty('--toast-pb', '170px');
     } else {
       document.documentElement.style.removeProperty('--toast-pb');
     }

@@ -63,6 +63,7 @@ const ProfilePage = () => {
   const [myMeetings, setMyMeetings] = useState<any[]>([]);
   const [myPosts, setMyPosts] = useState<any[]>([]);
   const [likers, setLikers] = useState<any[]>([]); // 나를 좋아한 사람들
+  const [visitors, setVisitors] = useState<any[]>([]); // 최근 프로필 방문자
   const [showMyPosts, setShowMyPosts] = useState(false);
   const [selectedLiker, setSelectedLiker] = useState<any | null>(null);
   const [selectedLikerIdx, setSelectedLikerIdx] = useState<number>(0);
@@ -569,6 +570,38 @@ const ProfilePage = () => {
           if (likerProfiles) {
             const uniqueLikers = Array.from(new Map(likerProfiles.map((p: any) => [p.id, p])).values());
             setLikers(uniqueLikers.map((p: any) => ({
+              id: p.id,
+              name: p.name || t("match.traveler", "Traveler"),
+              photo: p.photo_url || '',
+              location: p.location || '',
+              age: p.age || '',
+              bio: p.bio || '',
+              languages: p.languages || [],
+              interests: p.interests || [],
+              mbti: p.mbti || '',
+              nationality: p.nationality || '',
+            })));
+          }
+        }
+      } catch(e) { console.error(e); }
+
+      // ─── 프로필 방문자 ───
+      try {
+        const { data: pvData } = await supabase
+          .from('profile_views')
+          .select('viewer_id')
+          .eq('viewed_id', user.id)
+          .order('viewed_at', { ascending: false })
+          .limit(10);
+        if (pvData && pvData.length > 0) {
+          const viewerIds = pvData.map((r: any) => r.viewer_id);
+          const { data: viewerProfiles } = await supabase
+            .from('profiles')
+            .select('id, name, photo_url, location, age, bio, languages, interests, mbti, nationality')
+            .in('id', viewerIds);
+          if (viewerProfiles) {
+            const uniqueViewers = Array.from(new Map(viewerProfiles.map((p: any) => [p.id, p])).values());
+            setVisitors(uniqueViewers.map((p: any) => ({
               id: p.id,
               name: p.name || t("match.traveler", "Traveler"),
               photo: p.photo_url || '',
@@ -1325,6 +1358,73 @@ const ProfilePage = () => {
               <span className="text-[14px] relative z-10">{t("auto.g_0891", "지금 확인하기 — Migo Plus")}</span>
               <Crown size={16} className="text-yellow-300 relative z-10" />
             </motion.button>
+          )}
+        </div>
+      )}
+
+      {/* ─── 최근 방문자 (현질 유도 탭) ─── */}
+      {visitors.length > 0 && (
+        <div className="mx-5 mt-6 pb-2 relative">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center">
+                <span className="text-[12px]">👀</span>
+              </div>
+              <h3 className="text-[16px] font-black text-foreground">최근 방문자</h3>
+            </div>
+            {!isPlus && (
+              <span className="text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Crown size={10} /> Plus
+              </span>
+            )}
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
+            {visitors.slice(0, isPlus ? 10 : 3).map((v, idx) => (
+              <motion.div
+                key={v.id}
+                whileTap={{ scale: 0.95 }}
+                className="relative w-16 h-16 shrink-0 rounded-full overflow-hidden cursor-pointer shadow-sm border border-border"
+                onClick={() => {
+                  if (!isPlus) setShowPlusModal(true);
+                  else { setSelectedLiker(v); setSelectedLikerIdx(idx); } // Reuse liker modal for simplicity
+                }}
+              >
+                {v.photo ? (
+                  <img
+                    src={v.photo}
+                    alt={v.name}
+                    className="w-full h-full object-cover"
+                    style={!isPlus ? { filter: 'blur(8px)', transform: 'scale(1.15)' } : {}}
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center bg-violet-500/20"
+                    style={!isPlus ? { filter: 'blur(8px)' } : {}}
+                  >
+                    <span className="text-foreground text-xl font-black opacity-60">{v.name[0]}</span>
+                  </div>
+                )}
+                
+                {!isPlus && (
+                  <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                    <Lock size={12} className="text-white drop-shadow-md" />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+          
+          {!isPlus && (
+            <div className="mt-1 bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border/50">
+              <div>
+                <p className="text-[12px] font-bold text-foreground">누가 나를 봤을까요?</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{visitors.length}명이 내 프로필을 확인했어요.</p>
+              </div>
+              <button onClick={() => setShowPlusModal(true)} className="px-3 py-1.5 bg-violet-500/10 text-violet-500 text-[11px] font-bold rounded-lg border border-violet-500/20">
+                확인하기
+              </button>
+            </div>
           )}
         </div>
       )}

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { createPortal } from "react-dom";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 // ─── Constants ───
 export const TRAVEL_STYLES = [
@@ -528,6 +529,8 @@ export const FilterModal = ({
   setCurrentIndex, setShowPlusModal
 }: any) => {
   const { t } = useTranslation();
+  const { isPlus: userPlus, isPremium } = useSubscription();
+  const hasAds = !userPlus && !isPremium;
 
   return createPortal(
     <AnimatePresence>
@@ -762,7 +765,7 @@ export const FilterModal = ({
             </div>
 
             {/* ── Sticky Footer: 확인 버튼 ── */}
-            <div className="shrink-0 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-border/50 bg-card">
+            <div className="shrink-0 px-5 py-4 border-t border-border/50 bg-card" style={{ paddingBottom: hasAds ? '170px' : 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => {

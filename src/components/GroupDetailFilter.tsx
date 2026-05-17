@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, RotateCcw, Check, MapPin, Calendar, Users, Compass, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type TravelStyle = "관광" | "맛집" | "자연" | "휴양" | "나이트라이프" | null;
@@ -46,6 +47,8 @@ export function countGroupDetailFilters(f: GroupDetailFilterState): number {
 // ─── Component ────────────────────────────────────────────────────────────────
 const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, value, onChange }) => {
   const { t } = useTranslation();
+  const { isPlus, isPremium } = useSubscription();
+  const hasAds = !isPlus && !isPremium;
   const [local, setLocal] = useState<GroupDetailFilterState>(value);
   useEffect(() => { if (open) setLocal(value); }, [open, value]);
 
@@ -292,7 +295,7 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
               </div>
 
               {/* Apply button */}
-              <div className="flex-shrink-0 bg-background border-t border-border px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+              <div className="flex-shrink-0 bg-background border-t border-border px-5 py-4" style={{ paddingBottom: hasAds ? "170px" : "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
                 <motion.button whileTap={{ scale: 0.97 }} onClick={handleApply}
                   className="w-full py-4 rounded-2xl font-extrabold text-base text-white shadow-lg gradient-primary relative overflow-hidden"
                 >
