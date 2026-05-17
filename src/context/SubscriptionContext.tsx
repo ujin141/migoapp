@@ -164,7 +164,12 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       .select("is_plus, plan, plus_expires_at, has_badge, profile_theme, nearby_expires_at")
       .eq("id", user.id)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        // DB 조회 실패 시 현재 구독 상태 유지 (free로 강제 전환하지 않음)
+        if (error) {
+          console.warn('[Subscription] profiles load error:', error.message);
+          return;
+        }
         if (data?.has_badge) setHasVerifiedBadge(true);
         if (data?.profile_theme && data.profile_theme !== 'default') setHasProfileTheme(true);
         if (data?.nearby_expires_at) {
@@ -198,8 +203,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
             supabase.from('profiles')
               .update({ plan: 'free', is_plus: false })
               .eq('id', user.id)
-              .then(({ error }) => {
-                if (error) console.warn('[Sub] 만료 해제 DB 업데이트 실패:', error.message);
+              .then(({ error: updateErr }) => {
+                if (updateErr) console.warn('[Sub] 만료 해제 DB 업데이트 실패:', updateErr.message);
               });
           }
         }
@@ -222,7 +227,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       });
 
     // 실시간 데이터 업데이트 구독 (아이템 + 구독 상태)
-    const channel = supabase.channel('user_subscription_realtime')
+    // 채널 이름에 user.id 포함: 유저 변경 시 채널 충돌 방지
+    const channel = supabase.channel(`user_subscription_realtime:${user.id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user_items', filter: `user_id=eq.${user.id}` }, (payload) => {
         if (payload.new) {
           const newItem = payload.new as any;

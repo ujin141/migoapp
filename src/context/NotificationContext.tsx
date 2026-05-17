@@ -95,6 +95,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [messageBanner, setMessageBanner] = useState<MessageBanner | null>(null);
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const unreadCount = notifs.filter((n) => !n.read && !readIds.has(n.id)).length;
 
@@ -281,8 +282,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             preview,
           });
 
-          // 4초 후 자동 닫기
-          setTimeout(() => setMessageBanner(null), 4000);
+          // 4초 후 자동 닫기 (이전 타이머 취소 후 재설정)
+          if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+          bannerTimerRef.current = setTimeout(() => setMessageBanner(null), 4000);
         }
       )
 
@@ -290,6 +292,11 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       supabase.removeChannel(channel);
+      // 컴포넌트 언마운트 시 pending 배너 타이머 정리
+      if (bannerTimerRef.current) {
+        clearTimeout(bannerTimerRef.current);
+        bannerTimerRef.current = null;
+      }
     };
   }, [user?.id, sessionReady]);
 

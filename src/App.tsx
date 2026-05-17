@@ -325,7 +325,9 @@ const AppContent = () => {
 
   // 체크인 스트리크: user 세션 시작 시 1회만 실행
   useEffect(() => {
-    if (user) checkInStreak();
+    if (user) {
+      try { checkInStreak(); } catch (err) { console.warn('[App] checkInStreak error:', err); }
+    }
   }, [user]);
 
   // ── GPS 권한 요청만: 위치 자동 업데이트 제거 (Apple 5.1.2 - 수동 체크인만 허용) ──

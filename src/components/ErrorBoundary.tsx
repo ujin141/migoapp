@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import i18n from "@/i18n";
 
 interface Props {
   children: ReactNode;
@@ -54,12 +55,14 @@ class ErrorBoundary extends Component<Props, State> {
               <AlertTriangle size={36} className="text-destructive mb-1" />
             </div>
             <h1 className="text-xl font-black text-foreground mb-2">
-              {isPageBoundary ? "Page Error" : "App Error"}
+              {isPageBoundary
+                ? i18n.t("error.pageTitle", "화면 오류")
+                : i18n.t("error.appTitle", "앱 오류")}
             </h1>
             <p className="text-sm text-muted-foreground mb-8">
               {isPageBoundary
-                ? "There was a problem loading this screen. Go back to home or restart the app."
-                : "An unexpected error occurred. The team has been notified automatically."}
+                ? i18n.t("error.pageDesc", "이 화면을 불러오는 중 문제가 발생했습니다. 홈으로 돌아가거나 앱을 재시작해주세요.")
+                : i18n.t("error.appDesc", "예상치 못한 오류가 발생했습니다. 앱을 재시작해주세요.")}
             </p>
             <div className="flex flex-col gap-3">
               {isPageBoundary && (
@@ -68,7 +71,7 @@ class ErrorBoundary extends Component<Props, State> {
                   className="w-full py-4 rounded-2xl bg-muted text-foreground font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
                 >
                   <Home size={18} />
-                  Go to Home
+                  {i18n.t("error.goHome", "홈으로 이동")}
                 </button>
               )}
               <button
@@ -76,7 +79,7 @@ class ErrorBoundary extends Component<Props, State> {
                 className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-black flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(45,212,191,0.25)] active:scale-95 transition-all"
               >
                 <RefreshCw size={18} />
-                Restart App
+                {i18n.t("error.restart", "앱 재시작")}
               </button>
             </div>
             {this.state.error?.message && (

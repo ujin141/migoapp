@@ -138,16 +138,20 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   useEffect(() => {
     if (!selectedChat) return;
     setLocalMessages([]);
-    fetchMessages().then((msgs) => {
-      const formatted = msgs.map(m => ({
-        id: m.id,
-        sender: m.sender_id === user?.id ? 'me' : 'other',
-        text: m.text,
-        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }));
-      setLocalMessages(formatted);
-    });
-  }, [selectedChat]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchMessages()
+      .then((msgs) => {
+        const formatted = msgs.map(m => ({
+          id: m.id,
+          sender: m.sender_id === user?.id ? 'me' : 'other',
+          text: m.text,
+          time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }));
+        setLocalMessages(formatted);
+      })
+      .catch((err) => {
+        console.warn('[ChatRoom] fetchMessages failed:', err);
+      });
+  }, [selectedChat, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 메시지 추가될 때마다 스크롤 아래로
   useEffect(() => {

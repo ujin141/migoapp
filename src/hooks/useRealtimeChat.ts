@@ -40,7 +40,11 @@ export const useRealtimeChat = ({ threadId, onMessage }: UseRealtimeChatOptions)
           onMessageRef.current(payload.new as RealtimeMessage);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('[RealtimeChat] channel error:', status, err);
+        }
+      });
 
     channelRef.current = channel;
 
@@ -63,14 +67,23 @@ export const useRealtimeChat = ({ threadId, onMessage }: UseRealtimeChatOptions)
   /** 기존 메시지 불러오기 */
   const fetchMessages = useCallback(async () => {
     if (!isSupabaseConfigured || !threadId) return [];
-    const { data } = await supabase
-      .from("messages")
-      .select("id, thread_id, sender_id, text, created_at")
-      .eq("thread_id", threadId)
-      // 🚨 [버그 수정] 최근 메시지부터 100개를 불러온 뒤, 프론트에서 시간순(오름차순)으로 역순 정렬해야 최신 대화가 보임
-      .order("created_at", { ascending: false })
-      .limit(100);
-    return (data ?? []).reverse() as RealtimeMessage[];
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id, thread_id, sender_id, text, created_at")
+        .eq("thread_id", threadId)
+        // 🚨 [버그 수정] 최근 메시지부터 100개를 불러온 뒤, 프론트에서 시간순(오름차순)으로 역순 정렬해야 최신 대화가 보임
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) {
+        console.warn('[RealtimeChat] fetchMessages error:', error.message);
+        return [];
+      }
+      return ((data ?? []).reverse()) as RealtimeMessage[];
+    } catch (err) {
+      console.error('[RealtimeChat] fetchMessages unexpected error:', err);
+      return [];
+    }
   }, [threadId]);
 
   return { sendMessage, fetchMessages };
