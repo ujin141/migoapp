@@ -95,6 +95,31 @@ function getCountryName(code: string, locale: string, fallback: string): string 
   }
 }
 
+/* ─── 데이터 상수 ──────────────────────────────── */
+const TRAVEL_STYLES = [
+  "배낭여행 🎒", "럭셔리 ✈️", "자연/트레킹 🏔️", "맛집탐방 🍜",
+  "문화/역사 🏛️", "해변/휴양 🏖️", "사진촬영 📸", "나이트라이프 🌙",
+  "쇼핑 🛍️", "힐링/요가 🧘", "로컬체험 🎭", "드라이브 🚗",
+];
+const REGIONS = [
+  "동남아 🌴", "유럽 🏰", "일본 🗾", "미국/캐나다 🗽",
+  "중남미 🌎", "오세아니아 🦘", "중동/아프리카 🌍",
+  "국내여행 🇰🇷", "중국/대만 🐉", "인도 🕌",
+];
+const PERSONALITIES = [
+  { id: "planner", emoji: "📋", label: "계획형 플래너" },
+  { id: "free",    emoji: "🌊", label: "자유로운 영혼" },
+  { id: "social",  emoji: "🤝", label: "소셜 버터플라이" },
+  { id: "solo",    emoji: "🎧", label: "나홀로 여행자" },
+  { id: "photo",   emoji: "📸", label: "사진 수집가" },
+  { id: "food",    emoji: "🍽️", label: "미식 탐험가" },
+];
+const STEPS = [
+  { emoji: "🤳", title: "프로필 사진", sub: "첫인상이 중요해요" },
+  { emoji: "✈️", title: "여행 취향", sub: "어떻게 여행하나요?" },
+  { emoji: "🧠", title: "나는 어떤 여행자?", sub: "선택 사항이에요" },
+];
+
 const MBTI_LIST = ["INTJ","INTP","ENTJ","ENTP","INFJ","INFP","ENFJ","ENFP","ISTJ","ISFJ","ESTJ","ESFJ","ISTP","ISFP","ESTP","ESFP"];
 const MBTI_COLOR: Record<string,string> = {
   INTJ:"indigo",INTP:"indigo",ENTJ:"purple",ENTP:"purple",
