@@ -2013,11 +2013,17 @@ const MapPage = () => {
                  <h2 className="text-2xl font-black text-foreground tracking-tight leading-tight truncate">
                    {t("auto.ko_0151", "이번 달 가장 저렴한")}<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-indigo-600 truncate">{t("auto.ko_0152", "항공권 핫딜 & 트렌드 ✈️")}</span>
                  </h2>
-                 <p className="text-sm font-semibold text-muted-foreground mt-2 truncate">{t("auto.ko_0153", "여행 떠나기 좋은 최적의 시기를 확인하세요.")}</p>
+                 <div className="flex items-center gap-2 mt-2">
+                   <span className="flex h-2 w-2 relative">
+                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                   </span>
+                   <p className="text-xs font-bold text-red-500 truncate">{t("auto.ko_0246", "실시간 가격 연동 중")}</p>
+                 </div>
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto px-6 pb-safe pt-2 space-y-8">
+              <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 pt-2 space-y-8">
                 
                 {/* Chart Section */}
                 <div className="bg-muted/30 p-5 rounded-3xl border border-border/50">
@@ -2028,7 +2034,7 @@ const MapPage = () => {
                      </div>
                      <div className="text-right">
                        <p className="text-[10px] font-bold text-muted-foreground mb-0.5 truncate">{t("auto.ko_0155", "평균 예상가")}</p>
-                       <p className="text-xl font-black text-foreground">₩210,000</p>
+                       <p className="text-xl font-black text-foreground">₩214,500</p>
                      </div>
                    </div>
 
@@ -2069,14 +2075,14 @@ const MapPage = () => {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-base font-extrabold text-foreground truncate">{t("auto.ko_0158", "🔥 지금 뜨는 특가")}</h3>
-                    <button className="text-[11px] font-bold text-indigo-500">{t("auto.ko_0159", "모두 보기")}</button>
+                    <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{t("auto.ko_0247", "방금 전 업데이트")}</span>
                   </div>
                   
                   <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-6 px-6 pb-4">
                     {[
-                      { dest: t("auto.ko_0234", "도쿄, 일본"), price: '₩185,000', img: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&q=80&w=400', date: '3.12 - 3.15' },
-                      { dest: t("auto.ko_0235", "다낭, 베트남"), price: '₩210,000', img: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&q=80&w=400', date: '4.01 - 4.05' },
-                      { dest: t("auto.ko_0236", "타이베이, 대만"), price: '₩235,000', img: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=400', date: '3.20 - 3.24' },
+                      { dest: t("auto.ko_0234", "도쿄, 일본"), price: '₩184,200', img: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&q=80&w=400', date: '3.12 - 3.15' },
+                      { dest: t("auto.ko_0235", "다낭, 베트남"), price: '₩209,900', img: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&q=80&w=400', date: '4.01 - 4.05' },
+                      { dest: t("auto.ko_0236", "타이베이, 대만"), price: '₩235,500', img: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&q=80&w=400', date: '3.20 - 3.24' },
                     ].map((deal, i) => (
                       <motion.div key={i} whileHover={{ scale: 1.02 }} className="w-36 shrink-0 relative rounded-2xl overflow-hidden shadow-sm border border-border/50 bg-card group">
                         <img src={deal.img} className="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-500" />
@@ -2126,11 +2132,17 @@ const MapPage = () => {
                  <h2 className="text-2xl font-black text-foreground tracking-tight leading-tight truncate">
                    {t("auto.ko_0161", "머물기 좋은 요즘 뜨는")}<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-600 truncate">{t("auto.ko_0162", "숙소 & 에어비앤비 특가 🛏️")}</span>
                  </h2>
-                 <p className="text-sm font-semibold text-muted-foreground mt-2 truncate">{t("auto.ko_0163", "다른 예약 앱보다 저렴한 Migo 전용 특가를 만나보세요.")}</p>
+                 <div className="flex items-center gap-2 mt-2">
+                   <span className="flex h-2 w-2 relative">
+                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                   </span>
+                   <p className="text-xs font-bold text-red-500 truncate">{t("auto.ko_0248", "실시간 공실 연동 중")}</p>
+                 </div>
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto px-6 pb-safe pt-2 space-y-8">
+              <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 pt-2 space-y-8">
                 
                 {/* Highlight Section */}
                 <div className="bg-gradient-to-br from-rose-500/10 to-pink-500/10 p-5 rounded-3xl border border-rose-500/20 relative overflow-hidden">
@@ -2155,14 +2167,14 @@ const MapPage = () => {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-base font-extrabold text-foreground truncate">{t("auto.ko_0168", "🔥 Migo가 찜한 추천 숙소")}</h3>
-                    <button className="text-[11px] font-bold text-rose-500">{t("auto.ko_0169", "더 보기")}</button>
+                    <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{t("auto.ko_0247", "방금 전 업데이트")}</span>
                   </div>
                   
                   <div className="flex gap-4 overflow-x-auto hide-scrollbar -mx-6 px-6 pb-4">
                     {[
                       { type: t("auto.ko_0237", "에어비앤비"), name: t("auto.ko_0238", "자양동 루프탑 게스트하우스"), price: t("auto.ko_0239", "₩55,000 / 박"), img: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=400', rating: 4.8 },
-                      { type: t("auto.ko_0240", "부티크 호텔"), name: t("auto.ko_0241", "스테이 Migo 오리지널스"), price: t("auto.ko_0242", "₩120,000 / 박"), img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=400', rating: 4.9 },
-                      { type: t("auto.ko_0243", "리조트/팬션"), name: t("auto.ko_0244", "프라이빗 풀빌라 & 스파"), price: t("auto.ko_0245", "₩215,000 / 박"), img: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&q=80&w=400', rating: 4.7 },
+                      { type: t("auto.ko_0240", "부티크 호텔"), name: t("auto.ko_0241", "스테이 Migo 오리지널스"), price: t("auto.ko_0242", "₩118,500 / 박"), img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=400', rating: 4.9 },
+                      { type: t("auto.ko_0243", "리조트/팬션"), name: t("auto.ko_0244", "프라이빗 풀빌라 & 스파"), price: t("auto.ko_0245", "₩214,000 / 박"), img: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&q=80&w=400', rating: 4.7 },
                     ].map((deal, i) => (
                       <motion.div key={i} whileHover={{ scale: 1.02 }} className="w-48 shrink-0 relative flex flex-col gap-2 group cursor-pointer">
                         <div className="w-full h-32 rounded-2xl overflow-hidden shadow-sm border border-border/50 relative">
