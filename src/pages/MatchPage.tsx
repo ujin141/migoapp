@@ -809,6 +809,47 @@ const MatchPage = () => {
     setMatchedThreadId(null);
   };
 
+  // 프로필 카드에서 직접 다이렉트 채팅 걸기
+  const handleDirectChat = useCallback(async (targetProfile: any) => {
+    if (!user || !targetProfile) return;
+    try {
+      const [u1, u2] = [user.id, targetProfile.id].sort();
+      // 이미 채팅방이 있는지 확인
+      const { data: existingMatch } = await supabase
+        .from('matches')
+        .select('thread_id')
+        .eq('user1_id', u1)
+        .eq('user2_id', u2)
+        .maybeSingle();
+
+      let threadId = existingMatch?.thread_id;
+
+      if (!threadId) {
+        const { data: thread } = await supabase.from('chat_threads').insert({ is_group: false }).select('id').single();
+        if (thread) {
+          threadId = thread.id;
+          await supabase.from('chat_members').insert([
+            { thread_id: thread.id, user_id: user.id }, 
+            { thread_id: thread.id, user_id: targetProfile.id }
+          ]);
+          await supabase.from('matches').upsert({
+            user1_id: u1,
+            user2_id: u2,
+            thread_id: thread.id
+          }, { onConflict: 'user1_id,user2_id' });
+        }
+      }
+
+      if (threadId) {
+        navigate('/chat', { state: { threadId } });
+      } else {
+        navigate('/chat');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [user, navigate]);
+
   // 프로필 조회 알림 (카드 탭 시 해당 유저에게 전송)
   const sendProfileViewNotif = async (targetUserId: string) => {
     if (!user || targetUserId === user.id) return; // 자기 자신 제외
@@ -865,7 +906,18 @@ const MatchPage = () => {
         <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-            {t("auto.fomo_live", "현재")} <span className="text-emerald-500 font-black">{Math.floor(Date.now() / 60000 % 150) + 120}명</span>{t("auto.fomo_finding", "이 동행을 찾고 있습니다")}
+            {(() => {
+              const cnt = Math.floor(Date.now() / 60000 % 150) + 120;
+              const text = t("hotplace.seekerCount", "지금 {{count}}명이 동반자를 찾고 있어요!", { count: cnt });
+              const parts = text.split(cnt.toString());
+              return (
+                <>
+                  {parts[0]}
+                  <span className="text-emerald-500 font-black">{cnt}</span>
+                  {parts[1]}
+                </>
+              );
+            })()}
           </span>
         </div>
       </motion.div>
@@ -982,7 +1034,7 @@ const MatchPage = () => {
         )}
         {remaining.length > 0 ? (
           <AnimatePresence>
-            {remaining.map((profile, i) => <SwipeCard key={profile.id} profile={profile} onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} isTop={i === remaining.length - 1} isSuperLiked={superLikedId === profile.id} onProfileView={sendProfileViewNotif} myProfile={user} myDailyMission={myDailyMission} onPremiumClick={() => setShowPlusModal(true)} />)}
+            {remaining.map((profile, i) => <SwipeCard key={profile.id} profile={profile} onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} onChat={() => handleDirectChat(profile)} isTop={i === remaining.length - 1} isSuperLiked={superLikedId === profile.id} onProfileView={sendProfileViewNotif} myProfile={user} myDailyMission={myDailyMission} onPremiumClick={() => setShowPlusModal(true)} />)}
           </AnimatePresence>
         ) : (
           <motion.div 

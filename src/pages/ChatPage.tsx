@@ -250,21 +250,17 @@ const ChatPage = () => {
       const { lat: latitude, lng: longitude } = pos;
         let locationStr = t("chat.unknownLocation");
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=${i18n.language}`, {
-            headers: {
-              // Nominatim 정책 필수: User-Agent 없으면 IP 차단 위험
-              'User-Agent': 'Migo-TravelApp/1.0 (contact@migo.app)'
-            }
-          });
+          const lang = i18n.language?.split('-')[0] || 'en';
+          const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=${lang}`);
           const data = await res.json();
-          const city = data.address?.city || data.address?.town || data.address?.borough || data.address?.suburb || data.address?.village || data.address?.county || "";
-          const country = data.address?.country || "";
+          const city = data.city || data.locality || "";
+          const country = data.countryName || "";
           if (city || country) locationStr = `${city ? city + ', ' : ''}${country}`;
         } catch (e) {
           // 논미나틸 API 실패 시 충표 구조 사용
           locationStr = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
         }
-        const text = t("auto.t_0019", `📍 현재 위치 공유\n${locationStr || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}`);
+        const text = `${t("auto.t_0019", "📍 현재 위치 공유")}\n${locationStr || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}`;
         await supabase.from('messages').insert({
           thread_id: selectedChat,
           sender_id: user.id,
@@ -608,17 +604,13 @@ const ChatPage = () => {
           {ads.map((ad, i) => {
             if (i > 0) return null;
             return (
-              <motion.div
+              <div
                 key={ad.id}
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
                 onClick={() => {
                   recordAdClick(ad.id, null);
-                  // Apple Guideline 3.2: 인앱 브라우저 사용 (Safari 앱 전환 방지)
                   if (ad.cta_url) Browser.open({ url: ad.cta_url, presentationStyle: 'fullscreen' });
                 }}
-                onViewportEnter={() => recordAdImpression(ad.id, null)}
-                className="w-full bg-card rounded-2xl overflow-hidden shadow-card cursor-pointer relative border border-border/30"
+                className="w-full bg-card rounded-2xl overflow-hidden shadow-card cursor-pointer relative border border-border/30 animate-in fade-in slide-in-from-top-2"
               >
                 {ad.image_url && <img src={ad.image_url} alt={ad.title} className="w-full h-16 object-cover opacity-80" loading="lazy" />}
                 <div className={`px-4 py-2.5 ${ad.image_url ? "absolute inset-0 bg-gradient-to-t from-black/80 flex flex-col justify-end" : ""}`}>
@@ -627,7 +619,7 @@ const ChatPage = () => {
                     <span className={`text-xs font-bold truncate ${ad.image_url ? "text-white" : "text-foreground"}`}>{ad.headline}</span>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>

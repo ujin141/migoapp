@@ -72,7 +72,7 @@ export const ChatProvider = ({
     const {
       data,
       error
-    } = await supabase.from('chat_members').select('thread_id, chat_threads ( id, is_group, created_at )').eq('user_id', user.id);
+    } = await supabase.from('chat_members').select('thread_id, chat_threads ( id, is_group, created_at, last_message )').eq('user_id', user.id);
     if (error || !data) return;
     const threadIds = data.map((m: any) => m.chat_threads?.id).filter(Boolean);
     if (threadIds.length === 0) {
@@ -145,7 +145,7 @@ export const ChatProvider = ({
         id: thread.id,
         name,
         photo,
-        lastMessage: lastMsg?.text ?? "New conversation",
+        lastMessage: lastMsg?.text ?? thread.last_message ?? "New conversation",
         time: lastMsg ? new Intl.DateTimeFormat(i18n.language || 'en', {
           hour: 'numeric',
           minute: 'numeric'

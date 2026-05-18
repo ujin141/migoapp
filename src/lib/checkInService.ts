@@ -19,15 +19,10 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{
 }> {
   try {
     const lang = i18n.language?.split('-')[0] || 'en';
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${lang}`, {
-      headers: {
-        "User-Agent": "MigoApp/1.0"
-      }
-    });
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${lang}`);
     const data = await res.json();
-    const addr = data.address || {};
-    const city = addr.city || addr.town || addr.village || addr.county || addr.state || i18n.t("auto.z_\uC54C\uC218\uC5C6\uB294\uB3C4\uC2DC_1078", "\uC54C\uC218\uC5C6\uB294\uB3C4\uC2DC");
-    const country = addr.country || i18n.t("auto.z_\uC54C\uC218\uC5C6\uB294\uAD6D\uAC00_1079", "\uC54C\uC218\uC5C6\uB294\uAD6D\uAC00");
+    const city = data.city || data.locality || i18n.t("auto.z_\uC54C\uC218\uC5C6\uB294\uB3C4\uC2DC_1078", "\uC54C\uC218\uC5C6\uB294\uB3C4\uC2DC");
+    const country = data.countryName || i18n.t("auto.z_\uC54C\uC218\uC5C6\uB294\uAD6D\uAC00_1079", "\uC54C\uC218\uC5C6\uB294\uAD6D\uAC00");
     return {
       city,
       country
@@ -76,17 +71,29 @@ export async function getMyCheckIn(userId: string): Promise<CheckIn | null> {
   } = await supabase.from("travel_check_ins")
     .select("id, user_id, city, country, lat, lng, checked_in_at, expires_at")
     .eq("user_id", userId).gt("expires_at", new Date().toISOString()).maybeSingle();
+  
+  // 현재 언어에 맞게 실시간 역지오코딩 처리 (UI 일관성 유지)
+  if (data) {
+    const geo = await reverseGeocode(data.lat, data.lng);
+    data.city = geo.city;
+    data.country = geo.country;
+  }
   return data;
 }
 
-// ── 같은 도시 여행자 목록 ─────────────────────────────────────
-export async function fetchCityTravelers(city: string, myUserId: string): Promise<CheckIn[]> {
+// ── 주변 여행자 목록 (Bounding Box) ─────────────────────────────────────
+export async function fetchCityTravelers(lat: number, lng: number, myUserId: string): Promise<CheckIn[]> {
+  const latDelta = 0.5; // 약 50km
+  const lngDelta = 0.5;
   const { data } = await supabase.from("travel_check_ins")
     .select("id, user_id, city, country, lat, lng, checked_in_at, expires_at, profile:profiles(id, name, photo_url, age, nationality)")
-    .ilike("city", `%${city}%`)
+    .gte('lat', lat - latDelta)
+    .lte('lat', lat + latDelta)
+    .gte('lng', lng - lngDelta)
+    .lte('lng', lng + lngDelta)
     .gt("expires_at", new Date().toISOString())
     .neq("user_id", myUserId)
-    .limit(50); // 도시 전체 조회 막기 (트래픽 최적화)
+    .limit(50); // 트래픽 최적화
   return data || [];
 }
 

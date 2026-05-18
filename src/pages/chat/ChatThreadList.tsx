@@ -103,10 +103,12 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
                   drag="x"
                   dragDirectionLock
                   dragConstraints={{ left: 0, right: swipedChatId === chat.id ? 140 : 0 }}
-                  animate={{ x: swipedChatId === chat.id ? 140 : 0 }}
+                  animate={{ 
+                    x: swipedChatId === chat.id ? 140 : 0,
+                    opacity: 1, 
+                    y: 0 
+                  }}
                   initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "100px" }}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   onDragEnd={(e, info) => {
                     if (swipedChatId === chat.id) {

@@ -95,15 +95,16 @@ export const getMigoPlusPricing = () => {
       month1: 14900,
       month3: 34900,   // ₩28,900 → ₩34,900 (UAC+운영비 반영)
       month12: 99900,  // ₩79,900 → ₩99,900 (연간 UAC 총비용 반영)
+      premiumMonth: 99900,
       format: (val: number) => `₩${val.toLocaleString()}`
     };
   }
 
   // USD prices by tier (net margin validated)
   const pricesUSD = {
-    1: { month1: 11.99, month3: 26.99, month12: 74.99 },
-    2: { month1: 7.99,  month3: 17.99, month12: 49.99 },
-    3: { month1: 4.99,  month3: 10.99, month12: 29.99 }
+    1: { month1: 11.99, month3: 26.99, month12: 74.99, premiumMonth: 74.99 },
+    2: { month1: 7.99,  month3: 17.99, month12: 49.99, premiumMonth: 49.99 },
+    3: { month1: 4.99,  month3: 10.99, month12: 29.99, premiumMonth: 29.99 }
   };
 
   const p = pricesUSD[tier];
@@ -113,6 +114,7 @@ export const getMigoPlusPricing = () => {
     month1: p.month1,
     month3: p.month3,
     month12: p.month12,
+    premiumMonth: p.premiumMonth,
     format: (val: number) => `$${val.toFixed(2)}`
   };
 };

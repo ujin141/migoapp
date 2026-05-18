@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, Users, RotateCcw, Check, ChevronDown, Search } from "lucide-react";
 import { useGlobalFilter } from "@/context/GlobalFilterContext";
 import { useTranslation } from "react-i18next";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 // ──────────────────────────────────────────────
 // Popular destinations (quick select)
@@ -222,6 +223,7 @@ const GlobalFilter: React.FC<GlobalFilterProps> = ({
   open,
   onClose
 }) => {
+  const { isPlus, isPremium } = useSubscription();
   const {
     filters,
     setDestination,
@@ -489,7 +491,7 @@ const GlobalFilter: React.FC<GlobalFilterProps> = ({
 
             {/* ── Apply button — sticky bottom ── */}
             <div className="sticky bottom-0 bg-background border-t border-border px-5 py-4" style={{
-          paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))"
+          paddingBottom: (!isPlus && !isPremium) ? "170px" : "calc(1rem + env(safe-area-inset-bottom, 0px))"
         }}>
               <motion.button whileTap={{
             scale: 0.97

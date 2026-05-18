@@ -23,35 +23,35 @@ interface MigoPlusModalProps {
   defaultPlan?: "plus" | "premium";
 }
 
-// ── 플랜 기능 정의 ──────────────────────────────────────────
-const PLUS_FEATURES = [
-  { icon: Heart,          label: i18n.t("auto.g_0112", "일일 좋아요"),        free: i18n.t("auto.g_0113", "10개/일"),    plus: i18n.t("auto.g_0114", "50개/일") },
-  { icon: Star,           label: i18n.t("auto.g_0115", "슈퍼라이크"),          free: i18n.t("auto.g_0116", "1개/일"),     plus: i18n.t("auto.g_0117", "5개/일") },
-  { icon: Eye,            label: i18n.t("auto.g_0118", "나를 좋아한 사람"),    free: i18n.t("auto.g_0119", "숨김"),       plus: i18n.t("auto.g_0120", "전체 공개") },
-  { icon: Zap,            label: i18n.t("auto.g_0121", "프로필 부스트"),       free: "❌",         plus: i18n.t("auto.g_0122", "월 1회 무료") },
-  { icon: Filter,         label: i18n.t("auto.g_0123", "고급 필터"),           free: i18n.t("auto.g_0124", "기본만"),     plus: i18n.t("auto.g_0125", "MBTI·언어·나이") },
-  { icon: Globe,          label: i18n.t("auto.g_0126", "글로벌 매칭"),         free: i18n.t("auto.g_0127", "근처만"),     plus: i18n.t("auto.g_0128", "전세계") },
-  { icon: Dna,            label: i18n.t("auto.g_0129", "여행 DNA 리포트"),     free: "❌",         plus: i18n.t("auto.g_0130", "전체 공개") },
-  { icon: Clock,          label: i18n.t("auto.g_0131", "지금여기있어요"),       free: i18n.t("auto.g_0132", "일반"),       plus: i18n.t("auto.g_0133", "최상단 고정") },
-  { icon: MessageCircle,  label: i18n.t("auto.g_0134", "읽음 확인"),           free: "❌",         plus: "✅" },
-  { icon: Shield,         label: i18n.t("auto.g_0135", "안전 기능"),           free: i18n.t("auto.g_0136", "기본"),       plus: i18n.t("auto.g_0137", "긴급 연락 우선") },
-  { icon: Sparkles,       label: i18n.t("auto.g_0138", "광고 제거"),           free: i18n.t("auto.g_0139", "광고 있음"),  plus: i18n.t("auto.g_0140", "광고 없음") },
-];
-
-const PREMIUM_ONLY_FEATURES = [
-  { icon: InfinityIcon, label: i18n.t("auto.g_0141", "좋아요/슈퍼라이크 무제한"), desc: i18n.t("auto.g_0142", "매칭 제한 해제 및 상한 없이 무제한 사용") },
-  { icon: Crown,        label: i18n.t("auto.g_0143", "프리미엄 그룹 무제한"),    desc: i18n.t("auto.g_0144", "검증된 고급 프리미엄 럭셔리 모임 무제한 입장") },
-  { icon: Users,        label: i18n.t("auto.g_0145", "프리미엄 전용 모임 개설"), desc: i18n.t("auto.g_0146", "엄선된 프리미엄 회원을 위한 프라이빗 모임 개설권") },
-  { icon: Award,        label: i18n.t("auto.g_0147", "동행 완료 리뷰 뱃지"),     desc: i18n.t("auto.g_0148", "프로필 강조 왕관 뱃지 표시 + 신뢰도 극대화") },
-  { icon: Palette,      label: i18n.t("auto.g_0149", "프리미엄 전용 프로필"),    desc: i18n.t("auto.g_0150", "VIP만을 위한 독점 테마·아이콘 자동 적용") },
-  { icon: Bot,          label: i18n.t("auto.g_0151", "AI 맞춤 일정 생성"),       desc: i18n.t("auto.g_0152", "GPT를 활용한 AI 여행 일정 큐레이션 제공") },
-];
-
 // ── 메인 컴포넌트 ───────────────────────────────────────────
 const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalProps) => {
   const { isPlus, isPremium, purchaseSubscriptionIAP, restorePurchasesIAP } = useSubscription();
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
+
+  // ── 플랜 기능 정의 ──────────────────────────────────────────
+  const PLUS_FEATURES = [
+    { icon: Heart,          label: t("auto.g_0112", "일일 좋아요"),        free: t("auto.g_0113", "10개/일"),    plus: t("auto.g_0114", "50개/일") },
+    { icon: Star,           label: t("auto.g_0115", "슈퍼라이크"),          free: t("auto.g_0116", "1개/일"),     plus: t("auto.g_0117", "5개/일") },
+    { icon: Eye,            label: t("auto.g_0118", "나를 좋아한 사람"),    free: t("auto.g_0119", "숨김"),       plus: t("auto.g_0120", "전체 공개") },
+    { icon: Zap,            label: t("auto.g_0121", "프로필 부스트"),       free: "❌",         plus: t("auto.g_0122", "월 1회 무료") },
+    { icon: Filter,         label: t("auto.g_0123", "고급 필터"),           free: t("auto.g_0124", "기본만"),     plus: t("auto.g_0125", "MBTI·언어·나이") },
+    { icon: Globe,          label: t("auto.g_0126", "글로벌 매칭"),         free: t("auto.g_0127", "근처만"),     plus: t("auto.g_0128", "전세계") },
+    { icon: Dna,            label: t("auto.g_0129", "여행 DNA 리포트"),     free: "❌",         plus: t("auto.g_0130", "전체 공개") },
+    { icon: Clock,          label: t("auto.g_0131", "지금여기있어요"),       free: t("auto.g_0132", "일반"),       plus: t("auto.g_0133", "최상단 고정") },
+    { icon: MessageCircle,  label: t("auto.g_0134", "읽음 확인"),           free: "❌",         plus: "✅" },
+    { icon: Shield,         label: t("auto.g_0135", "안전 기능"),           free: t("auto.g_0136", "기본"),       plus: t("auto.g_0137", "긴급 연락 우선") },
+    { icon: Sparkles,       label: t("auto.g_0138", "광고 제거"),           free: t("auto.g_0139", "광고 있음"),  plus: t("auto.g_0140", "광고 없음") },
+  ];
+
+  const PREMIUM_ONLY_FEATURES = [
+    { icon: InfinityIcon, label: t("auto.g_0141", "좋아요/슈퍼라이크 무제한"), desc: t("auto.g_0142", "매칭 제한 해제 및 상한 없이 무제한 사용") },
+    { icon: Crown,        label: t("auto.g_0143", "프리미엄 그룹 무제한"),    desc: t("auto.g_0144", "검증된 고급 프리미엄 럭셔리 모임 무제한 입장") },
+    { icon: Users,        label: t("auto.g_0145", "프리미엄 전용 모임 개설"), desc: t("auto.g_0146", "엄선된 프리미엄 회원을 위한 프라이빗 모임 개설권") },
+    { icon: Award,        label: t("auto.g_0147", "동행 완료 리뷰 뱃지"),     desc: t("auto.g_0148", "프로필 강조 왕관 뱃지 표시 + 신뢰도 극대화") },
+    { icon: Palette,      label: t("auto.g_0149", "프리미엄 전용 프로필"),    desc: t("auto.g_0150", "VIP만을 위한 독점 테마·아이콘 자동 적용") },
+    { icon: Bot,          label: t("auto.g_0151", "AI 맞춤 일정 생성"),       desc: t("auto.g_0152", "GPT를 활용한 AI 여행 일정 큐레이션 제공") },
+  ];
 
   // 탭: plus | premium
   const [activePlan, setActivePlan] = useState<"plus" | "premium">(defaultPlan);
@@ -66,15 +66,14 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
 
   // ── 선택한 플랜의 금액 계산  // App Store Connect 등록 상품 기준
   const plusPrices = {
-    monthly:   { krw: pricing.month1,  label: i18n.t("auto.g_0153", "1개월"),  badge: null },
-    quarterly: { krw: pricing.month3,  label: i18n.t("auto.g_0154", "3개월"),  badge: `${Math.round((1 - pricing.month3 / (pricing.month1 * 3)) * 100)}% OFF` },
-    yearly:    { krw: pricing.month12, label: i18n.t("auto.g_0155", "12개월"), badge: `${Math.round((1 - pricing.month12 / (pricing.month1 * 12)) * 100)}% OFF` },
+    monthly:   { price: pricing.month1,  label: t("auto.g_0153", "1개월"),  badge: null },
+    quarterly: { price: pricing.month3,  label: t("auto.g_0154", "3개월"),  badge: `${Math.round((1 - pricing.month3 / (pricing.month1 * 3)) * 100)}% OFF` },
+    yearly:    { price: pricing.month12, label: t("auto.g_0155", "12개월"), badge: `${Math.round((1 - pricing.month12 / (pricing.month1 * 12)) * 100)}% OFF` },
   };
-  const PREMIUM_KRW = 99900;
 
-  const selectedKrw = activePlan === "premium"
-    ? PREMIUM_KRW
-    : plusPrices[billingCycle].krw;
+  const selectedPrice = activePlan === "premium"
+    ? pricing.premiumMonth
+    : plusPrices[billingCycle].price;
 
   const selectedLabel = activePlan === "premium"
     ? t("auto.g_0156", "1개월")
@@ -243,11 +242,11 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                                 )}
                                 <p className="text-[10px] text-muted-foreground">{p.label}</p>
                                 <p className="text-sm font-extrabold text-foreground mt-0.5">
-                                  {pricing.format(p.krw)}
+                                  {pricing.format(p.price)}
                                 </p>
                                 {cycle !== "monthly" && (
                                   <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
-                                    {t("auto.g_0089", "/ month")}{pricing.format(Math.round(p.krw / (cycle === "quarterly" ? 3 : 12)))}
+                                    {t("auto.g_0089", "/ month")}{pricing.format(Math.round(p.price / (cycle === "quarterly" ? 3 : 12)))}
                                   </p>
                                 )}
                               </button>
@@ -296,7 +295,7 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
                         <h2 className="text-xl font-extrabold relative z-10">Migo Premium</h2>
                         <p className="text-white/80 text-xs mt-0.5 relative z-10 truncate">{t("auto.g_0092", "최고급 여행 메이트 경험")}</p>
                         <div className="mt-2 relative z-10">
-                          <span className="text-2xl font-extrabold">{pricing.format(PREMIUM_KRW)}</span>
+                          <span className="text-2xl font-extrabold">{pricing.format(pricing.premiumMonth)}</span>
                           <span className="text-white/70 text-xs ml-1 truncate">{t("auto.g_0093", "/ 월")}</span>
                         </div>
                       </div>

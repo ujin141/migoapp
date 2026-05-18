@@ -6,63 +6,65 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
+import { createPortal } from "react-dom";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 // ─── 자동완성 데이터 ────────────────────────────────────────────────────────
 const DESTINATIONS = [
-  { name: i18n.t("auto.ko_0286", "서울"), country: i18n.t("auto.ko_0287", "대한민국"), emoji: "🇰🇷" },
-  { name: i18n.t("auto.ko_0288", "부산"), country: i18n.t("auto.ko_0289", "대한민국"), emoji: "🇰🇷" },
-  { name: i18n.t("auto.ko_0290", "제주"), country: i18n.t("auto.ko_0291", "대한민국"), emoji: "🇰🇷" },
-  { name: i18n.t("auto.ko_0292", "경주"), country: i18n.t("auto.ko_0293", "대한민국"), emoji: "🇰🇷" },
-  { name: i18n.t("auto.ko_0294", "강릉"), country: i18n.t("auto.ko_0295", "대한민국"), emoji: "🇰🇷" },
-  { name: i18n.t("auto.ko_0296", "전주"), country: i18n.t("auto.ko_0297", "대한민국"), emoji: "🇰🇷" },
-  { name: i18n.t("auto.ko_0298", "도쿄"), country: i18n.t("auto.ko_0299", "일본"), emoji: "🇯🇵" },
-  { name: i18n.t("auto.ko_0300", "오사카"), country: i18n.t("auto.ko_0301", "일본"), emoji: "🇯🇵" },
-  { name: i18n.t("auto.ko_0302", "교토"), country: i18n.t("auto.ko_0303", "일본"), emoji: "🇯🇵" },
-  { name: i18n.t("auto.ko_0304", "후쿠오카"), country: i18n.t("auto.ko_0305", "일본"), emoji: "🇯🇵" },
-  { name: i18n.t("auto.ko_0306", "삿포로"), country: i18n.t("auto.ko_0307", "일본"), emoji: "🇯🇵" },
-  { name: i18n.t("auto.ko_0308", "오키나와"), country: i18n.t("auto.ko_0309", "일본"), emoji: "🇯🇵" },
-  { name: i18n.t("auto.ko_0310", "방콕"), country: i18n.t("auto.ko_0311", "태국"), emoji: "🇹🇭" },
-  { name: i18n.t("auto.ko_0312", "치앙마이"), country: i18n.t("auto.ko_0313", "태국"), emoji: "🇹🇭" },
-  { name: i18n.t("auto.ko_0314", "푸켓"), country: i18n.t("auto.ko_0315", "태국"), emoji: "🇹🇭" },
-  { name: i18n.t("auto.ko_0316", "발리"), country: i18n.t("auto.ko_0317", "인도네시아"), emoji: "🇮🇩" },
-  { name: i18n.t("auto.ko_0318", "싱가포르"), country: i18n.t("auto.ko_0319", "싱가포르"), emoji: "🇸🇬" },
-  { name: i18n.t("auto.ko_0320", "쿠알라룸푸르"), country: i18n.t("auto.ko_0321", "말레이시아"), emoji: "🇲🇾" },
-  { name: i18n.t("auto.ko_0322", "코타키나발루"), country: i18n.t("auto.ko_0323", "말레이시아"), emoji: "🇲🇾" },
-  { name: i18n.t("auto.ko_0324", "다낭"), country: i18n.t("auto.ko_0325", "베트남"), emoji: "🇻🇳" },
-  { name: i18n.t("auto.ko_0326", "호치민"), country: i18n.t("auto.ko_0327", "베트남"), emoji: "🇻🇳" },
-  { name: i18n.t("auto.ko_0328", "하노이"), country: i18n.t("auto.ko_0329", "베트남"), emoji: "🇻🇳" },
-  { name: i18n.t("auto.ko_0330", "나트랑"), country: i18n.t("auto.ko_0331", "베트남"), emoji: "🇻🇳" },
-  { name: i18n.t("auto.ko_0332", "마닐라"), country: i18n.t("auto.ko_0333", "필리핀"), emoji: "🇵🇭" },
-  { name: i18n.t("auto.ko_0334", "세부"), country: i18n.t("auto.ko_0335", "필리핀"), emoji: "🇵🇭" },
-  { name: i18n.t("auto.ko_0336", "보라카이"), country: i18n.t("auto.ko_0337", "필리핀"), emoji: "🇵🇭" },
-  { name: i18n.t("auto.ko_0338", "타이베이"), country: i18n.t("auto.ko_0339", "대만"), emoji: "🇹🇼" },
-  { name: i18n.t("auto.ko_0340", "가오슝"), country: i18n.t("auto.ko_0341", "대만"), emoji: "🇹🇼" },
-  { name: i18n.t("auto.ko_0342", "홍콩"), country: i18n.t("auto.ko_0343", "홍콩"), emoji: "🇭🇰" },
-  { name: i18n.t("auto.ko_0344", "마카오"), country: i18n.t("auto.ko_0345", "마카오"), emoji: "🇲🇴" },
-  { name: i18n.t("auto.ko_0346", "파리"), country: i18n.t("auto.ko_0347", "프랑스"), emoji: "🇫🇷" },
-  { name: i18n.t("auto.ko_0348", "로마"), country: i18n.t("auto.ko_0349", "이탈리아"), emoji: "🇮🇹" },
-  { name: i18n.t("auto.ko_0350", "바르셀로나"), country: i18n.t("auto.ko_0351", "스페인"), emoji: "🇪🇸" },
-  { name: i18n.t("auto.ko_0352", "런던"), country: i18n.t("auto.ko_0353", "영국"), emoji: "🇬🇧" },
-  { name: i18n.t("auto.ko_0354", "암스테르담"), country: i18n.t("auto.ko_0355", "네덜란드"), emoji: "🇳🇱" },
-  { name: i18n.t("auto.ko_0356", "베를린"), country: i18n.t("auto.ko_0357", "독일"), emoji: "🇩🇪" },
-  { name: i18n.t("auto.ko_0358", "프라하"), country: i18n.t("auto.ko_0359", "체코"), emoji: "🇨🇿" },
-  { name: i18n.t("auto.ko_0360", "부다페스트"), country: i18n.t("auto.ko_0361", "헝가리"), emoji: "🇭🇺" },
-  { name: i18n.t("auto.ko_0362", "비엔나"), country: i18n.t("auto.ko_0363", "오스트리아"), emoji: "🇦🇹" },
-  { name: i18n.t("auto.ko_0364", "인터라켄"), country: i18n.t("auto.ko_0365", "스위스"), emoji: "🇨🇭" },
-  { name: i18n.t("auto.ko_0366", "취리히"), country: i18n.t("auto.ko_0367", "스위스"), emoji: "🇨🇭" },
-  { name: i18n.t("auto.ko_0368", "리스본"), country: i18n.t("auto.ko_0369", "포르투갈"), emoji: "🇵🇹" },
-  { name: i18n.t("auto.ko_0370", "아테네"), country: i18n.t("auto.ko_0371", "그리스"), emoji: "🇬🇷" },
-  { name: i18n.t("auto.ko_0372", "두바이"), country: "UAE", emoji: "🇦🇪" },
-  { name: i18n.t("auto.ko_0373", "이스탄불"), country: i18n.t("auto.ko_0374", "터키"), emoji: "🇹🇷" },
-  { name: i18n.t("auto.ko_0375", "뉴욕"), country: i18n.t("auto.ko_0376", "미국"), emoji: "🇺🇸" },
-  { name: i18n.t("auto.ko_0377", "로스앤젤레스"), country: i18n.t("auto.ko_0378", "미국"), emoji: "🇺🇸" },
-  { name: i18n.t("auto.ko_0379", "하와이"), country: i18n.t("auto.ko_0380", "미국"), emoji: "🇺🇸" },
-  { name: i18n.t("auto.ko_0381", "시드니"), country: i18n.t("auto.ko_0382", "호주"), emoji: "🇦🇺" },
-  { name: i18n.t("auto.ko_0383", "멜버른"), country: i18n.t("auto.ko_0384", "호주"), emoji: "🇦🇺" },
-  { name: i18n.t("auto.ko_0385", "퀸즈타운"), country: i18n.t("auto.ko_0386", "뉴질랜드"), emoji: "🇳🇿" },
-  { name: i18n.t("auto.ko_0387", "몰디브"), country: i18n.t("auto.ko_0388", "몰디브"), emoji: "🇲🇻" },
-  { name: i18n.t("auto.ko_0389", "사이판"), country: i18n.t("auto.ko_0390", "사이판"), emoji: "🏝️" },
-  { name: i18n.t("auto.ko_0391", "괌"), country: i18n.t("auto.ko_0392", "괌"), emoji: "🏝️" }
+  { name: i18n.t("auto.ko_0286", "서울"), country: i18n.t("auto.ko_0287", "대한민국"), emoji: "🇰🇷", keys: ["서울", "seoul", "대한민국", "korea"] },
+  { name: i18n.t("auto.ko_0288", "부산"), country: i18n.t("auto.ko_0289", "대한민국"), emoji: "🇰🇷", keys: ["부산", "busan", "대한민국", "korea"] },
+  { name: i18n.t("auto.ko_0290", "제주"), country: i18n.t("auto.ko_0291", "대한민국"), emoji: "🇰🇷", keys: ["제주", "jeju", "대한민국", "korea"] },
+  { name: i18n.t("auto.ko_0292", "경주"), country: i18n.t("auto.ko_0293", "대한민국"), emoji: "🇰🇷", keys: ["경주", "gyeongju", "대한민국", "korea"] },
+  { name: i18n.t("auto.ko_0294", "강릉"), country: i18n.t("auto.ko_0295", "대한민국"), emoji: "🇰🇷", keys: ["강릉", "gangneung", "대한민국", "korea"] },
+  { name: i18n.t("auto.ko_0296", "전주"), country: i18n.t("auto.ko_0297", "대한민국"), emoji: "🇰🇷", keys: ["전주", "jeonju", "대한민국", "korea"] },
+  { name: i18n.t("auto.ko_0298", "도쿄"), country: i18n.t("auto.ko_0299", "일본"), emoji: "🇯🇵", keys: ["도쿄", "tokyo", "일본", "japan"] },
+  { name: i18n.t("auto.ko_0300", "오사카"), country: i18n.t("auto.ko_0301", "일본"), emoji: "🇯🇵", keys: ["오사카", "osaka", "일본", "japan"] },
+  { name: i18n.t("auto.ko_0302", "교토"), country: i18n.t("auto.ko_0303", "일본"), emoji: "🇯🇵", keys: ["교토", "kyoto", "일본", "japan"] },
+  { name: i18n.t("auto.ko_0304", "후쿠오카"), country: i18n.t("auto.ko_0305", "일본"), emoji: "🇯🇵", keys: ["후쿠오카", "fukuoka", "일본", "japan"] },
+  { name: i18n.t("auto.ko_0306", "삿포로"), country: i18n.t("auto.ko_0307", "일본"), emoji: "🇯🇵", keys: ["삿포로", "sapporo", "일본", "japan"] },
+  { name: i18n.t("auto.ko_0308", "오키나와"), country: i18n.t("auto.ko_0309", "일본"), emoji: "🇯🇵", keys: ["오키나와", "okinawa", "일본", "japan"] },
+  { name: i18n.t("auto.ko_0310", "방콕"), country: i18n.t("auto.ko_0311", "태국"), emoji: "🇹🇭", keys: ["방콕", "bangkok", "태국", "thailand"] },
+  { name: i18n.t("auto.ko_0312", "치앙마이"), country: i18n.t("auto.ko_0313", "태국"), emoji: "🇹🇭", keys: ["치앙마이", "chiang mai", "태국", "thailand"] },
+  { name: i18n.t("auto.ko_0314", "푸켓"), country: i18n.t("auto.ko_0315", "태국"), emoji: "🇹🇭", keys: ["푸켓", "phuket", "태국", "thailand"] },
+  { name: i18n.t("auto.ko_0316", "발리"), country: i18n.t("auto.ko_0317", "인도네시아"), emoji: "🇮🇩", keys: ["발리", "bali", "인도네시아", "indonesia"] },
+  { name: i18n.t("auto.ko_0318", "싱가포르"), country: i18n.t("auto.ko_0319", "싱가포르"), emoji: "🇸🇬", keys: ["싱가포르", "singapore", "싱가포르", "singapore"] },
+  { name: i18n.t("auto.ko_0320", "쿠알라룸푸르"), country: i18n.t("auto.ko_0321", "말레이시아"), emoji: "🇲🇾", keys: ["쿠알라룸푸르", "kuala lumpur", "말레이시아", "malaysia"] },
+  { name: i18n.t("auto.ko_0322", "코타키나발루"), country: i18n.t("auto.ko_0323", "말레이시아"), emoji: "🇲🇾", keys: ["코타키나발루", "kota kinabalu", "말레이시아", "malaysia"] },
+  { name: i18n.t("auto.ko_0324", "다낭"), country: i18n.t("auto.ko_0325", "베트남"), emoji: "🇻🇳", keys: ["다낭", "da nang", "베트남", "vietnam"] },
+  { name: i18n.t("auto.ko_0326", "호치민"), country: i18n.t("auto.ko_0327", "베트남"), emoji: "🇻🇳", keys: ["호치민", "ho chi minh", "베트남", "vietnam"] },
+  { name: i18n.t("auto.ko_0328", "하노이"), country: i18n.t("auto.ko_0329", "베트남"), emoji: "🇻🇳", keys: ["하노이", "hanoi", "베트남", "vietnam"] },
+  { name: i18n.t("auto.ko_0330", "나트랑"), country: i18n.t("auto.ko_0331", "베트남"), emoji: "🇻🇳", keys: ["나트랑", "nha trang", "베트남", "vietnam"] },
+  { name: i18n.t("auto.ko_0332", "마닐라"), country: i18n.t("auto.ko_0333", "필리핀"), emoji: "🇵🇭", keys: ["마닐라", "manila", "필리핀", "philippines"] },
+  { name: i18n.t("auto.ko_0334", "세부"), country: i18n.t("auto.ko_0335", "필리핀"), emoji: "🇵🇭", keys: ["세부", "cebu", "필리핀", "philippines"] },
+  { name: i18n.t("auto.ko_0336", "보라카이"), country: i18n.t("auto.ko_0337", "필리핀"), emoji: "🇵🇭", keys: ["보라카이", "boracay", "필리핀", "philippines"] },
+  { name: i18n.t("auto.ko_0338", "타이베이"), country: i18n.t("auto.ko_0339", "대만"), emoji: "🇹🇼", keys: ["타이베이", "taipei", "대만", "taiwan"] },
+  { name: i18n.t("auto.ko_0340", "가오슝"), country: i18n.t("auto.ko_0341", "대만"), emoji: "🇹🇼", keys: ["가오슝", "kaohsiung", "대만", "taiwan"] },
+  { name: i18n.t("auto.ko_0342", "홍콩"), country: i18n.t("auto.ko_0343", "홍콩"), emoji: "🇭🇰", keys: ["홍콩", "hong kong", "홍콩", "hong kong"] },
+  { name: i18n.t("auto.ko_0344", "마카오"), country: i18n.t("auto.ko_0345", "마카오"), emoji: "🇲🇴", keys: ["마카오", "macau", "마카오", "macau"] },
+  { name: i18n.t("auto.ko_0346", "파리"), country: i18n.t("auto.ko_0347", "프랑스"), emoji: "🇫🇷", keys: ["파리", "paris", "프랑스", "france"] },
+  { name: i18n.t("auto.ko_0348", "로마"), country: i18n.t("auto.ko_0349", "이탈리아"), emoji: "🇮🇹", keys: ["로마", "rome", "이탈리아", "italy"] },
+  { name: i18n.t("auto.ko_0350", "바르셀로나"), country: i18n.t("auto.ko_0351", "스페인"), emoji: "🇪🇸", keys: ["바르셀로나", "barcelona", "스페인", "spain"] },
+  { name: i18n.t("auto.ko_0352", "런던"), country: i18n.t("auto.ko_0353", "영국"), emoji: "🇬🇧", keys: ["런던", "london", "영국", "uk"] },
+  { name: i18n.t("auto.ko_0354", "암스테르담"), country: i18n.t("auto.ko_0355", "네덜란드"), emoji: "🇳🇱", keys: ["암스테르담", "amsterdam", "네덜란드", "netherlands"] },
+  { name: i18n.t("auto.ko_0356", "베를린"), country: i18n.t("auto.ko_0357", "독일"), emoji: "🇩🇪", keys: ["베를린", "berlin", "독일", "germany"] },
+  { name: i18n.t("auto.ko_0358", "프라하"), country: i18n.t("auto.ko_0359", "체코"), emoji: "🇨🇿", keys: ["프라하", "prague", "체코", "czech"] },
+  { name: i18n.t("auto.ko_0360", "부다페스트"), country: i18n.t("auto.ko_0361", "헝가리"), emoji: "🇭🇺", keys: ["부다페스트", "budapest", "헝가리", "hungary"] },
+  { name: i18n.t("auto.ko_0362", "비엔나"), country: i18n.t("auto.ko_0363", "오스트리아"), emoji: "🇦🇹", keys: ["비엔나", "vienna", "오스트리아", "austria"] },
+  { name: i18n.t("auto.ko_0364", "인터라켄"), country: i18n.t("auto.ko_0365", "스위스"), emoji: "🇨🇭", keys: ["인터라켄", "interlaken", "스위스", "switzerland"] },
+  { name: i18n.t("auto.ko_0366", "취리히"), country: i18n.t("auto.ko_0367", "스위스"), emoji: "🇨🇭", keys: ["취리히", "zurich", "스위스", "switzerland"] },
+  { name: i18n.t("auto.ko_0368", "리스본"), country: i18n.t("auto.ko_0369", "포르투갈"), emoji: "🇵🇹", keys: ["리스본", "lisbon", "포르투갈", "portugal"] },
+  { name: i18n.t("auto.ko_0370", "아테네"), country: i18n.t("auto.ko_0371", "그리스"), emoji: "🇬🇷", keys: ["아테네", "athens", "그리스", "greece"] },
+  { name: i18n.t("auto.ko_0372", "두바이"), country: "UAE", emoji: "🇦🇪", keys: ["두바이", "dubai", "UAE", "uae"] },
+  { name: i18n.t("auto.ko_0373", "이스탄불"), country: i18n.t("auto.ko_0374", "터키"), emoji: "🇹🇷", keys: ["이스탄불", "istanbul", "터키", "turkey"] },
+  { name: i18n.t("auto.ko_0375", "뉴욕"), country: i18n.t("auto.ko_0376", "미국"), emoji: "🇺🇸", keys: ["뉴욕", "new york", "미국", "usa"] },
+  { name: i18n.t("auto.ko_0377", "로스앤젤레스"), country: i18n.t("auto.ko_0378", "미국"), emoji: "🇺🇸", keys: ["로스앤젤레스", "los angeles", "미국", "usa"] },
+  { name: i18n.t("auto.ko_0379", "하와이"), country: i18n.t("auto.ko_0380", "미국"), emoji: "🇺🇸", keys: ["하와이", "hawaii", "미국", "usa"] },
+  { name: i18n.t("auto.ko_0381", "시드니"), country: i18n.t("auto.ko_0382", "호주"), emoji: "🇦🇺", keys: ["시드니", "sydney", "호주", "australia"] },
+  { name: i18n.t("auto.ko_0383", "멜버른"), country: i18n.t("auto.ko_0384", "호주"), emoji: "🇦🇺", keys: ["멜버른", "melbourne", "호주", "australia"] },
+  { name: i18n.t("auto.ko_0385", "퀸즈타운"), country: i18n.t("auto.ko_0386", "뉴질랜드"), emoji: "🇳🇿", keys: ["퀸즈타운", "queenstown", "뉴질랜드", "new zealand"] },
+  { name: i18n.t("auto.ko_0387", "몰디브"), country: i18n.t("auto.ko_0388", "몰디브"), emoji: "🇲🇻", keys: ["몰디브", "maldives", "몰디브", "maldives"] },
+  { name: i18n.t("auto.ko_0389", "사이판"), country: i18n.t("auto.ko_0390", "사이판"), emoji: "🏝️", keys: ["사이판", "saipan", "사이판", "saipan"] },
+  { name: i18n.t("auto.ko_0391", "괌"), country: i18n.t("auto.ko_0392", "괌"), emoji: "🏝️", keys: ["괌", "guam", "괌", "guam"] }
 ];
 
 // ─── 자동완성 인풋 ────────────────────────────────────────────────────────
@@ -77,7 +79,9 @@ const ACInput: React.FC<ACProps> = ({ value, onChange, placeholder, isDestinatio
   const q = value.trim().toLowerCase();
   const suggestions = q.length >= 1
     ? DESTINATIONS.filter(d =>
-        d.name.toLowerCase().includes(q) || d.country.toLowerCase().includes(q)
+        d.name.toLowerCase().includes(q) || 
+        d.country.toLowerCase().includes(q) ||
+        (d as any).keys?.some((k: string) => k.toLowerCase().includes(q))
       ).slice(0, 6)
     : [];
 
@@ -160,6 +164,7 @@ interface GroupCreateModalProps {
 const STEPS = [i18n.t("auto.ko_0409", "경로 설정"), i18n.t("auto.ko_0410", "일정 · 인원"), i18n.t("auto.ko_0411", "스타일 · 태그")];
 
 const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, onCreated }) => {
+  const { isPlus, isPremium } = useSubscription();
   const { user } = useAuth();
   
   // 스텝
@@ -243,7 +248,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -594,7 +599,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
             {/* ── 하단 고정 버튼 ── */}
             <div
               className="bg-card border-t border-border/40 px-5 pt-4 shrink-0 z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.02)]"
-              style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))" }}
+              style={{ paddingBottom: (!isPlus && !isPremium) ? "170px" : "max(28px, env(safe-area-inset-bottom, 28px))" }}
             >
               <div className="flex gap-3">
                 {step > 0 && (
@@ -631,7 +636,8 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

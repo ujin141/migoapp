@@ -180,6 +180,7 @@ const DiscoverPage = () => {
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
     libraries: GOOGLE_MAPS_LIBRARIES,
+    language: i18n.language?.split('-')[0] || 'en'
   });
 
   useEffect(() => {

@@ -446,19 +446,14 @@ const ProfilePage = () => {
           localStorage.setItem('migo_my_lat', String(lat));
           localStorage.setItem('migo_my_lng', String(lng));
             try {
-              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=${i18n.language}`, {
-                headers: {
-                  'User-Agent': 'MigoApp/1.0'
-                }
-              });
+              const lang = i18n.language?.split('-')[0] || 'en';
+              const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${lang}`);
               const geo = await res.json();
-              const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || geo.address?.state || "";
-              const country = geo.address?.country || "";
+              const city = geo.city || geo.locality || "";
+              const country = geo.countryName || "";
               const locationStr = city ? `${city}, ${country}` : country;
               if (locationStr) {
                 setLocation(locationStr);
-                // ❌ Apple Guideline 5.1.2: 자동 위치 DB 업데이트 제거 (수동 체크인만 허용)
-                // await supabase.from('profiles').update({ location: locationStr, lat, lng }).eq('id', user.id);
               } else if (!data?.location) {
                 setLocation(t("map.locationUnknown", "Location unknown"));
               }
@@ -1053,10 +1048,11 @@ const ProfilePage = () => {
                   localStorage.setItem('migo_my_lat', String(lat));
                   localStorage.setItem('migo_my_lng', String(lng));
                   try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`, { headers: { 'User-Agent': 'MigoApp/1.0' } });
+                    const lang = i18n.language?.split('-')[0] || 'en';
+                    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${lang}`);
                     const geo = await res.json();
-                    const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || geo.address?.state || '';
-                    const country = geo.address?.country || '';
+                    const city = geo.city || geo.locality || '';
+                    const country = geo.countryName || '';
                     const loc = city ? `${city}, ${country}` : country;
                     if (loc) {
                       setLocation(loc);

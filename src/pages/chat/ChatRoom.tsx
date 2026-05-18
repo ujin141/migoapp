@@ -198,12 +198,13 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             <img src={thread.photo} alt="" className="w-10 h-10 rounded-full object-cover shadow-sm border border-border/10" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           ) : (
             <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-primary-foreground text-sm font-bold shadow-sm">
-              {thread?.name?.[0] ?? "?"}
+              {thread?.is_group ? <Users size={18} /> : thread?.name?.charAt(0) || "C"}
             </div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 min-w-0">
-              <h3 className="font-extrabold text-[15px] text-foreground truncate pl-0.5">{thread?.name}</h3>
+              <h3 className="font-extrabold text-[15px] text-foreground truncate pl-0.5">{thread?.name || i18n.t('chat.unknownUser')}</h3>
+              {thread?.is_group && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold shrink-0">{thread?.member_count || 0}</span>}
               {isMuted && <span className="text-[9px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground font-bold shrink-0">🔕</span>}
             </div>
             <span className={`text-[11px] font-bold pl-0.5 ${thread?.online ? "text-emerald-500" : "text-muted-foreground"}`}>{thread?.online ? i18n.t('chat.online') : i18n.t('chat.offline')}</span>
@@ -388,15 +389,19 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
             </button>
             <AnimatePresence>
               {showLangPicker && (
-                <motion.div className="fixed bottom-[90px] right-4 bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-1.5 z-[100] min-w-[130px] max-h-48 overflow-y-auto"
-                  initial={{ opacity: 0, scale: 0.95, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 4 }}>
-                  <div className="fixed inset-0 z-[-1]" onClick={() => setShowLangPicker(false)} />
-                  {(Object.entries(LANG_NAMES) as [SupportedLang, string][]).map(([code, name]) => (
-                    <button key={code} onClick={() => { setTargetLang(code); setShowLangPicker(false); }}
-                      className={`w-full text-left px-3 py-2 text-[12px] rounded-xl transition-colors ${targetLang === code ? 'bg-indigo-500/10 text-indigo-500 font-extrabold' : 'text-foreground font-semibold hover:bg-muted'}`}>
-                      {name}
-                    </button>
-                  ))}
+                <motion.div key="lang-picker" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute z-[90]">
+                  {/* Backdrop */}
+                  <div className="fixed inset-0" onClick={() => setShowLangPicker(false)} />
+                  {/* Picker */}
+                  <motion.div className="absolute bottom-full mb-2 right-0 bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-1.5 z-[100] min-w-[130px] max-h-48 overflow-y-auto"
+                    initial={{ opacity: 0, scale: 0.95, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 4 }}>
+                    {(Object.entries(LANG_NAMES) as [SupportedLang, string][]).map(([code, name]) => (
+                      <button key={code} onClick={() => { setTargetLang(code); setShowLangPicker(false); }}
+                        className={`w-full text-left px-3 py-2 text-[12px] rounded-xl transition-colors ${targetLang === code ? 'bg-indigo-500/10 text-indigo-500 font-extrabold' : 'text-foreground font-semibold hover:bg-muted'}`}>
+                        {name}
+                      </button>
+                    ))}
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>

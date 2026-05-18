@@ -40,7 +40,7 @@ export default function CheckInModal({
           setCurrentCheckIn(ci);
           setCity(ci.city);
           setCountry(ci.country);
-          fetchCityTravelers(ci.city, user.id).then(t => setNearbyCount(t.length));
+          fetchCityTravelers(ci.lat, ci.lng, user.id).then(t => setNearbyCount(t.length));
           setStep("done");
         } else {
           // 재오픈 시 이전 상태 초기화
@@ -68,15 +68,11 @@ export default function CheckInModal({
     setLng(longitude);
     // 역지오코딩
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ko`, {
-        headers: {
-          "User-Agent": "MigoApp/1.0"
-        }
-      });
+      const lang = i18n.language?.split('-')[0] || 'en';
+      const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=${lang}`);
       const data = await res.json();
-      const addr = data.address || {};
-      const detectedCity = addr.city || addr.town || addr.village || addr.county || addr.state || i18n.t("checkin.unknown_city");
-      const detectedCountry = addr.country || i18n.t("checkin.unknown_country");
+      const detectedCity = data.city || data.locality || i18n.t("checkin.unknown_city");
+      const detectedCountry = data.countryName || i18n.t("checkin.unknown_country");
       setCity(detectedCity);
       setCountry(detectedCountry);
       setStep("confirming");
@@ -99,7 +95,7 @@ export default function CheckInModal({
       setStep("idle");
       return;
     }
-    const travelers = await fetchCityTravelers(data.city, user.id);
+    const travelers = await fetchCityTravelers(lat, lng, user.id);
     setNearbyCount(travelers.length);
     setCurrentCheckIn(data);
     setStep("done");

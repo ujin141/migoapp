@@ -93,6 +93,7 @@ interface SwipeCardProps {
   profile: any;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
+  onChat?: () => void;
   isTop: boolean;
   isSuperLiked?: boolean;
   onProfileView?: (profileId: string) => void;
@@ -104,6 +105,7 @@ const SwipeCard = ({
   profile,
   onSwipeLeft,
   onSwipeRight,
+  onChat,
   isTop,
   isSuperLiked,
   onProfileView,
@@ -488,7 +490,7 @@ const SwipeCard = ({
       </div>
     </motion.div>
 
-    {showDetail && <ProfileDetailSheet profile={profile} onClose={() => setShowDetail(false)} onLike={onSwipeRight} showActions={true} />}
+    {showDetail && <ProfileDetailSheet profile={profile} onClose={() => setShowDetail(false)} onLike={onSwipeRight} onChat={onChat} showActions={true} />}
     {/* 신고/차단 시트 — Guideline 1.2 */}
     <ReportBlockActionSheet
       isOpen={showReport}

@@ -87,7 +87,8 @@ const MapPage = () => {
     isLoaded
   } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "",
-    libraries: MAP_LIBRARIES
+    libraries: MAP_LIBRARIES,
+    language: i18n.language?.split('-')[0] || 'en'
   });
   const mapRef = useRef<google.maps.Map | null>(null);
   const [myLatLng, setMyLatLng] = useState<{
@@ -515,10 +516,10 @@ const MapPage = () => {
 
       try {
         const lang = i18n.language.split("-")[0] || "en";
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${lang}`);
+        const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${lang}`);
         const data = await res.json();
-        const city = data.address?.city || data.address?.town || data.address?.borough || data.address?.suburb || data.address?.village || data.address?.county || "";
-        const country = data.address?.country || "";
+        const city = data.city || data.locality || "";
+        const country = data.countryName || "";
         const locationName = city ? `${city}, ${country}` : country || t("map.locationUnknown");
         setCurrentLocationName(locationName);
         // Guideline 5.1.2: locationSharing=true일 때만 DB 저장 (수동 체크인 원칙 준수)

@@ -2299,6 +2299,9 @@ ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS is_premium  BOOLEAN DEFAULT fal
 -- 6. messages: text ↔ content 동기화 트리거
 -- (text로 insert하면 content에도 반영, vice versa)
 -- ─────────────────────────────────────────────
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS content TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS text TEXT;
+
 CREATE OR REPLACE FUNCTION sync_message_text_content()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN

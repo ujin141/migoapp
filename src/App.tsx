@@ -388,8 +388,8 @@ const AppContent = () => {
       <SubscriptionExpiryBanner onOpenPlusModal={() => setShowAppPlusModal(true)} />
       <MigoPlusModal isOpen={showAppPlusModal} onClose={() => setShowAppPlusModal(false)} />
       {/* ── 페이지 스크롤 컨테이너: BottomNav 위만큼만 차지 ── */}
-      <div className="h-full overflow-hidden">
-        <AnimatePresence mode="wait" initial={false}>
+      <div className="h-full overflow-hidden relative">
+        <AnimatePresence initial={false}>
           <motion.div
             key={location.pathname}
             variants={pageVariants}
