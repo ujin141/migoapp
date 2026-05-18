@@ -260,7 +260,7 @@ export const HotplaceSheet = ({
           {/* Bottom Sheet */}
           <motion.div
             className="absolute left-0 right-0 z-50 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.18)] border-t border-black/5 dark:border-white/5 flex flex-col"
-            style={{ bottom: 0, maxHeight: "82vh" }}
+            style={{ bottom: 'calc(52px + env(safe-area-inset-bottom, 0px))', maxHeight: "82vh" }}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
