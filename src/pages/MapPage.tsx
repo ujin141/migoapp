@@ -1638,13 +1638,12 @@ const MapPage = () => {
           </div>}
 
         {/* ── 우측 버튼 전체 (카드 없을 때만 표시) ── */}
-        {/* iOS WKWebView fix: pointer-events-none on parent blocks touch even if children have pointer-events-auto */}
+        {/* iOS WKWebView fix: removed pointerEvents: 'none' from parent. Since it's flex-col, it won't block the whole screen anyway. */}
         <div
           className="absolute right-4 z-30 flex flex-col items-end"
           style={{
             top: '12px',
             visibility: (selectedRestaurant || selectedTraveler || selectedHotplace || selectedPost || selectedGroup) ? 'hidden' : 'visible',
-            pointerEvents: 'none',
           }}
         >
           {/* 🛏️ Lodging Trends */}
