@@ -1990,7 +1990,7 @@ const MapPage = () => {
 
       {/* Flight Trends Drawer */}
       <AnimatePresence>
-        {showFlightTrends && createPortal(
+        {showFlightTrends && (
           <motion.div className="fixed inset-0 z-[110] flex items-end justify-center px-0 pb-0 pt-safe font-sans" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowFlightTrends(false)} />
             <motion.div className="relative w-full max-w-lg mx-auto bg-card rounded-t-[32px] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col" style={{ maxHeight: '85vh' }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
@@ -2098,14 +2098,13 @@ const MapPage = () => {
 
               </div>
             </motion.div>
-          </motion.div>,
-          document.body
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Lodging Trends Drawer */}
       <AnimatePresence>
-        {showLodgingTrends && createPortal(
+        {showLodgingTrends && (
           <motion.div className="fixed inset-0 z-[110] flex items-end justify-center px-0 pb-0 pt-safe font-sans" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLodgingTrends(false)} />
             <motion.div className="relative w-full max-w-lg mx-auto bg-card rounded-t-[32px] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col" style={{ maxHeight: '85vh' }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
@@ -2187,8 +2186,7 @@ const MapPage = () => {
 
               </div>
             </motion.div>
-          </motion.div>,
-          document.body
+          </motion.div>
         )}
       </AnimatePresence>
 
