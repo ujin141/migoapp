@@ -59,6 +59,9 @@
             android:value="ca-app-pub-2237857753220220~5402641159"/>
     </application>
 
+    <!-- Google 광고 ID (AdMob 필수 - Android 12+) -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
+
     <!-- 인터넷 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -73,10 +76,8 @@
     <!-- 카메라 (프로필 사진 촬영) -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- 갤러리/미디어 (프로필 사진 선택) -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <!-- 갤러리/미디어: HTML input[type=file]로 시스템 Photo Picker 사용 -->
+    <!-- READ_MEDIA_IMAGES 불필요: 일회성 사진 선택은 시스템 picker가 처리 -->
 
     <!-- 알림/진동 -->
     <uses-permission android:name="android.permission.VIBRATE" />
