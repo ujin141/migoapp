@@ -37,7 +37,7 @@ export const GroupDetailModal = ({
               onClick={() => setDetailGroup(null)}
               className="flex items-center gap-2 text-sm text-muted-foreground mb-6 font-bold"
             >
-              <ArrowLeft size={16} />{i18n.t("auto.ko_0432", "목록으로")}
+              <ArrowLeft size={16} />{i18n.t("tripModal.backToList")}
             </button>
 
             <div className="bg-card rounded-2xl p-4 shadow-card mb-4 border border-border/40 truncate">
@@ -82,10 +82,10 @@ export const GroupDetailModal = ({
                   >
                     <Languages size={12} className={loadingMap[`groupDesc_${detailGroup.id}`] ? "animate-pulse" : ""} />
                     {loadingMap[`groupDesc_${detailGroup.id}`] 
-                      ? i18n.t("auto.z_번역중_000", { defaultValue: "Translating..." }) 
+                      ? i18n.t("tripModal.translating") 
                       : translateMap[`groupDesc_${detailGroup.id}`] 
-                        ? i18n.t("auto.z_원문보기_001", { defaultValue: "Show original" }) 
-                        : i18n.t("auto.z_번역보기_002", { defaultValue: "See translation" })
+                        ? i18n.t("tripModal.showOriginal") 
+                        : i18n.t("tripModal.seeTranslation")
                     }
                   </button>
                 </div>
@@ -140,10 +140,10 @@ export const InstantRecommendationModal = ({
               <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-3">
                 <Zap size={24} className="text-rose-500" />
               </div>
-              <h3 className="text-lg font-extrabold text-foreground mb-1 truncate">{i18n.t("auto.ko_0427", "매칭 성공! 바로모임 시작")}</h3>
+              <h3 className="text-lg font-extrabold text-foreground mb-1 truncate">{i18n.t("tripModal.matchSuccess")}</h3>
               <p className="text-xs text-muted-foreground leading-relaxed truncate">
-                {i18n.t("auto.ko_0428", "1시간 내로 만남을 완료해 주세요.")}<br/>
-                {i18n.t("auto.ko_0429", "모임 장소 근처의 추천 스팟을 확인해 보세요!")}</p>
+                {i18n.t("tripModal.matchSuccessDesc")}<br/>
+                {i18n.t("tripModal.nearbySpots")}</p>
             </div>
 
             <div className="p-4 overflow-y-auto space-y-3 bg-muted/30">
@@ -170,7 +170,7 @@ export const InstantRecommendationModal = ({
                         {place.distance}
                       </span>
                       <button className="text-[10px] font-bold text-blue-500 flex items-center gap-1 hover:underline">
-                        {i18n.t("auto.ko_0430", "지도 보기")}<ChevronRight size={10} />
+                      {i18n.t("tripModal.viewMap")}<ChevronRight size={10} />
                       </button>
                     </div>
                   </div>
@@ -184,7 +184,7 @@ export const InstantRecommendationModal = ({
                 navigate('/chat', { state: { threadId: createdThreadId } });
               }} className="w-full py-3.5 rounded-2xl gradient-primary text-white text-sm font-extrabold shadow-lg shadow-primary/25 relative overflow-hidden">
                 <motion.div className="absolute inset-0 bg-white/20" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }} style={{ skewX: -20 }} />
-                {i18n.t("auto.ko_0431", "생성된 채팅방으로 바로가기")}</button>
+                {i18n.t("tripModal.goToChat")}</button>
             </div>
           </motion.div>
         </div>

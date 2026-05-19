@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Eye, Heart, MessageSquare, Check, UserRound, Star, Lock, ChevronRight } from "lucide-react";
+import { Bell, Eye, Heart, MessageSquare, Check, UserRound, Star, Lock, ChevronRight, ChevronLeft } from "lucide-react";
 import { useNotifications, NotifType, Notif } from "@/context/NotificationContext";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import MigoPlusModal from "@/components/MigoPlusModal";
 import ProfileDetailSheet from "@/components/ProfileDetailSheet";
 import { useSubscription } from "@/context/SubscriptionContext";
@@ -22,6 +23,7 @@ const notifIcon = (type: NotifType) => {
 
 const NotificationPage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const notifMessage = (n: Notif) => {
     switch (n.type) {
@@ -71,11 +73,17 @@ const NotificationPage = () => {
   return (
     <div className="min-h-full bg-background safe-bottom">
       {/* Header */}
-      <div className="px-5 pt-safe pb-4 flex items-center justify-between truncate">
-        <div className="truncate">
-          <h1 className="text-2xl font-extrabold text-foreground truncate">{t('notification.title')}</h1>
+      <div className="px-4 pt-safe pb-4 flex items-center gap-3 truncate">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 transition-transform active:scale-90"
+        >
+          <ChevronLeft size={20} className="text-foreground" />
+        </button>
+        <div className="flex-1 truncate">
+          <h1 className="text-xl font-extrabold text-foreground truncate">{t('notification.title')}</h1>
           {unreadCount > 0 && (
-            <p className="text-sm text-muted-foreground mt-0.5 truncate">{t("notif.unreadCount", {count: unreadCount})}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">{t("notif.unreadCount", {count: unreadCount})}</p>
           )}
         </div>
         {unreadCount > 0 && (
@@ -141,24 +149,44 @@ const NotificationPage = () => {
                 }`}
               >
                 {/* Actor photo + type icon */}
-                <div className="relative shrink-0">
-                  {n.actorPhoto && !(["profile_view", "like", "superlike"].includes(n.type) && !isPlus) ? (
-                    <img src={n.actorPhoto} alt="" className="w-12 h-12 rounded-2xl object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center text-primary-foreground text-lg font-extrabold">
-                      {["profile_view", "like", "superlike"].includes(n.type) && !isPlus ? "?" : (n.actor?.[0] ?? "?")}
+                {(() => {
+                  const isRestricted = ["profile_view", "like", "superlike"].includes(n.type) && !isPlus;
+                  return (
+                    <div className="relative shrink-0">
+                      {/* 실제 사진: 비구독자는 blur, 구독자는 선명하게 */}
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden">
+                        {n.actorPhoto ? (
+                          <img
+                            src={n.actorPhoto}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            style={isRestricted ? { filter: 'blur(10px)', transform: 'scale(1.2)' } : {}}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div
+                            className="w-full h-full gradient-primary flex items-center justify-center text-primary-foreground text-lg font-extrabold"
+                            style={isRestricted ? { filter: 'blur(8px)' } : {}}
+                          >
+                            {n.actor?.[0] ?? "?"}
+                          </div>
+                        )}
+                      </div>
+                      {/* 잠금 오버레이 (비구독자) */}
+                      {isRestricted && (
+                        <div className="absolute inset-0 rounded-2xl flex items-center justify-center bg-black/20">
+                          <div className="w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
+                            <Lock size={10} className="text-white" />
+                          </div>
+                        </div>
+                      )}
+                      {/* 알림 타입 뱃지 */}
+                      <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center ${color}`}>
+                        <Icon size={13} />
+                      </div>
                     </div>
-                  )}
-                  {["profile_view", "like", "superlike"].includes(n.type) && !isPlus && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/20 rounded-2xl backdrop-blur-sm">
-                      <Lock size={16} className="text-foreground" />
-                    </div>
-                  )}
-                  <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center ${color}`}>
-                    <Icon size={13} />
-                  </div>
-                </div>
+                  );
+                })()}
 
                 <div className="flex-1 min-w-0">
                   {n.title ? (

@@ -51,6 +51,11 @@ interface SubscriptionContextType {
   canReadReceipts: boolean;
   canHideLocation: boolean;
   canTravelDNAFull: boolean;
+  canVoiceCall: boolean;         // 음성통화 (Plus+)
+  canAdvancedMapFilters: boolean;// 고급 지도 필터 (Plus+)
+  canRemoveAds: boolean;         // 광고 제거 (Plus+)
+  canNearbyView: boolean;        // 내 주변 탐색 (Plus+)
+  dailyLikeLimit: number;        // 하루 좋아요 한도 (free=10, plus=∞)
   // Premium 전용 기능 게이팅
   canJoinPremiumGroups: boolean;
   canPriorityPassport: boolean;
@@ -78,6 +83,8 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   restorePurchasesIAP: async () => ({ restored: false }),
   canGlobalMatch: false, canViewLikers: false, canNowFeatured: false,
   canReadReceipts: false, canHideLocation: false, canTravelDNAFull: false,
+  canVoiceCall: false, canAdvancedMapFilters: false, canRemoveAds: false, canNearbyView: false,
+  dailyLikeLimit: 10,
   canJoinPremiumGroups: false,
   canPriorityPassport: false, canUnlimitedAITrip: false, canHighlightReviewBadge: false,
   canPremiumTheme: false, canDedicatedSupport: false,
@@ -128,21 +135,29 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     } catch { return new Set(); }
   });
 
-  const maxSuperLikes = isPremium ? Infinity : (isPlus ? 5 : 0); // 무료 유저 슬루퍼라이크 0개
+  // ISSUE-2 fix: maxSuperLikes = 실제 잔량 기준 (구매팩 포함). Plus 기본 제공량 5개가 아닌 현재 잔량을 상한선으로 사용.
+  // SuperLikeModal의 "N개 남음" 표시가 구매 팩 수량을 포함한 정확한 값이 됨.
+  const maxSuperLikes = isPremium ? Infinity : superLikesLeft;
   const maxDailyDm = isPlus ? Infinity : MAX_FREE_DM;
   const canSendDm = isPlus || dailyDmCount < MAX_FREE_DM;
-  // 채팅 열람 제한: 다음 채팅을 열수 없으면 걸잠 (Premium: 무제한, Plus: 20개, 무료: 2개)
-  const maxChatThreads = isPremium ? Infinity : (isPlus ? 20 : 2);
+  // 무료: 채팅방 3개, Plus 이상: 무제한
+  const maxChatThreads = isPlus ? Infinity : 3;
   const openedThreadCount = openedThreads.size;
+  // 무료: 하루 좋아요 10회, Plus 이상: 무제한
+  const dailyLikeLimit = isPlus ? Infinity : 10;
+
+  // BUG-13 fix: openedThreads를 ref로도 관리하여 trackOpenedThread의 불필요한 재생성 방지
+  const openedThreadsRef = useRef<Set<string>>(openedThreads);
+  useEffect(() => { openedThreadsRef.current = openedThreads; }, [openedThreads]);
 
   const canOpenChat = useCallback((threadId: string): boolean => {
     if (isPremium) return true;
-    if (openedThreads.has(threadId)) return true; // 이미 연 채팅방은 허용
-    return openedThreads.size < maxChatThreads;
-  }, [isPremium, openedThreads, maxChatThreads]);
+    if (openedThreadsRef.current.has(threadId)) return true;
+    return openedThreadsRef.current.size < maxChatThreads;
+  }, [isPremium, maxChatThreads]); // BUG-13 fix: openedThreads 대신 ref 사용
 
   const trackOpenedThread = useCallback((threadId: string) => {
-    if (openedThreads.has(threadId)) return;
+    if (openedThreadsRef.current.has(threadId)) return; // BUG-13 fix: ref 사용
     setOpenedThreads(prev => {
       const next = new Set(prev);
       next.add(threadId);
@@ -152,7 +167,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       } catch {}
       return next;
     });
-  }, [openedThreads]);
+  }, []); // BUG-13 fix: deps 없음 (내부에서 ref 사용하므로 stale closure 없음)
 
   // ── DB에서 구독상태 + 아이템 잔량 로드 ──────────────────────────────────
   useEffect(() => {
@@ -292,25 +307,34 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       const currentBoosts = itemData?.boosts ?? 0;
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       
-      // 🚨 [CRITICAL SECURITY WARNING] 결제 우회(Payment Bypass) 취약점 구간
-      // 현재 클라이언트 측에서 StoreKit 영수증 1차 검증만 수행 후, 직접 자신의 
-      // 권한(is_plus)과 구독 레코드(subscriptions)를 DB에 강제 Insert 하고 있습니다.
-      // 악성 사용자가 이 통신을 가로채거나 브라우저 콘솔에서 직접 함수를 호출하면, 
-      // 실제 과금 없이 무료로 프리미엄 우회를 할 수 있습니다.
-      // TODO: 영수증(Receipt) 토큰을 Edge Function으로 넘겨 Apple Server와 
-      // 2차 검증(Server-to-Server)을 거친 뒤 서버에서 DB를 업데이트하도록 아키텍처를 변경해야 합니다.
-      await Promise.all([
+      const results = await Promise.allSettled([
         supabase.from("profiles").update({ is_plus: true, plan }).eq("id", user.id),
         supabase.from("subscriptions").insert({
           user_id: user.id, plan, status: 'active', expires_at: expiresAt,
-          price_krw: plan === 'premium' ? 19900 : 9900
+          price_krw: plan === 'premium' ? 99900 : 14900
         }),
         supabase.from("user_items").upsert({
           user_id: user.id, boosts: currentBoosts + bonusBoosts
         }, { onConflict: 'user_id' })
       ]);
+      
+      // DB 업데이트 실패 시 롤백
+      if (results.some(r => r.status === 'fulfilled' && r.value.error)) {
+        setIsPlus(false);
+        setIsPremium(false);
+        setBoostsCount(prev => prev - bonusBoosts);
+        setSuperLikesLeft(prev => prev - bonusSuperLikes);
+        console.error('[Upgrade] DB update failed — rolling back UI');
+      }
     }
   }, [user]);
+
+  // ── productId → 구독 기간(일) 계산 헬퍼 ────────────────────────────────
+  const getSubscriptionDays = (productId: string): number => {
+    if (productId.includes('.y1'))  return 365; // 연간
+    if (productId.includes('.q1'))  return 90;  // 3개월
+    return 30;                                  // 월간 (기본)
+  };
 
   // ── StoreKit IAP: 구독 구매 ──────────────────────────────────────────────
   const purchaseSubscriptionIAP = useCallback(async (productId: IAPProductId) => {
@@ -318,20 +342,24 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     if (result.success) {
       const plan = getSubscriptionPlanFromProductId(productId);
       if (plan && user) {
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const days = getSubscriptionDays(productId);
+        const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
         const bonusBoosts = plan === 'premium' ? 5 : 1;
         const bonusSuperLikes = plan === 'premium' ? 9999 : 5;
+        // 낙관적 UI 업데이트
         setIsPlus(true);
         if (plan === 'premium') setIsPremium(true);
         setBoostsCount(prev => prev + bonusBoosts);
         setSuperLikesLeft(prev => prev + bonusSuperLikes);
         const { data: itemData } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
         const currentBoosts = itemData?.boosts ?? 0;
+        // price_krw: productId 기준 실제 가격 반영
+        const priceKrw = plan === 'premium' ? 99900 : (days >= 365 ? 99900 : days >= 90 ? 34900 : 14900);
         await Promise.all([
           supabase.from("profiles").update({ is_plus: true, plan, plus_expires_at: expiresAt }).eq("id", user.id),
           supabase.from("subscriptions").insert({
             user_id: user.id, plan, status: 'active', expires_at: expiresAt,
-            price_krw: plan === 'premium' ? 99900 : 14900,
+            price_krw: priceKrw,
             iap_product_id: productId,
             iap_transaction_id: result.transactionId,
           }),
@@ -350,38 +378,54 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     if (!productId) return { success: false, error: 'unknown_item' };
     const result = await iapPurchaseConsumable(productId);
     if (result.success && user) {
-      // 아이템 종류별 처리 — 선언 순서 문제를 피하기 위해 setState + Supabase 직접 처리
       if (shopItemId.startsWith('superlike_')) {
         let amount = 0;
         if (shopItemId === 'superlike_3') amount = 3;
         else if (shopItemId === 'superlike_10') amount = 10;
         else if (shopItemId === 'superlike_30') amount = 30;
+        // ARCH-1 fix: 낙관적 UI, DB 실패 시 롤백
         setSuperLikesLeft(prev => prev + amount);
-        const { data } = await supabase.from("user_items").select("super_likes").eq("user_id", user.id).maybeSingle();
-        await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + amount }, { onConflict: 'user_id' });
+        const { data, error: dbError } = await supabase.from("user_items").select("super_likes").eq("user_id", user.id).maybeSingle();
+        const { error: upsertError } = await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + amount }, { onConflict: 'user_id' });
+        if (dbError || upsertError) {
+          setSuperLikesLeft(prev => prev - amount); // 롤백
+          return { success: false, error: 'db_error' };
+        }
       } else if (shopItemId.startsWith('boost_')) {
         let amount = 0;
         if (shopItemId === 'boost_1') amount = 1;
         else if (shopItemId === 'boost_5') amount = 5;
         else if (shopItemId === 'boost_15') amount = 15;
         setBoostsCount(prev => prev + amount);
-        const { data } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
-        await supabase.from("user_items").upsert({ user_id: user.id, boosts: (data?.boosts ?? 0) + amount }, { onConflict: 'user_id' });
+        const { data, error: dbError } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
+        const { error: upsertError } = await supabase.from("user_items").upsert({ user_id: user.id, boosts: (data?.boosts ?? 0) + amount }, { onConflict: 'user_id' });
+        if (dbError || upsertError) {
+          setBoostsCount(prev => prev - amount); // 롤백
+          return { success: false, error: 'db_error' };
+        }
       } else if (shopItemId === 'travel_pack') {
         setSuperLikesLeft(prev => prev + 10);
         setBoostsCount(prev => prev + 1);
-        const { data } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", user.id).maybeSingle();
-        await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + 10, boosts: (data?.boosts ?? 0) + 1 }, { onConflict: 'user_id' });
+        const { data, error: dbError } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", user.id).maybeSingle();
+        const { error: upsertError } = await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + 10, boosts: (data?.boosts ?? 0) + 1 }, { onConflict: 'user_id' });
+        if (dbError || upsertError) {
+          setSuperLikesLeft(prev => prev - 10); // 롤백
+          setBoostsCount(prev => prev - 1);
+          return { success: false, error: 'db_error' };
+        }
       } else if (shopItemId === 'verified_badge') {
         setHasVerifiedBadge(true);
-        await supabase.from("profiles").update({ has_badge: true }).eq("id", user.id);
+        const { error: updateError } = await supabase.from("profiles").update({ has_badge: true }).eq("id", user.id);
+        if (updateError) { setHasVerifiedBadge(false); return { success: false, error: 'db_error' }; }
       } else if (shopItemId === 'profile_theme') {
         setHasProfileTheme(true);
-        await supabase.from("profiles").update({ profile_theme: 'aurora' }).eq("id", user.id); // default theme upon buying
+        const { error: updateError } = await supabase.from("profiles").update({ profile_theme: 'aurora' }).eq("id", user.id);
+        if (updateError) { setHasProfileTheme(false); return { success: false, error: 'db_error' }; }
       } else if (shopItemId === 'nearby_unlock') {
         const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         setNearbyUnlockedUntil(expires);
-        await supabase.from("profiles").update({ nearby_expires_at: expires.toISOString() }).eq("id", user.id);
+        const { error: updateError } = await supabase.from("profiles").update({ nearby_expires_at: expires.toISOString() }).eq("id", user.id);
+        if (updateError) { setNearbyUnlockedUntil(null); return { success: false, error: 'db_error' }; }
       }
     }
     return result;
@@ -391,16 +435,19 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const restorePurchasesIAP = useCallback(async () => {
     const result = await restoreIAPPurchases();
     let restoredPlan: 'plus' | 'premium' | undefined;
+    let restoredProductId: string | undefined;
     if (result.restored && result.activeSubscriptions.length > 0) {
       for (const sub of result.activeSubscriptions) {
         const plan = getSubscriptionPlanFromProductId(sub);
-        if (plan === 'premium') { restoredPlan = 'premium'; break; }
-        if (plan === 'plus') restoredPlan = 'plus';
+        if (plan === 'premium') { restoredPlan = 'premium'; restoredProductId = sub; break; }
+        if (plan === 'plus') { restoredPlan = 'plus'; restoredProductId = sub; }
       }
       if (restoredPlan && user) {
         setIsPlus(true);
         if (restoredPlan === 'premium') setIsPremium(true);
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        // 복원 시에도 productId 기반으로 만료일 계산
+        const days = restoredProductId ? getSubscriptionDays(restoredProductId) : 30;
+        const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
         await supabase.from("profiles").update({ is_plus: true, plan: restoredPlan, plus_expires_at: expiresAt }).eq("id", user.id);
       }
     }
@@ -446,17 +493,22 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const purchaseTravelPack = useCallback(async () => {
-    // 낙관적 즉시 UI 업데이트
+    // ARCH-1 fix: 낙관적 UI 업데이트 + DB 실패 시 롤백
     setSuperLikesLeft(prev => prev + 10);
     setBoostsCount(prev => prev + 1);
     if (user) {
-      // 단일 SELECT 후 단일 upsert — 레이스 컨디션 방지 (addSuperLikes + addBoosts 순차 실행 X)
-      const { data } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", user.id).maybeSingle();
-      await supabase.from("user_items").upsert({
+      const { data, error: dbError } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", user.id).maybeSingle();
+      const { error: upsertError } = await supabase.from("user_items").upsert({
         user_id: user.id,
         super_likes: (data?.super_likes ?? 0) + 10,
         boosts: (data?.boosts ?? 0) + 1,
       }, { onConflict: 'user_id' });
+      if (dbError || upsertError) {
+        // DB 저장 실패 시 낙관적 업데이트 롤백
+        setSuperLikesLeft(prev => prev - 10);
+        setBoostsCount(prev => prev - 1);
+        console.error('[purchaseTravelPack] DB upsert failed:', dbError || upsertError);
+      }
     }
   }, [user]);
 
@@ -473,7 +525,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const startBoost = useCallback(async () => {
-    if (boostsCount <= 0 && !isPlus) return; // 잔여 부스트 없으면 불가
+    // BUG-2 fix: isPlus여도 boostsCount <= 0이면 실행 불가 (음수 방지)
+    if (boostsCount <= 0) return;
     
     // DB 업데이트
     if (user) {
@@ -506,7 +559,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     boostIntervalRef.current = setInterval(tick, 1000);
-  }, [boostsCount, isPlus, user]);
+  }, [boostsCount, user]);
 
   const consumeSuperLike = useCallback(async (toUserId?: string): Promise<boolean> => {
     if (isPremium) return true; // Premium은 무제한
@@ -524,20 +577,24 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     return true;
   }, [isPremium, superLikesLeft, user]);
 
+  // BUG-9 fix: dailyDmCount를 ref로도 관리하여 stale closure 방지 (연속 클릭 시 제한 초과 방지)
+  const dailyDmCountRef = useRef<number>(0);
+  useEffect(() => { dailyDmCountRef.current = dailyDmCount; }, [dailyDmCount]);
+
   const consumeDm = useCallback((): boolean => {
     if (isPlus) return true;
-    if (dailyDmCount >= MAX_FREE_DM) return false;
-    setDailyDmCount((n) => {
-      const next = n + 1;
-      // BUG-02 fix: persist to localStorage so count survives app restarts
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        localStorage.setItem('migo_dm_data', JSON.stringify({ count: next, date: today }));
-      } catch {}
-      return next;
-    });
+    // ref를 읽어 즉각적인 값 체크 (stale closure 방지)
+    if (dailyDmCountRef.current >= MAX_FREE_DM) return false;
+    // 즉시 ref 카운트 올려서 연속 터치 시 이중 소비 방지
+    dailyDmCountRef.current += 1;
+    const next = dailyDmCountRef.current;
+    setDailyDmCount(next);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      localStorage.setItem('migo_dm_data', JSON.stringify({ count: next, date: today }));
+    } catch {}
     return true;
-  }, [isPlus, dailyDmCount]);
+  }, [isPlus]);
 
   return (
     <SubscriptionContext.Provider value={{
@@ -554,6 +611,11 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       canReadReceipts: isPlus,
       canHideLocation: isPlus,
       canTravelDNAFull: isPlus,
+      canVoiceCall: isPlus,
+      canAdvancedMapFilters: isPlus,
+      canRemoveAds: isPlus,
+      canNearbyView: isPlus,
+      dailyLikeLimit,
       canJoinPremiumGroups: isPremium,
       canPriorityPassport: isPremium,
       canUnlimitedAITrip: isPremium,

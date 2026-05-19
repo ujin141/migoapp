@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import i18n from "@/i18n";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -49,10 +48,10 @@ if (!window.__SUPABASE__ && isSupabaseConfigured) {
       },
     },
     realtime: {
-      // Realtime heartbeat 60초 (기본 30초 대비 서버 Ping 비용 절반)
-      heartbeatIntervalMs: 60000,
-      // 연결 자실: 최대 10초 대기 후 재연결
-      reconnectAfterMs: (tries: number) => Math.min(tries * 2000, 10000),
+      // heartbeat 90초 (기본 30초 대비 서버 Ping 비용 1/3)
+      heartbeatIntervalMs: 90_000,
+      // 지수 백오프 재연결: 2→4→8→16→30초 (최대 30초)
+      reconnectAfterMs: (tries: number) => Math.min(1000 * 2 ** tries, 30_000),
     },
   });
 
@@ -111,7 +110,7 @@ if (!window.__SUPABASE__ && isSupabaseConfigured) {
   };
 
   window.__SUPABASE__ = client;
-  console.info(i18n.t("auto.g_0563", "[Supabase] ✅ 클라이언트 초기화 + 데드락 패치 완료"));
+  console.info("[Supabase] ✅ 클라이언트 초기화 + 데드락 패치 완료");
 }
 
 // isSupabaseConfigured가 false이면 dummy client
@@ -123,7 +122,7 @@ export const supabase =
   );
 
 if (!isSupabaseConfigured) {
-  console.warn(i18n.t("auto.g_0564", "[Supabase] .env.local에 VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY가 없습니다."));
+  console.warn("[Supabase] .env.local에 VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY가 없습니다.");
 }
 
 // ── 인메모리 캐시 ────────────────────────────────────────────────────────────

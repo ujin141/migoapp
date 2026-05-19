@@ -5,12 +5,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, MessageCircle, Video, VideoOff } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/context/SubscriptionContext";
+import MigoPlusModal from "@/components/MigoPlusModal";
 
 const VoiceCallPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { canVoiceCall } = useSubscription();
+  const [showPlusModal, setShowPlusModal] = useState(!canVoiceCall);
+
 
   const contactId = (location.state as { contactId?: string } | null)?.contactId;
   const [contact, setContact] = useState({ name: t("voice.connecting"), photo: "" });
@@ -78,6 +83,13 @@ const VoiceCallPage = () => {
   const BARS = 8;
 
   return (
+    <>
+      {/* Plus 게이트: 무료 유저는 업그레이드 모달 노출 후 이전 화면으로 복귀 */}
+      <MigoPlusModal
+        isOpen={showPlusModal}
+        onClose={() => { setShowPlusModal(false); if (!canVoiceCall) navigate(-1); }}
+      />
+      {canVoiceCall && (
     <div className="fixed inset-0 flex flex-col items-center justify-between pt-safe"
       style={{
         background: "linear-gradient(160deg, #0f172a 0%, #1e1b4b 40%, #0f172a 100%)",
@@ -91,6 +103,7 @@ const VoiceCallPage = () => {
           animate={{ scale: [1, 1.2, 1] }}
           transition={{ duration: 3, repeat: Infinity }} />
       </div>
+
 
       {/* Top area & Exit button */}
       <div className="absolute top-0 left-0 right-0 p-4 pt-safe flex justify-end z-50">
@@ -250,7 +263,10 @@ const VoiceCallPage = () => {
         )}
       </AnimatePresence>
     </div>
+      )}
+    </>
   );
 };
 
 export default VoiceCallPage;
+

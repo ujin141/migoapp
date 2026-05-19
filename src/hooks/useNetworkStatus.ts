@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import i18n from "@/i18n";
+import i18n from 'i18next';
 
 export function useNetworkStatus() {
   const [isOnline, setIsOnline] = useState(() => navigator.onLine ?? true);

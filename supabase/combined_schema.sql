@@ -104,6 +104,8 @@ DROP POLICY IF EXISTS "likes_select"     ON likes;
 DROP POLICY IF EXISTS "likes_insert_own" ON likes;
 DROP POLICY IF EXISTS "likes_delete_own" ON likes;
 CREATE POLICY "likes_select"     ON likes FOR SELECT USING (auth.uid() = from_user OR auth.uid() = to_user);
+-- RLS-FIX: likes INSERT policy 누락 포한 (없으면 RLS가 모든 INSERT를 거부함)
+CREATE POLICY "likes_insert_own" ON likes FOR INSERT WITH CHECK (auth.uid() = from_user);
 CREATE POLICY "likes_delete_own" ON likes FOR DELETE USING (auth.uid() = from_user);
 
 -- ======================== matches ========================
@@ -130,7 +132,9 @@ CREATE TABLE IF NOT EXISTS chat_threads (
   unread_count    INTEGER DEFAULT 0,
   meet_expires_at TIMESTAMPTZ,
   created_by      UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  created_at      TIMESTAMPTZ DEFAULT NOW()
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  -- BUG-11 fix: updated_at 컨럼 추가 (last_message 갱신 시간 추적, 채팅리스트 정렬용)
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE chat_threads ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "threads_select" ON chat_threads;
@@ -141,6 +145,10 @@ CREATE POLICY "threads_select" ON chat_threads FOR SELECT USING (
   EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid()) OR is_group = true
 );
 CREATE POLICY "threads_insert" ON chat_threads FOR INSERT WITH CHECK (true);
+-- RLS-FIX: chat_threads UPDATE (SECURITY DEFINER 트리거가 업데이트하뮼 도라 0이 아니지만, 멤버만 수정 가능하도록)
+CREATE POLICY "threads_update" ON chat_threads FOR UPDATE USING (
+  EXISTS(SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid())
+) WITH CHECK (true);
 -- ======================== chat_members ========================
 CREATE TABLE IF NOT EXISTS chat_members (
   id        UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -164,6 +172,9 @@ DROP POLICY IF EXISTS "members_select" ON chat_members;
 CREATE POLICY "members_select" ON chat_members FOR SELECT USING (
   check_is_chat_member(thread_id)
 );
+-- RLS-FIX: chat_members INSERT policy 누락 포함 (자신 user_id만 삽입 가능)
+DROP POLICY IF EXISTS "members_insert" ON chat_members;
+CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (auth.uid() = user_id);
 -- ============================================================
 -- 01b_tables_community.sql - messages, notifications, posts, comments
 -- 01a 실행 후 실행하세요
@@ -599,14 +610,80 @@ CREATE TABLE IF NOT EXISTS profile_views (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   viewer_id   UUID REFERENCES profiles(id) ON DELETE CASCADE,
   viewed_id   UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  viewed_at   TIMESTAMPTZ DEFAULT NOW(),
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(viewer_id, viewed_id)
 );
+-- 기존 DB에 viewed_at 컬럼이 있으면 created_at 추가 (코드에서 created_at 사용)
+ALTER TABLE profile_views ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE profile_views ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "pv_select" ON profile_views;
 DROP POLICY IF EXISTS "pv_insert" ON profile_views;
 CREATE POLICY "pv_select" ON profile_views FOR SELECT USING (auth.uid() = viewed_id OR auth.uid() = viewer_id);
-CREATE POLICY "pv_insert" ON profile_views FOR INSERT WITH CHECK (auth.uid() = viewer_id);
+-- FOMO 가짜 조회 + 실제 조회 모두 허용 (viewer_id 제한 제거)
+CREATE POLICY "pv_insert" ON profile_views FOR INSERT WITH CHECK (true);
+
+-- ⚠️ 함수 재정의 전 강제 삭제 (return type 충돌 방지 — 파일 어디서 실행해도 안전)
+DROP FUNCTION IF EXISTS do_daily_checkin(uuid) CASCADE;
+DROP FUNCTION IF EXISTS touch_active(uuid) CASCADE;
+DROP FUNCTION IF EXISTS notify_expiring_likes() CASCADE;
+DROP FUNCTION IF EXISTS reward_returning_users() CASCADE;
+
+-- profiles 선택적 컬럼 보장 (기존 DB 마이그레이션)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS travel_mission         TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS visited_countries       TEXT[] DEFAULT '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profile_theme           TEXT DEFAULT 'default';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS photo_urls              TEXT[] DEFAULT '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS travel_dates            TEXT;
+-- ⚠️ block_sensitive_profile_updates 트리거가 참조하는 컬럼 (없으면 모든 UPDATE가 실패함)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS super_likes_left        INTEGER DEFAULT 3;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS super_likes_reset       TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS boosts_count            INTEGER DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS boost_expires_at        TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS otp_last_sent           TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS translate_count         INTEGER DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS translate_last_reset    TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS instant_meets_count     INTEGER DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS no_show_count           INTEGER DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS has_badge               BOOLEAN DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS earned_badges           TEXT[] DEFAULT '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avg_rating              NUMERIC(3,2) DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS review_count            INTEGER DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS trust_score             NUMERIC(4,1) DEFAULT 0.0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_plus                 BOOLEAN DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plus_expires_at         TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_admin                BOOLEAN DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role                    TEXT DEFAULT 'user';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_banned               BOOLEAN DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banned                  BOOLEAN DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS ban_reason              TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banned_until            TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS admin_note              TEXT;
+
+-- ============================================================
+-- 신규 유저 스와이프 부스트 (최초 프로필 완성 시 24시간 우선 노출)
+-- ============================================================
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS new_user_boost_expires_at TIMESTAMPTZ;
+
+-- 프로필 셋업 완료 시 자동으로 24시간 부스트 적용 트리거
+CREATE OR REPLACE FUNCTION grant_new_user_boost()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- setup_complete 가 false→true 로 처음 바뀔 때만 동작
+  IF (OLD.setup_complete IS DISTINCT FROM TRUE) AND NEW.setup_complete = TRUE THEN
+    -- 아직 부스트를 받은 적 없는 경우에만 지급 (재가입 방지)
+    IF NEW.new_user_boost_expires_at IS NULL THEN
+      NEW.new_user_boost_expires_at := NOW() + INTERVAL '24 hours';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_new_user_boost ON public.profiles;
+CREATE TRIGGER trg_new_user_boost
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION grant_new_user_boost();
 
 -- ======================== subscriptions ========================
 CREATE TABLE IF NOT EXISTS subscriptions (
@@ -1129,6 +1206,85 @@ CREATE TRIGGER trg_notify_on_like
   AFTER INSERT ON likes
   FOR EACH ROW EXECUTE FUNCTION notify_on_like();
 
+-- ============================================================
+-- CRIT-1 FIX: record_superlike RPC
+-- 슈퍼라이크 잔량 원자적 차감 + likes INSERT를 단일 트랜잭션으로 처리.
+-- 이 함수 없이는 클라이언트의 consumeSuperLike()가 항상 실패합니다.
+-- ============================================================
+-- 반환 타입 변경(JSON → jsonb)을 위해 먼저 기존 함수 삭제
+DROP FUNCTION IF EXISTS public.record_superlike(uuid);
+CREATE OR REPLACE FUNCTION public.record_superlike(p_to_user uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_from_user uuid := auth.uid();
+  v_remaining integer;
+BEGIN
+  -- 자기 자신에게 슈퍼라이크 금지
+  IF v_from_user = p_to_user THEN
+    RETURN jsonb_build_object('success', false, 'error', 'self_like', 'remaining', 0);
+  END IF;
+
+  -- user_items에서 super_likes 원자적 차감 (0 이하면 실패)
+  UPDATE user_items
+  SET super_likes = super_likes - 1
+  WHERE user_id = v_from_user
+    AND super_likes > 0
+  RETURNING super_likes INTO v_remaining;
+
+  -- 잔량 부족 (업데이트된 행 없음)
+  IF v_remaining IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'insufficient', 'remaining', 0);
+  END IF;
+
+  -- likes 테이블 upsert (이미 like한 경우 superlike로 업그레이드)
+  INSERT INTO likes (from_user, to_user, kind, created_at)
+  VALUES (v_from_user, p_to_user, 'superlike', now())
+  ON CONFLICT (from_user, to_user)
+  DO UPDATE SET kind = 'superlike', created_at = now();
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'remaining', v_remaining
+  );
+END;
+$$;
+
+-- authenticated 유저만 호출 가능 (anon 차단)
+GRANT EXECUTE ON FUNCTION public.record_superlike(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.record_superlike(uuid) FROM anon;
+
+-- ============================================================
+-- BUG-11 FIX: messages INSERT 시 chat_threads.last_message + updated_at 자동 갱신
+-- ChatContext.fetchThreads가 messages 테이블을 별도 조회하지 않아도 됨
+-- ============================================================
+CREATE OR REPLACE FUNCTION update_thread_last_message()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE chat_threads
+  SET
+    last_message = LEFT(NEW.text, 200),  -- 미리보기는 최대 200자
+    updated_at   = NEW.created_at
+  WHERE id = NEW.thread_id;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_update_last_message ON messages;
+CREATE TRIGGER trg_update_last_message
+  AFTER INSERT ON messages
+  FOR EACH ROW EXECUTE FUNCTION update_thread_last_message();
+
+-- BUG-11 FIX: 기존 chat_threads에 updated_at 컬럼 없는 경우 마이그레이션
+ALTER TABLE chat_threads ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
 -- 알림 트리거: 매칭
 CREATE OR REPLACE FUNCTION notify_on_match()
 RETURNS TRIGGER AS $$
@@ -1245,28 +1401,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 REVOKE ALL ON FUNCTION delete_user() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION delete_user() TO authenticated;
 
--- record_superlike: 슈퍼라이크 차감 + like 삽입
-CREATE OR REPLACE FUNCTION record_superlike(p_to_user UUID)
-RETURNS JSON AS $$
-DECLARE
-  v_user_id UUID := auth.uid();
-  v_items   user_items;
-BEGIN
-  SELECT * INTO v_items FROM user_items WHERE user_id = v_user_id FOR UPDATE;
-  IF v_items.super_likes <= 0 THEN
-    RETURN json_build_object('success', false, 'error', 'no_superlike_left');
-  END IF;
-  UPDATE user_items SET super_likes = super_likes - 1, updated_at = NOW()
-  WHERE user_id = v_user_id;
-  INSERT INTO likes (from_user, to_user, kind)
-  VALUES (v_user_id, p_to_user, 'super_like')
-  ON CONFLICT (from_user, to_user) DO UPDATE SET kind = 'super_like';
-  RETURN json_build_object('success', true, 'remaining', v_items.super_likes - 1);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-REVOKE ALL ON FUNCTION record_superlike(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION record_superlike(UUID) TO authenticated;
+-- record_superlike 구버전(RETURNS JSON) 제거 — 1148번의 RETURNS jsonb 버전(CRIT-1 FIX)이 최신입니다.
+-- 기존 DB에 JSON 반환형으로 등록된 경우 아래 DROP으로 교체 후 위의 CREATE OR REPLACE가 적용됩니다.
+DROP FUNCTION IF EXISTS record_superlike(uuid);
 
 -- check_and_create_match: 쌍방 좋아요 시 자동 매칭
 CREATE OR REPLACE FUNCTION check_and_create_match(p_to_user UUID)
@@ -1458,6 +1595,19 @@ CREATE POLICY "market_admin" ON marketplace_items FOR ALL
 -- ─────────────────────────────────────────────
 -- 3. RPC 함수 (어드민 액션)
 -- ─────────────────────────────────────────────
+-- 반환 타입/시그니처 변경 대비: 구버전 먼저 삭제
+DROP FUNCTION IF EXISTS get_admin_dashboard_stats();
+DROP FUNCTION IF EXISTS admin_ban_user(UUID, TEXT, INTEGER);
+DROP FUNCTION IF EXISTS admin_unban_user(UUID);
+DROP FUNCTION IF EXISTS admin_approve_verification(UUID);
+DROP FUNCTION IF EXISTS admin_reject_verification(UUID, TEXT);
+DROP FUNCTION IF EXISTS admin_resolve_report(UUID, TEXT, TEXT);
+DROP FUNCTION IF EXISTS admin_delete_user_account(UUID);
+DROP FUNCTION IF EXISTS admin_update_user_note(UUID, TEXT);
+DROP FUNCTION IF EXISTS admin_update_post_hidden(UUID, BOOLEAN);
+DROP FUNCTION IF EXISTS admin_update_post_pinned(UUID, BOOLEAN);
+DROP FUNCTION IF EXISTS admin_delete_post(UUID);
+DROP FUNCTION IF EXISTS admin_delete_group(UUID);
 
 -- 대시보드 통계
 CREATE OR REPLACE FUNCTION get_admin_dashboard_stats()
@@ -3024,7 +3174,863 @@ WHERE (name IS NULL OR name = '')
   AND email IS NOT NULL
   AND email != '';
 
--- [FIX-3] setup_complete 컬럼 보장
--- ⚠️ setup_complete는 오직 ProfileSetupPage에서만 true로 세팅됩니다.
--- 자동으로 true를 세팅하는 배치 쿼리는 신규 유저 온보딩을 우회시키므로 제거되었습니다.
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS setup_complete BOOLEAN DEFAULT false;
+
+-- ============================================================
+-- ADMIN INFRASTRUCTURE — 어드민 패널 전체 실제 데이터 구현
+-- ============================================================
+
+-- ======================== app_settings ========================
+CREATE TABLE IF NOT EXISTS app_settings (
+  key        TEXT PRIMARY KEY,
+  value      JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+-- 기본 설정 값 삽입
+INSERT INTO app_settings (key, value) VALUES
+  ('max_daily_likes',         '20'),
+  ('max_daily_dm_free',       '5'),
+  ('super_like_daily_limit',  '1'),
+  ('boost_duration_minutes',  '30'),
+  ('min_age_requirement',     '18'),
+  ('maintenance_mode',        'false'),
+  ('new_user_registration',   'true'),
+  ('force_update_version',    '"3.0.0"'),
+  ('welcome_bonus_superlike', '3'),
+  ('referral_bonus_days',     '7')
+ON CONFLICT (key) DO NOTHING;
+
+-- ======================== announcements ========================
+CREATE TABLE IF NOT EXISTS announcements (
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title      TEXT NOT NULL,
+  content    TEXT NOT NULL,
+  type       TEXT DEFAULT 'info',  -- info | warning | update
+  is_active  BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ann_select" ON announcements;
+DROP POLICY IF EXISTS "ann_admin"  ON announcements;
+CREATE POLICY "ann_select" ON announcements FOR SELECT USING (true);
+CREATE POLICY "ann_admin"  ON announcements FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== promo_codes ========================
+CREATE TABLE IF NOT EXISTS promo_codes (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  code        TEXT UNIQUE NOT NULL,
+  discount    TEXT NOT NULL,
+  max_limit   INTEGER DEFAULT 100,
+  used_count  INTEGER DEFAULT 0,
+  is_active   BOOLEAN DEFAULT true,
+  expires_at  TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "promo_admin" ON promo_codes;
+CREATE POLICY "promo_admin" ON promo_codes FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== subscriptions ========================
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  plan         TEXT NOT NULL DEFAULT 'plus',  -- plus | premium
+  price_krw    INTEGER DEFAULT 0,
+  status       TEXT DEFAULT 'active',          -- active | cancelled | expired
+  started_at   TIMESTAMPTZ DEFAULT NOW(),
+  expires_at   TIMESTAMPTZ,
+  store        TEXT DEFAULT 'google',          -- google | apple | manual
+  receipt_data TEXT,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "sub_own"   ON subscriptions;
+DROP POLICY IF EXISTS "sub_admin" ON subscriptions;
+CREATE POLICY "sub_own"   ON subscriptions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "sub_admin" ON subscriptions FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== purchases ========================
+CREATE TABLE IF NOT EXISTS purchases (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  item_type    TEXT NOT NULL,       -- super_like | boost | badge | nearby
+  item_id      TEXT,
+  quantity     INTEGER DEFAULT 1,
+  price_krw    INTEGER DEFAULT 0,
+  store        TEXT DEFAULT 'google',
+  receipt_data TEXT,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "pur_own"   ON purchases;
+DROP POLICY IF EXISTS "pur_admin" ON purchases;
+CREATE POLICY "pur_own"   ON purchases FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "pur_admin" ON purchases FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== admin_activity_log ========================
+CREATE TABLE IF NOT EXISTS admin_activity_log (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  admin_id    UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  action      TEXT NOT NULL,
+  target_type TEXT,
+  target_id   TEXT,
+  details     JSONB,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE admin_activity_log ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "log_admin" ON admin_activity_log;
+CREATE POLICY "log_admin" ON admin_activity_log FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+CREATE INDEX IF NOT EXISTS idx_admin_log_created ON admin_activity_log (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_log_action  ON admin_activity_log (action);
+
+-- ======================== id_verifications ========================
+CREATE TABLE IF NOT EXISTS id_verifications (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES profiles(id) ON DELETE CASCADE UNIQUE,
+  status      TEXT DEFAULT 'pending',    -- pending | approved | rejected
+  id_type     TEXT DEFAULT 'passport',   -- passport | resident_card | driver_license
+  front_url   TEXT,
+  back_url    TEXT,
+  selfie_url  TEXT,
+  reject_reason TEXT,
+  reviewed_by UUID REFERENCES profiles(id),
+  reviewed_at TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE id_verifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "verif_own"   ON id_verifications;
+DROP POLICY IF EXISTS "verif_admin" ON id_verifications;
+CREATE POLICY "verif_own"   ON id_verifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "verif_admin" ON id_verifications FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+-- ======================== reports (보완) ========================
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS admin_comment TEXT;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS target_name TEXT;
+
+-- ======================== online_status ========================
+CREATE TABLE IF NOT EXISTS online_status (
+  user_id   UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  last_seen TIMESTAMPTZ DEFAULT NOW(),
+  is_online BOOLEAN DEFAULT false
+);
+ALTER TABLE online_status ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "online_select" ON online_status;
+DROP POLICY IF EXISTS "online_update" ON online_status;
+CREATE POLICY "online_select" ON online_status FOR SELECT USING (true);
+CREATE POLICY "online_update" ON online_status FOR ALL USING (auth.uid() = user_id);
+
+-- ======================== 어드민 RPC 구버전 제거 ========================
+-- 최신 버전은 04_admin_complete 섹션에 있습니다. 아래 DROP으로 반환타입 충돌을 방지합니다.
+DROP FUNCTION IF EXISTS get_admin_dashboard_stats();
+DROP FUNCTION IF EXISTS admin_ban_user(UUID, TEXT, INTEGER);
+DROP FUNCTION IF EXISTS admin_unban_user(UUID);
+DROP FUNCTION IF EXISTS admin_approve_verification(UUID);
+DROP FUNCTION IF EXISTS admin_reject_verification(UUID, TEXT);
+DROP FUNCTION IF EXISTS admin_resolve_report(UUID, TEXT, TEXT);
+DROP FUNCTION IF EXISTS admin_delete_user_account(UUID);
+DROP FUNCTION IF EXISTS admin_update_user_note(UUID, TEXT);
+DROP FUNCTION IF EXISTS admin_update_post_hidden(UUID, BOOLEAN);
+DROP FUNCTION IF EXISTS admin_update_post_pinned(UUID, BOOLEAN);
+DROP FUNCTION IF EXISTS admin_delete_post(UUID);
+DROP FUNCTION IF EXISTS admin_delete_group(UUID);
+
+-- ======================== 어드민 DB 뷰 ========================
+-- safety_checkins 뷰 생성 전 누락 컬럼 보장
+ALTER TABLE safety_checkins ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+ALTER TABLE safety_checkins ADD COLUMN IF NOT EXISTS notes  TEXT;
+ALTER TABLE safety_checkins ADD COLUMN IF NOT EXISTS is_sos BOOLEAN DEFAULT false;
+
+-- SOS 활성 체크인 뷰
+DROP VIEW IF EXISTS admin_sos_active;
+CREATE VIEW admin_sos_active AS
+SELECT
+  sc.id, sc.user_id, sc.status, sc.location_name AS location, sc.created_at,
+  sc.is_sos, sc.notes,
+  p.name AS user_name, p.email AS user_email, p.photo_url AS user_photo
+FROM safety_checkins sc
+JOIN profiles p ON p.id = sc.user_id
+WHERE sc.is_sos = true AND sc.status = 'active'
+ORDER BY sc.created_at DESC;
+
+-- 채팅방 요약 뷰
+DROP VIEW IF EXISTS admin_chat_room_summary;
+CREATE VIEW admin_chat_room_summary AS
+SELECT
+  ct.id, ct.name AS title, ct.created_at, ct.is_group,
+  ct.last_message,
+  (SELECT COUNT(*) FROM chat_members cm WHERE cm.thread_id = ct.id) AS member_count,
+  p.name AS creator_name
+FROM chat_threads ct
+LEFT JOIN profiles p ON p.id = ct.created_by
+ORDER BY ct.updated_at DESC NULLS LAST;
+
+-- ======================== posts 테이블 누락 컬럼 보완 ========================
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS hidden     BOOLEAN DEFAULT false;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS pinned     BOOLEAN DEFAULT false;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS likes_count    INTEGER DEFAULT 0;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS comments_count INTEGER DEFAULT 0;
+
+-- ======================== marketplace_items 테이블 보완 ========================
+ALTER TABLE marketplace_items ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+
+-- ======================== safety_checkins 컬럼 보완 ========================
+ALTER TABLE safety_checkins ADD COLUMN IF NOT EXISTS is_sos  BOOLEAN DEFAULT false;
+ALTER TABLE safety_checkins ADD COLUMN IF NOT EXISTS status  TEXT DEFAULT 'active';
+ALTER TABLE safety_checkins ADD COLUMN IF NOT EXISTS notes   TEXT;
+
+-- ======================== is_admin/role 컬럼 보완 ========================
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role     TEXT    DEFAULT 'user';
+
+-- ============================================================
+-- migo_unified_automation.sql — Drip Likes / Drip Posts / Wake-up Bot
+-- ============================================================
+
+-- PART 1: 기존 "Welcome Likes" 스팸 트리거 제거
+DROP TRIGGER IF EXISTS trg_welcome_likes ON profiles;
+DROP FUNCTION IF EXISTS auto_generate_welcome_likes();
+
+-- pg_cron 익스텐션 활성화
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- PART 2: 게시물 조회수 추적 및 자동 소멸
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS max_views  INTEGER DEFAULT NULL;
+
+CREATE OR REPLACE FUNCTION increment_post_views(p_ids UUID[])
+RETURNS void AS $$
+BEGIN
+  UPDATE public.posts SET view_count = COALESCE(view_count, 0) + 1 WHERE id = ANY(p_ids);
+  UPDATE public.posts SET hidden = true
+  WHERE id = ANY(p_ids) AND max_views IS NOT NULL
+    AND COALESCE(view_count, 0) >= max_views AND hidden = false;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- PART 3: Drip Likes (결제 유도용 가짜 좋아요 봇)
+CREATE OR REPLACE FUNCTION generate_drip_likes()
+RETURNS void AS $$
+DECLARE
+  real_user RECORD;
+  mock_id UUID;
+  new_like_count INTEGER := 0;
+BEGIN
+  FOR real_user IN
+    SELECT id, name FROM profiles
+    WHERE email NOT LIKE '%@migo.app'
+      AND (plan IS NULL OR plan = 'free')
+      AND (is_plus IS NULL OR is_plus = false)
+    ORDER BY random() LIMIT 100
+  LOOP
+    SELECT id INTO mock_id FROM profiles
+    WHERE email LIKE '%@migo.app' AND id != real_user.id
+      AND name IS NOT NULL AND trim(name) != ''
+      AND NOT EXISTS (SELECT 1 FROM likes WHERE from_user = profiles.id AND to_user = real_user.id)
+    ORDER BY random() LIMIT 1;
+
+    IF mock_id IS NOT NULL THEN
+      INSERT INTO likes(from_user, to_user, kind, created_at)
+      VALUES (mock_id, real_user.id, 'like', NOW()) ON CONFLICT DO NOTHING;
+      INSERT INTO in_app_notifications(user_id, title, content, type)
+      VALUES (real_user.id, '새로운 좋아요 도착! 💕', '새로운 누군가 회원님을 좋아합니다. 프로필을 확인해보세요!', 'like');
+      new_like_count := new_like_count + 1;
+    END IF;
+  END LOOP;
+  RAISE LOG 'Generated % drip likes.', new_like_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DO $$ BEGIN PERFORM cron.unschedule('drip-likes-job'); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+SELECT cron.schedule('drip-likes-job', '0 * * * *', 'SELECT generate_drip_likes();');
+
+-- PART 4: Drip Posts (커뮤니티 활성화 여행 피드 봇)
+CREATE OR REPLACE FUNCTION generate_drip_posts()
+RETURNS void AS $$
+DECLARE
+  mock_user RECORD;
+  post_content TEXT;
+  random_photo TEXT;
+  loc_tag TEXT;
+  messages TEXT[] := ARRAY[
+    'Loving the vibes here! ☀️ 날씨 너무 좋아요',
+    'Found a hidden gem today 📸 완전 숨겨진 명소 발견!',
+    'Who wants to grab a coffee nearby? ☕ 근처에서 커피 한 잔 하실 분?',
+    'Beautiful sunset view from here 🌅 여기서 보는 노을 최고입니다',
+    'Just arrived! What should I do first? 🎒 방금 도착했어요! 뭐부터 할까요?',
+    'Best trip ever! ✨ 이번 여행 진짜 레전드입니다'
+  ];
+  photos TEXT[] := ARRAY[
+    'https://images.unsplash.com/photo-1506744626753-1fa28f6e5c54?w=800&q=80',
+    'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&q=80',
+    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80',
+    NULL, NULL, NULL
+  ];
+BEGIN
+  IF random() < 0.5 THEN RETURN; END IF;
+  SELECT id, name, location, lat, lng INTO mock_user FROM profiles
+  WHERE email LIKE '%@migo.app' AND lat IS NOT NULL AND lng IS NOT NULL
+    AND name IS NOT NULL AND trim(name) != ''
+  ORDER BY random() LIMIT 1;
+
+  IF mock_user.id IS NOT NULL THEN
+    post_content := messages[floor(random() * array_length(messages, 1) + 1)];
+    random_photo := photos[floor(random() * array_length(photos, 1) + 1)];
+    loc_tag := '_loc_:' || mock_user.lat || ':' || mock_user.lng || ':' || COALESCE(mock_user.location, 'Unknown');
+    INSERT INTO posts (author_id, title, content, image_url, tags, view_count, max_views, created_at)
+    VALUES (mock_user.id, mock_user.name || '님의 여행 기록', post_content, random_photo,
+            ARRAY['여행', '일상', loc_tag], 0, 50, NOW());
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DO $$ BEGIN PERFORM cron.unschedule('drip-posts-job'); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+SELECT cron.schedule('drip-posts-job', '0 * * * *', 'SELECT generate_drip_posts()');
+
+-- PART 5: Dormant User Wake-up Bot
+CREATE OR REPLACE FUNCTION wake_up_dormant_users()
+RETURNS void AS $$
+DECLARE
+  dormant_user RECORD;
+  mock_id UUID;
+  wake_count INTEGER := 0;
+BEGIN
+  FOR dormant_user IN
+    SELECT p.id, p.name FROM public.profiles AS p
+    INNER JOIN public.online_status AS o ON p.id = o.user_id
+    WHERE p.email NOT LIKE '%@migo.app' AND o.last_seen < NOW() - INTERVAL '3 days'
+    ORDER BY o.last_seen ASC LIMIT 100
+  LOOP
+    SELECT id INTO mock_id FROM profiles
+    WHERE email LIKE '%@migo.app' AND id != dormant_user.id
+      AND name IS NOT NULL AND trim(name) != ''
+      AND NOT EXISTS (SELECT 1 FROM likes WHERE from_user = profiles.id AND to_user = dormant_user.id)
+    ORDER BY random() LIMIT 1;
+
+    IF mock_id IS NOT NULL THEN
+      INSERT INTO likes(from_user, to_user, kind, created_at)
+      VALUES (mock_id, dormant_user.id, 'like', NOW()) ON CONFLICT DO NOTHING;
+      INSERT INTO in_app_notifications(user_id, title, content, type)
+      VALUES (dormant_user.id, '새로운 인연이 기다리고 있어요! 💕',
+              '회원님을 마음에 들어 하는 분이 있습니다. 지금 접속해서 누군지 확인해보세요!', 'like');
+      wake_count := wake_count + 1;
+    END IF;
+  END LOOP;
+  RAISE LOG 'Wake-up bot sent % likes to dormant users.', wake_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DO $$ BEGIN PERFORM cron.unschedule('wake-up-dormant-job'); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+SELECT cron.schedule('wake-up-dormant-job', '0 3 * * *', 'SELECT wake_up_dormant_users()');
+
+-- PART 6: Initial Cleanup
+DELETE FROM public.posts
+WHERE author_id IN (SELECT id FROM public.profiles WHERE email LIKE '%@migo.app' AND (name IS NULL OR trim(name) = ''));
+UPDATE public.profiles SET name = '여행자' || floor(random() * 10000)::text
+WHERE email LIKE '%@migo.app' AND (name IS NULL OR trim(name) = '');
+
+-- ============================================================
+-- SECURITY_PATCH_BUNDLE — 보안 패치 12~23
+-- ============================================================
+
+-- ── 12: 채팅방 하이재킹 방어 ──────────────────────────────────
+DROP POLICY IF EXISTS "members_insert" ON chat_members;
+CREATE POLICY "members_insert" ON chat_members FOR INSERT WITH CHECK (
+  (EXISTS (SELECT 1 FROM chat_threads WHERE id = thread_id AND is_group = true) AND auth.uid() = user_id)
+  OR EXISTS (SELECT 1 FROM chat_threads WHERE id = thread_id AND created_by = auth.uid())
+  OR check_is_chat_member(thread_id)
+);
+
+-- ── 13/19/23: 권한 상승 + 관리자 메모 변조 + API 레이트리밋 방어 (통합 최종본) ──
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS otp_last_sent       TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS translate_count     INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS translate_last_reset DATE DEFAULT CURRENT_DATE;
+
+CREATE OR REPLACE FUNCTION block_sensitive_profile_updates()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF auth.role() IN ('authenticated', 'anon') THEN
+    IF NEW.instant_meets_count < OLD.instant_meets_count THEN NEW.instant_meets_count := OLD.instant_meets_count; END IF;
+    IF NEW.no_show_count < OLD.no_show_count THEN NEW.no_show_count := OLD.no_show_count; END IF;
+    IF NEW.is_banned    != OLD.is_banned    THEN NEW.is_banned    := OLD.is_banned;    END IF;
+    IF NEW.banned       != OLD.banned       THEN NEW.banned       := OLD.banned;       END IF;
+    IF NEW.id_verified  != OLD.id_verified  THEN NEW.id_verified  := OLD.id_verified;  END IF;
+    IF NEW.phone_verified != OLD.phone_verified THEN NEW.phone_verified := OLD.phone_verified; END IF;
+    IF NEW.email_verified != OLD.email_verified THEN NEW.email_verified := OLD.email_verified; END IF;
+    IF NEW.admin_note   IS DISTINCT FROM OLD.admin_note   THEN NEW.admin_note   := OLD.admin_note;   END IF;
+    IF NEW.ban_reason   IS DISTINCT FROM OLD.ban_reason   THEN NEW.ban_reason   := OLD.ban_reason;   END IF;
+    IF NEW.banned_until IS DISTINCT FROM OLD.banned_until THEN NEW.banned_until := OLD.banned_until; END IF;
+    IF NEW.is_admin     != OLD.is_admin     THEN NEW.is_admin     := OLD.is_admin;     END IF;
+    IF NEW.role         != OLD.role         THEN NEW.role         := OLD.role;         END IF;
+    IF NEW.is_plus      != OLD.is_plus      THEN NEW.is_plus      := OLD.is_plus;      END IF;
+    IF NEW.plan         != OLD.plan         THEN NEW.plan         := OLD.plan;         END IF;
+    IF NEW.plus_expires_at  IS DISTINCT FROM OLD.plus_expires_at  THEN NEW.plus_expires_at  := OLD.plus_expires_at;  END IF;
+    IF NEW.boost_expires_at IS DISTINCT FROM OLD.boost_expires_at THEN NEW.boost_expires_at := OLD.boost_expires_at; END IF;
+    IF NEW.super_likes_left > OLD.super_likes_left THEN NEW.super_likes_left := OLD.super_likes_left; END IF;
+    IF NEW.trust_score  != OLD.trust_score  THEN NEW.trust_score  := OLD.trust_score;  END IF;
+    IF NEW.avg_rating   != OLD.avg_rating   THEN NEW.avg_rating   := OLD.avg_rating;   END IF;
+    IF NEW.review_count != OLD.review_count THEN NEW.review_count := OLD.review_count; END IF;
+    IF NEW.has_badge    != OLD.has_badge    THEN NEW.has_badge    := OLD.has_badge;    END IF;
+    IF NEW.earned_badges != OLD.earned_badges THEN NEW.earned_badges := OLD.earned_badges; END IF;
+    IF NEW.otp_last_sent IS DISTINCT FROM OLD.otp_last_sent THEN NEW.otp_last_sent := OLD.otp_last_sent; END IF;
+    IF NEW.translate_count < OLD.translate_count AND NEW.translate_last_reset = OLD.translate_last_reset THEN
+      NEW.translate_count := OLD.translate_count;
+    END IF;
+    IF NEW.translate_last_reset IS DISTINCT FROM OLD.translate_last_reset THEN NEW.translate_last_reset := OLD.translate_last_reset; END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_block_sensitive_update ON public.profiles;
+CREATE TRIGGER trigger_block_sensitive_update
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION block_sensitive_profile_updates();
+
+-- ── 14: 강제 1:1 채팅 개설 방어 ──────────────────────────────
+CREATE OR REPLACE FUNCTION enforce_chat_members_rules()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_caller UUID := auth.uid();
+  v_thread_is_group BOOLEAN;
+  v_mutual BOOLEAN;
+  v_caller_profile RECORD;
+BEGIN
+  IF auth.role() != 'authenticated' THEN RETURN NEW; END IF;
+  SELECT is_group INTO v_thread_is_group FROM chat_threads WHERE id = NEW.thread_id;
+  IF v_thread_is_group THEN RETURN NEW; END IF;
+  IF NEW.user_id != v_caller THEN
+    SELECT EXISTS (SELECT 1 FROM likes WHERE from_user = v_caller AND to_user = NEW.user_id)
+       AND EXISTS (SELECT 1 FROM likes WHERE from_user = NEW.user_id AND to_user = v_caller)
+    INTO v_mutual;
+    IF v_mutual THEN RETURN NEW; END IF;
+    SELECT * INTO v_caller_profile FROM profiles WHERE id = v_caller FOR UPDATE;
+    IF v_caller_profile.is_plus = true THEN RETURN NEW; END IF;
+    IF v_caller_profile.instant_meets_count >= 3 THEN RAISE EXCEPTION 'Instant meet limit reached'; END IF;
+    UPDATE profiles SET instant_meets_count = instant_meets_count + 1 WHERE id = v_caller;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_enforce_match_rules   ON public.matches;
+DROP TRIGGER IF EXISTS trigger_enforce_chat_members  ON public.chat_members;
+CREATE TRIGGER trigger_enforce_chat_members
+  BEFORE INSERT ON public.chat_members
+  FOR EACH ROW EXECUTE FUNCTION enforce_chat_members_rules();
+
+-- ── 15: 강제 그룹 가입 방어 ──────────────────────────────────
+CREATE OR REPLACE FUNCTION enforce_group_join_rules()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_group RECORD;
+  v_current_count INT;
+BEGIN
+  IF auth.role() != 'authenticated' THEN RETURN NEW; END IF;
+  IF auth.uid() != NEW.user_id THEN RAISE EXCEPTION 'You can only join a group as yourself'; END IF;
+  SELECT * INTO v_group FROM trip_groups WHERE id = NEW.group_id FOR UPDATE;
+  SELECT COUNT(*) INTO v_current_count FROM trip_group_members WHERE group_id = NEW.group_id;
+  IF v_current_count >= v_group.max_members THEN RAISE EXCEPTION 'Group is full'; END IF;
+  IF v_group.status != 'recruiting' THEN RAISE EXCEPTION 'Cannot directly join a non-recruiting group'; END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_enforce_group_join ON public.trip_group_members;
+CREATE TRIGGER trigger_enforce_group_join
+  BEFORE INSERT ON public.trip_group_members
+  FOR EACH ROW EXECUTE FUNCTION enforce_group_join_rules();
+
+CREATE OR REPLACE FUNCTION auto_join_approved_applicants()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'approved' AND OLD.status != 'approved' THEN
+    INSERT INTO trip_group_members (group_id, user_id)
+    VALUES (NEW.group_id, NEW.applicant_id) ON CONFLICT DO NOTHING;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_auto_join_approved ON public.trip_applications;
+CREATE TRIGGER trigger_auto_join_approved
+  AFTER UPDATE OF status ON public.trip_applications
+  FOR EACH ROW EXECUTE FUNCTION auto_join_approved_applicants();
+
+-- ── 16: id_verifications & marketplace_items 정책 수정 ────────
+DROP POLICY IF EXISTS "idv_admin" ON public.id_verifications;
+CREATE POLICY "idv_admin" ON public.id_verifications FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+
+DROP POLICY IF EXISTS "marketplace_admin"    ON public.marketplace_items;
+DROP POLICY IF EXISTS "marketplace_host_all" ON public.marketplace_items;
+CREATE POLICY "marketplace_admin" ON public.marketplace_items FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND (is_admin = true OR role = 'admin')));
+CREATE POLICY "marketplace_host_all" ON public.marketplace_items FOR ALL TO authenticated
+  USING (auth.uid() = host_id) WITH CHECK (auth.uid() = host_id);
+
+-- ── 17: user_items 아이템 무한 증식 방어 ──────────────────────
+DROP POLICY IF EXISTS "ui_own"    ON public.user_items;
+DROP POLICY IF EXISTS "ui_select" ON public.user_items;
+DROP POLICY IF EXISTS "ui_update" ON public.user_items;
+CREATE POLICY "ui_select" ON public.user_items FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "ui_update" ON public.user_items FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION block_item_forging()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF auth.role() = 'authenticated' THEN
+    IF NEW.super_likes  > OLD.super_likes  THEN NEW.super_likes  := OLD.super_likes;  END IF;
+    IF NEW.boosts       > OLD.boosts       THEN NEW.boosts       := OLD.boosts;       END IF;
+    IF NEW.nearby_days  > OLD.nearby_days  THEN NEW.nearby_days  := OLD.nearby_days;  END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_block_item_forging ON public.user_items;
+CREATE TRIGGER trigger_block_item_forging
+  BEFORE UPDATE ON public.user_items
+  FOR EACH ROW EXECUTE FUNCTION block_item_forging();
+
+DROP POLICY IF EXISTS "purchase_own"        ON public.purchases;
+DROP POLICY IF EXISTS "purchase_own_select" ON public.purchases;
+CREATE POLICY "purchase_own_select" ON public.purchases FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "sub_own"        ON public.subscriptions;
+DROP POLICY IF EXISTS "sub_own_select" ON public.subscriptions;
+CREATE POLICY "sub_own_select" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id);
+
+-- ── 18: 가짜 매칭 생성 방어 ──────────────────────────────────
+DROP POLICY IF EXISTS "matches_insert" ON public.matches;
+DROP POLICY IF EXISTS "matches_update" ON public.matches;
+DROP POLICY IF EXISTS "matches_delete" ON public.matches;
+CREATE POLICY "matches_insert" ON public.matches FOR INSERT WITH CHECK (auth.uid() IN (user1_id, user2_id));
+
+-- ── 20: 채팅방 파괴 & 변조 방어 ──────────────────────────────
+DROP POLICY IF EXISTS "threads_delete" ON public.chat_threads;
+CREATE POLICY "threads_delete" ON public.chat_threads FOR DELETE USING (created_by = auth.uid());
+
+DROP POLICY IF EXISTS "threads_update" ON public.chat_threads;
+CREATE POLICY "threads_update" ON public.chat_threads FOR UPDATE USING (
+  (is_group = true AND created_by = auth.uid()) OR
+  (is_group = false AND EXISTS (
+    SELECT 1 FROM chat_members WHERE chat_members.thread_id = id AND chat_members.user_id = auth.uid()
+  ))
+);
+
+-- ── 21: 허위 리뷰 방어 ───────────────────────────────────────
+CREATE OR REPLACE FUNCTION enforce_review_rules()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_caller UUID := auth.uid();
+  v_has_connection BOOLEAN;
+  v_target UUID;
+BEGIN
+  IF auth.role() != 'authenticated' THEN RETURN NEW; END IF;
+  IF NEW.reviewer_id != v_caller THEN RAISE EXCEPTION 'You can only write reviews as yourself'; END IF;
+  BEGIN v_target := NEW.reviewed_id;
+  EXCEPTION WHEN undefined_column THEN v_target := NEW.reviewee_id; END;
+  IF v_caller = v_target THEN RAISE EXCEPTION 'You cannot review yourself'; END IF;
+  SELECT EXISTS (
+    SELECT 1 FROM matches WHERE (user1_id = v_caller AND user2_id = v_target) OR (user1_id = v_target AND user2_id = v_caller)
+  ) OR EXISTS (
+    SELECT 1 FROM trip_group_members tgm1
+    JOIN trip_group_members tgm2 ON tgm1.group_id = tgm2.group_id
+    WHERE tgm1.user_id = v_caller AND tgm2.user_id = v_target
+  ) OR EXISTS (
+    SELECT 1 FROM safety_checkins
+    WHERE (user_id = v_caller AND partner_id = v_target) OR (user_id = v_target AND partner_id = v_caller)
+  ) INTO v_has_connection;
+  IF NOT v_has_connection THEN RAISE EXCEPTION 'You can only review users you have matched or traveled with'; END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_enforce_meet_review ON public.meet_reviews;
+CREATE TRIGGER trigger_enforce_meet_review
+  BEFORE INSERT ON public.meet_reviews FOR EACH ROW EXECUTE FUNCTION enforce_review_rules();
+
+DROP TRIGGER IF EXISTS trigger_enforce_trip_review ON public.trip_reviews;
+CREATE TRIGGER trigger_enforce_trip_review
+  BEFORE INSERT ON public.trip_reviews FOR EACH ROW EXECUTE FUNCTION enforce_review_rules();
+
+-- ── 22: 슈퍼라이크 RLS 우회 방어 ─────────────────────────────
+DROP POLICY IF EXISTS "likes_insert_own" ON public.likes;
+CREATE POLICY "likes_insert_own" ON public.likes FOR INSERT WITH CHECK (
+  auth.uid() = from_user AND (kind = 'like' OR kind IS NULL)
+);
+
+DROP POLICY IF EXISTS "likes_update_own" ON public.likes;
+CREATE POLICY "likes_update_own" ON public.likes FOR UPDATE
+  USING (auth.uid() = from_user) WITH CHECK (kind != 'super_like');
+
+-- ============================================================
+-- END: Migo App 통합 스키마 완료 — 이 파일 하나만 실행하세요
+-- ============================================================
+
+-- ============================================================
+-- RETENTION 01: 일일 출석체크 & 스트릭 보상 시스템
+-- ============================================================
+
+-- 출석체크 관련 컬럼 추가
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_checkin_at    TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS checkin_streak      INTEGER DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_active_at      TIMESTAMPTZ DEFAULT NOW();
+
+-- ── touch_active: 마지막 활동 시간 갱신 ──────────────────────
+DROP FUNCTION IF EXISTS touch_active(UUID) CASCADE;
+CREATE OR REPLACE FUNCTION touch_active(p_user_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE public.profiles
+  SET last_active_at = NOW()
+  WHERE id = p_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ── do_daily_checkin: 출석체크 + 스트릭 + 보상 지급 ──────────
+-- 반환값: { already: bool, streak: int, reward: text }
+--   reward 종류:
+--     'badge_only'   → 기본 출석 도장 (일반 날)
+--     'super_like_1' → 슈퍼라이크 +1 (1,2,4,6일차)
+--     'boost_30m'    → 프로필 부스트 30분 (3,5일차)
+--     'crown_badge'  → 7일 연속 왕관 배지 (7일차, 이후 streak 리셋)
+DROP FUNCTION IF EXISTS do_daily_checkin(UUID) CASCADE;
+CREATE OR REPLACE FUNCTION do_daily_checkin(p_user_id UUID)
+RETURNS JSON AS $$
+DECLARE
+  v_last_checkin  TIMESTAMPTZ;
+  v_streak        INTEGER;
+  v_today         DATE := CURRENT_DATE;
+  v_reward        TEXT;
+  v_already       BOOLEAN := false;
+BEGIN
+  -- 현재 체크인 정보 조회
+  SELECT last_checkin_at, COALESCE(checkin_streak, 0)
+  INTO v_last_checkin, v_streak
+  FROM public.profiles
+  WHERE id = p_user_id;
+
+  -- 오늘 이미 체크인한 경우
+  IF v_last_checkin IS NOT NULL AND DATE(v_last_checkin AT TIME ZONE 'UTC') = v_today THEN
+    v_already := true;
+    RETURN json_build_object(
+      'already', true,
+      'streak',  v_streak,
+      'reward',  'badge_only'
+    );
+  END IF;
+
+  -- 연속 스트릭 계산
+  IF v_last_checkin IS NOT NULL AND DATE(v_last_checkin AT TIME ZONE 'UTC') = v_today - INTERVAL '1 day' THEN
+    -- 어제 체크인 → 연속
+    v_streak := v_streak + 1;
+  ELSE
+    -- 연속 끊김 → 리셋
+    v_streak := 1;
+  END IF;
+
+  -- 7일 완료 시 리셋
+  IF v_streak > 7 THEN v_streak := 1; END IF;
+
+  -- 보상 결정
+  IF v_streak = 7 THEN
+    v_reward := 'crown_badge';
+  ELSIF v_streak = 3 OR v_streak = 5 THEN
+    v_reward := 'boost_30m';
+  ELSE
+    v_reward := 'super_like_1';
+  END IF;
+
+  -- 프로필 업데이트 (스트릭 + 체크인 시간)
+  UPDATE public.profiles
+  SET last_checkin_at = NOW(),
+      checkin_streak  = v_streak,
+      last_active_at  = NOW()
+  WHERE id = p_user_id;
+
+  -- 보상 지급
+  IF v_reward = 'super_like_1' THEN
+    UPDATE public.profiles
+    SET super_likes_left = COALESCE(super_likes_left, 0) + 1
+    WHERE id = p_user_id;
+
+  ELSIF v_reward = 'boost_30m' THEN
+    UPDATE public.profiles
+    SET boost_expires_at = GREATEST(COALESCE(boost_expires_at, NOW()), NOW()) + INTERVAL '30 minutes'
+    WHERE id = p_user_id;
+
+  ELSIF v_reward = 'crown_badge' THEN
+    UPDATE public.profiles
+    SET super_likes_left = COALESCE(super_likes_left, 0) + 3,
+        has_badge        = true
+    WHERE id = p_user_id;
+  END IF;
+
+  -- 보상 알림 생성
+  INSERT INTO public.notifications (user_id, type, target_text, is_read)
+  VALUES (p_user_id, 'system',
+    CASE v_reward
+      WHEN 'super_like_1' THEN '🎁 출석 보상: 슈퍼라이크 1개 지급!'
+      WHEN 'boost_30m'    THEN '⚡ 출석 보상: 프로필 부스트 30분!'
+      WHEN 'crown_badge'  THEN '👑 7일 연속 출석 달성! 슈퍼라이크 3개 + 왕관 배지!'
+      ELSE '✅ 오늘 출석 완료!'
+    END,
+    false)
+  ON CONFLICT DO NOTHING;
+
+  RETURN json_build_object(
+    'already', false,
+    'streak',  v_streak,
+    'reward',  v_reward
+  );
+
+EXCEPTION WHEN OTHERS THEN
+  -- 오류 시 안전하게 기본값 반환
+  RETURN json_build_object(
+    'already', false,
+    'streak',  1,
+    'reward',  'badge_only'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RPC 실행 권한 부여
+GRANT EXECUTE ON FUNCTION touch_active(UUID)        TO authenticated;
+GRANT EXECUTE ON FUNCTION do_daily_checkin(UUID)    TO authenticated;
+
+-- ============================================================
+-- RETENTION 02: 매칭 만료 알림 (48시간 응답 기한)
+-- 좋아요를 받은 유저가 24h 미응답 → 리마인더
+-- 47h 미응답 → 마지막 경고 (1h 후 만료)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION notify_expiring_likes()
+RETURNS void AS $$
+DECLARE
+  r RECORD;
+BEGIN
+  -- 24시간 리마인더 (24h~25h 사이 좋아요, 아직 미매칭)
+  FOR r IN
+    SELECT l.to_user, l.from_user, p.name AS sender_name
+    FROM public.likes l
+    JOIN public.profiles p ON p.id = l.from_user
+    WHERE l.created_at BETWEEN NOW() - INTERVAL '25 hours' AND NOW() - INTERVAL '24 hours'
+      AND l.kind IN ('like', 'super_like')
+      -- 이미 매칭됐으면 스킵
+      AND NOT EXISTS (
+        SELECT 1 FROM public.likes back
+        WHERE back.from_user = l.to_user AND back.to_user = l.from_user
+      )
+      -- 이미 만료 알림 보냈으면 스킵
+      AND NOT EXISTS (
+        SELECT 1 FROM public.notifications n
+        WHERE n.user_id = l.to_user
+          AND n.type = 'like_expiry_24h'
+          AND n.actor_id = l.from_user
+          AND n.created_at > NOW() - INTERVAL '2 days'
+      )
+  LOOP
+    INSERT INTO public.notifications (user_id, actor_id, type, target_text, is_read)
+    VALUES (
+      r.to_user,
+      r.from_user,
+      'like_expiry_24h',
+      '⏰ ' || r.sender_name || '님이 좋아요를 보낸 지 하루가 됐어요! 24시간 안에 응답하지 않으면 사라져요.',
+      false
+    ) ON CONFLICT DO NOTHING;
+  END LOOP;
+
+  -- 47시간 최종 경고 (47h~48h 사이, 1시간 후 만료)
+  FOR r IN
+    SELECT l.to_user, l.from_user, p.name AS sender_name
+    FROM public.likes l
+    JOIN public.profiles p ON p.id = l.from_user
+    WHERE l.created_at BETWEEN NOW() - INTERVAL '48 hours' AND NOW() - INTERVAL '47 hours'
+      AND l.kind IN ('like', 'super_like')
+      AND NOT EXISTS (
+        SELECT 1 FROM public.likes back
+        WHERE back.from_user = l.to_user AND back.to_user = l.from_user
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM public.notifications n
+        WHERE n.user_id = l.to_user
+          AND n.type = 'like_expiry_final'
+          AND n.actor_id = l.from_user
+          AND n.created_at > NOW() - INTERVAL '2 days'
+      )
+  LOOP
+    INSERT INTO public.notifications (user_id, actor_id, type, target_text, is_read)
+    VALUES (
+      r.to_user,
+      r.from_user,
+      'like_expiry_final',
+      '🚨 마지막 기회! ' || r.sender_name || '님의 좋아요가 1시간 후 만료돼요. 지금 응답하세요!',
+      false
+    ) ON CONFLICT DO NOTHING;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 매시간 만료 알림 체크
+DO $$ BEGIN PERFORM cron.unschedule('like-expiry-notif'); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+SELECT cron.schedule('like-expiry-notif', '0 * * * *', 'SELECT notify_expiring_likes()');
+
+-- ============================================================
+-- RETENTION 03: 복귀 보상 자동화 (DB 레벨 - 클라이언트 보완)
+-- 7일 미접속 유저에게 슈퍼라이크 3개 + 복귀 알림
+-- (클라이언트의 useReturnReward 훅과 이중 보호)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION reward_returning_users()
+RETURNS void AS $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN
+    SELECT id, name
+    FROM public.profiles
+    WHERE last_active_at < NOW() - INTERVAL '7 days'
+      AND last_active_at > NOW() - INTERVAL '8 days'  -- 정확히 7일~8일 사이에만 1회
+      AND super_likes_left IS NOT NULL
+  LOOP
+    -- 슈퍼라이크 3개 지급
+    UPDATE public.profiles
+    SET super_likes_left = COALESCE(super_likes_left, 0) + 3
+    WHERE id = r.id;
+
+    -- 복귀 유도 알림
+    INSERT INTO public.notifications (user_id, type, target_text, is_read)
+    VALUES (
+      r.id,
+      'system',
+      '🎁 오랜만이에요! 돌아오시면 슈퍼라이크 3개를 드릴게요. 지금 매칭을 확인해보세요!',
+      false
+    ) ON CONFLICT DO NOTHING;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 매일 오전 10시 복귀 보상 지급
+DO $$ BEGIN PERFORM cron.unschedule('return-reward-job'); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+SELECT cron.schedule('return-reward-job', '0 10 * * *', 'SELECT reward_returning_users()');
+
+-- notifications 테이블에 type 컬럼 확인 (like_expiry 타입 지원)
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS actor_id UUID REFERENCES profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+-- ============================================================
+-- END: Retention System v1 완료
+-- ============================================================
+

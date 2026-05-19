@@ -2,14 +2,12 @@ import i18n from "@/i18n";
 import { createClient } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured, invalidateCache } from "./supabaseClient";
 
-// Admin ?꾩슜 adminSupabase ?대씪?댁뼵????persistSession/autoRefreshToken???꾩쟾??鍮꾪솢?깊솕?섏뿬
-// 留뚮즺??JWT 媛깆떊 ?쒕룄濡??명븳 GoTrue ?곕뱶?쎌쓣 ?먯쿇 李⑤떒?⑸땲??
-// Service Role Key가 있으면 RLS를 완전히 우회하는 admin 클라이언트 생성
-const _serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined;
+// ⚠️ SECURITY: Service Role Key는 절대 VITE_ prefix로 사용하면 안 됨 (클라이언트 번들에 포함됨)
+// 관리자 기능은 checkAdminRole() + Supabase RLS 정책으로 보호
+// adminSupabase는 anon key 사용 — DB 단 RLS + checkAdminRole() 이중 방어
 export const adminSupabase = createClient(
   import.meta.env.VITE_SUPABASE_URL ?? "",
-  // Service Role Key 우선, 없으면 Anon Key로 폴백
-  _serviceKey || (import.meta.env.VITE_SUPABASE_ANON_KEY ?? ""),
+  import.meta.env.VITE_SUPABASE_ANON_KEY ?? "",
   {
     auth: {
       persistSession: false,
@@ -736,9 +734,8 @@ async function sendPushViaEdgeFunction(
 ): Promise<boolean> {
   try {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-    const serviceKey  = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string;
-    // Service Role Key가 없으면 Anon Key로 시도 (제한적)
-    const authKey = serviceKey || (import.meta.env.VITE_SUPABASE_ANON_KEY as string);
+    // ⚠️ SECURITY: Service Role Key는 클라이언트 번들에 포함되면 안 됨 → anon key 사용
+    const authKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
     if (!supabaseUrl || !authKey) return false;
 
     const res = await fetch(`${supabaseUrl}/functions/v1/push-notify`, {

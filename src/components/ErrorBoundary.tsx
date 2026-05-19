@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
-import i18n from "@/i18n";
+import i18n from 'i18next';
 
 interface Props {
   children: ReactNode;

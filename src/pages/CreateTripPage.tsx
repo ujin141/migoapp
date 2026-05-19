@@ -112,7 +112,7 @@ const CreateTripPage = ({ onClose }: CreateTripPageProps) => {
     }
     if (startDate > endDate) {
       toast({
-        title: t("trip.dateError", "시작일이 종료일보다 늦을 수 없습니다"),
+        title: t("trip.dateError"),
         variant: "destructive"
       });
       return;
@@ -464,7 +464,7 @@ const CreateTripPage = ({ onClose }: CreateTripPageProps) => {
                     : "bg-muted text-muted-foreground/50 border border-border/60 cursor-not-allowed")}
               >
                 {loading ? <>
-                    <div className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />{t("createTrip.creating")}</> : t("auto.g_0644", "여행 글 등록하기")}
+                    <div className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />{t("createTrip.creating")}</> : t("createTrip.submit")}
               </button>
             </div>
             <div className="h-[env(safe-area-inset-bottom)]" />

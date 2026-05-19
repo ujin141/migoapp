@@ -1,4 +1,5 @@
 import i18n from "@/i18n";
+import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Heart, Star, Lock, Crown, Zap } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -8,20 +9,8 @@ import { createPortal } from "react-dom";
 import { useSubscription } from "@/context/SubscriptionContext";
 
 // ─── Constants ───
-export const TRAVEL_STYLES = [
-  { id: i18n.t("auto.x4046", "카페"), i18nKey: "auto.g_1479" },
-  { id: i18n.t("auto.x4047", "트레킹"), i18nKey: "auto.g_1480" },
-  { id: i18n.t("auto.x4048", "서핑"), i18nKey: "auto.g_1481" },
-  { id: i18n.t("auto.x4049", "야시장"), i18nKey: "auto.g_1482" },
-  { id: i18n.t("auto.x4050", "사진"), i18nKey: "auto.g_1483" },
-  { id: i18n.t("auto.x4051", "음식"), i18nKey: "auto.g_1484" },
-  { id: i18n.t("auto.x4052", "건축"), i18nKey: "auto.g_1485" },
-  { id: i18n.t("auto.x4053", "자연"), i18nKey: "auto.g_1486" },
-  { id: i18n.t("auto.x4054", "럭셔리"), i18nKey: "auto.g_1487" },
-  { id: i18n.t("auto.x4055", "배낭여행"), i18nKey: "auto.g_1488" }
-];
-export const LANGUAGE_OPTIONS = [
-  { id: i18n.t("auto.x4056", "한국어"), i18nKey: "auto.g_1489" },
+// TRAVEL_STYLES/LANGUAGE_OPTIONS는 FilterModal 내부에서 useMemo로 생성됩니다
+export const LANGUAGE_OPTIONS_STATIC = [
   "English", "日本語", "中文", "Español", "Français", "Deutsch", "عربي", "Русский", "Português", "हिन्दी", "Tiếng Việt", "ภาษาไทย", "Bahasa Indonesia", "Italiano", "Türkçe", "Nederlands", "Polski", "Bahasa Melayu", "Svenska"
 ];
 
@@ -95,8 +84,11 @@ export const MissionModal = ({
 export const LikePopupModal = ({
   showLikePopup,
   likePopupProfile,
+  onUpgrade,
 }: any) => {
   const { t } = useTranslation();
+  const { isPlus, isPremium } = useSubscription();
+  const canSeePhoto = isPlus || isPremium;
 
   return (
     <AnimatePresence>
@@ -158,12 +150,27 @@ export const LikePopupModal = ({
               <Heart size={36} className="text-white" fill="currentColor" />
             </motion.div>
 
-            {/* Profile snapshot */}
+            {/* Profile snapshot — blurred for free users */}
             <div className="flex items-center justify-center gap-2 mb-3">
               {likePopupProfile.photo ? (
-                <img src={likePopupProfile.photo} alt="" className="w-8 h-8 rounded-xl object-cover border-2 border-rose-400" loading="lazy" onError={e => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }} />
+                <div className="relative w-8 h-8 shrink-0">
+                  <img
+                    src={likePopupProfile.photo}
+                    alt=""
+                    className={`w-8 h-8 rounded-xl object-cover border-2 border-rose-400 transition-all duration-300 ${
+                      canSeePhoto ? "" : "blur-md scale-110"
+                    }`}
+                    loading="lazy"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  {/* Lock overlay for free users */}
+                  {!canSeePhoto && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/30 pointer-events-auto cursor-pointer"
+                      onClick={onUpgrade}>
+                      <Lock size={12} className="text-white drop-shadow" />
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
                   {likePopupProfile.name?.[0] ?? "?"}
@@ -173,6 +180,24 @@ export const LikePopupModal = ({
             </div>
 
             <p className="text-sm text-muted-foreground mb-3 truncate">{i18n.t("auto.j505")}</p>
+
+            {/* Plus upsell hint for free users */}
+            {!canSeePhoto && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="pointer-events-auto mb-3"
+              >
+                <button
+                  onClick={onUpgrade}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-rose-500 text-white text-[11px] font-extrabold shadow-md hover:opacity-90 active:scale-95 transition-all"
+                >
+                  <Crown size={11} className="text-white" />
+                  {i18n.t("match.plusSeePhoto", "Plus로 프로필 확인 →")}
+                </button>
+              </motion.div>
+            )}
 
             {/* Match probability pill */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30">
@@ -194,6 +219,7 @@ export const LikePopupModal = ({
     </AnimatePresence>
   );
 };
+
 
 // ─── Pass Popup Modal (X 버튼) ───
 export const PassPopupModal = ({
@@ -254,10 +280,10 @@ export const PassPopupModal = ({
                   {passPopupProfile.name?.[0] ?? "?"}
                 </div>
               )}
-              <p className="text-base font-extrabold text-foreground">{passPopupProfile.name}<span className="text-muted-foreground font-semibold"> — Passed</span></p>
+              <p className="text-base font-extrabold text-foreground">{passPopupProfile.name}<span className="text-muted-foreground font-semibold">{i18n.t("match.passedSuffix")}</span></p>
             </div>
 
-            <p className="text-sm text-muted-foreground mb-3 truncate">다음 여행자를 만나보세요 ✈️</p>
+            <p className="text-sm text-muted-foreground mb-3 truncate">{i18n.t("match.passNext")}</p>
 
             {/* Auto-close progress bar */}
             <motion.div className="absolute bottom-0 left-0 h-1 rounded-b-3xl bg-gradient-to-r from-slate-400 to-slate-500"
@@ -528,9 +554,27 @@ export const FilterModal = ({
   isPlus, canGlobalMatch,
   setCurrentIndex, setShowPlusModal
 }: any) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isPlus: userPlus, isPremium } = useSubscription();
   const hasAds = !userPlus && !isPremium;
+
+  const TRAVEL_STYLES = useMemo(() => [
+    { id: i18n.t("auto.x4046", "카페"), i18nKey: "auto.g_1479" },
+    { id: i18n.t("auto.x4047", "트레킹"), i18nKey: "auto.g_1480" },
+    { id: i18n.t("auto.x4048", "서핑"), i18nKey: "auto.g_1481" },
+    { id: i18n.t("auto.x4049", "야시장"), i18nKey: "auto.g_1482" },
+    { id: i18n.t("auto.x4050", "사진"), i18nKey: "auto.g_1483" },
+    { id: i18n.t("auto.x4051", "음식"), i18nKey: "auto.g_1484" },
+    { id: i18n.t("auto.x4052", "건축"), i18nKey: "auto.g_1485" },
+    { id: i18n.t("auto.x4053", "자연"), i18nKey: "auto.g_1486" },
+    { id: i18n.t("auto.x4054", "럭셔리"), i18nKey: "auto.g_1487" },
+    { id: i18n.t("auto.x4055", "배낙여행"), i18nKey: "auto.g_1488" }
+  ], [i18n.language]);
+
+  const LANGUAGE_OPTIONS = useMemo(() => [
+    { id: i18n.t("auto.x4056", "한국어"), i18nKey: "auto.g_1489" },
+    ...LANGUAGE_OPTIONS_STATIC
+  ], [i18n.language]);
 
   return createPortal(
     <AnimatePresence>
@@ -569,7 +613,7 @@ export const FilterModal = ({
                   <button
                     onClick={() => {
                       setFilterAge([18, 45]);
-                      setFilterDistance(10);
+                      setFilterDistance(9999); // BUG-10 fix: 초기값과 일치 (전체)
                       setFilterGender('all');
                       setFilterMbti([]);
                       setFilterLanguages([]);

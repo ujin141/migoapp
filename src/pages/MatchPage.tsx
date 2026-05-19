@@ -40,7 +40,11 @@ const MatchPage = () => {
     addUnread
   } = useChatContext();
   const {
-    unreadCount
+    unreadCount,
+    profileViewBanner,
+    clearProfileViewBanner,
+    likeBanner,
+    clearLikeBanner,
   } = useNotifications();
   const {
     isPlus,
@@ -144,6 +148,8 @@ const MatchPage = () => {
   
   const matchTimersRef = useRef<{ timeouts: any[] }>({ timeouts: [] });
   const showMatchRef = useRef(false);
+  // MatchPage-TIMER fix: fetchProfiles 내 likeReset 타이머를 ref로 관리 (async 함수 내 return cleanup 불가)
+  const likeResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const timers = matchTimersRef.current;
@@ -190,7 +196,7 @@ const MatchPage = () => {
 
       // 자신을 DB 레벨에서 확실히 제외 (캐시 제거: 정지된 계정이 즉각 사라지도록)
       const res = await supabase.from('profiles')
-        .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned,setup_complete,is_admin,role')
+        .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,new_user_boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned,setup_complete,is_admin,role')
         .neq('id', user.id)
         .or('is_banned.is.null,is_banned.eq.false')
         .or('banned.is.null,banned.eq.false')
@@ -275,6 +281,7 @@ const MatchPage = () => {
           const distKm = myLat && myLng && p.lat && p.lng ? haversine(myLat, myLng, p.lat, p.lng) : null;
           const score = calcScore(p);
           const isBoosted = p.boost_expires_at && new Date(p.boost_expires_at).getTime() > Date.now();
+          const isNewUserBoosted = p.new_user_boost_expires_at && new Date(p.new_user_boost_expires_at).getTime() > Date.now();
           return {
             id: p.id,
             name: p.name || t("match.unknownUser", "Migo User"),
@@ -293,8 +300,8 @@ const MatchPage = () => {
             travelMission: p.travel_mission || undefined,
             userType: p.user_type || 'traveler', profileTheme: p.profile_theme,
             visitedCountries: p.visited_countries || [],
-            matchScore: isBoosted ? score + 1000 : score,
-            // 부스트 유저는 최상단 배치
+            matchScore: isBoosted ? score + 1000 : isNewUserBoosted ? score + 500 : score,
+            // 부스트 유저 최상단 → 신규 유저 2순위 → 일반 매칭점수 순
             verified: !!p.verified,
             verifyLevel: p.verified ? 'gold' as const : 'basic' as const,
             travelStyle: p.interests || [],
@@ -393,20 +400,23 @@ const MatchPage = () => {
       }); // ← limit(1) 제거: count가 최대 1로 고정되던 버그 수정
       setDailyLikesUsed(likeCount ?? 0);
 
-      // 첫 번째 라이크 시각 기준으로 24시간 후 자동 초기화 타이머
+      // MatchPage-TIMER fix: async 내부 return은 useEffect cleanup 불가 → ref 사용
       if (recentLikes && recentLikes.length > 0) {
         const firstLikeAt = new Date(recentLikes[0].created_at).getTime();
         const resetAt = firstLikeAt + 24 * 60 * 60 * 1000;
         const msUntilReset = resetAt - Date.now();
         if (msUntilReset > 0) {
-          const timer = setTimeout(() => setDailyLikesUsed(0), msUntilReset);
-          return () => clearTimeout(timer);
+          if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
+          likeResetTimerRef.current = setTimeout(() => setDailyLikesUsed(0), msUntilReset);
         } else {
           setDailyLikesUsed(0);
         }
       }
     };
     fetchProfiles();
+    return () => {
+      if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
+    };
   }, [user]);
 
   // ── Supabase Realtime: online_status 실시간 구독 ──
@@ -574,15 +584,27 @@ const MatchPage = () => {
   }, [currentIndex, withAds, isPlus, isPremium, showInterstitial]);
   const saveLikeAndCheckMatch = useCallback(async (toUserId: string, kind: 'like' | 'superlike' = 'like', message?: string) => {
     if (!user) return false;
-    // 1. like 저장 → DB 트리거(trg_notify_on_like)가 자동으로 notifications INSERT
-    await supabase.from('likes').upsert({
-      from_user: user.id,
-      to_user: toUserId,
-      kind,
-      message
-    }, {
-      onConflict: 'from_user,to_user'
-    });
+    // BUG-5 fix: superlike + toUserId 있을 때는 consumeSuperLike에서 이미 RPC로 likes INSERT됨
+    // → 중복 INSERT 방지를 위해 superlike 케이스의 upsert를 건너뜀
+    const shouldSkipLikesInsert = kind === 'superlike';
+    if (!shouldSkipLikesInsert) {
+      await supabase.from('likes').upsert({
+        from_user: user.id,
+        to_user: toUserId,
+        kind,
+        message
+      }, {
+        onConflict: 'from_user,to_user'
+      });
+    } else {
+      // superlike: in_app_notifications만 INSERT (RPC가 이미 likes 처리함)
+      await supabase.from('in_app_notifications').insert({
+        user_id: toUserId,
+        type: kind,
+        title: t("auto.ko_0257", "새로운슈퍼"),
+        content: t("auto.t_0044", `${user.name}님이 슈퍼라이크를 보냈습니다! ⭐`)
+      });
+    }
     // 2. 상대방도 나를 like 했는지 확인 → match
     const {
       data: mutual
@@ -603,42 +625,52 @@ const MatchPage = () => {
 
       // 3. chat_thread 생성
       const {
-        data: thread
+        data: thread, error: threadError
       } = await supabase.from('chat_threads').insert({
         is_group: false
       }).select('id').single();
-      if (thread) {
-        await supabase.from('chat_members').insert([{
-          thread_id: thread.id,
-          user_id: user.id
-        }, {
-          thread_id: thread.id,
-          user_id: toUserId
-        }]);
-        // 4. matches 테이블 저장 → DB 트리거(trg_notify_on_match)가 자동으로 양쪽 notifications INSERT
-        await supabase.from('matches').upsert({
-          user1_id: u1,
-          user2_id: u2,
-          thread_id: thread.id
-        }, {
-          onConflict: 'user1_id,user2_id'
-        });
-        // 5. 로컬 Web Push 알림 (포그라운드 시)
-        const matchedProfile = withAds.find((p: any) => p.id === toUserId);
-        if (matchedProfile?.name) notifyMatch(matchedProfile.name);
+      if (threadError || !thread) {
+        console.error('[Match] chat_threads insert failed:', threadError);
+        return false;
       }
-      return thread?.id ?? true; // matched! (thread.id 또는 true)
+      // MATCH-FIX: chat_members INSERT 실패 시 orphan thread 정리 후 중단
+      const { error: membersError } = await supabase.from('chat_members').insert([{
+        thread_id: thread.id,
+        user_id: user.id
+      }, {
+        thread_id: thread.id,
+        user_id: toUserId
+      }]);
+      if (membersError) {
+        await supabase.from('chat_threads').delete().eq('id', thread.id);
+        console.error('[Match] chat_members insert failed, thread rolled back');
+        return false;
+      }
+      // 4. matches 테이블 저장 → DB 트리거(trg_notify_on_match)가 자동으로 양쪽 notifications INSERT
+      await supabase.from('matches').upsert({
+        user1_id: u1,
+        user2_id: u2,
+        thread_id: thread.id
+      }, {
+        onConflict: 'user1_id,user2_id'
+      });
+      // 5. 로컬 Web Push 알림 (포그라운드 시)
+      const matchedProfile = withAds.find((p: any) => p.id === toUserId);
+      if (matchedProfile?.name) notifyMatch(matchedProfile.name);
+      return thread.id; // matched!
     }
-    // 좋아요/슈퍼라이크: DB 트리거가 notifications 처리함 → 클라이언트 중복 INSERT 제거
-    // in_app_notifications는 채팅 없이 즉각적인 Realtime 배너 표시 목적으로 유지
-    await supabase.from('in_app_notifications').insert({
-      user_id: toUserId,
-      type: kind,
-      title: kind === 'superlike' ? t("auto.ko_0257", "새로운슈퍼") : t("auto.ko_0258", "새로운반가"),
-      content: kind === 'superlike' ? t("auto.t_0044", `${user.name}님이 슈퍼라이크를 보냈습니다! ⭐`) : t("auto.t_0045", `${user.name}님이 좋아요를 눌렀습니다`)
-    });
+    // 좋아요: DB 트리거가 notifications 처리함 → 클라이언트에서 in_app_notifications (Realtime 배너용)만 INSERT
+    // superlike: 위 분기(589-596)에서 이미 처리함 → 이중 INSERT 방지
+    if (kind !== 'superlike') {
+      await supabase.from('in_app_notifications').insert({
+        user_id: toUserId,
+        type: kind,
+        title: t("auto.ko_0258", "새로운반가"),
+        content: t("auto.t_0045", `${user.name}님이 좋아요를 눌렀습니다`)
+      });
+    }
     return false;
-  }, [user]);
+  }, [user, withAds]); // ISSUE-1 fix: withAds에 stale closure 방지
   const handleSwipeRight = useCallback(() => {
     if (!isLoggedIn()) {
       requireLogin();
@@ -753,8 +785,8 @@ const MatchPage = () => {
     setSuperLikeMessage(superMsg);
     setSuperLikedId(profile.id);
 
-    // decrease sub-counter
-    consumeSuperLike();
+    // BUG-1 fix: toUserId 전달 → DB RPC record_superlike 원자적 차감+insert
+    consumeSuperLike(profile.id);
 
     // DB 저장 + 매칭 확인 전에 이전 타이머 초기화 (연속 액션 꼬임 방지)
     matchTimersRef.current.timeouts.forEach(clearTimeout);
@@ -876,6 +908,33 @@ const MatchPage = () => {
   return <div className="flex flex-col h-full bg-background truncate">
       {/* ─── In-app notification banner (Like / SuperLike received) ─── */}
       <InAppNotifBanner notif={inAppNotif} onClose={() => setInAppNotif(null)} />
+
+      {/* ─── 좋아요/슈퍼라이크 수신 배너 (Realtime 실시간) ─── */}
+      {!inAppNotif && (
+        <InAppNotifBanner
+          notif={likeBanner ? {
+            type: likeBanner.type,
+            actorName: likeBanner.actorName,
+            actorPhoto: likeBanner.actorPhoto,
+            message: likeBanner.message,
+            isBlurred: !isPlus,
+          } : null}
+          onClose={clearLikeBanner}
+        />
+      )}
+
+      {/* ─── 프로필 조회 배너 (프로필보기했어요) ─── */}
+      {!inAppNotif && !likeBanner && (
+        <InAppNotifBanner
+          notif={profileViewBanner ? {
+            type: "profile_view",
+            actorName: profileViewBanner.actorName,
+            actorPhoto: profileViewBanner.actorPhoto,
+            isBlurred: !isPlus,
+          } : null}
+          onClose={clearProfileViewBanner}
+        />
+      )}
 
       {/* ─── 오늘의 목적(Mission) 설정 모달 ─── */}
       <MissionModal
@@ -1160,6 +1219,7 @@ const MatchPage = () => {
       <LikePopupModal
         showLikePopup={showLikePopup}
         likePopupProfile={likePopupProfile}
+        onUpgrade={() => setShowPlusModal(true)}
       />
 
       {/* ──────────────────────────────────────────────────────────── */}
@@ -1241,13 +1301,13 @@ const MatchPage = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
                 <Zap size={14} className="text-primary fill-primary" />
-                <span className="text-xs font-extrabold text-primary">피크 타임 진행중!</span>
+                <span className="text-xs font-extrabold text-primary">{t("retention.fomo.peakTime.label", "⚡ Peak Time!")}</span>
               </div>
-              <p className="text-sm font-bold text-foreground truncate">지금 접속자가 가장 많아요.</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">Migo Plus로 부스트를 사용해보세요!</p>
+              <p className="text-sm font-bold text-foreground truncate">{t("retention.fomo.peakTime.desc", "Most users are online right now.")}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{t("retention.fomo.peakTime.boostCta", "Use a Boost with Migo Plus!")}</p>
             </div>
             <button onClick={() => setShowPlusModal(true)} className="shrink-0 px-4 py-2 gradient-primary text-primary-foreground font-bold text-xs rounded-xl shadow-md active:scale-95 transition-transform">
-              시작하기
+              {t("retention.fomo.peakTime.startBtn", "Start")}
             </button>
             <button onClick={(e) => { e.currentTarget.parentElement!.style.display = 'none'; }} className="absolute -top-2 -right-2 w-6 h-6 bg-muted rounded-full flex items-center justify-center shadow-sm border border-border">
               <X size={12} className="text-muted-foreground" />

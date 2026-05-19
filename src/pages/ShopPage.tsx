@@ -7,7 +7,7 @@ import { ArrowLeft, Star, Zap, Shield, Crown, Heart, MapPin, Gift, CheckCircle2,
 import { useSubscription } from "@/context/SubscriptionContext";
 import { getLocalizedPrice, getShopItemPricing, getMigoPlusPricing } from "@/lib/pricing";
 import { toast } from "@/hooks/use-toast";
-import { isNativePlatform, isNativeIOS, PLUS_BILLING_CYCLE_MAP, IAP_PRODUCT_IDS } from "@/lib/iapService";
+import { isNativePlatform, PLUS_BILLING_CYCLE_MAP, IAP_PRODUCT_IDS } from "@/lib/iapService";
 
 // ─── Types ───────────────────────────────────────────────────────────
 interface Plan {
@@ -59,6 +59,7 @@ const ShopPage = () => {
     restorePurchasesIAP,
   } = useSubscription();
   const [tab, setTab] = useState<"plans" | "items">("plans");
+  const [plusCycle, setPlusCycle] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly'); // BUG-8 fix: billing cycle selector
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
   const [purchasingId, setPurchasingId] = useState<string | null>(null); // iPad 로딩 피드백용
   const [purchaseError, setPurchaseError] = useState<string | null>(null);   // inline error on card
@@ -226,10 +227,11 @@ const ShopPage = () => {
       if (plan) {
         // 구독 플랜 IAP
         let productId: string;
+        // BUG-8 fix: plusCycle 기반으로 올바른 productId 선택 (monthly/quarterly/yearly)
         if (plan.id === 'premium') {
           productId = IAP_PRODUCT_IDS.PREMIUM_MONTHLY;
         } else if (plan.id === 'plus') {
-          productId = PLUS_BILLING_CYCLE_MAP.monthly;
+          productId = PLUS_BILLING_CYCLE_MAP[plusCycle];
         } else {
           return;
         }
@@ -269,7 +271,8 @@ const ShopPage = () => {
 
   // 구매 복원
   const handleRestore = async () => {
-    if (!isNativeIOS()) return;
+    // iOS + Android 모두 지원 (isNativeIOS → isNativePlatform)
+    if (!isNativePlatform()) return;
     const result = await restorePurchasesIAP();
     if (result.restored && result.restoredPlan) {
       toast({ title: `${result.restoredPlan === 'premium' ? 'Premium' : 'Plus'} subscription restored! ✅` });
@@ -406,6 +409,35 @@ const ShopPage = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* BUG-8 fix: Plus 플랜 billing cycle 선택 */}
+                {plan.id === 'plus' && !currentStatus && (
+                  <div className="mt-4 p-1 bg-background/50 rounded-2xl flex gap-1">
+                    {([
+                      { key: 'monthly',   label: '월간',   price: subPricing.month1,  badge: null },
+                      { key: 'quarterly', label: '3개월',  price: subPricing.month3,  badge: '15%↓' },
+                      { key: 'yearly',    label: '연간',   price: subPricing.month12, badge: '최저가' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setPlusCycle(opt.key)}
+                        className={`relative flex-1 py-2.5 rounded-xl text-center transition-all ${
+                          plusCycle === opt.key
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground'
+                        }`}
+                      >
+                        {opt.badge && (
+                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-black px-1.5 py-0.5 rounded-full bg-rose-500 text-white whitespace-nowrap">
+                            {opt.badge}
+                          </span>
+                        )}
+                        <p className="text-[11px] font-extrabold">{opt.label}</p>
+                        <p className="text-[10px] opacity-80">{subPricing.format(opt.price)}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* — Purchase / Status button (Guideline 2.1b: must respond on iPad) — */}
                 {plan.id !== "free" && !currentStatus && (

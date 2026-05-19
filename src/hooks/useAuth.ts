@@ -1,4 +1,4 @@
-import i18n from "@/i18n";
+import i18n from 'i18next';
 import { useState, useEffect } from "react";
 import { toast } from "./use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
@@ -55,11 +55,10 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
   } catch (err) {
     console.error("enrichWithProfilePhoto error:", err);
   }
-  // 프로필 조회 실패(네트워크 오류 등):
-  // - 신규 유저는 profiles 행이 아직 없을 수 있음 → setup_complete=false로 강제
-  // - 기존 유저가 일시적 DB 오류 → 기존 setupComplete 유지 (undefined이면 false)
-  // App.tsx 가드는 setupComplete !== true이면 /profile-setup으로 이동
-  return { ...user, setupComplete: user.setupComplete === true ? true : false };
+  // 프로필 조회 실패(네트워크 오류, 타임아웃 등):
+  // - 기존 유저가 일시적 DB 오류 → 기존 setupComplete 유지 (undefined이면 undefined 유지 — App.tsx가 undefined 상태엔 리다이렉트 안 함)
+  // - 신규 유저는 profiles 행이 아직 없을 수 있음 → setupComplete를 undefined로 유지 (App.tsx guard가 false일 때만 리다이렉트)
+  return { ...user, setupComplete: user.setupComplete };
 }
 let globalSession: Session | null = null;
 let globalUser: AuthUser | null = null;
@@ -162,10 +161,17 @@ if (!isSupabaseConfigured) {
     }
   });
 
-  // 🚨 프로필 실시간 데이터 갱신 리스너 (글로벌 1회 등록)
+  // 프로필 실시간 데이터 갱신 리스너 (글로벌 1회 등록)
+  // BUG-16 fix: HMR 재로드 시 이전 채널 누수 방지 — window에 ref 저장
+  declare global { interface Window { __MIGO_PROFILE_CHANNEL__?: ReturnType<typeof supabase.channel> | null; } }
   let profileChannel: ReturnType<typeof supabase.channel> | null = null;
-  
+
   const setupProfileListener = (userId: string) => {
+    // BUG-16 fix: HMR 시 window에 남은 이전 채널 먼저 제거
+    if (window.__MIGO_PROFILE_CHANNEL__) {
+      supabase.removeChannel(window.__MIGO_PROFILE_CHANNEL__);
+      window.__MIGO_PROFILE_CHANNEL__ = null;
+    }
     if (profileChannel) supabase.removeChannel(profileChannel);
     profileChannel = supabase.channel(`auth_profile_realtime_${userId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, async (payload) => {
@@ -193,6 +199,7 @@ if (!isSupabaseConfigured) {
         notifyAuthListeners();
       })
       .subscribe();
+    window.__MIGO_PROFILE_CHANNEL__ = profileChannel; // BUG-16 fix: HMR 쫐적용
   };
 
   // 로그인 상태가 변할 때마다 리스너 재설정
@@ -276,9 +283,24 @@ export const useAuth = () => {
     globalUser = null;
     notifyAuthListeners();
     await supabase.auth.signOut();
-    localStorage.removeItem('migo_my_lat');
-    localStorage.removeItem('migo_my_lng');
-    localStorage.removeItem('migo_unread_map');
+    // CRIT-4 fix: 계정 전환 시 데이터 오염 방지 — 계정별 migo localStorage 키만 정리
+    // ⚠️ migo_onboarding_done, migo_eula_agreed, migo_location_consent, migo-lang 은 기기/앱 수준이므로 유지
+    const keysToRemove = [
+      'migo_my_lat',
+      'migo_my_lng',
+      'migo_my_loc',           // DiscoverPage GPS 위치명
+      'migo_unread_map',
+      'migo_dm_data',          // 일일 DM 카운트
+      'migo_opened_threads',   // 채팅 열람 목록
+      'readNotifs',            // 알림 읽음 상태
+      'migo_muted_chats',      // 음소거 채팅
+      'migo_removed_chats',    // 숨김 채팅
+      'migo_read_stories',     // 읽은 스토리 (계정별 독립 필요)
+      'migo_nearby_seen',      // NearbyPage 첫 방문 여부 (다음 계정은 처음부터)
+      'migo_mission_date',     // 데일리 미션 날짜
+      'migo_today_mission',    // 오늘의 미션 내용
+    ];
+    keysToRemove.forEach(k => { try { localStorage.removeItem(k); } catch {} });
   };
   const updateProfile = async (updates: Partial<AuthUser>) => {
     if (!isSupabaseConfigured || !globalUser) return {

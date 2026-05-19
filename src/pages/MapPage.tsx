@@ -485,8 +485,8 @@ const MapPage = () => {
         }
         
         toast({
-          title: `🚩 ${hp.name.split(' (')[0]} - 새로운 깃발 동반자 구인!`,
-          description: newSeeker.message ? `"${newSeeker.message}"` : t("auto.ko_0222", "누군가 이곳에서 동반자를 구하고 있습니다 ⚡"),
+          title: `🚩 ${hp.name.split(' (')[0]} - ${t("hotplace.newFlagAlert")}`,
+          description: newSeeker.message ? `"${newSeeker.message}"` : t("hotplace.seekersAlert"),
           duration: 8000,
           className: "bg-gradient-to-br from-rose-500 to-orange-500 text-white border-0 shadow-2xl",
         });

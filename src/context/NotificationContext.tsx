@@ -1,4 +1,4 @@
-import i18n from "@/i18n";
+import i18n from 'i18next';
 import {
   createContext,
   useContext,
@@ -44,6 +44,20 @@ export interface MessageBanner {
   preview: string;
 }
 
+/** 프로필 조회 인앱 배너용 */
+export interface ProfileViewBanner {
+  actorName: string;
+  actorPhoto: string;
+}
+
+/** 좋아요/슈퍼라이크 수신 배너용 */
+export interface LikeBanner {
+  type: 'like' | 'superlike';
+  actorName: string;
+  actorPhoto: string;
+  message?: string;
+}
+
 interface NotificationContextType {
   notifs: Notif[];
   unreadCount: number;
@@ -53,6 +67,12 @@ interface NotificationContextType {
   /** 채팅 메시지 수신 배너 (null = 숨김) */
   messageBanner: MessageBanner | null;
   clearMessageBanner: () => void;
+  /** 프로필 조회 배너 (null = 숨김) */
+  profileViewBanner: ProfileViewBanner | null;
+  clearProfileViewBanner: () => void;
+  /** 좋아요/슈퍼라이크 수신 배너 (null = 숨김) */
+  likeBanner: LikeBanner | null;
+  clearLikeBanner: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType>({
@@ -63,6 +83,10 @@ const NotificationContext = createContext<NotificationContextType>({
   addNotif: () => {},
   messageBanner: null,
   clearMessageBanner: () => {},
+  profileViewBanner: null,
+  clearProfileViewBanner: () => {},
+  likeBanner: null,
+  clearLikeBanner: () => {},
 });
 
 export const useNotifications = () => useContext(NotificationContext);
@@ -81,6 +105,11 @@ function formatTime(isoStr: string): string {
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const { user, sessionReady } = useAuth();
 
+  // CRIT-3 fix: 내 채팅방 ID 목록을 ref로 캐시 (매 메시지마다 DB 조회 방지)
+  const myThreadIdsRef = useRef<Set<string>>(new Set());
+  // 발신자 프로필 캐시 (메시지 배너용, 중복 조회 방지)
+  const senderProfileCache = useRef<Record<string, { name: string; photo_url: string }>>({});
+
   // ── 로컬 읽음 캐시 (DB 실패 시에도 UI 반영 유지) ──
   const [readIds, setReadIds] = useState<Set<string>>(() => {
     try {
@@ -95,6 +124,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [messageBanner, setMessageBanner] = useState<MessageBanner | null>(null);
+  const [profileViewBanner, setProfileViewBanner] = useState<ProfileViewBanner | null>(null);
+  const [likeBanner, setLikeBanner] = useState<LikeBanner | null>(null);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const unreadCount = notifs.filter((n) => !n.read && !readIds.has(n.id)).length;
@@ -107,39 +138,29 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       const [notifsRes, inAppRes] = await Promise.all([
         supabase
           .from("notifications")
-          .select("id, type, actor_id, target_text, is_read, created_at")
+          .select("id, type, actor_id, target_text, is_read, created_at, profiles!notifications_actor_id_fkey(name, photo_url)")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(50),
+          .limit(25),  // 50 → 25 (egress 50% 절감)
         supabase
           .from("in_app_notifications")
           .select("id, type, title, content, is_read, created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(50)
+          .limit(20)   // 50 → 20
       ]);
 
       let combined: Notif[] = [];
 
       if (notifsRes.data && notifsRes.data.length > 0) {
-        const actorIds = [
-          ...new Set(notifsRes.data.map((n: any) => n.actor_id).filter(Boolean)),
-        ];
-        const { data: actorProfiles } = await supabase
-          .from("profiles")
-          .select("id, name, photo_url")
-          .in("id", actorIds);
-
-        const profileMap: Record<string, any> = {};
-        for (const p of actorProfiles || []) profileMap[p.id] = p;
-
+        // profiles join으로 통합 — actor_id 별도 쿼리 제거
         combined.push(
           ...notifsRes.data.map((n: any) => ({
             id: n.id,
             type: n.type,
             actorId: n.actor_id,
-            actor: profileMap[n.actor_id]?.name || i18n.t("auto.g_0321", "Anonymous"),
-            actorPhoto: profileMap[n.actor_id]?.photo_url || "",
+            actor: n.profiles?.name || i18n.t("auto.g_0321", "Anonymous"),
+            actorPhoto: n.profiles?.photo_url || "",
             target: n.target_text || undefined,
             time: formatTime(n.created_at),
             read: (n.is_read ?? false) || readIdsRef.current.has(n.id),
@@ -208,6 +229,24 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             },
             ...prev,
           ]);
+
+          // 👀 profile_view → 프로필 조회 배너 표시
+          if (n.type === "profile_view" && actorProfile) {
+            setProfileViewBanner({
+              actorName: actorProfile.name || i18n.t("auto.g_0322", "Anonymous"),
+              actorPhoto: actorProfile.photo_url || "",
+            });
+          }
+
+          // ❤️ like / ⭐ superlike → 좋아요 수신 배너 표시
+          if ((n.type === "like" || n.type === "superlike") && actorProfile) {
+            setLikeBanner({
+              type: n.type as 'like' | 'superlike',
+              actorName: actorProfile.name || i18n.t("auto.g_0322", "Anonymous"),
+              actorPhoto: actorProfile.photo_url || "",
+              message: n.target_text || undefined,
+            });
+          }
         }
       )
 
@@ -241,33 +280,36 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       )
 
       // 3) messages (새 채팅 메시지 → 인앱 배너)
+      // CRIT-3 fix: 전체 messages 구독 대신 ref 캐시로 멤버십 확인 (불필요한 DB 조회 제거)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
+          // 주의: Supabase Realtime은 IN 필터를 지원하지 않으므로 filter 없이 전체 구독
+          // 대신 myThreadIdsRef로 클라이언트에서 필터링
         },
         async (payload) => {
           const msg = payload.new as any;
           if (!msg.sender_id || msg.sender_id === user.id) return;
 
-          // 내가 속한 채팅방인지 확인
-          const { data: memberCheck } = await supabase
-            .from("chat_members")
-            .select("id")
-            .eq("thread_id", msg.thread_id)
-            .eq("user_id", user.id)
-            .maybeSingle();
+          // CRIT-3 fix: DB 조회 없이 ref 캐시로 멤버십 확인 (O(1))
+          if (!myThreadIdsRef.current.has(msg.thread_id)) return;
 
-          if (!memberCheck) return;
-
-          // 발신자 정보 조회
-          const { data: sender } = await supabase
-            .from("profiles")
-            .select("name, photo_url")
-            .eq("id", msg.sender_id)
-            .single();
+          // 발신자 프로필 캐시 활용 (중복 DB 조회 방지)
+          let senderProfile = senderProfileCache.current[msg.sender_id];
+          if (!senderProfile) {
+            const { data: sender } = await supabase
+              .from("profiles")
+              .select("name, photo_url")
+              .eq("id", msg.sender_id)
+              .single();
+            if (sender) {
+              senderProfileCache.current[msg.sender_id] = sender;
+              senderProfile = sender;
+            }
+          }
 
           const rawText = msg.text || msg.content || "";
           const preview =
@@ -277,8 +319,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
           setMessageBanner({
             threadId: msg.thread_id,
-            senderName: sender?.name || i18n.t("auto.g_0321", "Anonymous"),
-            senderPhoto: sender?.photo_url || "",
+            senderName: senderProfile?.name || i18n.t("auto.g_0321", "Anonymous"),
+            senderPhoto: senderProfile?.photo_url || "",
             preview,
           });
 
@@ -290,9 +332,33 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
       .subscribe();
 
+    // CRIT-3 fix: 내 채팅방 목록 로드 (ref 캐시 초기화)
+    supabase
+      .from("chat_members")
+      .select("thread_id")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        if (data) {
+          myThreadIdsRef.current = new Set(data.map((m: any) => m.thread_id));
+        }
+      });
+
+    // 매치 INSERT 시 ref 업데이트 (chat_members 실시간 구독 없이 매치 후 갱신)
+    const matchChannel = supabase
+      .channel(`notif_match_refresh:${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'chat_members',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        const newThreadId = (payload.new as any)?.thread_id;
+        if (newThreadId) myThreadIdsRef.current.add(newThreadId);
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
-      // 컴포넌트 언마운트 시 pending 배너 타이머 정리
+      supabase.removeChannel(matchChannel);
+      // 컨포넌트 언마운트 시 pending 배너 타이머 정리
       if (bannerTimerRef.current) {
         clearTimeout(bannerTimerRef.current);
         bannerTimerRef.current = null;
@@ -300,14 +366,18 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user?.id, sessionReady]);
 
+
   // ── 읽음 처리 (notifications + in_app_notifications 모두) ──
   const markRead = useCallback(
     async (id: string) => {
       setReadIds((prev) => {
         const next = new Set(prev);
         next.add(id);
-        localStorage.setItem("readNotifs", JSON.stringify([...next]));
-        return next;
+        // ARCH-2 fix: readNotifs 최대 500개 제한 (localStorage 무제한 성장 방지)
+        const arr = [...next];
+        const trimmed = arr.length > 500 ? arr.slice(arr.length - 500) : arr;
+        localStorage.setItem("readNotifs", JSON.stringify(trimmed));
+        return new Set(trimmed);
       });
       setNotifs((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
@@ -369,6 +439,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const clearMessageBanner = useCallback(() => setMessageBanner(null), []);
+  const clearProfileViewBanner = useCallback(() => setProfileViewBanner(null), []);
+  const clearLikeBanner = useCallback(() => setLikeBanner(null), []);
 
   return (
     <NotificationContext.Provider
@@ -380,6 +452,10 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         addNotif,
         messageBanner,
         clearMessageBanner,
+        profileViewBanner,
+        clearProfileViewBanner,
+        likeBanner,
+        clearLikeBanner,
       }}
     >
       {children}

@@ -96,28 +96,14 @@ function getCountryName(code: string, locale: string, fallback: string): string 
 }
 
 /* ─── 데이터 상수 ──────────────────────────────── */
-const TRAVEL_STYLES = [
-  "배낭여행 🎒", "럭셔리 ✈️", "자연/트레킹 🏔️", "맛집탐방 🍜",
-  "문화/역사 🏛️", "해변/휴양 🏖️", "사진촬영 📸", "나이트라이프 🌙",
-  "쇼핑 🛍️", "힐링/요가 🧘", "로컬체험 🎭", "드라이브 🚗",
-];
-const REGIONS = [
-  "동남아 🌴", "유럽 🏰", "일본 🗾", "미국/캐나다 🗽",
-  "중남미 🌎", "오세아니아 🦘", "중동/아프리카 🌍",
-  "국내여행 🇰🇷", "중국/대만 🐉", "인도 🕌",
-];
-const PERSONALITIES = [
-  { id: "planner", emoji: "📋", label: "계획형 플래너" },
-  { id: "free",    emoji: "🌊", label: "자유로운 영혼" },
-  { id: "social",  emoji: "🤝", label: "소셜 버터플라이" },
-  { id: "solo",    emoji: "🎧", label: "나홀로 여행자" },
-  { id: "photo",   emoji: "📸", label: "사진 수집가" },
-  { id: "food",    emoji: "🍽️", label: "미식 탐험가" },
-];
-const STEPS = [
-  { emoji: "🤳", title: "프로필 사진", sub: "첫인상이 중요해요" },
-  { emoji: "✈️", title: "여행 취향", sub: "어떻게 여행하나요?" },
-  { emoji: "🧠", title: "나는 어떤 여행자?", sub: "선택 사항이에요" },
+// Travel styles & regions are localized inside the component via t()
+const PERSONALITY_IDS = [
+  { id: "planner", emoji: "📋", key: "setup.personality.planner", fallback: "Planner" },
+  { id: "free",    emoji: "🌊", key: "setup.personality.free",    fallback: "Free Spirit" },
+  { id: "social",  emoji: "🤝", key: "setup.personality.social",  fallback: "Social Butterfly" },
+  { id: "solo",    emoji: "🎧", key: "setup.personality.solo",    fallback: "Solo Traveler" },
+  { id: "photo",   emoji: "📸", key: "setup.personality.photo",   fallback: "Photo Collector" },
+  { id: "food",    emoji: "🍽️", key: "setup.personality.food",    fallback: "Foodie Explorer" },
 ];
 
 const MBTI_LIST = ["INTJ","INTP","ENTJ","ENTP","INFJ","INFP","ENFJ","ENFP","ISTJ","ISFJ","ESTJ","ESFJ","ISTP","ISFP","ESTP","ESFP"];
@@ -155,8 +141,41 @@ const Chip = ({ label, selected, onClick, disabled }: { label:string; selected:b
 const ProfileSetupPage = () => {
   const navigate = useNavigate();
   const { user, refreshPhotoUrl } = useAuth();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const TRAVEL_STYLES = [
+    t("setup.style.backpack", "Backpacking 🎒"),
+    t("setup.style.luxury", "Luxury ✈️"),
+    t("setup.style.nature", "Nature/Hiking 🏔️"),
+    t("setup.style.food", "Food Tour 🍜"),
+    t("setup.style.culture", "Culture/History 🏛️"),
+    t("setup.style.beach", "Beach/Resort 🏖️"),
+    t("setup.style.photo", "Photography 📸"),
+    t("setup.style.nightlife", "Nightlife 🌙"),
+    t("setup.style.shopping", "Shopping 🛍️"),
+    t("setup.style.healing", "Healing/Yoga 🧘"),
+    t("setup.style.local", "Local Experience 🎭"),
+    t("setup.style.drive", "Road Trip 🚗"),
+  ];
+  const REGIONS = [
+    t("setup.region.sea", "Southeast Asia 🌴"),
+    t("setup.region.europe", "Europe 🏰"),
+    t("setup.region.japan", "Japan 🗾"),
+    t("setup.region.usa", "USA/Canada 🗽"),
+    t("setup.region.latam", "Latin America 🌎"),
+    t("setup.region.oceania", "Oceania 🦘"),
+    t("setup.region.mideast", "Middle East/Africa 🌍"),
+    t("setup.region.domestic", "Domestic 🇰🇷"),
+    t("setup.region.china", "China/Taiwan 🐉"),
+    t("setup.region.india", "India 🕌"),
+  ];
+  const STEPS = [
+    { emoji: "🤳", title: t("setup.step0.title", "Profile Photo"),  sub: t("setup.step0.sub", "First impressions matter") },
+    { emoji: "✈️", title: t("setup.step1.title", "Travel Style"),   sub: t("setup.step1.sub", "How do you travel?") },
+    { emoji: "🧠", title: t("setup.step2.title", "What kind of traveler?"), sub: t("setup.step2.sub", "Optional") },
+  ];
+  const PERSONALITIES = PERSONALITY_IDS.map(p => ({ ...p, label: t(p.key, p.fallback) }));
 
   // 언어 변경 시 자동으로 국가명 재계산 (Intl.DisplayNames 활용)
   const NATIONALITIES = useMemo(() => {
@@ -222,13 +241,13 @@ const ProfileSetupPage = () => {
   const handleNext = async () => {
     /* validation */
     if (step === 0) {
-      if (photos.length === 0) { toast({ title: "📸 사진을 1장 이상 추가해주세요", variant: "destructive" }); return; }
-      if (!nickname.trim())    { toast({ title: "닉네임을 입력해주세요", variant: "destructive" }); return; }
-      if (!nationality)        { toast({ title: "국적을 선택해주세요", variant: "destructive" }); return; }
+      if (photos.length === 0) { toast({ title: t("setup.validate.photo", "📸 Please add at least 1 photo"), variant: "destructive" }); return; }
+      if (!nickname.trim())    { toast({ title: t("setup.validate.nickname", "Please enter a nickname"), variant: "destructive" }); return; }
+      if (!nationality)        { toast({ title: t("setup.validate.nationality", "Please select your nationality"), variant: "destructive" }); return; }
       goNext(); return;
     }
     if (step === 1) {
-      if (styles.length === 0) { toast({ title: "여행 스타일을 1개 이상 골라주세요", variant: "destructive" }); return; }
+      if (styles.length === 0) { toast({ title: t("setup.validate.style", "Please choose at least 1 travel style"), variant: "destructive" }); return; }
       goNext(); return;
     }
 
@@ -263,19 +282,16 @@ const ProfileSetupPage = () => {
         lng: parseFloat(localStorage.getItem("migo_my_lng") || "0") || null,
       }).eq("id", user.id);
 
-      if (error) { toast({ title: "저장 실패", description: error.message, variant: "destructive" }); setSaving(false); return; }
+      if (error) { toast({ title: t("setup.error.save", "Save failed"), description: error.message, variant: "destructive" }); setSaving(false); return; }
 
       // ✅ refreshPhotoUrl을 await로 완전 완료 후 navigate
-      // (refreshPhotoUrl 내부에서 enrichWithProfilePhoto → DB에서 setup_complete=true 읽어
-      //  globalUser.setupComplete = true로 반영되어야 App.tsx 가드가 통과시켜줌)
       await refreshPhotoUrl?.();
 
-      toast({ title: "🎉 프로필 완성!", description: "Migo에 오신 걸 환영해요 ✈️" });
-      // 토스트가 잠깐 보이도록 짧게 대기 후 이동
+      toast({ title: t("setup.done.title", "🎉 Profile complete!"), description: t("setup.done.desc", "Welcome to Migo ✈️") });
       await new Promise(r => setTimeout(r, 300));
       navigate("/", { replace: true });
     } catch {
-      toast({ title: "오류가 발생했습니다. 다시 시도해주세요", variant: "destructive" });
+      toast({ title: t("setup.error.generic", "An error occurred. Please try again."), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -343,7 +359,7 @@ const ProfileSetupPage = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-bold text-foreground">
-                    프로필 사진 <span className="text-rose-500">*</span>
+                    {t("setup.label.photo", "Profile Photo")} <span className="text-rose-500">*</span>
                   </span>
                   <span className={`text-[11px] font-bold ${photos.length > 0 ? "text-emerald-500" : "text-muted-foreground"}`}>
                     {photos.length} / 6
@@ -356,7 +372,7 @@ const ProfileSetupPage = () => {
                       <img src={p.url} alt="" className="w-full h-full object-cover" />
                       {idx === 0 && (
                         <div className="absolute bottom-0 inset-x-0 bg-black/40 text-white text-[9px] font-extrabold text-center py-0.5">
-                          대표
+                          {t("setup.label.main", "Main")}
                         </div>
                       )}
                       <button onClick={() => removePhoto(idx)}
@@ -369,7 +385,7 @@ const ProfileSetupPage = () => {
                     <motion.button whileTap={{ scale:0.94 }} onClick={() => fileRef.current?.click()}
                       className="aspect-square rounded-2xl border-2 border-dashed border-border bg-muted flex flex-col items-center justify-center gap-1.5 transition-colors active:bg-muted/70">
                       <Camera size={22} className="text-muted-foreground" />
-                      <span className="text-[10px] font-semibold text-muted-foreground">추가</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground">{t("setup.label.add", "Add")}</span>
                     </motion.button>
                   )}
                 </div>
@@ -386,7 +402,7 @@ const ProfileSetupPage = () => {
                     className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
                       userType === type ? "bg-card shadow text-foreground" : "text-muted-foreground"
                     }`}>
-                    {type === "traveler" ? "✈️ 여행자" : "🏡 로컬 가이드"}
+                    {type === "traveler" ? `✈️ ${t("setup.type.traveler", "Traveler")}` : `🏡 ${t("setup.type.local", "Local Guide")}`}
                   </button>
                 ))}
               </div>
@@ -394,12 +410,12 @@ const ProfileSetupPage = () => {
               {/* 닉네임 */}
               <div className="space-y-1.5">
                 <label className="text-[13px] font-bold text-foreground flex items-center gap-1">
-                  닉네임 <span className="text-rose-500">*</span>
+                  {t("setup.label.nickname", "Nickname")} <span className="text-rose-500">*</span>
                 </label>
                 <div className="flex items-center bg-muted rounded-2xl px-4 h-12 gap-2 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
                   <User size={15} className="text-muted-foreground shrink-0" />
                   <input type="text" value={nickname} onChange={e => setNickname(e.target.value)} maxLength={20}
-                    placeholder="예) 미고여행자" autoComplete="off"
+                    placeholder={t("setup.placeholder.nickname", "e.g. MigoTraveler")} autoComplete="off"
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                   <span className="text-[10px] text-muted-foreground shrink-0">{nickname.length}/20</span>
                 </div>
@@ -408,8 +424,8 @@ const ProfileSetupPage = () => {
               {/* 국적 */}
               <div className="space-y-2">
                 <label className="text-[13px] font-bold text-foreground flex items-center gap-1">
-                  국적 <span className="text-rose-500">*</span>
-                  {nationality && <span className="ml-auto text-primary text-[12px]">✓ 선택됨</span>}
+                  {t("setup.label.nationality", "Nationality")} <span className="text-rose-500">*</span>
+                  {nationality && <span className="ml-auto text-primary text-[12px]">✓ {t("setup.label.selected", "Selected")}</span>}
                 </label>
                 {/* 검색 */}
                 <div className="flex items-center bg-muted rounded-xl px-3 h-9 gap-2 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
@@ -418,7 +434,7 @@ const ProfileSetupPage = () => {
                     type="text"
                     value={natSearch}
                     onChange={e => setNatSearch(e.target.value)}
-                    placeholder="국가 검색..."
+                    placeholder={t("setup.placeholder.searchCountry", "Search country...")}
                     className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                   />
                   {natSearch && (
@@ -457,12 +473,12 @@ const ProfileSetupPage = () => {
               {/* 자기소개 (선택) */}
               <div className="space-y-1.5">
                 <label className="text-[13px] font-bold text-foreground flex items-center gap-1.5">
-                  자기소개
-                  <span className="text-[10px] font-normal text-muted-foreground">(선택)</span>
+                  {t("setup.label.bio", "About Me")}
+                  <span className="text-[10px] font-normal text-muted-foreground">({t("setup.optional", "Optional")})</span>
                 </label>
                 <div className="bg-muted rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
                   <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={100} rows={2}
-                    placeholder="어떤 여행을 좋아하나요? 짧게 소개해주세요 ✈️"
+                    placeholder={t("setup.placeholder.bio", "What kind of travel do you enjoy? Introduce yourself briefly ✈️")}
                     className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none" />
                   <p className="text-[10px] text-muted-foreground text-right mt-1">{bio.length}/100</p>
                 </div>
@@ -477,7 +493,7 @@ const ProfileSetupPage = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-[13px] font-bold text-foreground">
-                    여행 스타일 <span className="text-rose-500">*</span>
+                    {t("setup.label.travelStyle", "Travel Style")} <span className="text-rose-500">*</span>
                   </p>
                   <span className={`text-[11px] font-bold ${styles.length > 0 ? "text-primary" : "text-muted-foreground"}`}>
                     {styles.length} / 5
@@ -496,8 +512,8 @@ const ProfileSetupPage = () => {
 
               <div className="space-y-3">
                 <p className="text-[13px] font-bold text-foreground flex items-center gap-1.5">
-                  관심 여행지
-                  <span className="text-[10px] font-normal text-muted-foreground">(선택, 복수 가능)</span>
+                  {t("setup.label.regions", "Preferred Destinations")}
+                  <span className="text-[10px] font-normal text-muted-foreground">({t("setup.optional", "Optional")}, {t("setup.multiSelect", "multiple")})</span>
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {REGIONS.map(r => (
@@ -514,7 +530,7 @@ const ProfileSetupPage = () => {
             <motion.div key="s2" {...slide(direction)} className="px-5 pb-8 space-y-6">
 
               <div className="space-y-3">
-                <p className="text-[13px] font-bold text-foreground">여행 성격</p>
+                <p className="text-[13px] font-bold text-foreground">{t("setup.label.personality", "Travel Personality")}</p>
                 <div className="grid grid-cols-2 gap-2.5">
                   {PERSONALITIES.map(p => {
                     const sel = personality.includes(p.id);
@@ -561,7 +577,7 @@ const ProfileSetupPage = () => {
                 {mbti && (
                   <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
                     className="py-3 px-4 rounded-2xl bg-card border border-border flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">선택됨</span>
+                    <span className="text-sm text-muted-foreground">{t("setup.label.selected", "Selected")}</span>
                     <span className="text-lg font-black text-foreground">{mbti}</span>
                   </motion.div>
                 )}
@@ -570,7 +586,7 @@ const ProfileSetupPage = () => {
               {/* 프로필 미리보기 */}
               {nickname && (
                 <div className="space-y-2">
-                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">미리보기</p>
+                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t("setup.label.preview", "Preview")}</p>
                   <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-muted shrink-0">
                       {photos[0]?.url
@@ -579,7 +595,7 @@ const ProfileSetupPage = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm text-foreground truncate">{nickname}</p>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">{bio || "자기소개 없음"}</p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{bio || t("setup.placeholder.noBio", "No introduction")}</p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {styles.slice(0,3).map(s => (
                           <span key={s} className="px-2 py-0.5 rounded-full bg-muted text-[9px] font-semibold text-muted-foreground">{s}</span>
@@ -608,11 +624,11 @@ const ProfileSetupPage = () => {
             ? <>
                 <motion.div className="w-5 h-5 border-2 border-primary-foreground/60 border-t-primary-foreground rounded-full"
                   animate={{ rotate:360 }} transition={{ duration:0.7, repeat:Infinity, ease:"linear" }} />
-                저장 중...
+                {t("setup.btn.saving", "Saving...")}
               </>
             : isLast
-              ? <><Sparkles size={17} /> 프로필 완성하기</>
-              : <>다음 <ChevronRight size={18} /></>}
+              ? <><Sparkles size={17} /> {t("setup.btn.complete", "Complete Profile")}</>
+              : <>{t("setup.btn.next", "Next")} <ChevronRight size={18} /></>}
         </motion.button>
       </div>
     </div>

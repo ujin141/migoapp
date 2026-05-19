@@ -24,6 +24,8 @@ allprojects {
     }
 }
 
+// ── Java 17 호환성 (AdMob android/build.gradle 직접 패치됨) ──
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }

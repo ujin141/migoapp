@@ -146,7 +146,7 @@ export const HotplaceSheet = ({
       setMySeekerId(data.id);
       setShowMsgInput(false);
       await loadSeekers();
-      toast({ title: t("hotplace.seekerRegistered", "✅ 동반자 구인 등록 완료!"), description: hotplace.name });
+      toast({ title: t("hotplace.seekerRegistered"), description: hotplace.name });
       setActiveTab("seekers");
     }
   };
@@ -158,7 +158,7 @@ export const HotplaceSheet = ({
     setMySeekerId(null);
     setMyMessage("");
     await loadSeekers();
-    toast({ title: t("hotplace.seekerCancelled", "구인 취소됨") });
+    toast({ title: t("hotplace.seekerCancelled") });
   };
 
   // ── 함께 가자! 신청 ───────────────────────────────────────────
@@ -189,10 +189,10 @@ export const HotplaceSheet = ({
         const { data: grp, error } = await supabase
           .from("trip_groups")
           .insert({
-            title: `${hotplace.emoji} ${hotplace.name.split(" (")[0]} 같이 가요!`,
+            title: `${hotplace.emoji} ${hotplace.name.split(" (")[0]} ${t("hotplace.goTogether")}`,
             destination: `${hotplace.name}, ${hotplace.country}`,
-            dates: t("map.today", "오늘"),
-            description: seeker.message || t("hotplace.defaultDesc", "함께 여행할 동반자를 찾고 있어요 😊"),
+            dates: t("map.today"),
+            description: seeker.message || t("hotplace.defaultDesc"),
             host_id: seeker.user_id,
             max_members: 6,
             status: "recruiting",
@@ -213,17 +213,17 @@ export const HotplaceSheet = ({
       await supabase.from("in_app_notifications").insert({
         user_id: seeker.user_id,
         type: "match",
-        title: t("hotplace.joinNotifTitle", "동반자 신청이 왔어요! 🎉"),
-        content: t("hotplace.joinNotifBody", `${user.name || "누군가"}님이 ${hotplace.name.split(" (")[0]}에서 함께 가고 싶어합니다!`),
+        title: t("hotplace.joinNotifTitle"),
+        content: `${user.name || t("map.user")}${t("hotplace.goTogether")} @ ${hotplace.name.split(" (")[0]}`,
       });
 
       toast({
-        title: t("hotplace.joinSuccess", "🎉 함께 가기 신청 완료!"),
-        description: t("hotplace.joinDesc", "그룹이 만들어졌어요. 채팅에서 확인하세요."),
+        title: t("hotplace.joinSuccess"),
+        description: t("hotplace.joinDesc"),
       });
     } catch (err) {
       console.error(err);
-      toast({ title: t("hotplace.joinFail", "신청 실패"), variant: "destructive" });
+      toast({ title: t("hotplace.joinFail"), variant: "destructive" });
     } finally {
       setJoining(null);
     }
@@ -312,7 +312,7 @@ export const HotplaceSheet = ({
                 <div className="mt-3 flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
                   <Zap size={14} className="text-amber-500 shrink-0" fill="currentColor" />
                   <p className="text-xs font-bold text-amber-700">
-                    {t("hotplace.seekerCount", `지금 ${seekers.length}명이 동반자를 찾고 있어요!`).replace("${seekers.length}", String(seekers.length))}
+                    {t("hotplace.seekerCount", { count: seekers.length, defaultValue: `${seekers.length} people looking for a companion!` })}
                   </p>
                 </div>
               )}
@@ -424,7 +424,7 @@ export const HotplaceSheet = ({
                       </div>
                       <div className="flex-1 text-left min-w-0">
                         <p className="text-xs font-extrabold text-amber-700 truncate">
-                          {t("hotplace.seekerPreviewTitle", `지금 ${seekers.length}명이 같이 갈 사람을 찾고 있어요`).replace("${seekers.length}", String(seekers.length))}
+                           {t("hotplace.seekerPreviewTitle", { count: seekers.length, defaultValue: `${seekers.length} people looking for someone to go with` })}
                         </p>
                         <p className="text-[10px] text-amber-600 mt-0.5">{t("hotplace.seekerPreviewSub", "탭해서 신청하기 →")}</p>
                       </div>
@@ -578,7 +578,7 @@ export const HotplaceSheet = ({
                                   {seeker.profiles?.name ?? t("map.user", "여행자")}
                                 </span>
                                 {seeker.profiles?.age && (
-                                  <span className="text-[10px] text-muted-foreground">{seeker.profiles.age}세</span>
+                                  <span className="text-[10px] text-muted-foreground">{seeker.profiles.age}{t("hotplace.ageUnit")}</span>
                                 )}
                                 {seeker.profiles?.nationality && (
                                   <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">

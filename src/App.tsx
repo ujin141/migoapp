@@ -135,6 +135,7 @@ const makePageVariants = (direction: "push" | "pop" | "tab") => ({
 const PUBLIC_ROUTES = ["/splash", "/onboarding", "/login", "/auth/callback", "/terms", "/privacy", "/download", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy"];
 
 import { useFomoActivity } from "@/hooks/useFomoActivity";
+import { useReturnReward } from "@/hooks/useReturnReward";
 
 const AppContent = () => {
   const navDirection = useNavigationDirection();
@@ -143,8 +144,11 @@ const AppContent = () => {
   const navigate = useNavigate();
   const { user, loading, sessionReady } = useAuth();
   
-  // 실시간 활동 토스트 시작 (로그인 상태일 때만)
-  useFomoActivity(!!user);
+  // 실시간 활동 토스트 — 프로필 셋업 완료 유저에게만 표시
+  // userId 전달: "👀 누군가 프로필 조회" 메시지 선택 시 실제 DB에 기록
+  useFomoActivity(!!user && user.setupComplete === true, user?.id);
+  // 복귀 보상: 7일 이상 미접속 후 복귀 시 슈퍼라이크 3개 자동 지급
+  useReturnReward(user?.setupComplete === true ? user?.id : undefined);
 
   // 강제 스플래시: 세션 중 최초 접속 시 무조건 2초 노출
   const [showInitialSplash, setShowInitialSplash] = useState(() => {
@@ -253,16 +257,17 @@ const AppContent = () => {
       const hasSeenOnboarding = localStorage.getItem('migo_onboarding_done');
       navigate(hasSeenOnboarding ? '/login' : '/splash', { replace: true });
     } else if (user) {
-      // 프로필 미완료 가드: setup_complete가 명확히 true가 아니면 반드시 프로필 설정으로 이동
-      // undefined/null/false 모두 미완료로 간주 → 앱 재시작 후에도 프로필 설정 강제
-      if (user.setupComplete !== true && location.pathname !== '/profile-setup') {
+      // 프로필 미완료 가드:
+      // setupComplete === undefined → DB 조회 중 (enrichWithProfilePhoto 대기) → 리다이렉트 금지
+      // setupComplete === false     → 명확히 미완료 → 앱 재시작 후에도 반드시 프로필 설정
+      // setupComplete === true      → 완료 → 통과
+      if (user.setupComplete !== undefined && user.setupComplete !== true && location.pathname !== '/profile-setup') {
         navigate('/profile-setup', { replace: true });
         return;
       }
-      // 프로필 완료된 유저: 로그인/온보딩 페이지에 있으면 홈으로 이동
-      if (user.setupComplete === true &&
-        (location.pathname === '/login' || location.pathname === '/splash' || location.pathname === '/onboarding')) {
-        navigate('/', { replace: true });
+      // 프로필 완료된 유저가 /splash에 있으면 로그인으로 (onboarding은 유지)
+      if (user.setupComplete === true && location.pathname === '/splash') {
+        navigate('/login', { replace: true });
       }
     }
   }, [user, loading, sessionReady, location.pathname, navigate]);

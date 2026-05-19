@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, Users, Check, ChevronRight, ChevronLeft, Tag, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -10,7 +10,8 @@ import { createPortal } from "react-dom";
 import { useSubscription } from "@/context/SubscriptionContext";
 
 // ─── 자동완성 데이터 ────────────────────────────────────────────────────────
-const DESTINATIONS = [
+// DESTINATIONS는 컴포넌트 내부에서 useMemo로 생성됩니다
+const buildDestinations = () => [
   { name: i18n.t("auto.ko_0286", "서울"), country: i18n.t("auto.ko_0287", "대한민국"), emoji: "🇰🇷", keys: ["서울", "seoul", "대한민국", "korea"] },
   { name: i18n.t("auto.ko_0288", "부산"), country: i18n.t("auto.ko_0289", "대한민국"), emoji: "🇰🇷", keys: ["부산", "busan", "대한민국", "korea"] },
   { name: i18n.t("auto.ko_0290", "제주"), country: i18n.t("auto.ko_0291", "대한민국"), emoji: "🇰🇷", keys: ["제주", "jeju", "대한민국", "korea"] },
@@ -142,18 +143,6 @@ const ACInput: React.FC<ACProps> = ({ value, onChange, placeholder, isDestinatio
 };
 
 // ─── 스타일 옵션 ────────────────────────────────────────────────────────────
-const STYLE_OPTIONS = [
-  { label: i18n.t("auto.ko_0393", "관광 · 투어"), emoji: "🗺️" },
-  { label: i18n.t("auto.ko_0394", "맛집 탐방"), emoji: "🍜" },
-  { label: i18n.t("auto.ko_0395", "자연 · 액티비티"), emoji: "🏔️" },
-  { label: i18n.t("auto.ko_0396", "휴양 · 힐링"), emoji: "🏖️" },
-  { label: i18n.t("auto.ko_0397", "나이트라이프"), emoji: "🎉" },
-  { label: i18n.t("auto.ko_0398", "문화 · 예술"), emoji: "🎨" },
-];
-
-// 인기 태그
-const QUICK_TAGS = [i18n.t("auto.ko_0399", "감성"), i18n.t("auto.ko_0400", "맛집"), i18n.t("auto.ko_0401", "사진"), i18n.t("auto.ko_0402", "쇼핑"), i18n.t("auto.ko_0403", "트레킹"), i18n.t("auto.ko_0404", "드라이브"), i18n.t("auto.ko_0405", "건축"), i18n.t("auto.ko_0406", "야경"), i18n.t("auto.ko_0407", "온천"), i18n.t("auto.ko_0408", "럭셔리")];
-
 // ─── 메인 컴포넌트 ──────────────────────────────────────────────────────────
 interface GroupCreateModalProps {
   isOpen: boolean;
@@ -161,12 +150,31 @@ interface GroupCreateModalProps {
   onCreated: (group: any) => void;
 }
 
-const STEPS = [i18n.t("auto.ko_0409", "경로 설정"), i18n.t("auto.ko_0410", "일정 · 인원"), i18n.t("auto.ko_0411", "스타일 · 태그")];
-
 const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, onCreated }) => {
   const { isPlus, isPremium } = useSubscription();
   const { user } = useAuth();
-  
+  const { i18n } = useTranslation();
+
+  const DESTINATIONS = useMemo(() => buildDestinations(), [i18n.language]);
+  const STYLE_OPTIONS = useMemo(() => [
+    { label: i18n.t("auto.ko_0393", "관광 · 투어"), emoji: "🗺️" },
+    { label: i18n.t("auto.ko_0394", "맛집 탐방"), emoji: "🍜" },
+    { label: i18n.t("auto.ko_0395", "자연 · 액티비티"), emoji: "🏔️" },
+    { label: i18n.t("auto.ko_0396", "휴양 · 힐링"), emoji: "🏖️" },
+    { label: i18n.t("auto.ko_0397", "나이트라이프"), emoji: "🎉" },
+    { label: i18n.t("auto.ko_0398", "문화 · 예술"), emoji: "🎨" },
+  ], [i18n.language]);
+  const QUICK_TAGS = useMemo(() => [
+    i18n.t("auto.ko_0399", "감성"), i18n.t("auto.ko_0400", "맛집"), i18n.t("auto.ko_0401", "사진"),
+    i18n.t("auto.ko_0402", "쇼핑"), i18n.t("auto.ko_0403", "트레킹"), i18n.t("auto.ko_0404", "드라이브"),
+    i18n.t("auto.ko_0405", "건축"), i18n.t("auto.ko_0406", "야경"), i18n.t("auto.ko_0407", "온천"), i18n.t("auto.ko_0408", "럭셔리")
+  ], [i18n.language]);
+  const STEPS = useMemo(() => [
+    i18n.t("auto.ko_0409", "경로 설정"),
+    i18n.t("auto.ko_0410", "일정 · 인원"),
+    i18n.t("auto.ko_0411", "스타일 · 태그")
+  ], [i18n.language]);
+
   // 스텝
   const [step, setStep] = useState(0);
 
@@ -438,7 +446,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
                         </div>
                       </div>
                       {startDate && endDate && startDate > endDate && (
-                        <p className="text-[11px] text-red-500 mt-2 font-medium ml-1">종료일은 시작일 이후여야 합니다.</p>
+                        <p className="text-[11px] text-red-500 mt-2 font-medium ml-1">{i18n.t("trip.dateError")}</p>
                       )}
                     </div>
 

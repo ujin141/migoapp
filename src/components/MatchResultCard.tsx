@@ -1,4 +1,5 @@
 import i18n from "@/i18n";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Sparkles } from "lucide-react";
@@ -19,18 +20,18 @@ interface MatchResultCardProps {
 }
 
 /** 두 프로필 간 공통점 추출 */
-function findCommon(me: Profile | null, other: Profile) {
+function findCommon(me: Profile | null, other: Profile, t: (key: string, opts?: any) => string) {
   const common: string[] = [];
   if (!me) return common;
-  if (me.nationality === other.nationality) common.push(t("auto.t_0005", `🌏 같은 국적 (${other.nationality})`));
-  if (me.travel_style && me.travel_style === other.travel_style) common.push(t("auto.t_0006", `🎒 ${other.travel_style} 여행 스타일`));
+  if (me.nationality === other.nationality) common.push(t("auto.t_0005", { defaultValue: `🌏 같은 국적 (${other.nationality})` }));
+  if (me.travel_style && me.travel_style === other.travel_style) common.push(t("auto.t_0006", { defaultValue: `🎒 ${other.travel_style} 여행 스타일` }));
   const sharedLangs = (me.languages || []).filter(l => (other.languages || []).includes(l));
-  if (sharedLangs.length > 0) common.push(t("auto.t_0007", `💬 공통 언어: ${sharedLangs.join(", ")}`));
-  const sharedTags = (me.tags || []).filter(t => (other.tags || []).includes(t));
-  sharedTags.slice(0, 2).forEach(t => common.push(t("auto.t_0008", `✨ 공통 관심사: #${t}`)));
+  if (sharedLangs.length > 0) common.push(t("auto.t_0007", { defaultValue: `💬 공통 언어: ${sharedLangs.join(", ")}` }));
+  const sharedTags = (me.tags || []).filter(tag => (other.tags || []).includes(tag));
+  sharedTags.slice(0, 2).forEach(tag => common.push(t("auto.t_0008", { defaultValue: `✨ 공통 관심사: #${tag}` })));
   return common;
 }
-const ICE_BREAKERS = [i18n.t("auto.z_\uAC00\uC7A5\uC778\uC0C1\uAE4A\uC5C8\uB358\uC5EC\uD589\uC9C0_1377", "\uAC00\uC7A5\uC778\uC0C1\uAE4A\uC5C8\uB358\uC5EC\uD589\uC9C0"), i18n.t("auto.z_\uC5EC\uD589\uC911\uAC00\uC7A5\uAE30\uC5B5\uC5D0\uB0A8\uB294_1378", "\uC5EC\uD589\uC911\uAC00\uC7A5\uAE30\uC5B5\uC5D0\uB0A8\uB294"), i18n.t("auto.z_\uBC84\uD0B7\uB9AC\uC2A4\uD2B8\uC5EC\uD589\uC9C01\uC21C_1379", "\uBC84\uD0B7\uB9AC\uC2A4\uD2B8\uC5EC\uD589\uC9C01\uC21C"), i18n.t("auto.z_\uD63C\uC790\uC5EC\uD589vs\uD568\uAED8\uC5EC\uD589_1380", "\uD63C\uC790\uC5EC\uD589vs\uD568\uAED8\uC5EC\uD589"), i18n.t("auto.z_\uC9C0\uAE08\uAE4C\uC9C0\uAC00\uBCF8\uB098\uB77C\uAC00\uBA87_1381", "\uC9C0\uAE08\uAE4C\uC9C0\uAC00\uBCF8\uB098\uB77C\uAC00\uBA87"), i18n.t("auto.z_\uC5EC\uD589\uC911\uAC00\uC7A5\uBB34\uC11C\uC6E0\uB358\uACBD_1382", "\uC5EC\uD589\uC911\uAC00\uC7A5\uBB34\uC11C\uC6E0\uB358\uACBD"), i18n.t("auto.z_\uC774\uBC88\uC5EC\uD589\uC5D0\uC11C\uAF2D\uD574\uBCF4\uACE0_1383", "\uC774\uBC88\uC5EC\uD589\uC5D0\uC11C\uAF2D\uD574\uBCF4\uACE0")];
+
 export default function MatchResultCard({
   isOpen,
   myProfile,
@@ -38,10 +39,17 @@ export default function MatchResultCard({
   onClose,
   onChat
 }: MatchResultCardProps) {
-  const {
-    t
-  } = useTranslation();
-  const common = findCommon(myProfile, matchedProfile);
+  const { t, i18n } = useTranslation();
+  const ICE_BREAKERS = useMemo(() => [
+    t("auto.z_\uAC00\uC7A5\uC778\uC0C1\uAE4A\uC5C8\uB358\uC5EC\uD589\uC9C0_1377"),
+    t("auto.z_\uC5EC\uD589\uC911\uAC00\uC7A5\uAE30\uC5B5\uC5D0\uB0A8\uB294_1378"),
+    t("auto.z_\uBC84\uD0B7\uB9AC\uC2A4\uD2B8\uC5EC\uD589\uC9C01\uC21C_1379"),
+    t("auto.z_\uD63C\uC790\uC5EC\uD589vs\uD568\uAED8\uC5EC\uD589_1380"),
+    t("auto.z_\uC9C0\uAE08\uAE4C\uC9C0\uAC00\uBCF8\uB098\uB77C\uAC00\uBA87_1381"),
+    t("auto.z_\uC5EC\uD589\uC911\uAC00\uC7A5\uBB34\uC11C\uC6E0\uB358\uACBD_1382"),
+    t("auto.z_\uC774\uBC88\uC5EC\uD589\uC5D0\uC11C\uAF2D\uD574\uBCF4\uACE0_1383"),
+  ], [i18n.language]);
+  const common = findCommon(myProfile, matchedProfile, t);
   const ice = ICE_BREAKERS[Math.floor(Math.random() * ICE_BREAKERS.length)];
   return <AnimatePresence>
       {isOpen && <motion.div className="fixed inset-0 z-[95] flex items-center justify-center px-4" initial={{

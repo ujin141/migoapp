@@ -50,7 +50,11 @@ export const GroupDetailModal = ({
                   <p className="text-sm font-extrabold text-foreground break-words whitespace-pre-wrap">{translateMap[`groupTitle_${currentDetail.id}`] || currentDetail.title}</p>
                   <p className="text-xs text-muted-foreground">{currentDetail.hostName}</p>
                 </div>
-                <button onClick={() => handleShare(currentDetail)} className="ml-auto w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                <button
+                  onClick={() => handleShare(currentDetail)}
+                  className="ml-auto w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 active:scale-90 hover:bg-primary/10 hover:text-primary transition-all duration-150"
+                  title={i18n.t("share.dialogTitle", "공유하기")}
+                >
                   <Share2 size={14} className="text-foreground" />
                 </button>
               </div>

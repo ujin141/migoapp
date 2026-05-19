@@ -1,4 +1,4 @@
-import i18n from "@/i18n";
+import i18n from 'i18next';
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import React from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -72,7 +72,10 @@ export const ChatProvider = ({
     const {
       data,
       error
-    } = await supabase.from('chat_members').select('thread_id, chat_threads ( id, is_group, created_at, last_message )').eq('user_id', user.id);
+    } = await supabase.from('chat_members')
+      // BUG-11 fix: chat_threads에서 last_message + updated_at 포함
+      .select('thread_id, chat_threads ( id, is_group, created_at, last_message, updated_at )')
+      .eq('user_id', user.id);
     if (error || !data) return;
     const threadIds = data.map((m: any) => m.chat_threads?.id).filter(Boolean);
     if (threadIds.length === 0) {
@@ -82,16 +85,18 @@ export const ChatProvider = ({
       return;
     }
 
-    // [2] N+1 제거: 모든 멤버+프로필 + 마지막 메시지를 병렬 배치 처리
-    const [membersRes, msgsRes] = await Promise.all([supabase.from('chat_members').select('thread_id, user_id, profiles ( name, photo_url )').in('thread_id', threadIds), supabase.from('messages').select('thread_id, text, created_at').in('thread_id', threadIds).order('created_at', {
-      ascending: false
-    })]);
-
-    // 스레드별 마지막 메시지 맵 (이미 created_at DESC 정렬됨)
-    const lastMsgMap: Record<string, any> = {};
-    for (const msg of msgsRes.data || []) {
-      if (!lastMsgMap[msg.thread_id]) lastMsgMap[msg.thread_id] = msg;
-    }
+    // [2] 멤버+프로필, 최신 메시지 병렬 배치 조회 (N+1 완전 제거)
+    const [membersRes, latestMsgsRes] = await Promise.all([
+      supabase
+        .from('chat_members')
+        .select('thread_id, user_id, profiles ( name, photo_url )')
+        .in('thread_id', threadIds),
+      supabase
+        .from('messages')
+        .select('thread_id, text, created_at')
+        .in('thread_id', threadIds)
+        .order('created_at', { ascending: false })
+    ]);
 
     // 스레드별 멤버 맵
     const membersByThread: Record<string, any[]> = {};
@@ -99,18 +104,22 @@ export const ChatProvider = ({
       (membersByThread[m.thread_id] ||= []).push(m);
     }
 
+    // thread_id별 최신 메시지 1개만 추출
+    const lastMsgByThread: Record<string, { text: string; created_at: string }> = {};
+    for (const msg of latestMsgsRes.data || []) {
+      if (!lastMsgByThread[msg.thread_id]) {
+        lastMsgByThread[msg.thread_id] = { text: msg.text, created_at: msg.created_at };
+      }
+    }
+
+    // unread 로컬 캐시 로드 + stale 데이터 정리
     let localUnreadMap: Record<string, number> = {};
     try { localUnreadMap = JSON.parse(localStorage.getItem('migo_unread_map') || '{}'); } catch {}
-
-    // ── 이전 계정의 쓰레기 데이터 청소 (Stale data prune) ──
-    let isStale = false;
     const validUnreadMap: Record<string, number> = {};
+    let isStale = false;
     for (const tid of Object.keys(localUnreadMap)) {
-      if (threadIds.includes(tid)) {
-        validUnreadMap[tid] = localUnreadMap[tid];
-      } else {
-        isStale = true;
-      }
+      if (threadIds.includes(tid)) { validUnreadMap[tid] = localUnreadMap[tid]; }
+      else { isStale = true; }
     }
     if (isStale) {
       setUnreadMap(validUnreadMap);
@@ -123,7 +132,6 @@ export const ChatProvider = ({
       if (!thread) return null;
       const members = membersByThread[thread.id] || [];
       const others = members.filter((mb: any) => mb.user_id !== user.id);
-      const lastMsg = lastMsgMap[thread.id] || null;
       let name = thread.is_group ? i18n.t("chat.groupChat", "Group Chat") : "";
       let photo = "";
       let memberPhotos: string[] = [];
@@ -141,17 +149,23 @@ export const ChatProvider = ({
         name = otherNames.length > 0 ? otherNames.join(', ') : i18n.t("chat.groupChat") || "Group Chat";
         photo = others[0]?.profiles?.photo_url || "";
       }
+
+      // messages 직접 조회 → last_message 컬럼 트리거 의존 없음
+      const latestMsg = lastMsgByThread[thread.id];
+      const lastMessageText = latestMsg?.text || thread.last_message || "";
+      const lastMessageTime = latestMsg?.created_at || thread.updated_at;
+
       return {
         id: thread.id,
         name,
         photo,
-        lastMessage: lastMsg?.text ?? thread.last_message ?? "New conversation",
-        time: lastMsg ? new Intl.DateTimeFormat(i18n.language || 'en', {
+        lastMessage: lastMessageText,
+        time: lastMessageTime ? new Intl.DateTimeFormat(i18n.language || 'en', {
           hour: 'numeric',
           minute: 'numeric'
-        }).format(new Date(lastMsg.created_at)) : "",
+        }).format(new Date(lastMessageTime)) : "",
         unread: localUnreadMap[thread.id] || 0,
-        online: false, // 실제 온라인 여부를 서버에서 확인하지 않으므로 false (true 하드코딩은 사용자 오해 유발)
+        online: false,
         isGroup: thread.is_group,
         memberCount: members.length || 2,
         memberPhotos,
@@ -161,6 +175,7 @@ export const ChatProvider = ({
     }).filter(Boolean) as GroupThread[];
     setThreads(mapped);
   }, [user, sessionReady]);
+
   useEffect(() => {
     if (!user || !sessionReady) return; // sessionReady: auth lockAcquired 완료 후 실행
     fetchThreads();

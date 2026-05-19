@@ -1,4 +1,3 @@
-import i18n from "@/i18n";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -49,27 +48,19 @@ interface JoinPopupState {
   group: TripGroup;
   newCount: number;
   genders: ('male' | 'female' | 'unknown')[];
-  deadlineMs: number; // 마감까지 남은 ms
+  deadlineMs: number;
 }
 interface CountdownAlert {
   type: '1hour' | '30min' | 'expired';
   groupTitle: string;
 }
 const FILTER_LIST = ["all", "recruiting", "almostFull", "hot"] as const;
-const FILTER_LABELS: Record<string, string> = {
-  all: i18n.t("auto.ko_0014", "전체"),
-  recruiting: i18n.t("auto.ko_0015", "모집 중"),
-  almostFull: i18n.t("auto.ko_0016", "마감 임박"),
-  hot: i18n.t("auto.ko_0017", "인기 동행")
-};
 
 // ──────────────────────────────────────────────
 // DiscoverPage Component
 // ──────────────────────────────────────────────
 const DiscoverPage = () => {
-  const {
-    t
-  } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const {
     user
@@ -486,9 +477,6 @@ const DiscoverPage = () => {
   const [paymentGroup, setPaymentGroup] = useState<TripGroup | null>(null);
 
   // Translate
-  const {
-    i18n
-  } = useTranslation();
   const targetLangAuto = i18n.language.split('-')[0] || 'en';
   const [translateMap, setTranslateMap] = useState<Record<string, string>>({});
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
@@ -643,28 +631,26 @@ const DiscoverPage = () => {
     const fetchPosts = async () => {
       setLoadingPosts(true);
       try {
-        const {
-          data,
-          error
-        } = await supabase.from("posts").select(`
+        // posts + likes(count) + author 1번 쿼리로 통합 (N+1 제거)
+        // 초기 로드 시 comments 제외 → 상세 모달 열 때 lazy fetch
+        const postsQuery = supabase.from("posts").select(`
             id, content, title, image_url, image_urls, tags, created_at, author_id,
             profiles!posts_author_id_fkey(name, photo_url),
-            post_likes(count),
-            comments(id, text, created_at, author_id, profiles!comments_author_id_fkey(name, photo_url))
+            post_likes(count)
           `).eq("hidden", false).order("created_at", {
           ascending: false
-        }).limit(30);
+        }).limit(20);  // 30 → 20 (egress 절감)
+
+        // 내 좋아요 목록 + 게시물 쿼리 동시 실행
+        const [{ data, error }, { data: myLikes }] = await Promise.all([
+          postsQuery,
+          user
+            ? supabase.from('post_likes').select('post_id').eq('user_id', user.id).limit(200)
+            : Promise.resolve({ data: [] }),
+        ]);
         if (error) throw error;
 
-        // 내가 좋아요한 게시물 ID 목록 조회 (새로고침 후도 유지)
-        let likedSet = new Set<string>();
-        if (user) {
-          const { data: myLikes } = await supabase
-            .from('post_likes')
-            .select('post_id')
-            .eq('user_id', user.id);
-          likedSet = new Set((myLikes || []).map((l: any) => l.post_id));
-        }
+        const likedSet = new Set<string>((myLikes || []).map((l: any) => l.post_id));
 
         const mapped: Post[] = (data || []).map((p: any) => {
           let locationTag;
@@ -684,15 +670,9 @@ const DiscoverPage = () => {
             content: p.content || "",
             time: new Date(p.created_at).toLocaleDateString(i18n.language || 'en'),
             likes: p.post_likes?.[0]?.count || 0,
-            comments: p.comments?.length || 0,
+            comments: 0,  // 상세 열 때 lazy load
             liked: likedSet.has(p.id),
-            commentList: (p.comments || []).map((c: any) => ({
-              id: c.id,
-              author: c.profiles?.name || t("auto.ko_0023", "알수없음"),
-              photo: c.profiles?.photo_url || "",
-              text: c.text,
-              time: new Date(c.created_at).toLocaleDateString(i18n.language || 'en')
-            })),
+            commentList: [],  // 상세 열 때 lazy load
             imageUrl: p.image_url,
             images: p.image_urls || [],
             authorId: p.author_id,
@@ -700,16 +680,13 @@ const DiscoverPage = () => {
           };
         });
         setPosts(mapped);
-        
-        // 50명 노출 한도(view_count) 추적을 위해 RPC 호출
+
+        // view_count 추적 — fire-and-forget (응답 대기 불필요)
         if (data && data.length > 0) {
-          supabase.rpc('increment_post_views', { p_ids: data.map(d => d.id) }).then(({ error: rpcErr }) => {
-            if (rpcErr) console.error("increment_post_views error:", rpcErr);
-          });
+          supabase.rpc('increment_post_views', { p_ids: data.map(d => d.id) });
         }
       } catch (err: any) {
         const msg = err?.message || "";
-        // Lock steal 에러는 무시 (Supabase 내부 일시적 경쟁 현상)
         if (!msg.includes("lock") && !msg.includes("stole")) {
           console.error("fetchPosts error:", err);
         }
@@ -719,6 +696,7 @@ const DiscoverPage = () => {
     };
     fetchPosts();
   }, [user, i18n.language, t]);
+
 
   // ── Fetch groups — reacts to GlobalFilter ─────
   useEffect(() => {
@@ -819,7 +797,7 @@ const DiscoverPage = () => {
         if (hostIds.length > 0 || groupIds.length > 0) {
           const [revRes, msgRes] = await Promise.all([
             hostIds.length > 0 ? supabase.from('meet_reviews').select('target_id').in('target_id', hostIds) : Promise.resolve({ data: [] }),
-            groupIds.length > 0 ? supabase.from('messages').select('thread_id, text, created_at, profiles!messages_sender_id_fkey(name)').in('thread_id', groupIds).order('created_at', { ascending: false }) : Promise.resolve({ data: [] })
+            groupIds.length > 0 ? supabase.from('messages').select('thread_id, text, created_at, profiles!messages_sender_id_fkey(name)').in('thread_id', groupIds).order('created_at', { ascending: false }).limit(groupIds.length * 2) : Promise.resolve({ data: [] })
           ]);
           
           if (revRes.data) {
@@ -906,19 +884,45 @@ const DiscoverPage = () => {
 
   // ── Share ──────────────────────────────────────
   const handleShare = async (group: TripGroup) => {
+    const shareUrl = `${window.location.origin}/groups/${group.id}`;
+    const shareTitle = group.title;
+    const shareText = [
+      `🌏 ${group.title}`,
+      `📍 ${group.departure ? `${group.departure} → ` : ""}${group.destination}`,
+      `📅 ${group.dates}`,
+      `👥 ${group.currentMembers}/${group.maxMembers}${t("share.members", "명")}`,
+      group.tags?.length ? group.tags.map(tag => `#${tag}`).join(" ") : "",
+      "",
+      t("share.joinMigo", "Migo에서 동행을 찾아보세요!"),
+      shareUrl,
+    ].filter(Boolean).join("\n");
+
+    // 1순위: Web Share API (모바일 Chrome/Safari 네이티브 공유 시트)
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+        return;
+      } catch (err: any) {
+        if (err?.name === "AbortError") return; // 사용자가 취소 → 조용히 무시
+      }
+    }
+
+    // 2순위: 클립보드 복사 fallback (데스크톱 / 미지원 환경)
     try {
-      const shareUrl = `${window.location.origin}/groups/${group.id}`;
       await navigator.clipboard.writeText(shareUrl);
       toast({
-        title: t("alert.t38Title")
+        title: t("share.copied", "링크가 복사됐어요! 🔗"),
+        description: shareUrl,
       });
     } catch {
       toast({
-        title: t("alert.t39Title"),
-        variant: "destructive"
+        title: t("share.manualCopy", "아래 링크를 직접 복사해주세요"),
+        description: shareUrl,
+        variant: "destructive",
       });
     }
   };
+
 
   // ── Address Autocomplete & GPS ─────────────────
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -1921,11 +1925,14 @@ const DiscoverPage = () => {
       {activeTab === "groups" && (
         <div className="px-4 pb-2">
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-            {FILTER_LIST.map(f => (
-              <button key={f} onClick={() => setActiveFilter(f)} className={`px-3.5 py-1.5 rounded-full text-[11px] font-extrabold whitespace-nowrap transition-all border shadow-sm ${activeFilter === f ? "bg-gradient-to-r from-teal-400 to-blue-500 text-white border-transparent" : "bg-card text-muted-foreground border-border/50 hover:bg-muted"}`}>
-                {FILTER_LABELS[f]}
-              </button>
-            ))}
+            {FILTER_LIST.map(f => {
+              const label = f === "all" ? t("auto.ko_0014", "전체") : f === "recruiting" ? t("auto.ko_0015", "모집 중") : f === "almostFull" ? t("auto.ko_0016", "마감 임박") : t("auto.ko_0017", "인기 동행");
+              return (
+                <button key={f} onClick={() => setActiveFilter(f)} className={`px-3.5 py-1.5 rounded-full text-[11px] font-extrabold whitespace-nowrap transition-all border shadow-sm ${activeFilter === f ? "bg-gradient-to-r from-teal-400 to-blue-500 text-white border-transparent" : "bg-card text-muted-foreground border-border/50 hover:bg-muted"}`}>
+                  {label}
+                </button>
+              );
+            })}
 
           </div>
         </div>

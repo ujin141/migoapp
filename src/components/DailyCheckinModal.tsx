@@ -24,9 +24,9 @@ export default function DailyCheckinModal() {
   const [result, setResult] = useState<CheckinResult | null>(null);
   const [animPhase, setAnimPhase] = useState<"enter" | "reward" | "done">("enter");
 
-  // 앱 진입 시 자동 출석체크
+  // 앱 진입 시 자동 출석체크 — 프로필 셋업 완료 유저에게만 실행
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.setupComplete !== true) return;
 
     const checkedToday = sessionStorage.getItem("migo_checkin_today");
     if (checkedToday === new Date().toISOString().split("T")[0]) return;

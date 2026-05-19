@@ -23,6 +23,7 @@ import ActivityReport from "@/components/ActivityReport";
 import { checkInStreak } from "@/lib/streakService";
 import { getCurrentLocation } from "@/lib/locationService";
 import StoryViewer from "@/components/StoryViewer";
+import ProfileCompletionBar from "@/components/ProfileCompletionBar";
 const ProfilePage = () => {
   const {
     t
@@ -302,62 +303,72 @@ const ProfilePage = () => {
     setSaving(true);
     try {
       // 새로 추가된 사진만 업로드
-      const uploadedUrls: string[] = profilePhotos.filter(p => !p.file) // 기존 URL 유지
-      .map(p => p.url);
+      const uploadedUrls: string[] = profilePhotos.filter(p => !p.file)
+        .map(p => p.url);
       for (const p of profilePhotos.filter(ph => !!ph.file)) {
         const file = p.file!;
         const compressedFile = await compressImage(file);
         const ext = compressedFile.name.split(".").pop();
         const path = `${user.id}_${Date.now()}_${uploadedUrls.length}.${ext}`;
-        const {
-          error: upErr
-        } = await supabase.storage.from("avatars").upload(path, compressedFile, {
+        const { error: upErr } = await supabase.storage.from("avatars").upload(path, compressedFile, {
           upsert: true,
           contentType: compressedFile.type
         });
         if (!upErr) {
-          const {
-            data
-          } = supabase.storage.from("avatars").getPublicUrl(path);
-          // BUG-11 fix: DB에는 클린 URL 저장 (timestamp 제거 → CDN 캐시 히트율 향상)
+          const { data } = supabase.storage.from("avatars").getPublicUrl(path);
           uploadedUrls.push(data.publicUrl);
         } else {
-          console.error(t("auto.g_0897", "사진업로드"), upErr);
+          console.error("[saveProfile] 사진 업로드 실패:", upErr);
         }
       }
       const mainPhoto = uploadedUrls[0] || photoUrl;
-      const updatePayload = {
+
+      // ── Step 1: 핵심 컬럼 저장 (반드시 성공해야 함) ──
+      const corePayload: Record<string, any> = {
         name,
         location,
         bio,
         interests: tags,
-        travel_dates: travelDates,
         photo_url: mainPhoto,
-        photo_urls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
-        travel_mission: travelMission,
-        visited_countries: visitedCountries,
-        profile_theme: profileTheme,
-        // BUG-19 fix: updated_at은 DB 트리거가 자동 설정 (클라이언트 시계 불일치 방지)
       };
-      const {
-        error,
-        data: saved
-      } = await supabase.from("profiles").update(updatePayload).eq("id", user.id).select().single();
-      if (error) {
-        console.error(t("auto.g_0898", "프로필저장"), error);
-        throw error;
+      if (uploadedUrls.length > 0) corePayload.photo_urls = uploadedUrls;
+
+      const { error: coreError } = await supabase
+        .from("profiles")
+        .update(corePayload)
+        .eq("id", user.id);
+
+      if (coreError) {
+        console.error("[saveProfile] core update error:", coreError.message, coreError.code);
+        throw coreError;
       }
 
-      // 성공 시 로컬 상태 즉시 업데이트
+      // ── Step 2: 확장 컬럼 저장 (DB에 없어도 무시) ──
+      const extPayload: Record<string, any> = {};
+      if (travelDates !== undefined)    extPayload.travel_dates = travelDates;
+      if (travelMission !== undefined)  extPayload.travel_mission = travelMission ?? null;
+      if (visitedCountries !== undefined) extPayload.visited_countries = visitedCountries ?? [];
+      if (profileTheme !== undefined)   extPayload.profile_theme = profileTheme ?? 'default';
+
+      if (Object.keys(extPayload).length > 0) {
+        supabase.from("profiles").update(extPayload).eq("id", user.id)
+          .then(({ error }) => {
+            if (error) console.warn("[saveProfile] extended fields (non-critical):", error.message);
+          });
+      }
+
+      // 성공
       if (uploadedUrls[0]) setPhotoUrl(uploadedUrls[0]);
       setShowEditModal(false);
-      toast({
-        title: t("profilePage.saved")
-      });
+      toast({ title: t("profilePage.saved", "저장되었습니다") });
+
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Save failed";
+      // Supabase PostgrestError는 instanceof Error가 아님 → 직접 .message 추출
+      const pgErr = e as any;
+      const msg = pgErr?.message || (e instanceof Error ? e.message : "Unknown error");
+      console.error("[saveProfile] catch:", msg, pgErr?.code, pgErr?.details);
       toast({
-        title: "Save failed",
+        title: t("profilePage.saveFailed", "저장 실패"),
         description: msg,
         variant: "destructive"
       });
@@ -365,6 +376,9 @@ const ProfilePage = () => {
       setSaving(false);
     }
   };
+
+
+
 
   // Fetch real profile
   useEffect(() => {
@@ -580,25 +594,65 @@ const ProfilePage = () => {
         }
       } catch(e) { console.error(e); }
 
-      // ─── 프로필 방문자 ───
+      // ─── 프로필 방문자: profile_views + notifications 동시 조회 ───
       try {
-        const { data: pvData } = await supabase
-          .from('profile_views')
-          .select('viewer_id')
-          .eq('viewed_id', user.id)
-          .order('viewed_at', { ascending: false })
-          .limit(10);
-        if (pvData && pvData.length > 0) {
-          const viewerIds = pvData.map((r: any) => r.viewer_id);
+        // 두 테이블을 병렬로 조회 (어느 하나가 실패해도 다른 쪽이 살아있음)
+        const [pvResult, notifResult] = await Promise.allSettled([
+          supabase
+            .from('profile_views')
+            .select('viewer_id')
+            .eq('viewed_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(20),
+          supabase
+            .from('notifications')
+            .select('actor_id, created_at')
+            .eq('user_id', user.id)
+            .eq('type', 'profile_view')
+            .order('created_at', { ascending: false })
+            .limit(20),
+        ]);
+
+        // profile_views에서 viewer_id 수집
+        const pvIds: string[] = [];
+        if (pvResult.status === 'fulfilled' && pvResult.value.data) {
+          pvResult.value.data.forEach((r: any) => {
+            if (r.viewer_id) pvIds.push(r.viewer_id);
+          });
+        }
+
+        // notifications에서 actor_id 수집 (profile_views에 없는 것만)
+        const notifIds: string[] = [];
+        if (notifResult.status === 'fulfilled' && notifResult.value.data) {
+          notifResult.value.data.forEach((r: any) => {
+            if (r.actor_id && !pvIds.includes(r.actor_id)) {
+              notifIds.push(r.actor_id);
+            }
+          });
+        }
+
+        // 합치기 (profile_views 우선, notifications 보완)
+        const allViewerIds = [...new Set([...pvIds, ...notifIds])].slice(0, 20);
+
+        if (allViewerIds.length > 0) {
           const { data: viewerProfiles } = await supabase
             .from('profiles')
             .select('id, name, photo_url, location, age, bio, languages, interests, mbti, nationality')
-            .in('id', viewerIds);
-          if (viewerProfiles) {
-            const uniqueViewers = Array.from(new Map(viewerProfiles.map((p: any) => [p.id, p])).values());
-            setVisitors(uniqueViewers.map((p: any) => ({
+            .in('id', allViewerIds);
+
+          if (viewerProfiles && viewerProfiles.length > 0) {
+            const profileMap = new Map(viewerProfiles.map((p: any) => [p.id, p]));
+            const ordered = allViewerIds
+              .map(id => profileMap.get(id))
+              .filter(Boolean)
+              .reduce((acc: any[], p: any) => {
+                if (!acc.find((x: any) => x.id === p.id)) acc.push(p);
+                return acc;
+              }, []);
+
+            setVisitors(ordered.map((p: any) => ({
               id: p.id,
-              name: p.name || t("match.traveler", "Traveler"),
+              name: p.name || t('match.traveler', 'Traveler'),
               photo: p.photo_url || '',
               location: p.location || '',
               age: p.age || '',
@@ -610,7 +664,8 @@ const ProfilePage = () => {
             })));
           }
         }
-      } catch(e) { console.error(e); }
+      } catch(e) { console.error('visitors fetch error:', e); }
+
 
       // ─── 내 게시글: posts 테이블 ───
       try {
@@ -651,6 +706,58 @@ const ProfilePage = () => {
     };
     fetchProfile(0);
     return () => { isMounted = false; };
+  }, [user?.id]);
+
+  // ─── 프로필 조회 알림 실시간 구독 → 최근 방문자 즉시 업데이트 ───
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`profile_view_realtime:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          const n = payload.new as any;
+          if (n.type !== 'profile_view' || !n.actor_id) return;
+
+          // 뷰어 프로필 즉시 조회
+          const { data: vp } = await supabase
+            .from('profiles')
+            .select('id, name, photo_url, location, age, bio, languages, interests, mbti, nationality')
+            .eq('id', n.actor_id)
+            .single();
+
+          if (!vp) return;
+
+          const newVisitor = {
+            id: vp.id,
+            name: vp.name || t('match.traveler', 'Traveler'),
+            photo: vp.photo_url || '',
+            location: vp.location || '',
+            age: vp.age || '',
+            bio: vp.bio || '',
+            languages: vp.languages || [],
+            interests: vp.interests || [],
+            mbti: vp.mbti || '',
+            nationality: vp.nationality || '',
+          };
+
+          setVisitors(prev => {
+            // 이미 있으면 맨 앞으로 이동 (최신 방문 기준)
+            const filtered = prev.filter(v => v.id !== newVisitor.id);
+            return [newVisitor, ...filtered].slice(0, 20);
+          });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
   // Settings state
@@ -1072,30 +1179,14 @@ const ProfilePage = () => {
             {bio && <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">{bio}</p>}
           </div>
 
-          {/* ─── Profile Completion Progress Bar ─── */}
-          {profileScore < 100 && (
-            <div className="px-5 pb-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
-                  <Star size={10} className="text-amber-500" fill="currentColor" /> {t("profile.completion", "프로필 완성도")}
-                </span>
-                <span className="text-[10px] font-black text-primary">{profileScore}%</span>
-              </div>
-              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }} 
-                  animate={{ width: `${profileScore}%` }} 
-                  transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                  className="h-full gradient-primary rounded-full"
-                />
-              </div>
-              <p className="text-[9px] text-muted-foreground mt-1.5">
-                {profileScore < 50 
-                  ? t("profile.completionLow", "프로필을 완성하고 매칭률을 3배 높여보세요! 🔥") 
-                  : t("profile.completionHigh", "조금만 더 채우면 완벽한 프로필이 돼요! ✨")}
-              </p>
-            </div>
-          )}
+          {/* ─── Profile Completion Bar (리텐션 강화) ─── */}
+          <div className="px-4 pb-3">
+            <ProfileCompletionBar
+              compact
+              profile={{ name, bio, photoUrl, location, travelDates, travelMission, visitedCountries, tags, profilePhotos, userType }}
+              onEditClick={() => setShowEditModal(true)}
+            />
+          </div>
 
           {/* Quick Action Buttons — 카드 안에 통합 */}
           <div className="flex gap-2 px-4 pb-4">
@@ -1112,6 +1203,19 @@ const ProfilePage = () => {
               whileTap={{ scale: 0.96 }}
               onClick={async () => {
                 if (boostActive) return;
+                // BUG-3 fix: 잔량 체크 + 피드백 추가
+                if (boostsCount <= 0) {
+                  toast({
+                    title: t("boost.noBoosts", "부스트가 없어요"),
+                    description: t("boost.noBoostsDesc", "Shop에서 부스트를 구매하세요!"),
+                    action: (
+                      <button onClick={() => navigate('/shop')} className="px-3 py-1 bg-purple-500 text-white text-xs font-bold rounded-lg shrink-0">
+                        구매하기
+                      </button>
+                    ),
+                  });
+                  return;
+                }
                 await startBoost();
                 setBoostJustActivated(true);
                 setTimeout(() => setBoostJustActivated(false), 1800);
@@ -1366,7 +1470,12 @@ const ProfilePage = () => {
               <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center">
                 <span className="text-[12px]">👀</span>
               </div>
-              <h3 className="text-[16px] font-black text-foreground">최근 방문자</h3>
+              <h3 className="text-[16px] font-black text-foreground">
+                {t("profile.recentVisitors", "최근 방문자")}
+              </h3>
+              <span className="text-[11px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                {visitors.length}
+              </span>
             </div>
             {!isPlus && (
               <span className="text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -1376,36 +1485,47 @@ const ProfilePage = () => {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
-            {visitors.slice(0, isPlus ? 10 : 3).map((v, idx) => (
+            {visitors.slice(0, isPlus ? 20 : 5).map((v, idx) => (
               <motion.div
                 key={v.id}
                 whileTap={{ scale: 0.95 }}
-                className="relative w-16 h-16 shrink-0 rounded-full overflow-hidden cursor-pointer shadow-sm border border-border"
+                className="relative shrink-0 cursor-pointer"
                 onClick={() => {
                   if (!isPlus) setShowPlusModal(true);
-                  else { setSelectedLiker(v); setSelectedLikerIdx(idx); } // Reuse liker modal for simplicity
+                  else { setSelectedLiker(v); setSelectedLikerIdx(idx); }
                 }}
               >
-                {v.photo ? (
-                  <img
-                    src={v.photo}
-                    alt={v.name}
-                    className="w-full h-full object-cover"
-                    style={!isPlus ? { filter: 'blur(8px)', transform: 'scale(1.15)' } : {}}
-                  />
-                ) : (
-                  <div
-                    className="w-full h-full flex items-center justify-center bg-violet-500/20"
-                    style={!isPlus ? { filter: 'blur(8px)' } : {}}
-                  >
-                    <span className="text-foreground text-xl font-black opacity-60">{v.name[0]}</span>
+                {/* 아바타 */}
+                <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-md border border-border/50">
+                  {v.photo ? (
+                    <img
+                      src={v.photo}
+                      alt={v.name}
+                      className="w-full h-full object-cover"
+                      style={!isPlus ? { filter: 'blur(8px)', transform: 'scale(1.15)' } : {}}
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full flex items-center justify-center bg-violet-500/20"
+                      style={!isPlus ? { filter: 'blur(8px)' } : {}}
+                    >
+                      <span className="text-foreground text-xl font-black opacity-60">{v.name[0]}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 잠금 오버레이 */}
+                {!isPlus && (
+                  <div className="absolute inset-0 rounded-2xl flex items-center justify-center bg-black/10">
+                    <div className="w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
+                      <Lock size={10} className="text-white" />
+                    </div>
                   </div>
                 )}
-                
-                {!isPlus && (
-                  <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                    <Lock size={12} className="text-white drop-shadow-md" />
-                  </div>
+
+                {/* 이름 (Plus만) */}
+                {isPlus && (
+                  <p className="text-[9px] font-bold text-muted-foreground text-center mt-1 truncate w-16">{v.name}</p>
                 )}
               </motion.div>
             ))}
@@ -1414,11 +1534,13 @@ const ProfilePage = () => {
           {!isPlus && (
             <div className="mt-1 bg-muted/50 rounded-xl p-3 flex items-center justify-between border border-border/50">
               <div>
-                <p className="text-[12px] font-bold text-foreground">누가 나를 봤을까요?</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{visitors.length}명이 내 프로필을 확인했어요.</p>
+                <p className="text-[12px] font-bold text-foreground">{t("profile.whoViewedMe", "누가 나를 봤을까요?")}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {t("profile.visitorCount", { count: visitors.length, defaultValue: `${visitors.length}명이 내 프로필을 확인했어요.` })}
+                </p>
               </div>
               <button onClick={() => setShowPlusModal(true)} className="px-3 py-1.5 bg-violet-500/10 text-violet-500 text-[11px] font-bold rounded-lg border border-violet-500/20">
-                확인하기
+                {t("profile.viewAll", "확인하기")}
               </button>
             </div>
           )}

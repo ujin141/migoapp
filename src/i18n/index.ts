@@ -4,6 +4,7 @@ import { CHECKIN_LOCALES } from "./checkinLocales";
 import { TIER_LOCALES } from "./tierLocales";
 import { GDF_LOCALES } from "./gdfLocales";
 import { MAP_LOCALES } from "./mapLocales";
+import { RETENTION_LOCALES } from "./retentionLocales";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 
@@ -24,8 +25,9 @@ i18n
       const TIER = (TIER_LOCALES as any)[language] || {};
       const GDF = (GDF_LOCALES as any)[language] || {};
       const MAP = (MAP_LOCALES as any)[language] || {};
+      const RETENTION = (RETENTION_LOCALES as any)[language] || {};
       
-      return { ...res.default, ...FILTER, ...CHECKIN, ...TIER, ...GDF, ...MAP };
+      return { ...res.default, ...FILTER, ...CHECKIN, ...TIER, ...GDF, ...MAP, ...RETENTION };
     })
   )
   .init({

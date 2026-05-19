@@ -14,29 +14,24 @@ const SplashPage = ({ isOverlay = false }: { isOverlay?: boolean }) => {
 
     let redirected = false;
 
-    const doRedirect = (hasSession: boolean) => {
+    const doRedirect = () => {
       if (redirected) return;
       redirected = true;
-      if (hasSession) {
-        // 기존 로그인 세션이 있으면 바로 홈으로
-        navigate("/", { replace: true });
-      } else {
-        // 세션 없으면 온보딩/로그인으로
-        const hasSeenOnboarding = localStorage.getItem("migo_onboarding_done");
-        navigate(hasSeenOnboarding ? "/login" : "/onboarding", { replace: true });
-      }
+      // 세션 유무와 관계없이 항상 로그인 화면을 거치게 함
+      const hasSeenOnboarding = localStorage.getItem("migo_onboarding_done");
+      navigate(hasSeenOnboarding ? "/login" : "/onboarding", { replace: true });
     };
 
-    // 저장된 세션(토큰) 즉시 체크
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      doRedirect(!!session);
+    // 스플래시 최소 표시 후 로그인으로 이동
+    supabase.auth.getSession().then(() => {
+      doRedirect();
     }).catch(() => {
-      doRedirect(false);
+      doRedirect();
     });
 
     // 최대 3초 안에 세션 체크가 완료 안 되면 로그인으로 fallback
     const fallback = setTimeout(() => {
-      doRedirect(false);
+      doRedirect();
     }, 3000);
 
     return () => clearTimeout(fallback);

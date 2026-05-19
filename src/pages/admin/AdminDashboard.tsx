@@ -1,11 +1,11 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Users, Heart, Plane, TrendingUp, FileText, Flag, Crown, Check, Clock, DollarSign, Bell, X, Plus, Megaphone, RefreshCw } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Users, Heart, Plane, TrendingUp, FileText, Flag, Crown, Check, Clock, DollarSign, Bell, X, Plus, Megaphone, RefreshCw, AlertTriangle } from "lucide-react";
 import { fetchAdminStats, fetchAdminUsers, fetchAdminReports, fetchAnnouncements, createAnnouncement, deleteAnnouncement, fetchWeeklyStats, fetchTodayStats } from "@/lib/adminService";
 import { fetchAds } from "@/lib/adService";
-import { Crown, AlertTriangle } from "lucide-react";
+
 const CustomTooltip = ({
   active,
   payload,
