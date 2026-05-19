@@ -20,7 +20,13 @@ function _readSessionFromStorage() {
     const raw = localStorage.getItem(_sessionKey);
     if (!raw) return null;
     const s = JSON.parse(raw);
-    return s?.access_token ? s : null;
+    if (!s?.access_token) return null;
+    // SEC-6 fix: 만료 시간 검증 — 만료된 JWT가 위조 세션으로 사용되는 것을 방지
+    if (s.expires_at && s.expires_at * 1000 < Date.now()) {
+      // 만료된 세션: null 반환하여 lockAcquired 가 파인된 시점 후 정상 refresh 수행하도록
+      return null;
+    }
+    return s;
   } catch {
     return null;
   }

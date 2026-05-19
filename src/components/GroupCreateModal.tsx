@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, Users, Check, ChevronRight, ChevronLeft, Tag, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -8,92 +8,105 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { useSubscription } from "@/context/SubscriptionContext";
+import { useAdMob } from "@/hooks/useAdMob";
 
 // ─── 자동완성 데이터 ────────────────────────────────────────────────────────
 // DESTINATIONS는 컴포넌트 내부에서 useMemo로 생성됩니다
 const buildDestinations = () => [
-  { name: i18n.t("auto.ko_0286", "서울"), country: i18n.t("auto.ko_0287", "대한민국"), emoji: "🇰🇷", keys: ["서울", "seoul", "대한민국", "korea"] },
-  { name: i18n.t("auto.ko_0288", "부산"), country: i18n.t("auto.ko_0289", "대한민국"), emoji: "🇰🇷", keys: ["부산", "busan", "대한민국", "korea"] },
-  { name: i18n.t("auto.ko_0290", "제주"), country: i18n.t("auto.ko_0291", "대한민국"), emoji: "🇰🇷", keys: ["제주", "jeju", "대한민국", "korea"] },
-  { name: i18n.t("auto.ko_0292", "경주"), country: i18n.t("auto.ko_0293", "대한민국"), emoji: "🇰🇷", keys: ["경주", "gyeongju", "대한민국", "korea"] },
-  { name: i18n.t("auto.ko_0294", "강릉"), country: i18n.t("auto.ko_0295", "대한민국"), emoji: "🇰🇷", keys: ["강릉", "gangneung", "대한민국", "korea"] },
-  { name: i18n.t("auto.ko_0296", "전주"), country: i18n.t("auto.ko_0297", "대한민국"), emoji: "🇰🇷", keys: ["전주", "jeonju", "대한민국", "korea"] },
-  { name: i18n.t("auto.ko_0298", "도쿄"), country: i18n.t("auto.ko_0299", "일본"), emoji: "🇯🇵", keys: ["도쿄", "tokyo", "일본", "japan"] },
-  { name: i18n.t("auto.ko_0300", "오사카"), country: i18n.t("auto.ko_0301", "일본"), emoji: "🇯🇵", keys: ["오사카", "osaka", "일본", "japan"] },
-  { name: i18n.t("auto.ko_0302", "교토"), country: i18n.t("auto.ko_0303", "일본"), emoji: "🇯🇵", keys: ["교토", "kyoto", "일본", "japan"] },
-  { name: i18n.t("auto.ko_0304", "후쿠오카"), country: i18n.t("auto.ko_0305", "일본"), emoji: "🇯🇵", keys: ["후쿠오카", "fukuoka", "일본", "japan"] },
-  { name: i18n.t("auto.ko_0306", "삿포로"), country: i18n.t("auto.ko_0307", "일본"), emoji: "🇯🇵", keys: ["삿포로", "sapporo", "일본", "japan"] },
-  { name: i18n.t("auto.ko_0308", "오키나와"), country: i18n.t("auto.ko_0309", "일본"), emoji: "🇯🇵", keys: ["오키나와", "okinawa", "일본", "japan"] },
-  { name: i18n.t("auto.ko_0310", "방콕"), country: i18n.t("auto.ko_0311", "태국"), emoji: "🇹🇭", keys: ["방콕", "bangkok", "태국", "thailand"] },
-  { name: i18n.t("auto.ko_0312", "치앙마이"), country: i18n.t("auto.ko_0313", "태국"), emoji: "🇹🇭", keys: ["치앙마이", "chiang mai", "태국", "thailand"] },
-  { name: i18n.t("auto.ko_0314", "푸켓"), country: i18n.t("auto.ko_0315", "태국"), emoji: "🇹🇭", keys: ["푸켓", "phuket", "태국", "thailand"] },
-  { name: i18n.t("auto.ko_0316", "발리"), country: i18n.t("auto.ko_0317", "인도네시아"), emoji: "🇮🇩", keys: ["발리", "bali", "인도네시아", "indonesia"] },
-  { name: i18n.t("auto.ko_0318", "싱가포르"), country: i18n.t("auto.ko_0319", "싱가포르"), emoji: "🇸🇬", keys: ["싱가포르", "singapore", "싱가포르", "singapore"] },
-  { name: i18n.t("auto.ko_0320", "쿠알라룸푸르"), country: i18n.t("auto.ko_0321", "말레이시아"), emoji: "🇲🇾", keys: ["쿠알라룸푸르", "kuala lumpur", "말레이시아", "malaysia"] },
-  { name: i18n.t("auto.ko_0322", "코타키나발루"), country: i18n.t("auto.ko_0323", "말레이시아"), emoji: "🇲🇾", keys: ["코타키나발루", "kota kinabalu", "말레이시아", "malaysia"] },
-  { name: i18n.t("auto.ko_0324", "다낭"), country: i18n.t("auto.ko_0325", "베트남"), emoji: "🇻🇳", keys: ["다낭", "da nang", "베트남", "vietnam"] },
-  { name: i18n.t("auto.ko_0326", "호치민"), country: i18n.t("auto.ko_0327", "베트남"), emoji: "🇻🇳", keys: ["호치민", "ho chi minh", "베트남", "vietnam"] },
-  { name: i18n.t("auto.ko_0328", "하노이"), country: i18n.t("auto.ko_0329", "베트남"), emoji: "🇻🇳", keys: ["하노이", "hanoi", "베트남", "vietnam"] },
-  { name: i18n.t("auto.ko_0330", "나트랑"), country: i18n.t("auto.ko_0331", "베트남"), emoji: "🇻🇳", keys: ["나트랑", "nha trang", "베트남", "vietnam"] },
-  { name: i18n.t("auto.ko_0332", "마닐라"), country: i18n.t("auto.ko_0333", "필리핀"), emoji: "🇵🇭", keys: ["마닐라", "manila", "필리핀", "philippines"] },
-  { name: i18n.t("auto.ko_0334", "세부"), country: i18n.t("auto.ko_0335", "필리핀"), emoji: "🇵🇭", keys: ["세부", "cebu", "필리핀", "philippines"] },
-  { name: i18n.t("auto.ko_0336", "보라카이"), country: i18n.t("auto.ko_0337", "필리핀"), emoji: "🇵🇭", keys: ["보라카이", "boracay", "필리핀", "philippines"] },
-  { name: i18n.t("auto.ko_0338", "타이베이"), country: i18n.t("auto.ko_0339", "대만"), emoji: "🇹🇼", keys: ["타이베이", "taipei", "대만", "taiwan"] },
-  { name: i18n.t("auto.ko_0340", "가오슝"), country: i18n.t("auto.ko_0341", "대만"), emoji: "🇹🇼", keys: ["가오슝", "kaohsiung", "대만", "taiwan"] },
-  { name: i18n.t("auto.ko_0342", "홍콩"), country: i18n.t("auto.ko_0343", "홍콩"), emoji: "🇭🇰", keys: ["홍콩", "hong kong", "홍콩", "hong kong"] },
-  { name: i18n.t("auto.ko_0344", "마카오"), country: i18n.t("auto.ko_0345", "마카오"), emoji: "🇲🇴", keys: ["마카오", "macau", "마카오", "macau"] },
-  { name: i18n.t("auto.ko_0346", "파리"), country: i18n.t("auto.ko_0347", "프랑스"), emoji: "🇫🇷", keys: ["파리", "paris", "프랑스", "france"] },
-  { name: i18n.t("auto.ko_0348", "로마"), country: i18n.t("auto.ko_0349", "이탈리아"), emoji: "🇮🇹", keys: ["로마", "rome", "이탈리아", "italy"] },
-  { name: i18n.t("auto.ko_0350", "바르셀로나"), country: i18n.t("auto.ko_0351", "스페인"), emoji: "🇪🇸", keys: ["바르셀로나", "barcelona", "스페인", "spain"] },
-  { name: i18n.t("auto.ko_0352", "런던"), country: i18n.t("auto.ko_0353", "영국"), emoji: "🇬🇧", keys: ["런던", "london", "영국", "uk"] },
-  { name: i18n.t("auto.ko_0354", "암스테르담"), country: i18n.t("auto.ko_0355", "네덜란드"), emoji: "🇳🇱", keys: ["암스테르담", "amsterdam", "네덜란드", "netherlands"] },
-  { name: i18n.t("auto.ko_0356", "베를린"), country: i18n.t("auto.ko_0357", "독일"), emoji: "🇩🇪", keys: ["베를린", "berlin", "독일", "germany"] },
-  { name: i18n.t("auto.ko_0358", "프라하"), country: i18n.t("auto.ko_0359", "체코"), emoji: "🇨🇿", keys: ["프라하", "prague", "체코", "czech"] },
-  { name: i18n.t("auto.ko_0360", "부다페스트"), country: i18n.t("auto.ko_0361", "헝가리"), emoji: "🇭🇺", keys: ["부다페스트", "budapest", "헝가리", "hungary"] },
-  { name: i18n.t("auto.ko_0362", "비엔나"), country: i18n.t("auto.ko_0363", "오스트리아"), emoji: "🇦🇹", keys: ["비엔나", "vienna", "오스트리아", "austria"] },
-  { name: i18n.t("auto.ko_0364", "인터라켄"), country: i18n.t("auto.ko_0365", "스위스"), emoji: "🇨🇭", keys: ["인터라켄", "interlaken", "스위스", "switzerland"] },
-  { name: i18n.t("auto.ko_0366", "취리히"), country: i18n.t("auto.ko_0367", "스위스"), emoji: "🇨🇭", keys: ["취리히", "zurich", "스위스", "switzerland"] },
-  { name: i18n.t("auto.ko_0368", "리스본"), country: i18n.t("auto.ko_0369", "포르투갈"), emoji: "🇵🇹", keys: ["리스본", "lisbon", "포르투갈", "portugal"] },
-  { name: i18n.t("auto.ko_0370", "아테네"), country: i18n.t("auto.ko_0371", "그리스"), emoji: "🇬🇷", keys: ["아테네", "athens", "그리스", "greece"] },
-  { name: i18n.t("auto.ko_0372", "두바이"), country: "UAE", emoji: "🇦🇪", keys: ["두바이", "dubai", "UAE", "uae"] },
-  { name: i18n.t("auto.ko_0373", "이스탄불"), country: i18n.t("auto.ko_0374", "터키"), emoji: "🇹🇷", keys: ["이스탄불", "istanbul", "터키", "turkey"] },
-  { name: i18n.t("auto.ko_0375", "뉴욕"), country: i18n.t("auto.ko_0376", "미국"), emoji: "🇺🇸", keys: ["뉴욕", "new york", "미국", "usa"] },
-  { name: i18n.t("auto.ko_0377", "로스앤젤레스"), country: i18n.t("auto.ko_0378", "미국"), emoji: "🇺🇸", keys: ["로스앤젤레스", "los angeles", "미국", "usa"] },
-  { name: i18n.t("auto.ko_0379", "하와이"), country: i18n.t("auto.ko_0380", "미국"), emoji: "🇺🇸", keys: ["하와이", "hawaii", "미국", "usa"] },
-  { name: i18n.t("auto.ko_0381", "시드니"), country: i18n.t("auto.ko_0382", "호주"), emoji: "🇦🇺", keys: ["시드니", "sydney", "호주", "australia"] },
-  { name: i18n.t("auto.ko_0383", "멜버른"), country: i18n.t("auto.ko_0384", "호주"), emoji: "🇦🇺", keys: ["멜버른", "melbourne", "호주", "australia"] },
-  { name: i18n.t("auto.ko_0385", "퀸즈타운"), country: i18n.t("auto.ko_0386", "뉴질랜드"), emoji: "🇳🇿", keys: ["퀸즈타운", "queenstown", "뉴질랜드", "new zealand"] },
-  { name: i18n.t("auto.ko_0387", "몰디브"), country: i18n.t("auto.ko_0388", "몰디브"), emoji: "🇲🇻", keys: ["몰디브", "maldives", "몰디브", "maldives"] },
-  { name: i18n.t("auto.ko_0389", "사이판"), country: i18n.t("auto.ko_0390", "사이판"), emoji: "🏝️", keys: ["사이판", "saipan", "사이판", "saipan"] },
-  { name: i18n.t("auto.ko_0391", "괌"), country: i18n.t("auto.ko_0392", "괌"), emoji: "🏝️", keys: ["괌", "guam", "괌", "guam"] }
+  { name: i18n.t("auto.ko_0286", "서울"), country: i18n.t("auto.ko_0287", "대한민국"), emoji: "🇰🇷", keys: ["서울", "seoul", "대한민국", "korea", "ソウル", "首尔", "首爾", "โซล", "séoul", "seúl", "сеул"] },
+  { name: i18n.t("auto.ko_0288", "부산"), country: i18n.t("auto.ko_0289", "대한민국"), emoji: "🇰🇷", keys: ["부산", "busan", "대한민국", "korea", "プサン", "釜山", "ปูซาน", "busán"] },
+  { name: i18n.t("auto.ko_0290", "제주"), country: i18n.t("auto.ko_0291", "대한민국"), emoji: "🇰🇷", keys: ["제주", "jeju", "대한민국", "korea", "済州", "チェジュ", "济州岛", "เกาะเชจู", "jeju island"] },
+  { name: i18n.t("auto.ko_0292", "경주"), country: i18n.t("auto.ko_0293", "대한민국"), emoji: "🇰🇷", keys: ["경주", "gyeongju", "대한민국", "korea", "慶州", "キョンジュ", "庆州"] },
+  { name: i18n.t("auto.ko_0294", "강릉"), country: i18n.t("auto.ko_0295", "대한민국"), emoji: "🇰🇷", keys: ["강릉", "gangneung", "대한민국", "korea", "江陵", "カンヌン"] },
+  { name: i18n.t("auto.ko_0296", "전주"), country: i18n.t("auto.ko_0297", "대한민국"), emoji: "🇰🇷", keys: ["전주", "jeonju", "대한민국", "korea", "全州", "チョンジュ"] },
+  { name: i18n.t("auto.ko_0298", "도쿄"), country: i18n.t("auto.ko_0299", "일본"), emoji: "🇯🇵", keys: ["도쿄", "tokyo", "일본", "japan", "東京", "とうきょう", "тōkyō", "токио", "东京", "โตเกียว", "tokio", "tōkyō"] },
+  { name: i18n.t("auto.ko_0300", "오사카"), country: i18n.t("auto.ko_0301", "일본"), emoji: "🇯🇵", keys: ["오사카", "osaka", "일본", "japan", "大阪", "おおさか", "大阪", "โอซาก้า", "осака"] },
+  { name: i18n.t("auto.ko_0302", "교토"), country: i18n.t("auto.ko_0303", "일본"), emoji: "🇯🇵", keys: ["교토", "kyoto", "일본", "japan", "京都", "きょうと", "京都", "เกียวโต", "киото"] },
+  { name: i18n.t("auto.ko_0304", "후쿠오카"), country: i18n.t("auto.ko_0305", "일본"), emoji: "🇯🇵", keys: ["후쿠오카", "fukuoka", "일본", "japan", "福岡", "ふくおか", "福冈", "ฟุกุโอกะ"] },
+  { name: i18n.t("auto.ko_0306", "삿포로"), country: i18n.t("auto.ko_0307", "일본"), emoji: "🇯🇵", keys: ["삿포로", "sapporo", "일본", "japan", "札幌", "さっぽろ", "札幌", "ซัปโปโร"] },
+  { name: i18n.t("auto.ko_0308", "오키나와"), country: i18n.t("auto.ko_0309", "일본"), emoji: "🇯🇵", keys: ["오키나와", "okinawa", "일본", "japan", "沖縄", "おきなわ", "冲绳", "โอกินาว่า"] },
+  { name: i18n.t("auto.ko_0310", "방콕"), country: i18n.t("auto.ko_0311", "태국"), emoji: "🇹🇭", keys: ["방콕", "bangkok", "태국", "thailand", "กรุงเทพ", "กรุงเทพมหานคร", "曼谷", "バンコク", "бангкок", "bangok"] },
+  { name: i18n.t("auto.ko_0312", "치앙마이"), country: i18n.t("auto.ko_0313", "태국"), emoji: "🇹🇭", keys: ["치앙마이", "chiang mai", "태국", "thailand", "เชียงใหม่", "清迈", "チェンマイ"] },
+  { name: i18n.t("auto.ko_0314", "푸켓"), country: i18n.t("auto.ko_0315", "태국"), emoji: "🇹🇭", keys: ["푸켓", "phuket", "태국", "thailand", "ภูเก็ต", "普吉岛", "プーケット"] },
+  { name: i18n.t("auto.ko_0316", "발리"), country: i18n.t("auto.ko_0317", "인도네시아"), emoji: "🇮🇩", keys: ["발리", "bali", "인도네시아", "indonesia", "バリ", "巴厘岛", "บาหลี", "бали"] },
+  { name: i18n.t("auto.ko_0318", "싱가포르"), country: i18n.t("auto.ko_0319", "싱가포르"), emoji: "🇸🇬", keys: ["싱가포르", "singapore", "シンガポール", "新加坡", "สิงคโปร์", "сингапур", "singapour", "singapur"] },
+  { name: i18n.t("auto.ko_0320", "쿠알라룸푸르"), country: i18n.t("auto.ko_0321", "말레이시아"), emoji: "🇲🇾", keys: ["쿠알라룸푸르", "kuala lumpur", "말레이시아", "malaysia", "クアラルンプール", "吉隆坡", "กัวลาลัมเปอร์", "kl"] },
+  { name: i18n.t("auto.ko_0322", "코타키나발루"), country: i18n.t("auto.ko_0323", "말레이시아"), emoji: "🇲🇾", keys: ["코타키나발루", "kota kinabalu", "말레이시아", "malaysia", "コタキナバル", "亚庇", "กาตากีนาบาลู"] },
+  { name: i18n.t("auto.ko_0324", "다낭"), country: i18n.t("auto.ko_0325", "베트남"), emoji: "🇻🇳", keys: ["다낭", "da nang", "danang", "베트남", "vietnam", "ダナン", "岘港", "ดานัง", "đà nẵng"] },
+  { name: i18n.t("auto.ko_0326", "호치민"), country: i18n.t("auto.ko_0327", "베트남"), emoji: "🇻🇳", keys: ["호치민", "ho chi minh", "hcm", "saigon", "사이공", "베트남", "vietnam", "ホーチミン", "胡志明市", "โฮจิมินห์", "tp.hcm"] },
+  { name: i18n.t("auto.ko_0328", "하노이"), country: i18n.t("auto.ko_0329", "베트남"), emoji: "🇻🇳", keys: ["하노이", "hanoi", "베트남", "vietnam", "ハノイ", "河内", "ฮานอย", "hà nội"] },
+  { name: i18n.t("auto.ko_0330", "나트랑"), country: i18n.t("auto.ko_0331", "베트남"), emoji: "🇻🇳", keys: ["나트랑", "nha trang", "베트남", "vietnam", "ニャチャン", "芽庄", "นาตราง"] },
+  { name: i18n.t("auto.ko_0332", "마닐라"), country: i18n.t("auto.ko_0333", "필리핀"), emoji: "🇵🇭", keys: ["마닐라", "manila", "필리핀", "philippines", "マニラ", "马尼拉", "มะนิลา"] },
+  { name: i18n.t("auto.ko_0334", "세부"), country: i18n.t("auto.ko_0335", "필리핀"), emoji: "🇵🇭", keys: ["세부", "cebu", "필리핀", "philippines", "セブ", "宿务", "เซบู"] },
+  { name: i18n.t("auto.ko_0336", "보라카이"), country: i18n.t("auto.ko_0337", "필리핀"), emoji: "🇵🇭", keys: ["보라카이", "boracay", "필리핀", "philippines", "ボラカイ", "长滩岛", "โบราไก"] },
+  { name: i18n.t("auto.ko_0338", "타이베이"), country: i18n.t("auto.ko_0339", "대만"), emoji: "🇹🇼", keys: ["타이베이", "taipei", "대만", "taiwan", "台北", "たいぺい", "臺北", "ไทเป"] },
+  { name: i18n.t("auto.ko_0340", "가오슝"), country: i18n.t("auto.ko_0341", "대만"), emoji: "🇹🇼", keys: ["가오슝", "kaohsiung", "대만", "taiwan", "高雄", "たかお", "高雄", "เกาสง"] },
+  { name: i18n.t("auto.ko_0342", "홍콩"), country: i18n.t("auto.ko_0343", "홍콩"), emoji: "🇭🇰", keys: ["홍콩", "hong kong", "hk", "香港", "ホンコン", "ฮ่องกง", "гонконг", "hongkong"] },
+  { name: i18n.t("auto.ko_0344", "마카오"), country: i18n.t("auto.ko_0345", "마카오"), emoji: "🇲🇴", keys: ["마카오", "macau", "macao", "澳門", "澳门", "マカオ", "มาเก๊า"] },
+  { name: i18n.t("auto.ko_0346", "파리"), country: i18n.t("auto.ko_0347", "프랑스"), emoji: "🇫🇷", keys: ["파리", "paris", "프랑스", "france", "パリ", "巴黎", "ปารีส", "париж", "frankreich"] },
+  { name: i18n.t("auto.ko_0348", "로마"), country: i18n.t("auto.ko_0349", "이탈리아"), emoji: "🇮🇹", keys: ["로마", "rome", "roma", "이탈리아", "italy", "ローマ", "罗马", "โรม", "рим", "italie"] },
+  { name: i18n.t("auto.ko_0350", "바르셀로나"), country: i18n.t("auto.ko_0351", "스페인"), emoji: "🇪🇸", keys: ["바르셀로나", "barcelona", "스페인", "spain", "バルセロナ", "巴塞罗那", "บาร์เซโลนา", "барселона"] },
+  { name: i18n.t("auto.ko_0352", "런던"), country: i18n.t("auto.ko_0353", "영국"), emoji: "🇬🇧", keys: ["런던", "london", "영국", "uk", "britain", "ロンドン", "伦敦", "ลอนดอน", "лондон", "londra"] },
+  { name: i18n.t("auto.ko_0354", "암스테르담"), country: i18n.t("auto.ko_0355", "네덜란드"), emoji: "🇳🇱", keys: ["암스테르담", "amsterdam", "네덜란드", "netherlands", "アムステルダム", "阿姆斯特丹", "อัมสเตอร์ดัม"] },
+  { name: i18n.t("auto.ko_0356", "베를린"), country: i18n.t("auto.ko_0357", "독일"), emoji: "🇩🇪", keys: ["베를린", "berlin", "독일", "germany", "ベルリン", "柏林", "เบอร์ลิน", "берлин", "allemagne"] },
+  { name: i18n.t("auto.ko_0358", "프라하"), country: i18n.t("auto.ko_0359", "체코"), emoji: "🇨🇿", keys: ["프라하", "prague", "praha", "체코", "czech", "プラハ", "布拉格", "ปราก", "прага"] },
+  { name: i18n.t("auto.ko_0360", "부다페스트"), country: i18n.t("auto.ko_0361", "헝가리"), emoji: "🇭🇺", keys: ["부다페스트", "budapest", "헝가리", "hungary", "ブダペスト", "布达佩斯", "บูดาเปสต์"] },
+  { name: i18n.t("auto.ko_0362", "비엔나"), country: i18n.t("auto.ko_0363", "오스트리아"), emoji: "🇦🇹", keys: ["비엔나", "vienna", "wien", "오스트리아", "austria", "ウィーン", "维也纳", "เวียนนา", "вена"] },
+  { name: i18n.t("auto.ko_0364", "인터라켄"), country: i18n.t("auto.ko_0365", "스위스"), emoji: "🇨🇭", keys: ["인터라켄", "interlaken", "스위스", "switzerland", "インターラーケン", "因特拉肯"] },
+  { name: i18n.t("auto.ko_0366", "취리히"), country: i18n.t("auto.ko_0367", "스위스"), emoji: "🇨🇭", keys: ["취리히", "zurich", "zürich", "스위스", "switzerland", "チューリッヒ", "苏黎世", "ซูริก"] },
+  { name: i18n.t("auto.ko_0368", "리스본"), country: i18n.t("auto.ko_0369", "포르투갈"), emoji: "🇵🇹", keys: ["리스본", "lisbon", "lisboa", "포르투갈", "portugal", "リスボン", "里斯本", "ลิสบอน"] },
+  { name: i18n.t("auto.ko_0370", "아테네"), country: i18n.t("auto.ko_0371", "그리스"), emoji: "🇬🇷", keys: ["아테네", "athens", "athina", "그리스", "greece", "アテネ", "雅典", "เอเธนส์"] },
+  { name: i18n.t("auto.ko_0372", "두바이"), country: "UAE", emoji: "🇦🇪", keys: ["두바이", "dubai", "UAE", "uae", "ドバイ", "دبي", "迪拜", "ดูไบ", "дубай"] },
+  { name: i18n.t("auto.ko_0373", "이스탄불"), country: i18n.t("auto.ko_0374", "터키"), emoji: "🇹🇷", keys: ["이스탄불", "istanbul", "터키", "turkey", "türkiye", "イスタンブール", "伊斯坦布尔", "إسطنبول", "อิสตันบูล"] },
+  { name: i18n.t("auto.ko_0375", "뉴욕"), country: i18n.t("auto.ko_0376", "미국"), emoji: "🇺🇸", keys: ["뉴욕", "new york", "nyc", "ny", "미국", "usa", "ニューヨーク", "纽约", "นิวยอร์ก", "нью-йорк"] },
+  { name: i18n.t("auto.ko_0377", "로스앤젤레스"), country: i18n.t("auto.ko_0378", "미국"), emoji: "🇺🇸", keys: ["로스앤젤레스", "los angeles", "la", "미국", "usa", "ロサンゼルス", "洛杉矶", "ลอสแอนเจลิส"] },
+  { name: i18n.t("auto.ko_0379", "하와이"), country: i18n.t("auto.ko_0380", "미국"), emoji: "🇺🇸", keys: ["하와이", "hawaii", "호놀룰루", "honolulu", "미국", "usa", "ハワイ", "夏威夷", "ฮาวาย", "гавайи"] },
+  { name: i18n.t("auto.ko_0381", "시드니"), country: i18n.t("auto.ko_0382", "호주"), emoji: "🇦🇺", keys: ["시드니", "sydney", "호주", "australia", "シドニー", "悉尼", "ซิดนีย์", "сидней"] },
+  { name: i18n.t("auto.ko_0383", "멜버른"), country: i18n.t("auto.ko_0384", "호주"), emoji: "🇦🇺", keys: ["멜버른", "melbourne", "호주", "australia", "メルボルン", "墨尔本", "เมลเบิร์น"] },
+  { name: i18n.t("auto.ko_0385", "퀸즈타운"), country: i18n.t("auto.ko_0386", "뉴질랜드"), emoji: "🇳🇿", keys: ["퀸즈타운", "queenstown", "뉴질랜드", "new zealand", "クイーンズタウン", "皇后镇"] },
+  { name: i18n.t("auto.ko_0387", "몰디브"), country: i18n.t("auto.ko_0388", "몰디브"), emoji: "🇲🇻", keys: ["몰디브", "maldives", "maldive", "モルディブ", "马尔代夫", "มัลดีฟส์", "мальдивы"] },
+  { name: i18n.t("auto.ko_0389", "사이판"), country: i18n.t("auto.ko_0390", "사이판"), emoji: "🏝️", keys: ["사이판", "saipan", "サイパン", "塞班岛", "ไซปัน"] },
+  { name: i18n.t("auto.ko_0391", "괌"), country: i18n.t("auto.ko_0392", "괌"), emoji: "🏝️", keys: ["괌", "guam", "グアム", "关岛", "กวม"] }
 ];
 
+
 // ─── 자동완성 인풋 ────────────────────────────────────────────────────────
+
 interface ACProps {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   isDestination?: boolean;
+  destinations: ReturnType<typeof buildDestinations>;
 }
-const ACInput: React.FC<ACProps> = ({ value, onChange, placeholder, isDestination }) => {
+const ACInput: React.FC<ACProps> = ({ value, onChange, placeholder, isDestination, destinations }) => {
   const [open, setOpen] = useState(false);
+  const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const q = value.trim().toLowerCase();
   const suggestions = q.length >= 1
-    ? DESTINATIONS.filter(d =>
-        d.name.toLowerCase().includes(q) || 
+    ? destinations.filter(d =>
+        d.name.toLowerCase().includes(q) ||
         d.country.toLowerCase().includes(q) ||
         (d as any).keys?.some((k: string) => k.toLowerCase().includes(q))
       ).slice(0, 6)
     : [];
 
+  const updateDropPos = () => {
+    if (wrapRef.current) {
+      const r = wrapRef.current.getBoundingClientRect();
+      setDropPos({ top: r.bottom + window.scrollY + 6, left: r.left + window.scrollX, width: r.width });
+    }
+  };
+
   return (
-    <div className="relative flex-1 min-w-0">
+    <div ref={wrapRef} className="relative flex-1 min-w-0">
       <div className={`flex items-center gap-2 px-3 py-3 rounded-2xl bg-muted/50 border border-border focus-within:border-primary/50 focus-within:bg-background transition-all`}>
         <MapPin size={15} className={`shrink-0 ${isDestination ? "text-blue-500" : "text-emerald-500"}`} />
         <input
           value={value}
-          onChange={e => { onChange(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
+          onChange={e => { onChange(e.target.value); updateDropPos(); setOpen(true); }}
+          onFocus={() => { updateDropPos(); setOpen(true); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder={placeholder}
           autoComplete="off"
@@ -110,39 +123,41 @@ const ACInput: React.FC<ACProps> = ({ value, onChange, placeholder, isDestinatio
         )}
       </div>
 
-      <AnimatePresence>
-        {open && suggestions.length > 0 && (
-          <motion.ul
-            initial={{ opacity: 0, y: -6, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.96 }}
-            transition={{ duration: 0.13 }}
-            className="absolute z-[300] top-full left-0 right-0 mt-2 bg-popover/95 backdrop-blur-xl border border-border rounded-2xl shadow-float overflow-hidden"
-          >
-            {suggestions.map((d, i) => (
-              <li key={`${d.name}-${i}`}>
-                <button
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => { onChange(d.name); setOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/10 transition-colors text-left group"
-                >
-                  <span className="text-xl leading-none shrink-0">{d.emoji}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-bold text-foreground leading-tight">{d.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{d.country}</p>
-                  </div>
-                  <ChevronRight size={14} className="text-muted-foreground/30 group-hover:text-primary transition-colors" />
-                </button>
-              </li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
+      {open && suggestions.length > 0 && dropPos && createPortal(
+        <motion.ul
+          initial={{ opacity: 0, y: -6, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.96 }}
+          transition={{ duration: 0.13 }}
+          style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex: 9999 }}
+          className="bg-popover/95 backdrop-blur-xl border border-border rounded-2xl shadow-float overflow-hidden"
+        >
+          {suggestions.map((d, i) => (
+            <li key={`${d.name}-${i}`}>
+              <button
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { onChange(d.name); setOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/10 transition-colors text-left group"
+              >
+                <span className="text-xl leading-none shrink-0">{d.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-bold text-foreground leading-tight">{d.name}</p>
+                  <p className="text-[11px] text-muted-foreground">{d.country}</p>
+                </div>
+                <ChevronRight size={14} className="text-muted-foreground/30 group-hover:text-primary transition-colors" />
+              </button>
+            </li>
+          ))}
+        </motion.ul>,
+        document.body
+      )}
     </div>
   );
 };
 
+
 // ─── 스타일 옵션 ────────────────────────────────────────────────────────────
+
 // ─── 메인 컴포넌트 ──────────────────────────────────────────────────────────
 interface GroupCreateModalProps {
   isOpen: boolean;
@@ -154,6 +169,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
   const { isPlus, isPremium } = useSubscription();
   const { user } = useAuth();
   const { i18n } = useTranslation();
+  const { showInterstitial } = useAdMob();
 
   const DESTINATIONS = useMemo(() => buildDestinations(), [i18n.language]);
   const STYLE_OPTIONS = useMemo(() => [
@@ -249,6 +265,12 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
       if (error) throw error;
       toast({ title: i18n.t("auto.t_0000", `✈️ ${destination} 동행 모집이 시작됐어요!`) });
       onCreated(data); reset(); onClose();
+      // 무료 유저일 경우 전면 광고 표시
+      if (!isPlus && !isPremium) {
+        setTimeout(() => {
+          showInterstitial();
+        }, 500);
+      }
     } catch {
       toast({ title: i18n.t("auto.g_0001", "오류가 발생했습니다. 다시 시도해주세요."), variant: "destructive" });
     } finally {
@@ -346,12 +368,14 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
                               value={departure}
                               onChange={setDeparture}
                               placeholder={i18n.t("auto.ko_0412", "출발지 (예: 서울)")}
+                              destinations={DESTINATIONS}
                             />
                             <ACInput
                               value={destination}
                               onChange={setDestination}
                               placeholder={i18n.t("auto.ko_0413", "목적지 * (예: 도쿄, 발리)")}
                               isDestination
+                              destinations={DESTINATIONS}
                             />
                           </div>
                         </div>

@@ -11,7 +11,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigationDirection } from "@/hooks/useNavigationDirection";
-import BottomNav from "./components/BottomNav";
+import BottomNav, { NAV_H, BANNER_H, BANNER_MARGIN } from "./components/BottomNav";
 import TutorialOverlay, { useTutorial } from "./components/TutorialOverlay";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ChatProvider } from "./context/ChatContext";
@@ -29,6 +29,9 @@ import { useLocalNotifications } from "@/hooks/useLocalNotifications";
 import DailyCheckinModal from "@/components/DailyCheckinModal";
 import SubscriptionExpiryBanner from "@/components/SubscriptionExpiryBanner";
 import MigoPlusModal from "@/components/MigoPlusModal";
+import AdBanner from "@/components/AdBanner";
+import { BannerAdPosition, BannerAdSize } from "@capacitor-community/admob";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 import i18n from "./i18n";
 
@@ -183,16 +186,29 @@ const AppContent = () => {
       const timer = setTimeout(() => {
         setShowInitialSplash(false);
         sessionStorage.setItem('migo_splash_shown', '1');
-      }, 1000); // 로딩 완료 후 1초 대기 후 페이드아웃 (더 부드러운 전환)
+      }, 800);
       return () => clearTimeout(timer);
     }
   }, [showInitialSplash, loading]);
+
+  // ✅ 하드캡: loading이 4초 이상 걸리면 무조건 스플래시 해제
+  useEffect(() => {
+    if (!showInitialSplash) return;
+    const hardCap = setTimeout(() => {
+      setShowInitialSplash(false);
+      sessionStorage.setItem('migo_splash_shown', '1');
+    }, 4000);
+    return () => clearTimeout(hardCap);
+  }, []); // 마운트 1회만
 
   const showNav = !hideNavRoutes.includes(location.pathname);
   const isAdmin = location.pathname.startsWith("/admin");
   const noTutorialRoutes = ["/splash", "/onboarding", "/login", "/verification", "/profile-setup", "/find-account", "/reset-password"];
   const showTutorial = !noTutorialRoutes.some((r) => location.pathname.startsWith(r));
   const { show: tutorialVisible, complete: completeTutorial } = useTutorial();
+  const { isPlus, isPremium } = useSubscription();
+  const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.() === true;
+  const showAdBanner = showNav && !isPlus && !isPremium && isNative;
 
   // ── 네트워크 상태 감지 (오프라인 배너) ───────────────────────────────
   useNetworkStatus();
@@ -265,9 +281,13 @@ const AppContent = () => {
         navigate('/profile-setup', { replace: true });
         return;
       }
-      // 프로필 완료된 유저가 /splash에 있으면 로그인으로 (onboarding은 유지)
-      if (user.setupComplete === true && location.pathname === '/splash') {
-        navigate('/login', { replace: true });
+      // ✅ 로그인 완료 후 /login·/splash·/onboarding에 남아있으면 홈으로 이동
+      // setupComplete === true    → 홈으로
+      // setupComplete === undefined → enrichWithProfilePhoto 실패/타임아웃 → 홈으로 (홈에서 재처리)
+      // setupComplete === false   → 위의 profile-setup 가드가 먼저 처리
+      const loginScreenRoutes = ['/login', '/splash', '/onboarding'];
+      if (user.setupComplete !== false && loginScreenRoutes.some(r => location.pathname.startsWith(r))) {
+        navigate('/', { replace: true });
       }
     }
   }, [user, loading, sessionReady, location.pathname, navigate]);
@@ -407,7 +427,12 @@ const AppContent = () => {
               top: 0,
               left: 0,
               right: 0,
-              bottom: showNav ? 'calc(52px + env(safe-area-inset-bottom, 0px))' : 0,
+              // 페이지 컨텐츠 영역: 광고가 있을 때는 BANNER_MARGIN + BANNER_H + safe-area 만큼 확보
+              bottom: showNav
+                ? showAdBanner
+                  ? `calc(${BANNER_MARGIN + BANNER_H}px + env(safe-area-inset-bottom, 0px))`
+                  : `calc(${NAV_H}px + env(safe-area-inset-bottom, 0px))`
+                : 0,
             }}
           >
             <ErrorBoundary key={location.pathname} pageBoundary={true}>
@@ -449,6 +474,24 @@ const AppContent = () => {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ── 광고 배너: BottomNav 바로 위에 고정 ── */}
+      {showAdBanner && (
+        <div
+          className="fixed left-0 right-0 z-[99] flex items-center justify-center bg-background"
+          style={{
+            bottom: `calc(${BANNER_MARGIN}px + env(safe-area-inset-bottom, 0px))`,
+            height: `${BANNER_H}px`,
+          }}
+        >
+          <AdBanner
+            position={BannerAdPosition.BOTTOM_CENTER}
+            size={BannerAdSize.ADAPTIVE_BANNER}
+            reservedHeight={BANNER_H}
+          />
+        </div>
+      )}
+
       {showNav && <BottomNav />}
       <AnimatePresence>
         {tutorialVisible && showTutorial && (

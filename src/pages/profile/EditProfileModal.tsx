@@ -114,7 +114,14 @@ export const EditProfileModal = ({
                   {profilePhotos.map((photo, idx) => <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-border">
                       <img src={photo.url} alt="" className="w-full h-full object-cover" />
                       {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">{i18n.t("auto.g_main", "대표")}</div>}
-                      <button onClick={() => setProfilePhotos(prev => prev.filter((_, i) => i !== idx))} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
+                      <button onClick={() => {
+                        // STAB-2 fix: 사진 삭제 시 blob URL revoke — 누수 방지
+                        const photo = profilePhotos[idx];
+                        if (photo?.file && photo.url.startsWith('blob:')) {
+                          URL.revokeObjectURL(photo.url);
+                        }
+                        setProfilePhotos(prev => prev.filter((_, i) => i !== idx));
+                      }} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
                         <X size={10} className="text-white" />
                       </button>
                     </div>)}

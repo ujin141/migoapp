@@ -89,26 +89,30 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
             
             return (
               <div key={chat.id} className="relative w-full overflow-hidden bg-background">
-                {/* Underlay Left (Swipe Right actions) */}
-                <div className="absolute top-0 bottom-0 left-0 flex items-stretch h-full">
-                  <button onClick={() => { setSwipedChatId(null); handleDeleteChat(chat.id); }} className="px-5 bg-red-500 text-white font-extrabold text-[13px] flex items-center justify-center transition-opacity hover:opacity-90">{i18n.t("auto.g_1386", "Leave")}</button>
-                  <button onClick={() => { setSwipedChatId(null); setSelectedChat(chat.id); setShowReportModal(true); }} className="px-5 bg-orange-500 text-white font-extrabold text-[13px] flex items-center justify-center transition-opacity hover:opacity-90">{i18n.t("auto.g_1387", "Report")}</button>
-                </div>
-                {/* Underlay Right (Swipe Left action feedback) */}
-                <div className="absolute top-0 bottom-0 right-0 flex items-stretch h-full">
-                  <div className="px-6 bg-emerald-500 text-white font-extrabold text-[13px] flex items-center justify-center truncate">{i18n.t("auto.g_1388", "Mark Read")}</div>
-                </div>
+                {/* Underlay Left: 오른쪽으로 스와이프할 때만 표시 */}
+                {swipedChatId === chat.id && (
+                  <div className="absolute top-0 bottom-0 left-0 flex items-stretch h-full">
+                    <button onClick={() => { setSwipedChatId(null); handleDeleteChat(chat.id); }} className="px-5 bg-red-500 text-white font-extrabold text-[13px] flex items-center justify-center transition-opacity hover:opacity-90">{i18n.t("auto.g_1386", "Leave")}</button>
+                    <button onClick={() => { setSwipedChatId(null); setSelectedChat(chat.id); setShowReportModal(true); }} className="px-5 bg-orange-500 text-white font-extrabold text-[13px] flex items-center justify-center transition-opacity hover:opacity-90">{i18n.t("auto.g_1387", "Report")}</button>
+                  </div>
+                )}
+                {/* Underlay Right: 왼쪽으로 스와이프할 때만 표시 */}
+                {swipedChatId !== chat.id && (
+                  <div className="absolute top-0 bottom-0 right-0 flex items-stretch h-full pointer-events-none opacity-0">
+                    <div className="px-6 bg-emerald-500 text-white font-extrabold text-[13px] flex items-center justify-center truncate">{i18n.t("auto.g_1388", "Mark Read")}</div>
+                  </div>
+                )}
 
                 <motion.div
                   drag="x"
                   dragDirectionLock
-                  dragConstraints={{ left: 0, right: swipedChatId === chat.id ? 140 : 0 }}
+                  dragConstraints={{ left: -80, right: swipedChatId === chat.id ? 140 : 0 }}
                   animate={{ 
                     x: swipedChatId === chat.id ? 140 : 0,
                     opacity: 1, 
                     y: 0 
                   }}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   onDragEnd={(e, info) => {
                     if (swipedChatId === chat.id) {

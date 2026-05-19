@@ -15,9 +15,11 @@ export interface AuthUser {
 // profiles.photo_url 을 DB에서 가져와 user.photoUrl에 반영 (캐시 버스팅 포함)
 async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<AuthUser> {
   try {
-    // 타임아웃 추가: 4초 이상 걸리면 실패 반환
-    const timeoutPromise = new Promise<{ data: null, error: any }>((_, reject) => 
-      setTimeout(() => reject(new Error('timeout')), 4000)
+    // QUAL-5 fix: 재시도 횟수에 비례해 타임아웃 단축 — 최악 4s×3회=12s 블로킹 방지
+    // retries: 3→4000ms, 2→2700ms, 1→1800ms, 0→1200ms
+    const timeoutMs = Math.round(4000 * Math.pow(0.67, 3 - retries));
+    const timeoutPromise = new Promise<{ data: null, error: any }>((_r, reject) =>
+      setTimeout(() => reject(new Error('timeout')), timeoutMs)
     );
     const { data, error } = await Promise.race([
       supabase.from("profiles").select("photo_url, photo_urls, name, verified, setup_complete, is_banned, banned, nationality").eq("id", user.id).single(),
@@ -38,12 +40,18 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
         return { ...user, id: '' }; // Invalidated user
       }
       const bestPhoto = (data.photo_urls && data.photo_urls.length > 0) ? data.photo_urls[0] : data.photo_url;
-      // 표시용으로만 캐시 버스팅 추가 (DB에는 클린 URL 저장)
       const cleanUrl = bestPhoto?.replace(/[?&]t=\d+/, "") || "";
       const bustedUrl = cleanUrl ? `${cleanUrl}?t=${Date.now()}` : "";
-      // setup_complete만을 완료 기준으로 사용 (nationality 우회 제거)
-      // nationality가 있어도 setup_complete=false면 반드시 프로필 설정을 완료해야 함
-      const isActuallyComplete = data.setup_complete === true;
+
+      // ✅ setup_complete 판정 규칙:
+      // 1) setup_complete === true  → 완료
+      // 2) setup_complete === false → 미완료 (명시적으로 false 저장된 경우)
+      // 3) setup_complete === null  → 기존 유저는 nationality 유무로 판단
+      //    (nationality가 있으면 프로필 셋팅을 완료한 유저)
+      const isActuallyComplete =
+        data.setup_complete === true ||
+        (data.setup_complete !== false && !!data.nationality);
+
       return {
         ...user,
         photoUrl: bustedUrl || user.photoUrl || "",
@@ -52,13 +60,17 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
         setupComplete: isActuallyComplete
       };
     }
-  } catch (err) {
-    console.error("enrichWithProfilePhoto error:", err);
+  } catch (err: any) {
+    // timeout은 의도된 폴백 — 로그 생략, 그 외 에러만 warn
+    if (err?.message !== 'timeout') {
+      console.warn("enrichWithProfilePhoto error:", err);
+    }
   }
-  // 프로필 조회 실패(네트워크 오류, 타임아웃 등):
-  // - 기존 유저가 일시적 DB 오류 → 기존 setupComplete 유지 (undefined이면 undefined 유지 — App.tsx가 undefined 상태엔 리다이렉트 안 함)
-  // - 신규 유저는 profiles 행이 아직 없을 수 있음 → setupComplete를 undefined로 유지 (App.tsx guard가 false일 때만 리다이렉트)
-  return { ...user, setupComplete: user.setupComplete };
+  // DB 조회 실패/타임아웃 시:
+  // ✔️ 기존에 setupComplete가 이미 확정된 값이 있으면 보존 (실패로 undefined가 되지 않도록)
+  // ✔️ 신규 유저(setupComplete 미설정) = undefined 유지 → App.tsx가 리다이렉트 금지
+  const preservedComplete = globalUser?.id === user.id ? globalUser?.setupComplete : undefined;
+  return { ...user, setupComplete: preservedComplete ?? user.setupComplete };
 }
 let globalSession: Session | null = null;
 let globalUser: AuthUser | null = null;
@@ -150,7 +162,12 @@ if (!isSupabaseConfigured) {
         notifyAuthListeners();
         
         const enriched = await enrichWithProfilePhoto(base);
-        globalUser = enriched;
+        globalUser = {
+          ...enriched,
+          // ✅ enrichment이 undefined 를 반환했어도 이전에 로드된 유효한 setupComplete를 보존
+          // (병렬 enrichment 실패로 setupComplete: true → undefined 덧쓌썌 방지)
+          setupComplete: enriched.setupComplete ?? globalUser?.setupComplete,
+        };
         globalLoading = false;
         notifyAuthListeners();
       } else {
@@ -194,7 +211,12 @@ if (!isSupabaseConfigured) {
           photoUrl: bustedUrl || globalUser.photoUrl || "",
           name: p.name || globalUser.name,
           verified: p.verified ?? globalUser.verified,
-        setupComplete: p.setup_complete === true ? true : (globalUser.setupComplete === true ? true : false)
+        // ✅ 실시간 업데이트: nationality 기반 fallback 동일 적용
+        setupComplete: p.setup_complete === true
+          ? true
+          : (p.setup_complete !== false && !!p.nationality)
+            ? true
+            : (globalUser.setupComplete === true ? true : false)
         };
         notifyAuthListeners();
       })

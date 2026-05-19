@@ -219,8 +219,16 @@ const ProfileSetupPage = () => {
 
   const [saving, setSaving] = useState(false);
 
-  /* cleanup blob URLs */
-  useEffect(() => () => { photos.forEach(p => URL.revokeObjectURL(p.url)); }, []);
+  /* QUAL-7 fix: 사진이 교체될 때 이전 URL을 즉시 revoke — deps:[] 에서는 초기값만기 제되는 버그 해결 */
+  const prevPhotosRef = useRef<Array<{ file: File; url: string }>>([]);
+  useEffect(() => {
+    const prev = prevPhotosRef.current;
+    const removed = prev.filter(p => !photos.find(n => n.url === p.url));
+    removed.forEach(p => URL.revokeObjectURL(p.url));
+    prevPhotosRef.current = photos;
+    // 마지막 cleanup: 언마운트 시 남은 전체 revoke
+    return () => { prevPhotosRef.current.forEach(p => URL.revokeObjectURL(p.url)); };
+  }, [photos]);
 
   const toggle = (item: string, list: string[], set: (v:string[])=>void, max=99) =>
     set(list.includes(item) ? list.filter(i=>i!==item) : list.length < max ? [...list, item] : list);
@@ -290,8 +298,13 @@ const ProfileSetupPage = () => {
       toast({ title: t("setup.done.title", "🎉 Profile complete!"), description: t("setup.done.desc", "Welcome to Migo ✈️") });
       await new Promise(r => setTimeout(r, 300));
       navigate("/", { replace: true });
-    } catch {
-      toast({ title: t("setup.error.generic", "An error occurred. Please try again."), variant: "destructive" });
+    } catch (e: any) {
+      console.error('[ProfileSetup] Save error:', e);
+      toast({
+        title: t("setup.error.generic", "An error occurred. Please try again."),
+        description: e?.message ?? String(e),
+        variant: "destructive"
+      });
     } finally {
       setSaving(false);
     }

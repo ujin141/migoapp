@@ -6,7 +6,7 @@ import { TripGroup } from "@/types";
 interface GroupDetailModalProps {
   currentDetail: TripGroup | null;
   setDetailGroup: (group: TripGroup | null) => void;
-  t: any;
+  t: (key: string, fallback?: string | object) => string;
   handleShare: (group: TripGroup) => void;
   translateMap: Record<string, string>;
   loadingMap: Record<string, boolean>;

@@ -53,7 +53,9 @@ export function useReturnReward(userId: string | undefined) {
                 { days: daysSince }
               ),
               is_read: false,
-            }).catch(() => {});
+            }).then(({ error }) => {
+              if (error && error.code !== '23505') console.warn("return reward notif:", error.message);
+            });
 
             toast({
               title: i18n.t("retention.return_reward.toast_title", "🎉 Welcome back!"),

@@ -308,7 +308,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       
       const results = await Promise.allSettled([
-        supabase.from("profiles").update({ is_plus: true, plan }).eq("id", user.id),
+        // ✅ Bug2 fix: plus_expires_at 포함 (없으면 만료 판단 불가)
+        supabase.from("profiles").update({ is_plus: true, plan, plus_expires_at: expiresAt }).eq("id", user.id),
         supabase.from("subscriptions").insert({
           user_id: user.id, plan, status: 'active', expires_at: expiresAt,
           price_krw: plan === 'premium' ? 99900 : 14900
@@ -531,14 +532,15 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     // DB 업데이트
     if (user) {
       const expiresAt = new Date(Date.now() + BOOST_DURATION * 1000).toISOString();
+      // ✅ Bug4 fix: DB에서 최신 boosts 값 읽어서 차감 (stale closure 방지)
+      const { data: latestItem } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
+      const latestBoosts = latestItem?.boosts ?? boostsCount;
       await Promise.all([
         supabase.from("profiles")
-          .update({
-            boost_expires_at: expiresAt
-          })
+          .update({ boost_expires_at: expiresAt })
           .eq("id", user.id),
         supabase.from("user_items")
-          .update({ boosts: Math.max(0, boostsCount - 1) })
+          .update({ boosts: Math.max(0, latestBoosts - 1) })
           .eq("user_id", user.id)
       ]);
     }

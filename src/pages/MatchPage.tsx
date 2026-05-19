@@ -28,8 +28,6 @@ import { requestNotificationPermission, notifyMatch } from "@/lib/notificationSe
 import { MoreHorizontal } from "lucide-react";
 import { MissionModal, LikePopupModal, PassPopupModal, SuperLikeModal, LoginGateModal, FilterModal } from "./match/MatchModals";
 import { useAdMob } from "@/hooks/useAdMob";
-import AdBanner from "@/components/AdBanner";
-import { BannerAdPosition, BannerAdSize } from '@capacitor-community/admob';
 
 const MatchPage = () => {
   const {
@@ -54,8 +52,10 @@ const MatchPage = () => {
     boostSecondsLeft,
     startBoost,
     consumeSuperLike,
+    addSuperLikes,
     canGlobalMatch,
-    canTravelDNAFull
+    canTravelDNAFull,
+    dailyLikeLimit,
   } = useSubscription();
   const {
     user
@@ -73,10 +73,32 @@ const MatchPage = () => {
 
   // ── AdMob ──
   const { showInterstitial, showRewarded } = useAdMob();
-  const [swipeCount, setSwipeCount] = useState(0);
+  // QUAL-8 fix: 당일 날짜 기준 sessionStorage에 swipeCount 유지
+  // 앱 재시작 시 실수로 3회마다 전면광고 표시되는 AdMob 정유 위반 방지
+  const [swipeCount, setSwipeCount] = useState(() => {
+    try {
+      const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+      const stored = sessionStorage.getItem('migo_swipe_count');
+      if (!stored) return 0;
+      const parsed = JSON.parse(stored);
+      return parsed.date === today ? (parsed.count || 0) : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [showRewardedAdOffer, setShowRewardedAdOffer] = useState(false);
+  const [showBoostAdOffer, setShowBoostAdOffer] = useState(false);
   // ── 부스트 활성화 플래시 효과 ──
   const [boostJustActivated, setBoostJustActivated] = useState(false);
+  const [showPeakBanner, setShowPeakBanner] = useState(true);
+
+  // QUAL-8 fix: swipeCount 변경 시 sessionStorage에 당일 날짜와 함께 저장
+  useEffect(() => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      sessionStorage.setItem('migo_swipe_count', JSON.stringify({ date: today, count: swipeCount }));
+    } catch { /* sessionStorage 용량 초과 등 무시 */ }
+  }, [swipeCount]);
 
   useEffect(() => {
     if (user) {
@@ -129,7 +151,8 @@ const MatchPage = () => {
     filterLanguages.length +
     filterTravelStyle.length +
     (filterAge[0] !== 18 || filterAge[1] !== 45 ? 1 : 0);
-  const isLoggedIn = () => !!(user || localStorage.getItem("migo_logged_in"));
+  // SEC-2 fix: localStorage 조작으로 인증 우회 불가 — Supabase 세션만 신뢰
+  const isLoggedIn = () => !!user;
   const requireLogin = () => {
     setShowLoginGate(true);
     return false;
@@ -144,7 +167,7 @@ const MatchPage = () => {
   const [pendingLikers, setPendingLikers] = useState<any[]>([]); // 나를 라이크한 사람
   const [dailyLikesUsed, setDailyLikesUsed] = useState(0); // 오늘 보낸 라이크 수
   const [hasMyGps, setHasMyGps] = useState(true); // 내 위치 정보가 있는지 여부
-  const DAILY_LIKE_LIMIT = isPremium ? Infinity : isPlus ? 50 : 10;
+  const DAILY_LIKE_LIMIT = dailyLikeLimit; // SubscriptionContext 기준: free=10, plus=∞, premium=∞
   
   const matchTimersRef = useRef<{ timeouts: any[] }>({ timeouts: [] });
   const showMatchRef = useRef(false);
@@ -539,7 +562,7 @@ const MatchPage = () => {
       result.push(pendingLikers[likerIdx++]);
     }
     return result;
-  }, [profiles, pendingLikers, ads, isPlus, filterDistance, filterGender, filterAge, filterLanguages, filterMbti, filterTravelStyle]);
+  }, [profiles, pendingLikers, ads, isPlus, isPremium, hasMyGps, filterDistance, filterGender, filterAge, filterLanguages, filterMbti, filterTravelStyle]);
   const handleSwipeLeft = useCallback(() => {
     const profile = withAds[currentIndex];
     if (profile?.isAd) {
@@ -562,26 +585,28 @@ const MatchPage = () => {
       matchTimersRef.current.timeouts.push(tPass);
     }
     setCurrentIndex(i => i + 1);
-    setSwipeCount(s => {
-      const next = s + 1;
-      if (!isPlus && !isPremium && next % 5 === 0) showInterstitial();
-      return next;
-    });
+    if (!profile?.isAd) {
+      setSwipeCount(s => {
+        const next = s + 1;
+        if (!isPlus && !isPremium && next % 3 === 0) showInterstitial();
+        return next;
+      });
+    }
 
     // ── FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기 ──
     if (!isPlus && Math.random() < 0.1) {
       toast({
-        title: "누군가 회원님을 마음에 들어합니다! 👀",
-        description: "Migo Plus로 업그레이드하고 누군지 확인해보세요.",
+        title: t("auto.t_0046", "누군가 회원님을 마음에 들어합니다! 👀"),
+        description: t("auto.t_0047", "Migo Plus로 업그레이드하고 누군지 확인해보세요."),
         action: (
           <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
-            확인하기
+            {t("auto.t_0048", "확인하기")}
           </button>
         ),
         duration: 5000,
       });
     }
-  }, [currentIndex, withAds, isPlus, isPremium, showInterstitial]);
+  }, [currentIndex, withAds, isPlus, isPremium, showInterstitial, t]);
   const saveLikeAndCheckMatch = useCallback(async (toUserId: string, kind: 'like' | 'superlike' = 'like', message?: string) => {
     if (!user) return false;
     // BUG-5 fix: superlike + toUserId 있을 때는 consumeSuperLike에서 이미 RPC로 likes INSERT됨
@@ -647,13 +672,16 @@ const MatchPage = () => {
         return false;
       }
       // 4. matches 테이블 저장 → DB 트리거(trg_notify_on_match)가 자동으로 양쪽 notifications INSERT
-      await supabase.from('matches').upsert({
+      // ⚠️ upsert 대신 insert: 이 경로는 existingMatch가 없을 때만 도달 → 중복 트리거 방지
+      const { error: matchInsertErr } = await supabase.from('matches').insert({
         user1_id: u1,
         user2_id: u2,
         thread_id: thread.id
-      }, {
-        onConflict: 'user1_id,user2_id'
       });
+      // 23505 = 동시 요청에 의한 race condition 중복 — 무시
+      if (matchInsertErr && matchInsertErr.code !== '23505') {
+        console.warn('[Match] matches insert error:', matchInsertErr.message);
+      }
       // 5. 로컬 Web Push 알림 (포그라운드 시)
       const matchedProfile = withAds.find((p: any) => p.id === toUserId);
       if (matchedProfile?.name) notifyMatch(matchedProfile.name);
@@ -717,7 +745,7 @@ const MatchPage = () => {
     setCurrentIndex(i => i + 1);
     setSwipeCount(s => {
       const next = s + 1;
-      if (!isPlus && !isPremium && next % 5 === 0) showInterstitial();
+      if (!isPlus && !isPremium && next % 3 === 0) showInterstitial();
       return next;
     });
     if (!isPlus && !profile.isLiker) setDailyLikesUsed(n => n + 1);
@@ -751,17 +779,17 @@ const MatchPage = () => {
     // ── FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기 ──
     if (!isPlus && Math.random() < 0.1) {
       toast({
-        title: "누군가 회원님을 마음에 들어합니다! 👀",
-        description: "Migo Plus로 업그레이드하고 누군지 확인해보세요.",
+        title: t("auto.t_0046", "누군가 회원님을 마음에 들어합니다! 👀"),
+        description: t("auto.t_0047", "Migo Plus로 업그레이드하고 누군지 확인해보세요."),
         action: (
           <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
-            확인하기
+            {t("auto.t_0048", "확인하기")}
           </button>
         ),
         duration: 5000,
       });
     }
-  }, [currentIndex, withAds, addUnread, saveLikeAndCheckMatch, isPlus, dailyLikesUsed]);
+  }, [currentIndex, withAds, addUnread, saveLikeAndCheckMatch, isPlus, isPremium, dailyLikesUsed, showInterstitial, t]);
   const openSuperLikeModal = useCallback(() => {
     if (!isLoggedIn()) {
       requireLogin();
@@ -825,7 +853,7 @@ const MatchPage = () => {
       title: t("auto.t_0019", `⭐ ${profile.name}님에게 슈퍼라이크 전송!`),
       description: superMsg ? `"${superMsg}"` : t("auto.g_0045", "상대방에게")
     });
-  }, [pendingSuperProfile, superMsg, addUnread, saveLikeAndCheckMatch]);
+  }, [pendingSuperProfile, superMsg, addUnread, saveLikeAndCheckMatch, consumeSuperLike, t]);
   const handleChatFromMatch = () => {
     setShowMatch(false);
     showMatchRef.current = false;
@@ -885,12 +913,16 @@ const MatchPage = () => {
   // 프로필 조회 알림 (카드 탭 시 해당 유저에게 전송)
   const sendProfileViewNotif = async (targetUserId: string) => {
     if (!user || targetUserId === user.id) return; // 자기 자신 제외
-    // upsert: 5분 내 동일 사용자 조회 중복 알림 방지 (DB 커엔 없으면 insert로 fallback)
-    await supabase.from('notifications').upsert({
+    // profile_view 알림: INSERT, 중복(23505) 조용히 무시
+    const { error: notifErr } = await supabase.from('notifications').insert({
       user_id: targetUserId,
       type: 'profile_view',
       actor_id: user.id
-    }, { onConflict: 'user_id,actor_id,type', ignoreDuplicates: true });
+    });
+    if (notifErr && notifErr.code !== '23505') {
+      // 23505 = unique_violation (중복 뷰) → 정상, 그 외 에러만 로그
+      console.warn('[sendProfileViewNotif]', notifErr.message);
+    }
   };
   const toggleTag = (tag: string) => {
     setFilterTravelStyle(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
@@ -906,6 +938,7 @@ const MatchPage = () => {
     }
   }, [topProfile, user?.id]);
   return <div className="flex flex-col h-full bg-background truncate">
+
       {/* ─── In-app notification banner (Like / SuperLike received) ─── */}
       <InAppNotifBanner notif={inAppNotif} onClose={() => setInAppNotif(null)} />
 
@@ -1132,15 +1165,16 @@ const MatchPage = () => {
         )}
       </div>
 
-      {/* Action Buttons */}
-      {remaining.length > 0 && <div className="space-y-2 pb-4 px-2 mt-4">
+      {/* Action Buttons - inline below card */}
+      {remaining.length > 0 && <div className="flex flex-col items-center gap-2 px-4 pt-2 pb-6 shrink-0">
           {/* Boost row */}
           <div className="flex justify-center">
              <motion.button whileTap={{
           scale: 0.92
         }} onClick={async () => {
           if (!isPlus) {
-            setShowPlusModal(true);
+            // Migo Plus가 아닌 경우: 광고 보고 부스트 받기 모달 표시
+            setShowBoostAdOffer(true);
             return;
           }
           if (boostActive) {
@@ -1151,7 +1185,6 @@ const MatchPage = () => {
             return;
           }
           await startBoost();
-          // 부스트 활성화 플래시 효과
           setBoostJustActivated(true);
           setTimeout(() => setBoostJustActivated(false), 1800);
           toast({
@@ -1165,8 +1198,7 @@ const MatchPage = () => {
           </div>
 
           {/* Core swipe buttons — prominent X / Star / Heart */}
-          <div className="flex items-center justify-center gap-4 px-4 pt-1">
-            {/* Dislike (X) */}
+          <div className="flex items-center justify-center gap-4">
             <motion.button
               whileTap={{ scale: 0.88, rotate: -8 }}
               onClick={handleSwipeLeft}
@@ -1175,7 +1207,6 @@ const MatchPage = () => {
               <X size={22} strokeWidth={3} />
             </motion.button>
 
-            {/* Super like */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={openSuperLikeModal}
@@ -1188,7 +1219,6 @@ const MatchPage = () => {
               <Star size={17} className={superLikesLeft > 0 ? "fill-blue-500" : ""} />
             </motion.button>
 
-            {/* Like (Heart) */}
             <motion.button
               whileTap={{ scale: 0.88, rotate: 8 }}
               onClick={handleSwipeRight}
@@ -1197,21 +1227,9 @@ const MatchPage = () => {
               <Heart size={22} strokeWidth={2.5} className="fill-emerald-500" />
             </motion.button>
           </div>
-
-          {/* Trust micro-badges */}
-          <div className="flex items-center justify-center gap-3 pt-2 pb-1 opacity-70">
-            {[
-              { emoji: "🛡️", text: t("match.safeVerified", "인증 회원") },
-              { emoji: "✅", text: t("match.realTraveler", "실제 여행자") },
-              { emoji: "🔒", text: t("match.safeChat", "안전 채팅") },
-            ].map(({ emoji, text }) => (
-              <div key={text} className="flex items-center gap-1">
-                <span className="text-[10px]">{emoji}</span>
-                <span className="text-[9px] font-semibold text-muted-foreground">{text}</span>
-              </div>
-            ))}
-          </div>
       </div>}
+
+
 
       {/* ──────────────────────────────────────────────────────────── */}
       {/* ❤️  LIKE POPUP — warm pink heart burst, auto-dismiss        */}
@@ -1290,7 +1308,7 @@ const MatchPage = () => {
 
       {/* ─── Peak Time 현질 유도 모달 ─── */}
       <AnimatePresence>
-        {!isPlus && showCheckInModal === false && new Date().getHours() >= 20 && new Date().getHours() <= 23 && (
+        {!isPlus && showPeakBanner && showCheckInModal === false && new Date().getHours() >= 20 && new Date().getHours() <= 23 && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1309,7 +1327,7 @@ const MatchPage = () => {
             <button onClick={() => setShowPlusModal(true)} className="shrink-0 px-4 py-2 gradient-primary text-primary-foreground font-bold text-xs rounded-xl shadow-md active:scale-95 transition-transform">
               {t("retention.fomo.peakTime.startBtn", "Start")}
             </button>
-            <button onClick={(e) => { e.currentTarget.parentElement!.style.display = 'none'; }} className="absolute -top-2 -right-2 w-6 h-6 bg-muted rounded-full flex items-center justify-center shadow-sm border border-border">
+            <button onClick={(e) => { e.stopPropagation(); setShowPeakBanner(false); }} className="absolute -top-2 -right-2 w-6 h-6 bg-muted rounded-full flex items-center justify-center shadow-sm border border-border">
               <X size={12} className="text-muted-foreground" />
             </button>
           </motion.div>
@@ -1333,16 +1351,17 @@ const MatchPage = () => {
               <button
                 onClick={async () => {
                   setShowRewardedAdOffer(false);
-                  const ok = await showRewarded((_reward) => {
-                    // 보상 지급: superLike 1개 충전 (consumeSuperLike 역방향)
-                    // addSuperLike가 없으므로 toast로 안내 후 바로 슈퍼라이크 모달 열기
-                    toast({ title: t("auto.ad_reward_ok", "⭐ 슈퍼라이크 1개 충전 완료!") });
-                    const profile = withAds[currentIndex];
-                    if (profile && !profile.isAd) {
-                      setPendingSuperProfile(profile);
-                      setSuperMsg("");
-                      setShowSuperLikeModal(true);
-                    }
+                   const ok = await showRewarded((_reward) => {
+                    // 보상 지급: addSuperLikes(1)로 실제 DB에 슈퍼라이크 1개 지급
+                    addSuperLikes(1).then(() => {
+                      toast({ title: t("auto.ad_reward_ok", "⭐ 슈퍼라이크 1개 충전 완료!") });
+                      const profile = withAds[currentIndex];
+                      if (profile && !profile.isAd) {
+                        setPendingSuperProfile(profile);
+                        setSuperMsg("");
+                        setShowSuperLikeModal(true);
+                      }
+                    });
                   });
                   if (!ok) {
                     // 광고 로드 실패 시 Plus 모달로 fallback
@@ -1371,15 +1390,58 @@ const MatchPage = () => {
         </div>
       )}
 
-      {/* 무료 유저에게만 배너 표시 (하단 여백 확보) */}
-      {!isPlus && !isPremium && (
-        <AdBanner 
-          position={BannerAdPosition.BOTTOM_CENTER} 
-          size={BannerAdSize.ADAPTIVE_BANNER} 
-          reservedHeight={80} 
-          margin={55} 
-        />
+      {/* ─── 부스트 보상형 광고 오퍼 모달 (window.confirm 대체) ─── */}
+      {showBoostAdOffer && (
+        <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center px-6">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-float border border-border">
+            <div className="text-center mb-4">
+              <div className="text-4xl mb-2">⚡</div>
+              <h3 className="text-lg font-extrabold text-foreground">
+                {t("auto.ad_boost_title", "무료 부스트 받기")}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t("auto.ad_boost_desc", "짧은 광고를 보고 5분간 내 프로필을 최상단에 노출하세요!")}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={async () => {
+                  setShowBoostAdOffer(false);
+                  const ok = await showRewarded((_reward) => {
+                    startBoost();
+                    setBoostJustActivated(true);
+                    setTimeout(() => setBoostJustActivated(false), 1800);
+                    toast({
+                      title: t("auto.ad_reward_ok", "🚀 부스트 활성화 완료!"),
+                      description: t("boost.activeDesc", "내 프로필이 최상단에 노출되고 있어요"),
+                    });
+                  });
+                  if (!ok) {
+                    toast({ title: t("auto.ad_load_fail", "광고를 불러오지 못했습니다"), variant: "destructive" });
+                    setShowPlusModal(true);
+                  }
+                }}
+                className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm flex items-center justify-center gap-2"
+              >
+                📺 {t("auto.ad_watch_btn", "광고 보고 부스트 받기")}
+              </button>
+              <button
+                onClick={() => { setShowBoostAdOffer(false); setShowPlusModal(true); }}
+                className="w-full py-3 rounded-2xl bg-muted text-muted-foreground font-semibold text-sm"
+              >
+                {t("auto.ad_upgrade_btn", "Migo+ 구독하기")}
+              </button>
+              <button
+                onClick={() => setShowBoostAdOffer(false)}
+                className="text-xs text-muted-foreground text-center py-1"
+              >
+                {t("common.cancel", "취소")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
     </div>;
 };
 export default MatchPage;

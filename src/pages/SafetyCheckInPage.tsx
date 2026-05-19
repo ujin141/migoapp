@@ -70,15 +70,20 @@ const SafetyCheckInPage = () => {
     }
   };
   const handleComplete = async () => {
-    if (!checkinId) return;
-    await supabase.from('safety_checkins').update({
-      status: 'completed'
-    }).eq('id', checkinId);
-    setStep('done');
-    toast({
-      title: i18n.t("auto.z_\uBB34\uC0AC\uD788\uB9CC\uB098\uC168\uAD70\uC694_37", "\uBB34\uC0AC\uD788\uB9CC\uB098\uC168\uAD70\uC694"),
-      description: i18n.t("auto.z_\uB3D9\uD589\uD6C4\uAE30\uB97C\uB0A8\uACA8\uBCF4\uC138\uC694_38", "\uB3D9\uD589\uD6C4\uAE30\uB97C\uB0A8\uACA8\uBCF4\uC138\uC694")
-    });
+    if (!checkinId || !user) return; // 사용자 인증 체크 추가
+    try {
+      const { error } = await supabase.from('safety_checkins').update({
+        status: 'completed'
+      }).eq('id', checkinId).eq('user_id', user.id); // 소유자 본인만 수정 가능
+      if (error) throw error;
+      setStep('done');
+      toast({
+        title: i18n.t("auto.z_\uBB34\uC0AC\uD788\uB9CC\uB098\uC168\uAD70\uC694_37", "\uBB34\uC0AC\uD788\uB9CC\uB098\uC168\uAD70\uC694"),
+        description: i18n.t("auto.z_\uB3D9\uD589\uD6C4\uAE30\uB97C\uB0A8\uACA8\uBCF4\uC138\uC694_38", "\uB3D9\uD589\uD6C4\uAE30\uB97C\uB0A8\uACA8\uBCF4\uC138\uC694")
+      });
+    } catch (e) {
+      toast({ title: i18n.t("auto.z_\uB4F1\uB85D\uC2E4\uD328_36", "\uB4F1\uB85D\uC2E4\uD328"), variant: "destructive" });
+    }
   };
   const handleShare = async () => {
     if (navigator.share) {
@@ -299,14 +304,21 @@ const SafetyCheckInPage = () => {
                 <CheckCircle2 size={16} />{t("auto.z_\uBB34\uC0AC\uD788\uADC0\uAC00\uC644\uB8CC_72", "\uBB34\uC0AC\uD788\uADC0\uAC00\uC644\uB8CC")}</motion.button>
 
               <button onClick={async () => {
-            await supabase.from('safety_checkins').update({
-              status: 'emergency'
-            }).eq('id', checkinId);
-            toast({
-              title: i18n.t("auto.z_SOS\uBC1C\uC1A1\uB428_73", "SOS\uBC1C\uC1A1\uB428"),
-              description: i18n.t("auto.z_\uBE44\uC0C1\uC5F0\uB77D\uCC98\uC5D0\uAE34\uAE09\uC54C\uB9BC_74", "\uBE44\uC0C1\uC5F0\uB77D\uCC98\uC5D0\uAE34\uAE09\uC54C\uB9BC"),
-              variant: "destructive"
-            });
+            // SOS 보안처리: 사용자 인증 + 소유자 본인 확인
+            if (!user || !checkinId) return;
+            try {
+              const { error } = await supabase.from('safety_checkins').update({
+                status: 'emergency'
+              }).eq('id', checkinId).eq('user_id', user.id);
+              if (error) throw error;
+              toast({
+                title: i18n.t("auto.z_SOS\uBC1C\uC1A1\uB428_73", "SOS\uBC1C\uC1A1\uB428"),
+                description: i18n.t("auto.z_\uBE44\uC0C1\uC5F0\uB77D\uCC98\uC5D0\uAE34\uAE09\uC54C\uB9BC_74", "\uBE44\uC0C1\uC5F0\uB77D\uCC98\uC5D0\uAE34\uAE09\uC54C\uB9BC"),
+                variant: "destructive"
+              });
+            } catch {
+              toast({ title: "SOS 전송 실패", variant: "destructive" });
+            }
           }} className="w-full py-3.5 rounded-2xl font-bold text-red-400 border border-red-400/30 bg-red-500/10 flex items-center justify-center gap-2">
                 <AlertTriangle size={16} />{t("auto.z_SOS\uAE34\uAE09\uC54C\uB9BC\uBC1C\uC1A1_75", "SOS\uAE34\uAE09\uC54C\uB9BC\uBC1C\uC1A1")}</button>
             </motion.div>}

@@ -630,7 +630,12 @@ const ko = {
     "forgotPassword": "비밀번호 찾기",
     "signUp": "회원가입",
     "signIn": "로그인",
-    "orWith": "또는"
+    "orWith": "또는",
+    "pwStrength0": "너무 짧아요 — 8자 이상 필요",
+    "pwStrength1": "약함 — 대문자/숫자/특수문자를 추가하세요",
+    "pwStrength2": "보통 — 점점 좋아지고 있어요!",
+    "pwStrength3": "양호 — 거의 다 왔어요",
+    "pwStrength4": "강함 ✅"
   },
   "common": {
     "loading": "로딩 중...",

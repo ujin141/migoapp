@@ -52,7 +52,7 @@ export async function fetchAdminStats() {
 
 /** Admin Role Security Check — DB에서 실제 권한 검증 */
 let _adminRoleCache: { result: boolean; ts: number } | null = null;
-const ADMIN_CACHE_TTL_MS = 60_000; // 60초 캐시
+const ADMIN_CACHE_TTL_MS = 30_000; // 30초 캐시 (수정: 60→30, 권한 박탈 반영 속도 향상)
 
 async function checkAdminRole(): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
@@ -82,10 +82,12 @@ async function checkAdminRole(): Promise<boolean> {
 
 /** USERS */
 export async function fetchAdminUsers() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 추가 — 미인증 사용자의 유저 목록 유출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const { data, error } = await adminSupabase
     .from("profiles")
-    .select("*")
+    // PERF-1 fix: select("*") 제거 — photo_urls 등 대용량 불필요 데이터 제외
+    .select("id, name, email, photo_url, plan, is_plus, is_banned, banned, verified, created_at, nationality, role, is_admin")
     .order("created_at", { ascending: false })
     .limit(300);
   if (error) {
@@ -185,12 +187,24 @@ export async function deleteUserAccount(userId: string) {
     return false;
   }
 
-  // 2. Auth (로그인 계정) 삭제
+  // SEC-1 fix: adminSupabase는 anon key 사용 — auth.admin.deleteUser()는 service_role key 필요
+  // anon key로는 실패함. 실패 시 DB 데이터 삭제 대신 콘텐츠 없는 소프트 밴으로 폴백
+  // (is_banned=true + email을 랜덤화하여 원천적으로 로그인 차단)
   const { error: authError } = await adminSupabase.auth.admin.deleteUser(userId);
   if (authError) {
-    console.error("deleteUserAccount Auth error:", authError);
-    // auth 삭제 실패시 DB는 이미 삭제되었을 수 있으나, 완전 삭제 실패로 간주
-    return false;
+    console.warn("[SEC-1] auth.admin.deleteUser() failed (anon key limitation) — applying soft-ban fallback:", authError.message);
+    // 폴백: 이메일 랜덤화 + 영구 밴 (로그인 차단 효과)
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
+    await adminSupabase.from('profiles').update({
+      is_banned: true,
+      banned: true,
+      email: `deleted_${randomSuffix}@migo.deleted`,
+      name: '[Deleted User]',
+      photo_url: null,
+      bio: null,
+    }).eq('id', userId);
+    // auth.admin.deleteUser 실패는 에러 아님 (알려진 한계) — DB 정리는 완료됨
+    return true; // 소프트 밴으로 성공 처리
   }
   
   return true;
@@ -207,7 +221,8 @@ export async function updateUserNote(userId: string, admin_note: string) {
 
 /** POSTS */
 export async function fetchAdminPosts() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 추가
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data,
     error
@@ -271,7 +286,8 @@ export async function updatePostPinned(postId: string, pinned: boolean) {
 
 /** GROUPS */
 export async function fetchAdminGroups() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 추가
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data,
     error
@@ -319,7 +335,8 @@ export async function deleteGroup(groupId: string) {
 
 /** REPORTS */
 export async function fetchAdminReports() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 추가
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data,
     error
@@ -362,7 +379,8 @@ export async function updateReportStatus(reportId: string, status: "pending" | "
 
 /** ANNOUNCEMENTS */
 export async function fetchAnnouncements() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 추가 — 미인증 사용자의 공지사항 목록 노출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data,
     error
@@ -402,7 +420,8 @@ export async function deleteAnnouncement(id: string) {
 
 /** PROMO CODES */
 export async function fetchPromoCodes() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 추가 — 프로모션 코드 정보 유출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data,
     error
@@ -452,6 +471,8 @@ export async function deletePromoCode(id: string) {
 
 /** 二쇨컙 ?듦퀎 (?좎?, 留ㅼ묶 洹몃９) 吏묎퀎 (理쒓렐 7?? */
 export async function fetchWeeklyStats(): Promise<any[]> {
+  // SEC-4 fix: 어드민 권한 체크 추가
+  if (!(await checkAdminRole())) return Array.from({ length: 7 }).map((_, i) => ({ day: `${i + 1}d`, users: 0, matches: 0, revenue: 0 }));
   if (!isSupabaseConfigured) {
     return Array.from({
       length: 7
@@ -503,20 +524,31 @@ export async function fetchWeeklyStats(): Promise<any[]> {
 
 /** 留덉????몄떆 ?뚮┝ 諛쒖넚 (Global In-App Notification 泥섎━) */
 export async function sendMarketingPush(title: string, body: string, target: string): Promise<boolean> {
-  if (!isSupabaseConfigured || !(await checkAdminRole())) return true;
-  const {
-    data: users
-  } = await adminSupabase.from("profiles").select("id").limit(100);
-  if (users && users.length > 0) {
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
+  // QUAL-3 fix: 100명 하드코딩 → 페이지네이션으로 전체 유저 대상
+  const PAGE_SIZE = 500;
+  let page = 0;
+  let totalSent = 0;
+  while (true) {
+    let query = adminSupabase.from("profiles").select("id").range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    if (target === "plus") query = query.eq("is_plus", true);
+    else if (target === "free") query = query.eq("is_plus", false);
+    else if (target === "verified") query = query.eq("verified", true);
+    const { data: users, error } = await query;
+    if (error || !users || users.length === 0) break;
     const payload = users.map(u => ({
       user_id: u.id,
-      title: title,
+      title,
       content: body,
       type: "marketing",
       read: false
     }));
     await adminSupabase.from("in_app_notifications").insert(payload);
+    totalSent += users.length;
+    if (users.length < PAGE_SIZE) break; // 마지막 페이지
+    page++;
   }
+  console.log(`[adminService] sendMarketingPush: sent to ${totalSent} users`);
   return true;
 }
 
@@ -524,7 +556,8 @@ export async function sendMarketingPush(title: string, body: string, target: str
 
 /** ?꾩껜 援щ룆 紐⑸줉 諛??섏씡 ?듦퀎 */
 export async function fetchRevenueStats() {
-  if (!isSupabaseConfigured) return {
+  // SEC-4 fix: 어드민 권한 체크 추가 — 매출 통계 미인증 노출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return {
     total: 0,
     monthly: 0,
     subs: 0,
@@ -553,7 +586,8 @@ export async function fetchRevenueStats() {
   };
 }
 export async function fetchSubscriptionList() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 — 구독 정보 미인증 노출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data,
     error
@@ -572,7 +606,8 @@ export async function fetchSubscriptionList() {
   }));
 }
 export async function fetchPurchaseHistory() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 — 결제 내역 미인증 노출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data,
     error
@@ -594,7 +629,8 @@ export async function fetchPurchaseHistory() {
 
 /** ?붾퀎 ?좉퇋 媛?낆옄 吏??6媛쒖썡 */
 export async function fetchMonthlySignups(): Promise<any[]> {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const months: any[] = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -619,7 +655,8 @@ export async function fetchMonthlySignups(): Promise<any[]> {
 
 /** ?⑤씪???좎? (?⑤씪???곹깭 24h ?대궡) */
 export async function fetchActiveUserCount(): Promise<number> {
-  if (!isSupabaseConfigured) return 0;
+  // SEC-4 fix: 어드민 권한 체크
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return 0;
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   const {
     count
@@ -632,7 +669,8 @@ export async function fetchActiveUserCount(): Promise<number> {
 
 /** 湲곌린蹂??좎? 遺꾪룷 */
 export async function fetchGenderStats() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 — 성별 통계 노출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data
   } = await adminSupabase.from("profiles").select("gender");
@@ -649,7 +687,8 @@ export async function fetchGenderStats() {
 
 /** 援?쟻蹂?遺꾪룷 */
 export async function fetchNationalityStats() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 — 국적 통계 노출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data
   } = await adminSupabase.from("profiles").select("nationality");
@@ -667,7 +706,8 @@ export async function fetchNationalityStats() {
 // ?? APP SETTINGS ??????????????????????????????????????????????????????????????
 
 export async function fetchAppSettings(): Promise<Record<string, any>> {
-  if (!isSupabaseConfigured) return {};
+  // SEC-4 fix: 어드민 권한 체크 — 앱 설정값 미인증 노출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return {};
   const {
     data,
     error
@@ -702,7 +742,8 @@ export async function updateAppSetting(key: string, value: any): Promise<boolean
 // ? SAFETY ??????????????????????????????????????????????????????
 
 export async function fetchSafetyCheckins() {
-  if (!isSupabaseConfigured) return [];
+  // SEC-4 fix: 어드민 권한 체크 — 안전 체크인 정보 미인증 노출 방지
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data,
     error

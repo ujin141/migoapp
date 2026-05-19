@@ -127,7 +127,16 @@ export const ChatProvider = ({
     }
     localUnreadMap = validUnreadMap;
 
-    const mapped: GroupThread[] = data.map((m: any) => {
+    // ─── 중복 제거: chat_members가 같은 thread_id를 여러 행 반환할 수 있음
+    const seenIds = new Set<string>();
+    const dedupedData = data.filter((m: any) => {
+      const tid = m.chat_threads?.id;
+      if (!tid || seenIds.has(tid)) return false;
+      seenIds.add(tid);
+      return true;
+    });
+
+    const mapped: GroupThread[] = dedupedData.map((m: any) => {
       const thread = m.chat_threads;
       if (!thread) return null;
       const members = membersByThread[thread.id] || [];
@@ -150,7 +159,6 @@ export const ChatProvider = ({
         photo = others[0]?.profiles?.photo_url || "";
       }
 
-      // messages 직접 조회 → last_message 컬럼 트리거 의존 없음
       const latestMsg = lastMsgByThread[thread.id];
       const lastMessageText = latestMsg?.text || thread.last_message || "";
       const lastMessageTime = latestMsg?.created_at || thread.updated_at;
@@ -173,7 +181,32 @@ export const ChatProvider = ({
         createdAt: thread.created_at
       } as GroupThread;
     }).filter(Boolean) as GroupThread[];
-    setThreads(mapped);
+
+    // ── 1:1 채팅 중복 제거: 같은 상대방과 여러 thread가 있으면 가장 최신 것만 표시 ──
+    const opponentSeen = new Set<string>();
+    const deduped = mapped
+      .slice() // 원본 보존
+      .sort((a, b) => {
+        // 최신 메시지 기준 내림차순 정렬 (가장 최신 thread 우선)
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      })
+      .filter(th => {
+        if (th.isGroup) return true; // 그룹채팅은 중복 제거 안 함
+        if (!th.opponentId) return true;
+        if (opponentSeen.has(th.opponentId)) return false;
+        opponentSeen.add(th.opponentId);
+        return true;
+      })
+      // 원래 순서(최신 메시지 순)로 재정렬
+      .sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
+
+    setThreads(deduped);
   }, [user, sessionReady]);
 
   useEffect(() => {

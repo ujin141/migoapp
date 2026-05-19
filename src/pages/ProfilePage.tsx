@@ -456,9 +456,9 @@ const ProfilePage = () => {
             return;
           }
           const { lat, lng } = pos;
-          // 로컨스토리지에 GPS 좌표 저장 (매칭용 — DB 자동 업데이트는 하지 않음, Apple 5.1.2)
-          localStorage.setItem('migo_my_lat', String(lat));
-          localStorage.setItem('migo_my_lng', String(lng));
+          // SEC-5 fix: GPS 좌표 소수점 2자리 반올림 저장 — 정밀 위치 평문 노출 방지
+          localStorage.setItem('migo_my_lat', lat.toFixed(2));
+          localStorage.setItem('migo_my_lng', lng.toFixed(2));
             try {
               const lang = i18n.language?.split('-')[0] || 'en';
               const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${lang}`);
@@ -1152,8 +1152,8 @@ const ProfilePage = () => {
                   const pos = await getCurrentLocation(true);
                   if (!pos) return;
                   const { lat, lng } = pos;
-                  localStorage.setItem('migo_my_lat', String(lat));
-                  localStorage.setItem('migo_my_lng', String(lng));
+                  localStorage.setItem('migo_my_lat', lat.toFixed(2)); // SEC-5: 소수점 2자리 반올림
+                  localStorage.setItem('migo_my_lng', lng.toFixed(2));
                   try {
                     const lang = i18n.language?.split('-')[0] || 'en';
                     const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${lang}`);

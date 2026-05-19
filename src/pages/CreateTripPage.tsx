@@ -1,7 +1,7 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
 import { getLocalizedPrice } from "@/lib/pricing";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, MapPin, Calendar, Users, Globe, Lock, Plus, X, ChevronDown, Image, Crown, Zap } from "lucide-react";
 import { format } from "date-fns";
@@ -91,6 +91,19 @@ const CreateTripPage = ({ onClose }: CreateTripPageProps) => {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string>("");
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+
+  // STAB-2 fix: 커버 이미지 blob URL 언마운트 cleanup
+  const coverPreviewRef = useRef<string>("");
+  useEffect(() => {
+    coverPreviewRef.current = coverPreview;
+  }, [coverPreview]);
+  useEffect(() => {
+    return () => {
+      if (coverPreviewRef.current.startsWith('blob:')) {
+        URL.revokeObjectURL(coverPreviewRef.current);
+      }
+    };
+  }, []);
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : prev.length < 5 ? [...prev, tag] : prev);
   };

@@ -61,9 +61,15 @@ const getPasswordStrength = (pw: string): {
   if (/[A-Z]/.test(pw)) score++;
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return {
+  // QUAL-13 fix: score 0 (8자 미만) 과 score 1 (단순) 을 별도 피드백으로 구분
+  if (score === 0) return {
+    level: 0,
+    label: "pwStrength0",   // "너무 짧아요 (8자 이상 필요)"
+    color: "bg-red-700"     // 더 강한 빨강으로 8자 미만 강조
+  };
+  if (score === 1) return {
     level: 1,
-    label: "pwStrength1",
+    label: "pwStrength1",   // "약함 — 대문자/숫자/특수문자 추가"
     color: "bg-red-500"
   };
   if (score === 2) return {
@@ -134,6 +140,8 @@ const LoginPage = () => {
   const [otpTimeout, setOtpTimeout] = useState(180);
   const [otpTimer, setOtpTimer] = useState<ReturnType<typeof setInterval> | null>(null);
   const [otpLoading, setOtpLoading] = useState(false);
+  // STAB-5 fix: useRef로 변경 — setInterval ID를 즉각 반영하여 레이스 컨디션 제거
+  const otpTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Step 3 — Safety agreements
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -245,7 +253,7 @@ const LoginPage = () => {
         title: t("auto.g_0030", "인증번호를 발송했습니다 📱"),
         description: t("auto.t_0003", `${fullPhone}로 인증번호를 발송했습니다.`)
       });
-      if (otpTimer) clearInterval(otpTimer);
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current);
       const timerId = setInterval(() => {
         setOtpTimeout(n => {
           if (n <= 1) {
@@ -255,7 +263,7 @@ const LoginPage = () => {
           return n - 1;
         });
       }, 1000);
-      setOtpTimer(timerId);
+      otpTimerRef.current = timerId;
     } catch (e: unknown) {
       let msg = e instanceof Error ? e.message : "SMS sending error";
       if (msg.includes("Max check attempts reached")) msg = t("auto.g_0716", "인증번호 발송 제한 횟수를 초과했습니다.");
@@ -294,7 +302,7 @@ const LoginPage = () => {
       if (res.error) throw res.error;
       if (res.data?.error) throw new Error(res.data.error);
       setOtpVerified(true);
-      if (otpTimer) clearInterval(otpTimer);
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current);
       toast({
         title: t('login.otpDone')
       });
@@ -362,6 +370,15 @@ const LoginPage = () => {
       if (pwStrength.level < 2) {
         toast({
           title: t("alert.t55Title")
+        });
+        return;
+      }
+      // SEC-3 fix: 나이 범위 검증 — HTML min/max는 클라이언트 우회 가능
+      const ageNum = parseInt(age, 10);
+      if (!age || isNaN(ageNum) || ageNum < 18 || ageNum > 100) {
+        toast({
+          title: t('login.ageInvalid', '만 18세 이상만 가입 가능합니다.'),
+          variant: 'destructive'
         });
         return;
       }
@@ -439,11 +456,17 @@ const LoginPage = () => {
         if (session?.user) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("setup_complete, name")
+            .select("setup_complete, name, nationality")
             .eq("id", session.user.id)
             .single();
-          // 프로필이 없거나 setup_complete가 false이면 프로필 설정으로 이동
-          if (!profile || !profile.setup_complete) {
+          // ✅ 완료 판정:
+          //   setup_complete === true               → 완료 (기존 로직)
+          //   setup_complete !== false && nationality → 기존 유저, 완료 처리
+          //   setup_complete === false               → 신규 유저, profile-setup 필수
+          const isComplete = profile &&
+            (profile.setup_complete === true ||
+             (profile.setup_complete !== false && !!profile.nationality));
+          if (!isComplete) {
             setDone(true);
             setTimeout(() => navigate("/profile-setup"), 800);
             return;
@@ -455,6 +478,9 @@ const LoginPage = () => {
         // 회원가입 마무리 프로세스: 주미 시점에 auth.users 계정 생성
         // OTP를 통해 생성된 임시 세션(sms 인증용) 정리
         await supabase.auth.signOut();
+        // QUAL-4 fix: signOut() 완료 후 100ms 대기 — lock이 해제되기 전에
+        // signUp()이 실행되면 withRetry 루프를 불필요하게 소비하는 타이밍 이슈 방지
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // 이메일/비밀번호로 실제 계정 생성
         let userId = "";
@@ -526,7 +552,8 @@ const LoginPage = () => {
           age: age ? parseInt(age) : null,
           gender,
           nationality,
-          bio,
+          // QUAL-9 fix: bio 서버사이드 길이 검증 + HTML 태그 제거 (클라이언트 maxLength 우회 방지)
+          bio: bio ? bio.replace(/<[^>]*>/g, '').trim().slice(0, 100) : null,
           phone: `${phoneCountry}${phone.replace(/[^0-9]/g, "").replace(/^0/, "")}`,
           phone_verified: otpVerified,
           travel_style: selectedStyles,
@@ -588,9 +615,9 @@ const LoginPage = () => {
   // OTP 타이머 cleanup — 페이지 언마운트 시 메모리 누수 방지
   useEffect(() => {
     return () => {
-      if (otpTimer) clearInterval(otpTimer);
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current);
     };
-  }, [otpTimer]);
+  }, []);
   return <div className="min-h-screen flex flex-col bg-background">
       {/* Background blobs (fixed so they don't scroll) */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">

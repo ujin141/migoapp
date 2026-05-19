@@ -524,9 +524,9 @@ export const SettingsModal = ({
                 title: item.label
               });
             }
-          }} className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl bg-muted transition-colors hover:bg-border ${item.danger ? "text-red-500" : ""}`}>
+          }} className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl bg-muted transition-colors hover:bg-border ${item.danger ? "text-red-500" : "text-foreground"}`}>
                   <span className="text-sm font-semibold truncate text-left">{item.label}</span>
-                  <span className="text-xs opacity-60 truncate shrink-0 max-w-[40%] text-right">{item.desc}</span>
+                  <span className={`text-xs opacity-60 truncate shrink-0 max-w-[40%] text-right ${item.danger ? "" : "text-muted-foreground"}`}>{item.desc}</span>
                 </button>)}
             </div>
           </motion.div>

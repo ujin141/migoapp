@@ -21,8 +21,7 @@ import { getChosung } from "@/lib/chosungUtils";
 import { HOTPLACES } from "@/lib/placeRecommendations";
 import { GroupDetailModal, InstantRecommendationModal } from "./match/TripMatchModals";
 import { InstantMeetPanel } from "./match/TripMatchForms";
-import AdBanner from "@/components/AdBanner";
-import { BannerAdPosition, BannerAdSize } from "@capacitor-community/admob";
+
 
 // ──────────────────────────────────────────────
 // Main Page
@@ -743,15 +742,7 @@ const TripMatchPage: React.FC = () => {
       )}
 
 
-      {/* ── 배너 광고 (무료 유저만) ── */}
-      {!isPlus && !isPremium && (
-        <AdBanner
-          position={BannerAdPosition.BOTTOM_CENTER}
-          size={BannerAdSize.ADAPTIVE_BANNER}
-          reservedHeight={80}
-          margin={55}
-        />
-      )}
+
 
       {/* ── Payment modal ── */}
       {payTarget && <PaymentModal isOpen={!!payTarget} onClose={() => setPayTarget(null)} groupTitle={payTarget.group.title} groupId={payTarget.group.id} groupTags={payTarget.group.tags} isPremiumGroup={payTarget.group.isPremiumGroup} onPaymentSuccess={handlePaymentSuccess} />}

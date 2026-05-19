@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import siteLogo from "@/assets/site-logo.png";
-import { supabase } from "@/lib/supabaseClient";
 
 const SplashPage = ({ isOverlay = false }: { isOverlay?: boolean }) => {
   const navigate = useNavigate();
@@ -12,30 +11,17 @@ const SplashPage = ({ isOverlay = false }: { isOverlay?: boolean }) => {
   useEffect(() => {
     if (isOverlay) return;
 
-    let redirected = false;
+    // getSession() 제거 → initializePromise 행 방지
+    // 인증 상태는 App.tsx 라우트 가드가 처리
+    const hasSeenOnboarding = localStorage.getItem("migo_onboarding_done");
+    const dest = hasSeenOnboarding ? "/login" : "/onboarding";
 
-    const doRedirect = () => {
-      if (redirected) return;
-      redirected = true;
-      // 세션 유무와 관계없이 항상 로그인 화면을 거치게 함
-      const hasSeenOnboarding = localStorage.getItem("migo_onboarding_done");
-      navigate(hasSeenOnboarding ? "/login" : "/onboarding", { replace: true });
-    };
+    const timer = setTimeout(() => {
+      navigate(dest, { replace: true });
+    }, 1800);
 
-    // 스플래시 최소 표시 후 로그인으로 이동
-    supabase.auth.getSession().then(() => {
-      doRedirect();
-    }).catch(() => {
-      doRedirect();
-    });
-
-    // 최대 3초 안에 세션 체크가 완료 안 되면 로그인으로 fallback
-    const fallback = setTimeout(() => {
-      doRedirect();
-    }, 3000);
-
-    return () => clearTimeout(fallback);
-  }, [navigate, isOverlay]);
+    return () => clearTimeout(timer);
+  }, []); // 마운트 시 1회만
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background overflow-hidden">

@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,7 +30,8 @@ const FindAccountPage = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpTimeout, setOtpTimeout] = useState(180);
-  const [otpTimer, setOtpTimer] = useState<ReturnType<typeof setInterval> | null>(null);
+  // STAB-5 fix: state → useRef로 교체 — 재발송 시 이전 타이머가 즉각 clearInterval 보장
+  const otpTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [otpLoading, setOtpLoading] = useState(false);
   
   const [foundEmail, setFoundEmail] = useState<string | null>(null);
@@ -66,7 +67,7 @@ const FindAccountPage = () => {
       setOtpTimeout(180);
       toast({ title: t("findAccount.otpSent") });
 
-      if (otpTimer) clearInterval(otpTimer);
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current); // 즉각 clear
       const timerId = setInterval(() => {
         setOtpTimeout((n) => {
           if (n <= 1) {
@@ -76,7 +77,7 @@ const FindAccountPage = () => {
           return n - 1;
         });
       }, 1000);
-      setOtpTimer(timerId);
+      otpTimerRef.current = timerId;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "SMS sending error";
       toast({ title: t("login.otpFail"), description: msg, variant: "destructive" });
@@ -106,7 +107,7 @@ const FindAccountPage = () => {
       if (res.data?.error) throw new Error(res.data.error);
 
       setOtpVerified(true);
-      if (otpTimer) clearInterval(otpTimer);
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current);
 
       // 2. 일치하는 이메일 찾기 (RPC 호출)
       const { data: maskEmail, error: rpcError } = await supabase.rpc("find_email_by_phone", {
@@ -155,12 +156,12 @@ const FindAccountPage = () => {
     }
   };
 
-  // OTP 타이머 cleanup — 언마운트 시 메모리 누수 방지
+  // STAB-5 fix: unmount 시 타이머 정리
   useEffect(() => {
     return () => {
-      if (otpTimer) clearInterval(otpTimer);
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current);
     };
-  }, [otpTimer]);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

@@ -269,10 +269,12 @@ export const useFomoActivity = (enabled: boolean = true, userId?: string) => {
       }
     } catch {}
     try {
-      await supabase.from("notifications").insert({
+      const { error: notifErr } = await supabase.from("notifications").insert({
         user_id: targetUserId, actor_id: viewerId,
         type: "profile_view", target_text: null, is_read: false,
       });
+      // 23505 = unique violation (이미 알림 존재) → 무시
+      if (notifErr && notifErr.code !== '23505') console.warn("notif insert:", notifErr.message);
     } catch {}
   }, []);
 

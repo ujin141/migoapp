@@ -188,8 +188,8 @@ const NearbyPage = () => {
       {/* Header */}
       <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border px-4 pt-safe pb-2">
         <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-            <ArrowLeft size={18} />
+          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted border border-border flex items-center justify-center">
+            <ArrowLeft size={18} className="text-foreground" />
           </button>
           <div>
             <div className="flex items-center gap-1.5">

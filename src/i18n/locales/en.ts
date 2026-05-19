@@ -244,7 +244,12 @@ const en = {
       "4": "UK (🇬🇧)",
       "5": "Australia (🇦🇺)",
       "6": "Canada (🇨🇦)"
-    }
+    },
+    "pwStrength0": "Too short — needs 8+ characters",
+    "pwStrength1": "Weak — add uppercase / number / symbol",
+    "pwStrength2": "Fair — getting better!",
+    "pwStrength3": "Good — almost there",
+    "pwStrength4": "Strong ✅"
   },
   "profile": {
     "edit": "Edit Profile",

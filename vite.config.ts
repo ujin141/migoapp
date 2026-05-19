@@ -17,6 +17,15 @@ export default defineConfig(({ mode }) => ({
     host: "0.0.0.0",
     port: 8080,
     hmr: { overlay: false },
+    // SEC-XSS: 개발 서버 보안 헤더 추가
+    // ⚠️ 프로덕션(Nginx/Cloudflare)에서도 동일 헤더를 서버 레벨에서 설정 필요
+    headers: {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
+    },
     watch: {
       // android/ios 빌드 산출물이 HMR 무한루프를 유발하므로 감시 제외
       ignored: [
@@ -31,6 +40,15 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    // ── Capacitor Android WebView 흰 화면 수정 ──────────────────────
+    // Vite가 생성하는 crossorigin 속성이 Capacitor 로컬 서버에서
+    // CORS 오류를 일으켜 CSS/JS 로드 실패 → 흰 화면 발생
+    {
+      name: 'remove-crossorigin',
+      transformIndexHtml(html: string) {
+        return html.replace(/ crossorigin(="[^"]*")?/g, '');
+      },
+    },
   ].filter(Boolean),
 
   resolve: {
@@ -56,38 +74,21 @@ export default defineConfig(({ mode }) => ({
   build: {
     sourcemap: false,
     minify: "esbuild",
+    modulePreload: { polyfill: false }, // crossorigin 없는 preload
     target: "es2020",
     chunkSizeWarningLimit: 600,
     cssCodeSplit: true,
     reportCompressedSize: false,
 
     rollupOptions: {
+      external: [],
       output: {
-        // ── 수동 청크 분할: Windows(\) + Mac(/) 경로 모두 호환 ──
-        // 정규식으로 node_modules 매칭 (경로 구분자 무관)
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          if (/node_modules[\\/](react|react-dom)[\\/]/.test(id)) return "vendor-react";
-          if (/node_modules[\\/]react-router/.test(id)) return "vendor-router";
-          if (/node_modules[\\/]@supabase/.test(id)) return "vendor-supabase";
-          if (/node_modules[\\/]framer-motion/.test(id)) return "vendor-motion";
-          if (/node_modules[\\/](i18next|react-i18next)/.test(id)) return "vendor-i18n";
-          if (/node_modules[\\/](recharts|d3-)/.test(id)) return "vendor-charts";
-          if (/node_modules[\\/]lucide-react/.test(id)) return "vendor-icons";
-          return "vendor-misc";
-        },
-
-        // 청크·에셋 파일명에 contenthash 포함 → CDN/브라우저 영구 캐시
+        // 청크 파일명에 contenthash 포함
         chunkFileNames: "assets/[name]-[hash].js",
         entryFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
       },
 
-      // treeshake: moduleSideEffects 기본값(true) 유지 — false 시 빈 청크 발생
-      treeshake: {
-        propertyReadSideEffects: false,
-        unknownGlobalSideEffects: false,
-      },
     },
   },
 }));

@@ -16,11 +16,13 @@ export interface CompressionOptions {
  * - Web Worker 사용으로 메인 스레드 멈춤 방지
  */
 const DEFAULT_OPTIONS: CompressionOptions = {
-  maxSizeMB: 0.3, // 1MB -> 300KB로 대폭 절감 (Egress 방어)
-  maxWidthOrHeight: 1200, // 모바일 화면에 충분한 해상도
-  useWebWorker: true,
-  initialQuality: 0.75, // WebP 특성상 0.75 여도 충분히 고품질 
-  fileType: "image/webp", // 항상 WebP 포맷 사용
+  maxSizeMB: 0.3,
+  maxWidthOrHeight: 1200,
+  // ✅ Android WebView는 Web Worker를 지원하지 않아 false로 설정
+  // (true이면 WebView에서 imageCompression이 throw하여 업로드 실패)
+  useWebWorker: false,
+  initialQuality: 0.75,
+  fileType: "image/webp",
 };
 
 export async function compressImage(file: File, customOptions?: CompressionOptions): Promise<File> {
@@ -53,8 +55,9 @@ export async function compressImage(file: File, customOptions?: CompressionOptio
     // 프로덕션: 실패 시 console.warn은 남기되 불필요 정보 노출 제거
     return compressedFile;
   } catch (error) {
-    // 🚨 [보안] 이미지 변환/압축 실패 시 원본 리턴 금지 (악성 파일이 이미지로 위장했을 경우 필터가 뚫림)
-    console.error("Image compression failed, rejecting upload to prevent malicious payload ingestion.", error);
-    throw new Error("Failed to process image. It might be corrupted or an invalid file format.");
+    // ✅ 압축 실패 시 원본 파일 반환 (이미지 파일은 이미 위에서 검증됨)
+    // Android WebView 환경에서 WebP 변환이 실패할 수 있으므로 원본 사용
+    console.warn("[imageCompression] 압축 실패, 원본 파일 사용:", error);
+    return file;
   }
 }

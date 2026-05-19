@@ -421,17 +421,20 @@ const ChatPage = () => {
       console.error(err);
     }
   };
-  const filteredThreads = (threads || []).filter(c => {
-    if (!c) return false;
-    if (removedChats.includes(c.id ?? "")) return false;
-    const name = c.name ?? "";
-    const lastMsg = c.lastMessage ?? "";
-    const matchSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) || lastMsg.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchUnread = filterType !== "unread" || (c.unread ?? 0) > 0;
-    const matchGroup = filterType !== "group" || !!c.isGroup;
-    const matchDm = filterType !== "dm" || !c.isGroup;
-    return matchSearch && matchUnread && matchGroup && matchDm;
-  });
+  const filteredThreads = (threads || [])
+    .filter(c => {
+      if (!c) return false;
+      if (removedChats.includes(c.id ?? "")) return false;
+      const name = c.name ?? "";
+      const lastMsg = c.lastMessage ?? "";
+      const matchSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) || lastMsg.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchUnread = filterType !== "unread" || (c.unread ?? 0) > 0;
+      const matchGroup = filterType !== "group" || !!c.isGroup;
+      const matchDm = filterType !== "dm" || !c.isGroup;
+      return matchSearch && matchUnread && matchGroup && matchDm;
+    })
+    .filter((c, idx, arr) => arr.findIndex(x => x.id === c.id) === idx); // id 중복 제거
+
 
 
   // ─── Chat view ────────────────────────────────────────────

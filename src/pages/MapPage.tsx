@@ -122,7 +122,25 @@ const MapPage = () => {
   const [showLocationConsent, setShowLocationConsent] = useState(false);
 
   const [showMyProfile, setShowMyProfile] = useState(false);
-  const [myProfilePhoto, setMyProfilePhoto] = useState<string>("");
+  const [myProfilePhoto, setMyProfilePhoto] = useState<string>(user?.photoUrl || "");
+
+  // 프로필 사진 실시간 동기화: profiles 변경 시 내 마커 즉시 업데이트
+  useEffect(() => {
+    if (!user) return;
+    setMyProfilePhoto(user.photoUrl || "");
+    const ch = supabase
+      .channel(`my-profile-photo:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          const newPhoto = (payload.new as any).photo_url;
+          if (newPhoto) setMyProfilePhoto(newPhoto);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
 
   const [showRightNowModal, setShowRightNowModal] = useState(false);
   const [isMatchingLoading, setIsMatchingLoading] = useState(false);
@@ -322,8 +340,7 @@ const MapPage = () => {
         setCache(CACHE_KEY, parsedData, 2 * 60 * 1000); // 2분 캐시
         setTravelers(parsedData);
         
-        const mine = data.find(p => p.id === user?.id);
-        if (mine?.photo_url) setMyProfilePhoto(mine.photo_url);
+        // (내 사진은 위 realtime 구독에서 처리)
       }
     };
     fetchTravelers();
@@ -697,8 +714,9 @@ const MapPage = () => {
   };
 
   const handleFlyToHotplace = async (h: Hotplace) => {
-    localStorage.setItem('migo_my_lat', String(h.lat));
-    localStorage.setItem('migo_my_lng', String(h.lng));
+    // SEC-5 fix: 소수점 2자리 반올림으로 정밀 위치 노출 최소화
+    localStorage.setItem('migo_my_lat', h.lat.toFixed(2));
+    localStorage.setItem('migo_my_lng', h.lng.toFixed(2));
     
     setLocationSharing(false);
     setCurrentLocationName(t("auto.t_0036", `[가상] ${h.name.split(' (')[0]}`));

@@ -8,6 +8,7 @@ import { useSubscription } from "@/context/SubscriptionContext";
 import { getLocalizedPrice, getShopItemPricing, getMigoPlusPricing } from "@/lib/pricing";
 import { toast } from "@/hooks/use-toast";
 import { isNativePlatform, PLUS_BILLING_CYCLE_MAP, IAP_PRODUCT_IDS } from "@/lib/iapService";
+import { Capacitor } from "@capacitor/core";
 
 // ─── Types ───────────────────────────────────────────────────────────
 interface Plan {
@@ -283,8 +284,8 @@ const ShopPage = () => {
   return <div className="flex flex-col min-h-full bg-background safe-bottom">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border flex items-center gap-3 px-4 pt-safe pb-3">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft size={18} />
+        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted border border-border flex items-center justify-center">
+          <ArrowLeft size={18} className="text-foreground" />
         </button>
         <div>
           <h1 className="text-lg font-extrabold leading-tight">MIGO Shop</h1>
@@ -299,7 +300,9 @@ const ShopPage = () => {
       <div className="mx-4 mt-4 flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
           <ShieldCheck size={12} className="text-emerald-500 shrink-0" />
-          <span className="text-[10px] font-bold text-emerald-600">Apple IAP 보안결제</span>
+          <span className="text-[10px] font-bold text-emerald-600">
+            {Capacitor.getPlatform() === 'android' ? 'Google Play 보안결제' : 'Apple IAP 보안결제'}
+          </span>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
           <Lock size={12} className="text-blue-500 shrink-0" />

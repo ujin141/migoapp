@@ -4,6 +4,8 @@ import { useChatContext } from "@/context/ChatContext";
 import { useTranslation } from "react-i18next";
 import { useNotifications } from "@/context/NotificationContext";
 import { triggerHaptic } from "@/lib/haptics";
+import { useSubscription } from "@/context/SubscriptionContext";
+import { Capacitor } from "@capacitor/core";
 
 interface TabDef {
   path: string;
@@ -13,12 +15,24 @@ interface TabDef {
   notifBadge?: boolean;
 }
 
+export const NAV_H = 52;     // BottomNav 높이 (px)
+export const BANNER_H = 75;  // AdMob 배너용 예약 높이 (px) - 가변 높이 및 버튼 터치 영역 침범 방지용 넉넉한 여백
+export const BANNER_MARGIN = NAV_H; // 네이티브 플러그인(Android/iOS 공통)이 Safe Area 위로 BottomNav 높이(52)만큼 배너를 띄움
+
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { totalUnread } = useChatContext();
   const { unreadCount: notifUnread } = useNotifications();
   const { t } = useTranslation();
+  const { isPlus, isPremium } = useSubscription();
+
+  const isNative = Capacitor.isNativePlatform();
+  const showAds = !isPlus && !isPremium && isNative;
+
+  // BottomNav는 화면 맨 아래 (bottom = 0)
+  // AdMob 배너는 margin=80dp로 BottomNav 위에 띄움
+  const navBottom = '0px';
 
   const tabs: TabDef[] = [
     { path: "/",         icon: Heart,         label: t("nav.match") },
@@ -29,8 +43,12 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav id="migo-bottom-nav" className="fixed bottom-0 left-0 right-0 z-40 bg-card/97 backdrop-blur-xl border-t border-border/60">
-      <div className="flex items-center justify-around px-2" style={{ height: '52px' }}>
+    <nav
+      id="migo-bottom-nav"
+      className="fixed left-0 right-0 z-[100] bg-card border-t border-border/60"
+      style={{ bottom: navBottom }}
+    >
+      <div className="flex items-center justify-around px-2" style={{ height: `${NAV_H}px` }}>
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
@@ -61,15 +79,13 @@ const BottomNav = () => {
                   </span>
                 )}
               </div>
-              <span className={`nav-label text-[10px] font-semibold transition-colors leading-none px-0.5 text-center ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+              <span className={`text-[10px] font-semibold transition-colors leading-none px-0.5 text-center ${isActive ? "text-primary" : "text-muted-foreground"}`}>
                 {tab.label}
               </span>
             </button>
           );
         })}
       </div>
-      {/* iOS home indicator safe area */}
-      <div style={{ height: 'env(safe-area-inset-bottom, 0px)', background: 'inherit' }} />
     </nav>
   );
 };

@@ -147,7 +147,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           .select("id, type, title, content, is_read, created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(20)   // 50 → 20
+          .limit(20)
+          .then(r => r.error ? { data: [], error: null } : r)
       ]);
 
       let combined: Notif[] = [];
@@ -428,12 +429,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const addNotif = useCallback(
     async (template: Omit<Notif, "id" | "time" | "read">) => {
       if (!user) return;
-      await supabase.from("notifications").insert({
+      const { error: notifErr } = await supabase.from("notifications").insert({
         user_id: user.id,
         type: template.type,
         actor_id: user.id,
         target_text: template.target,
       });
+      if (notifErr && notifErr.code !== '23505') console.warn("addNotif:", notifErr.message);
     },
     [user]
   );

@@ -13,7 +13,9 @@ const getPasswordStrength = (pw: string) => {
   if (/[A-Z]/.test(pw)) score++;
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return { level: 1, label: "pwStrength1", color: "bg-red-500" };
+  // QUAL-13 fix: score 0 (8자 미만) 과 score 1 (단순) 별도 처리
+  if (score === 0) return { level: 0, label: "pwStrength0", color: "bg-red-700" };
+  if (score === 1) return { level: 1, label: "pwStrength1", color: "bg-red-500" };
   if (score === 2) return { level: 2, label: "pwStrength2", color: "bg-orange-400" };
   if (score === 3) return { level: 3, label: "pwStrength3", color: "bg-yellow-400" };
   return { level: 4, label: "pwStrength4", color: "bg-emerald-500" };

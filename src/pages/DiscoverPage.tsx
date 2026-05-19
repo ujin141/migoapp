@@ -15,11 +15,14 @@ import { useLoadScript } from "@react-google-maps/api";
 import { getCurrentLocation } from "@/lib/locationService";
 import StoryViewer from "@/components/StoryViewer";
 import ReportBlockActionSheet from "@/components/ReportBlockActionSheet";
+import { useDiscoverData } from "@/hooks/useDiscoverData";
+import { useGroupActions } from "@/hooks/useGroupActions";
 
 import { Loader2, Beer } from "lucide-react";
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ["places"];
 import { getLocalizedPrice, inferGroupTier, getTierConfig } from "@/lib/pricing";
 import GlobalFilter from "@/components/GlobalFilter";
+import { useAdMob } from "@/hooks/useAdMob";
 import { HOTPLACES } from "@/lib/placeRecommendations";
 import { useGlobalFilter } from "@/context/GlobalFilterContext";
 import { getChosung } from "@/lib/chosungUtils";
@@ -41,8 +44,7 @@ import { compressImage } from "@/lib/imageCompression";
 import { Post, TripGroup, PostComment } from "@/types";
 import TodayContent from "@/components/TodayContent";
 import DailyPicksCard from "@/components/DailyPicksCard";
-import AdBanner from "@/components/AdBanner";
-import { BannerAdPosition, BannerAdSize } from "@capacitor-community/admob";
+
 
 interface JoinPopupState {
   group: TripGroup;
@@ -60,7 +62,8 @@ const FILTER_LIST = ["all", "recruiting", "almostFull", "hot"] as const;
 // DiscoverPage Component
 // ──────────────────────────────────────────────
 const DiscoverPage = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const { showInterstitial } = useAdMob();
   const navigate = useNavigate();
   const {
     user
@@ -112,23 +115,13 @@ const DiscoverPage = () => {
     distanceTo
   } = useGeoDistance();
 
-  // ── 팝업 タイマー 방어 (메모리 누수/다중실행 방지) ──
-  const timersRef = useRef<{ timeouts: any[], intervals: any[] }>({ timeouts: [], intervals: [] });
+  // ── 팝업 타이머 방어는 useGroupActions 훅에서 관리 ──
+  // (timersRef / clearAllTimers / closeJoinPopup → useGroupActions 반환값 사용)
 
-  const clearAllTimers = useCallback(() => {
-    timersRef.current.timeouts.forEach(clearTimeout);
-    timersRef.current.intervals.forEach(clearInterval);
-    timersRef.current = { timeouts: [], intervals: [] };
-  }, []);
 
-  const closeJoinPopup = useCallback(() => {
-    setJoinPopup(null);
-    clearAllTimers();
-  }, [clearAllTimers]);
+  // (attachedImages blob URL revoke → WritePostModal 내부 처리)
+  // (debounce cleanup → handleLocationInputChange 내부 처리)
 
-  useEffect(() => {
-    return () => clearAllTimers();
-  }, [clearAllTimers]);
 
   // ── 광고 유무에 따른 Toast 기본 여백 조정 ──
   useEffect(() => {
@@ -142,17 +135,29 @@ const DiscoverPage = () => {
     };
   }, [isPlus]);
 
+  // ── 데이터 fetch (QUAL-10: useDiscoverData 훅으로 분리) ──
+  const [showPlusModal, setShowPlusModal] = useState(false);
+  const {
+    posts, setPosts, loadingPosts,
+    tripGroups, setTripGroups, loadingGroups,
+  } = useDiscoverData(user);
+
+  // ── 그룹 액션 (QUAL-10: useGroupActions 훅으로 분리) ──
+  const {
+    handleJoin, joinPopup, setJoinPopup, closeJoinPopup,
+    countdown, setCountdown, timersRef, clearAllTimers,
+    confirmDialog, setConfirmDialog,
+    applyGroup, setApplyGroup, applyMessage, setApplyMessage, applySubmitting, appliedGroups, handleApply,
+    showApplicants, setShowApplicants, applicantsList,
+    handleViewApplicants, handleApproveApplicant, handleRejectApplicant,
+    deleteGroup: deleteGroupAction,
+  } = useGroupActions(user, setTripGroups, setShowPlusModal);
+
   // Group data
-  const [tripGroups, setTripGroups] = useState<TripGroup[]>([]);
-  const [loadingGroups, setLoadingGroups] = useState(true);
   const [detailGroup, setDetailGroup] = useState<TripGroup | null>(null);
-  const [joinPopup, setJoinPopup] = useState<JoinPopupState | null>(null);
-  const [countdown, setCountdown] = useState<string>(''); // "HH:MM:SS"
   const [countdownAlert, setCountdownAlert] = useState<CountdownAlert | null>(null);
 
   // Community data
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loadingPosts, setLoadingPosts] = useState(true);
   const [detailPost, setDetailPost] = useState<Post | null>(null);
 
   // Write post modal
@@ -216,8 +221,7 @@ const DiscoverPage = () => {
   // 프리미엄 전용 V.I.P 상태
   const [showVipLightningFilter, setShowVipLightningFilter] = useState(false);
   const [vipFilter, setVipFilter] = useState({ age: "20s", language: "ko", vibe: "party" });
-  // iOS에서 window.confirm/window.prompt 차단 → 커스텀 확인 모달 (Apple HIG 준수)
-  const [confirmDialog, setConfirmDialog] = useState<{ title: string; desc: string; onConfirm: () => void } | null>(null);
+  // iOS에서 window.confirm/window.prompt 차단 → confirmDialog는 useGroupActions 훅에서 관리
   const [lightningMultiResult, setLightningMultiResult] = useState<Array<{
     id: string; title: string; barName: string; members: { photo: string, name: string }[]; vibeIcon: string;
   }> | null>(null);
@@ -312,14 +316,7 @@ const DiscoverPage = () => {
   // Group create
   const [showGroupCreate, setShowGroupCreate] = useState(false);
 
-  // Plus modal
-  const [showPlusModal, setShowPlusModal] = useState(false);
-
-  // [Feature 2] 동행 크루 지원 시스템
-  const [applyGroup, setApplyGroup] = useState<TripGroup | null>(null);
-  const [applyMessage, setApplyMessage] = useState('');
-  const [applySubmitting, setApplySubmitting] = useState(false);
-  const [appliedGroups, setAppliedGroups] = useState<Set<string>>(new Set());
+  // [Feature 2] 동행 크루 지원 시스템 (상태는 useGroupActions에서 관리)
   const [interestedGroups, setInterestedGroups] = useState<Set<string>>(new Set());
   const [interestedSnapshot, setInterestedSnapshot] = useState<Record<string, number>>({}); // groupId → memberCount at interest time
   const [myTravelDates, setMyTravelDates] = useState<string>(''); // 내 여행 날짜
@@ -388,90 +385,11 @@ const DiscoverPage = () => {
       return next;
     });
   };
-  const [showApplicants, setShowApplicants] = useState<string | null>(null);
-  const [applicantsList, setApplicantsList] = useState<any[]>([]);
+  // showApplicants / applicantsList → useGroupActions 훅으로 이동
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [actionSheetTarget, setActionSheetTarget] = useState<any | null>(null);
 
-  const handleApply = async () => {
-    if (!user || !applyGroup) return;
-    if (!applyMessage.trim()) {
-      toast({
-        title: t("auto.g_0019", "지원 메시지를 입력해 주세요"),
-        variant: 'destructive'
-      });
-      return;
-    }
-    setApplySubmitting(true);
-    try {
-      const {
-        error
-      } = await supabase.from('trip_applications').insert({
-        group_id: applyGroup.id,
-        applicant_id: user.id,
-        message: applyMessage,
-        status: 'pending'
-      });
-      if (error) throw error;
-      setAppliedGroups(prev => new Set([...prev, applyGroup.id]));
-      setApplyGroup(null);
-      setApplyMessage('');
-      toast({
-        title: t("auto.g_0020", "지원 완료! 🎉"),
-        description: t("auto.g_0021", "호스트가 프로필을 확인한 후 연락드릴 거예요.")
-      });
-    } catch (e: any) {
-      if (e?.code === '23505') {
-        toast({
-          title: t("auto.g_0022", "이미 지원한 동행입니다"),
-          variant: 'destructive'
-        });
-      } else {
-        toast({
-          title: t("auto.g_0023", "지원 실패"),
-          variant: 'destructive'
-        });
-      }
-    } finally {
-      setApplySubmitting(false);
-    }
-  };
-  const handleViewApplicants = async (groupId: string) => {
-    setShowApplicants(groupId);
-    const {
-      data
-    } = await supabase.from('trip_applications').select('*, profiles:applicant_id(id, name, photo_url, bio, age)').eq('group_id', groupId).order('created_at', {
-      ascending: false
-    });
-    setApplicantsList(data || []);
-  };
-  const handleApproveApplicant = async (appId: string, applicantId: string, groupId: string) => {
-    await supabase.from('trip_applications').update({
-      status: 'approved'
-    }).eq('id', appId);
-    // 🚨 [Security Fix] DB 트리거(15_group_security.sql)가 status='approved' 변경 감지 시 자동으로 멤버 테이블에 인서트 처리함.
-    // 기존의 클라이언트 사이드 인서트는 RLS 정책을 위반하므로 제거됨.
-    setApplicantsList(prev => prev.map(a => a.id === appId ? {
-      ...a,
-      status: 'approved'
-    } : a));
-    toast({
-      title: t("auto.g_0024", "동행 승인 완료! ✅"),
-      description: t("auto.g_0025", "그룹 채팅이 자동으로 생성됩니다.")
-    });
-  };
-  const handleRejectApplicant = async (appId: string) => {
-    await supabase.from('trip_applications').update({
-      status: 'rejected'
-    }).eq('id', appId);
-    setApplicantsList(prev => prev.map(a => a.id === appId ? {
-      ...a,
-      status: 'rejected'
-    } : a));
-    toast({
-      title: t("auto.g_0026", "거절 완료")
-    });
-  };
+  // handleViewApplicants / handleApproveApplicant / handleRejectApplicant → useGroupActions 훅으로 이동
 
   // Payment modal
   const [paymentGroup, setPaymentGroup] = useState<TripGroup | null>(null);
@@ -534,11 +452,17 @@ const DiscoverPage = () => {
   };
   const handleBoostPost = async (postId: string) => {
     if (!user) return;
+    // SEC fix: 작성자 본인 확인 — 타인 포스트를 임의로 밀어올리는 것 방지
+    const post = posts.find(p => p.id === postId);
+    if (!post || post.authorId !== user.id) {
+      toast({ title: t("auto.g_0029", "자신의 글만 부스트할 수 있습니다"), variant: "destructive" });
+      return;
+    }
     const {
       error
     } = await supabase.from('posts').update({
       created_at: new Date().toISOString()
-    }).eq('id', postId);
+    }).eq('id', postId).eq('author_id', user.id); // RLS 이중 방어
     if (!error) {
       toast({
         title: t("alert.t35Title")
@@ -626,232 +550,8 @@ const DiscoverPage = () => {
     }
   }, [targetLang, translateMap]);
 
-  // ── Fetch posts ────────────────────────────────
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoadingPosts(true);
-      try {
-        // posts + likes(count) + author 1번 쿼리로 통합 (N+1 제거)
-        // 초기 로드 시 comments 제외 → 상세 모달 열 때 lazy fetch
-        const postsQuery = supabase.from("posts").select(`
-            id, content, title, image_url, image_urls, tags, created_at, author_id,
-            profiles!posts_author_id_fkey(name, photo_url),
-            post_likes(count)
-          `).eq("hidden", false).order("created_at", {
-          ascending: false
-        }).limit(20);  // 30 → 20 (egress 절감)
+  // ── fetchPosts / fetchGroups → useDiscoverData 훅으로 이동 ──
 
-        // 내 좋아요 목록 + 게시물 쿼리 동시 실행
-        const [{ data, error }, { data: myLikes }] = await Promise.all([
-          postsQuery,
-          user
-            ? supabase.from('post_likes').select('post_id').eq('user_id', user.id).limit(200)
-            : Promise.resolve({ data: [] }),
-        ]);
-        if (error) throw error;
-
-        const likedSet = new Set<string>((myLikes || []).map((l: any) => l.post_id));
-
-        const mapped: Post[] = (data || []).map((p: any) => {
-          let locationTag;
-          if (p.tags && Array.isArray(p.tags)) {
-            const locStr = p.tags.find((t: string) => t.startsWith("_loc_:"));
-            if (locStr) {
-               const parts = locStr.split(":");
-               if (parts.length >= 4) {
-                 locationTag = { lat: parseFloat(parts[1]), lng: parseFloat(parts[2]), name: parts.slice(3).join(":") };
-               }
-            }
-          }
-          return {
-            id: p.id,
-            author: p.profiles?.name || t("auto.ko_0022", "알수없음"),
-            photo: p.profiles?.photo_url || "",
-            content: p.content || "",
-            time: new Date(p.created_at).toLocaleDateString(i18n.language || 'en'),
-            likes: p.post_likes?.[0]?.count || 0,
-            comments: 0,  // 상세 열 때 lazy load
-            liked: likedSet.has(p.id),
-            commentList: [],  // 상세 열 때 lazy load
-            imageUrl: p.image_url,
-            images: p.image_urls || [],
-            authorId: p.author_id,
-            locationTag
-          };
-        });
-        setPosts(mapped);
-
-        // view_count 추적 — fire-and-forget (응답 대기 불필요)
-        if (data && data.length > 0) {
-          supabase.rpc('increment_post_views', { p_ids: data.map(d => d.id) });
-        }
-      } catch (err: any) {
-        const msg = err?.message || "";
-        if (!msg.includes("lock") && !msg.includes("stole")) {
-          console.error("fetchPosts error:", err);
-        }
-      } finally {
-        setLoadingPosts(false);
-      }
-    };
-    fetchPosts();
-  }, [user, i18n.language, t]);
-
-
-  // ── Fetch groups — reacts to GlobalFilter ─────
-  useEffect(() => {
-    const fetchGroups = async () => {
-      setLoadingGroups(true);
-      try {
-        let query = supabase.from("trip_groups").select(`
-            id, title, destination, departure, dates, max_members, tags, description,
-            entry_fee, is_premium, host_id,
-            profiles:host_id(name, photo_url, bio, lat, lng),
-            trip_group_members(user_id, profiles(name, photo_url))
-          `).in("status", ["recruiting", "almost_full", "active"])
-          .order("created_at", {
-          ascending: false
-        }).limit(50);
-
-        // ── GlobalFilter 조건 적용 ───────────────────
-        if (globalFilters.destination) {
-          const dest = globalFilters.destination;
-          const cho = getChosung(dest);
-          query = query.or(`destination.ilike.%${dest}%,title.ilike.%${dest}%,destination_chosung.ilike.%${cho}%,title_chosung.ilike.%${cho}%`);
-        }
-        if (globalFilters.groupSize !== null) {
-          // max_members >= 선택된 groupSize (해당 인원 이상 수용 가능)
-          query = query.gte("max_members", globalFilters.groupSize);
-        }
-        const {
-          data,
-          error
-        } = await query;
-        if (error) throw error;
-        const mapped: TripGroup[] = (data || []).map((g: any) => {
-          const members = g.trip_group_members || [];
-          const joined = members.some((m: any) => m.user_id === user?.id);
-          return {
-            id: g.id,
-            title: g.title || "",
-            destination: g.destination || "",
-            departure: g.departure || g.origin || "",
-            dates: g.dates || t("auto.ko_0024", "미정"),
-            currentMembers: members.length,
-            maxMembers: g.max_members || 4,
-            tags: g.tags || [],
-            hostId: g.host_id || "",
-            hostPhoto: g.profiles?.photo_url || "",
-            hostName: g.profiles?.name || t("auto.ko_0025", "알수없음3"),
-            hostBio: g.profiles?.bio || "",
-            daysLeft: (() => {
-              try {
-                const dates = g.dates || '';
-                const rawEnd = dates.includes('~') ? dates.split('~')[1]?.trim() : dates.split('-')[1]?.trim();
-                if (!rawEnd) return 14;
-                // Korean: t("auto.x4012") or t("auto.x4013")
-                const kor = rawEnd.match(/(\d+)월\s*(\d+)일/);
-                if (kor) {
-                  const dt = new Date(new Date().getFullYear(), parseInt(kor[1]) - 1, parseInt(kor[2]));
-                  return Math.max(0, Math.ceil((dt.getTime() - Date.now()) / 86400000));
-                }
-                // Slash: "4/25" or "2026/4/25"
-                const parts = rawEnd.split('/');
-                if (parts.length >= 2) {
-                  const m = parseInt(parts[parts.length - 2]),
-                    d = parseInt(parts[parts.length - 1]);
-                  const dt = new Date(new Date().getFullYear(), m - 1, d);
-                  return Math.max(0, Math.ceil((dt.getTime() - Date.now()) / 86400000));
-                }
-                const parsed = new Date(rawEnd.replace(/\./g, '-'));
-                if (isNaN(parsed.getTime())) return 14;
-                return Math.max(0, Math.ceil((parsed.getTime() - Date.now()) / 86400000));
-              } catch {
-                return 14;
-              }
-            })(),
-            joined,
-            description: g.description || "",
-            schedule: g.schedule || [],
-            memberPhotos: members.map((m: any) => m.profiles?.photo_url || "").filter(Boolean),
-            memberNames: members.map((m: any) => m.profiles?.name || t("auto.ko_0026", "알수없음3")),
-            entryFee: g.entry_fee || 0,
-            isPremiumGroup: g.is_premium || false,
-            coverImage: "",
-            // 실제 데이터 연동을 위한 자리 표시 (아래에서 갱신됨)
-            hostCompletedGroups: 0,
-            recentMessages: [],
-            distanceKm: typeof g.profiles?.lat === 'number' && typeof g.profiles?.lng === 'number' 
-              ? (distanceTo({ lat: g.profiles.lat, lng: g.profiles.lng }) ?? 99999) 
-              : 99999,
-          };
-        });
-
-        // ── [Feature 3] 호스트 완주 횟수 (meet_reviews 기반 조회) 및 [Feature 2] 최근 메시지 다중 조회 ──
-        const hostIds = Array.from(new Set(mapped.map(g => g.hostId).filter(Boolean)));
-        const groupIds = mapped.map(g => g.id).filter(Boolean);
-        
-        let reviewCounts: Record<string, number> = {};
-        let groupMessages: Record<string, any[]> = {};
-
-        if (hostIds.length > 0 || groupIds.length > 0) {
-          const [revRes, msgRes] = await Promise.all([
-            hostIds.length > 0 ? supabase.from('meet_reviews').select('target_id').in('target_id', hostIds) : Promise.resolve({ data: [] }),
-            groupIds.length > 0 ? supabase.from('messages').select('thread_id, text, created_at, profiles!messages_sender_id_fkey(name)').in('thread_id', groupIds).order('created_at', { ascending: false }).limit(groupIds.length * 2) : Promise.resolve({ data: [] })
-          ]);
-          
-          if (revRes.data) {
-            revRes.data.forEach((r: any) => {
-              reviewCounts[r.target_id] = (reviewCounts[r.target_id] || 0) + 1;
-            });
-          }
-          if (msgRes.data) {
-            msgRes.data.forEach((m: any) => {
-              if (!groupMessages[m.thread_id]) groupMessages[m.thread_id] = [];
-              if (groupMessages[m.thread_id].length < 2) {
-                // 당일 메시지면 HH:MM, 아니면 MM/DD 로 표시
-                const d = new Date(m.created_at);
-                const isToday = d.toDateString() === new Date().toDateString();
-                const timeStr = isToday ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : `${d.getMonth()+1}/${d.getDate()}`;
-                groupMessages[m.thread_id].push({
-                  author: m.profiles?.name?.split(' ')?.[0] || t("auto.ko_0027", "멤버"),
-                  text: m.text,
-                  time: timeStr
-                });
-              }
-            });
-          }
-        }
-
-        const uniqueKeys = new Set();
-        const uniqueMapped = mapped.map(g => ({
-          ...g,
-          // 리뷰 1개당 1개 완주로 간주 (기본 1회 최소 표시)
-          hostCompletedGroups: Math.max(1, reviewCounts[g.hostId] || 0),
-          recentMessages: groupMessages[g.id] || []
-        })).filter((g) => {
-          const key = g.title + '|' + g.destination;
-          if (uniqueKeys.has(key)) return false;
-          uniqueKeys.add(key);
-          return true;
-        });
-        uniqueMapped.sort((a, b) => (a.distanceKm || 99999) - (b.distanceKm || 99999));
-        
-        setTripGroups(uniqueMapped);
-      } catch (err: any) {
-        const msg = err?.message || "";
-        // Lock steal 에러는 무시 (Supabase 내부 일시적 경쟁 현상)
-        if (!msg.includes("lock") && !msg.includes("stole")) {
-          console.error("fetchGroups error:", err);
-        }
-        // DB 오류 발생해도 시드 데이터 표시 (앱이 비어보이지 않게)
-        setTripGroups([]);
-      } finally {
-        setLoadingGroups(false);
-      }
-    };
-    fetchGroups();
-  }, [user, globalFilters, distanceTo, t]);
 
   // ── File select ────────────────────────────────
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1172,163 +872,9 @@ const DiscoverPage = () => {
     return () => clearInterval(timer);
   }, [joinPopup, t]);
 
-  // ── Join group ────────────────────────────────
-  const joiningRef = useRef(false);
-  const handleJoin = async (group: TripGroup) => {
-    if (group.joined) {
-      toast({
-        title: t("alert.t44Title"),
-        description: t("alert.t44Desc")
-      });
-      return;
-    }
-    if (group.currentMembers >= group.maxMembers) {
-      toast({
-        title: t("alert.t45Title"),
-        description: t("alert.t45Desc"),
-        variant: "destructive"
-      });
-      return;
-    }
-    if (group.isPremiumGroup && !canJoinPremiumGroups) {
-      toast({
-        title: t("alert.t46Title"),
-        description: t("alert.t46Desc")
-      });
-      setShowPlusModal(true);
-      return;
-    }
-    
-    if (joiningRef.current) return;
-    joiningRef.current = true;
-    try {
-      setDetailGroup(null);
-      await joinGroup(group);
-    } finally {
-      joiningRef.current = false;
-    }
-  };
-  const joinGroup = async (group: TripGroup) => {
-    if (!user) return;
+  // ── Join group: handleJoin / joinGroup → useGroupActions 훅으로 이동 ──
 
-    // 목업 그룹 (DB에 없음) → DB insert 없이 로컬 상태만 업데이트
-    const isMock = group.id.startsWith("00000000") || group.id.startsWith("seed");
-    if (!isMock) {
-      const { error } = await supabase.from("trip_group_members").insert({
-        group_id: group.id,
-        user_id: user.id
-      });
-      if (error && error.code !== '23505') { // 23505 = already member (unique constraint)
-        toast({ title: t("alert.t47Title"), variant: 'destructive' });
-        return;
-      }
-
-      // ── DB에서 실제 인원 수 재조회 (정확한 카운트 보장) ──
-      const { data: memberRows } = await supabase
-        .from('trip_group_members')
-        .select('user_id, profiles(gender)')
-        .eq('group_id', group.id);
-
-      const realCount = memberRows?.length ?? group.currentMembers + 1;
-      const realGenders: ('male' | 'female' | 'unknown')[] = (memberRows || []).map((m: any) => {
-        const g = m.profiles?.gender?.toLowerCase();
-        return g === 'male' ? 'male' : g === 'female' ? 'female' : 'unknown';
-      });
-
-      // ── 로컬 그룹 리스트 즉시 업데이트 (Optimistic UI) ──
-      setTripGroups(prev => prev.map(g => g.id === group.id ? {
-        ...g,
-        joined: true,
-        currentMembers: realCount,
-        memberGenders: realGenders,
-      } : g));
-
-      // ── 그룹 채팅방 자동 개설 (없으면 새로 만들기) ──
-      try {
-        const threadName = `${group.title.substring(0, 25)}...`;
-        const { data: existingThread } = await supabase
-          .from('chat_threads')
-          .select('id')
-          .eq('group_id', group.id)
-          .maybeSingle();
-
-        let threadId: string | null = existingThread?.id || null;
-
-        if (!threadId) {
-          const { data: newThread } = await supabase.from('chat_threads').insert({
-            name: threadName,
-            photo: group.hostPhoto || null,
-            group_id: group.id,
-            last_message: t('groupPopup.chatCreated', '그룹 채팅방이 개설되었습니다 🎉'),
-          }).select('id').single();
-          threadId = newThread?.id || null;
-
-          if (threadId) {
-            // 호스트 + 나 추가
-            await supabase.from('chat_members').upsert([
-              { thread_id: threadId, user_id: group.hostId },
-              { thread_id: threadId, user_id: user.id },
-            ], { onConflict: 'thread_id,user_id' });
-          }
-        } else {
-          // 기존 채팅방에 나만 추가
-          await supabase.from('chat_members').upsert(
-            { thread_id: threadId, user_id: user.id },
-            { onConflict: 'thread_id,user_id' }
-          );
-        }
-      } catch (chatErr) {
-        console.warn('[joinGroup] Chat thread creation failed:', chatErr);
-        // 채팅방 실패해도 참여는 유지
-      }
-
-      // 팝업 표시용 변수
-      const newCount = realCount;
-      const allGenders = realGenders;
-
-      const validDaysLeft = typeof group.daysLeft === 'number' && !isNaN(group.daysLeft) ? group.daysLeft : 1;
-      const deadlineMs = Date.now() + validDaysLeft * 24 * 60 * 60 * 1000;
-      clearAllTimers();
-      setJoinPopup({ group: { ...group, currentMembers: newCount, memberGenders: allGenders }, newCount, genders: allGenders, deadlineMs });
-
-      let extras = 0;
-      const intervalId = setInterval(() => {
-        if (extras >= 2 || newCount + extras >= group.maxMembers - 1) { clearInterval(intervalId); return; }
-        extras++;
-        const randGender: 'male' | 'female' = Math.random() > 0.5 ? 'male' : 'female';
-        setJoinPopup(prev => {
-          if (!prev) return null;
-          return { ...prev, newCount: prev.newCount + 1, genders: [...prev.genders, randGender] };
-        });
-      }, 3500);
-      timersRef.current.intervals.push(intervalId);
-
-      const msTo1h = deadlineMs - Date.now() - 60 * 60 * 1000;
-      if (msTo1h > 0) { const t1 = setTimeout(() => { setCountdownAlert({ type: '1hour', groupTitle: group.title }); timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 8000)); }, msTo1h); timersRef.current.timeouts.push(t1); }
-      const msTo30min = deadlineMs - Date.now() - 30 * 60 * 1000;
-      if (msTo30min > 0) { const t2 = setTimeout(() => { setCountdownAlert({ type: '30min', groupTitle: group.title }); timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 8000)); }, msTo30min); timersRef.current.timeouts.push(t2); }
-      const msToExpiry = deadlineMs - Date.now();
-      if (msToExpiry > 0) { const t3 = setTimeout(() => { clearInterval(intervalId); setJoinPopup(null); setCountdownAlert({ type: 'expired', groupTitle: group.title }); timersRef.current.timeouts.push(setTimeout(() => setCountdownAlert(null), 10000)); }, msToExpiry); timersRef.current.timeouts.push(t3); }
-      timersRef.current.timeouts.push(setTimeout(() => clearInterval(intervalId), 15000));
-      return; // early return for real groups
-    }
-
-    // 목업 그룹 fallback
-    const newCount = group.currentMembers + 1;
-    const { data: myProfile } = await supabase.from('profiles').select('gender').eq('id', user.id).single();
-    const myGender: 'male' | 'female' | 'unknown' = myProfile?.gender === 'male' ? 'male' : myProfile?.gender === 'female' ? 'female' : 'unknown';
-    const existingGenders: ('male' | 'female' | 'unknown')[] = group.memberGenders ?? Array(group.currentMembers).fill('unknown');
-    const allGenders = [...existingGenders, myGender];
-    setTripGroups(prev => prev.map(g => g.id === group.id ? { ...g, joined: true, currentMembers: newCount, memberGenders: allGenders } : g));
-    const validDaysLeft = typeof group.daysLeft === 'number' && !isNaN(group.daysLeft) ? group.daysLeft : 1;
-    const deadlineMs = Date.now() + validDaysLeft * 24 * 60 * 60 * 1000;
-    clearAllTimers();
-    setJoinPopup({ group: { ...group, currentMembers: newCount, memberGenders: allGenders }, newCount, genders: allGenders, deadlineMs });
-    const tClose = setTimeout(() => setJoinPopup(null), 15000);
-    timersRef.current.timeouts.push(tClose);
-  };
-
-  // ── 삭제 ──────────────────────────────────────
+  // ── 삭제 (posts) ──────────────────────────────────────
   const deletePost = async (postId: string) => {
     if (!user) return;
     // iOS: window.confirm 대신 커스텀 모달 사용 (Apple HIG / WKWebView 차단 대응)
@@ -1347,24 +893,7 @@ const DiscoverPage = () => {
       },
     });
   };
-  const deleteGroup = async (groupId: string) => {
-    if (!user) return;
-    // iOS: window.confirm 대신 커스텀 모달 사용
-    setConfirmDialog({
-      title: t("alert.c54Confirm"),
-      desc: t("alert.c54Desc", "그룹을 삭제하면 모든 멤버가 내보내집니다."),
-      onConfirm: async () => {
-        const { error } = await supabase.from("trip_groups").delete().eq("id", groupId).eq("host_id", user.id);
-        if (error) {
-          toast({ title: t("alert.t51Title") });
-          return;
-        }
-        setTripGroups(prev => prev.filter(g => g.id !== groupId));
-        if (detailGroup?.id === groupId) setDetailGroup(null);
-        toast({ title: t("alert.t52Title") });
-      },
-    });
-  };
+  // deleteGroup → deleteGroupAction (useGroupActions 훅)
 
   // ── Filter + Smart Sort ──────────────────────
   // [Feature 4] 내 여행 날짜와 매칭되는 그룹인지 확인
@@ -2178,7 +1707,7 @@ const DiscoverPage = () => {
             whileTap={{ scale: 0.94 }}
             onClick={() => setShowGroupCreate(true)}
             className="fixed right-5 z-40 flex items-center gap-2 px-5 py-3.5 rounded-2xl gradient-primary text-white font-extrabold text-sm shadow-float"
-            style={{ bottom: (!isPlus && !isPremium) ? "170px" : "120px" }}
+            style={{ bottom: (!isPlus && !isPremium) ? "calc(128px + env(safe-area-inset-bottom, 0px))" : "calc(68px + env(safe-area-inset-bottom, 0px))" }}
           >
             <span className="text-base leading-none">✈️</span>
             {t("auto.ko_0013", "동행 구하기")}</motion.button>
@@ -2556,15 +2085,7 @@ const DiscoverPage = () => {
         </div>
       )}
 
-      {/* ── 배너 광고 (무료 유저만) ── */}
-      {!isPlus && (
-        <AdBanner
-          position={BannerAdPosition.BOTTOM_CENTER}
-          size={BannerAdSize.ADAPTIVE_BANNER}
-          reservedHeight={80}
-          margin={55}
-        />
-      )}
+
 
     </div>;
 };

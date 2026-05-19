@@ -1,17 +1,19 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, MapPin, Languages, Send } from "lucide-react";
 import i18n from "@/i18n";
-import { Post } from "@/types";
+import { Post, PostComment } from "@/types";
+
+interface AuthUser { id: string; name?: string; email?: string; photoUrl?: string; }
 
 interface PostDetailModalProps {
   detailPost: Post | null;
   setDetailPost: (post: Post | null) => void;
-  t: any;
+  t: (key: string, fallback?: string) => string;
   handleProfileClick: (e: React.MouseEvent, authorId: string) => void;
   handleTranslate: (text: string, refId: string) => void;
   translateMap: Record<string, string>;
   loadingMap: Record<string, boolean>;
-  user: any;
+  user: AuthUser | null;
   commentText: string;
   setCommentText: (text: string) => void;
   setCommentPost: (post: Post | null) => void;
@@ -91,7 +93,7 @@ export const PostDetailModal = ({
             {/* Comments */}
             <h3 className="text-sm font-extrabold text-foreground mb-3 truncate">{i18n.t("auto.g_1404", "댓글 ")}{detailPost.commentList.length}{i18n.t("auto.g_1405", "개")}</h3>
             <div className="space-y-3 mb-4">
-              {detailPost.commentList.map((c: any) => (
+              {detailPost.commentList.map((c: PostComment) => (
                 <div key={c.id} className="flex items-start gap-2.5">
                   <img src={c.photo} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" loading="lazy" />
                   <div className="bg-muted rounded-2xl px-3 py-2 flex-1">

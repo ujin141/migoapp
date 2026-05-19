@@ -19,11 +19,90 @@ export const stepVariants = {
   transition: { duration: 0.25 }
 };
 
+// ─── TypeScript 인터페이스 정의 ───────────────────────────────────────────────
+interface PurposeOption {
+  id: string;
+  emoji: string;
+  title: string;
+  desc: string;
+  gradient: string;
+}
+interface Step0Props {
+  signupPurpose: string;
+  setSignupPurpose: (v: string) => void;
+  PURPOSE_OPTIONS: PurposeOption[];
+}
+interface Step1PropsInner {
+  name: string; setName: (v: string) => void;
+  email: string; setEmail: (v: string) => void;
+  age: string; setAge: (v: string) => void;
+  gender: string; setGender: (v: string) => void;
+  nationality: string; setNationality: (v: string) => void;
+  NATIONALITIES: string[];
+  password: string; setPassword: (v: string) => void;
+  showPass: boolean; setShowPass: (v: boolean) => void;
+  pwStrength: { level: number; color: string; label: string };
+  confirmPassword: string; setConfirmPassword: (v: string) => void;
+  showConfirmPass: boolean; setShowConfirmPass: (v: boolean) => void;
+  t: (key: string, fallback?: string) => string;
+}
+interface Step2PropsInner {
+  phoneCountry: string; setPhoneCountry: (v: string) => void;
+  phone: string; setPhone: (v: string) => void;
+  otpVerified: boolean;
+  sendOtp: () => void;
+  otpLoading: boolean;
+  otpSent: boolean;
+  otpTimeout: number;
+  otp: string; setOtp: (v: string) => void;
+  verifyOtp: () => void;
+  t: (key: string, fallback?: string) => string;
+}
+interface AgreementItem {
+  key: string;
+  value: boolean;
+  set: (v: boolean) => void;
+  label: string;
+  sub: string;
+  required?: boolean;
+}
+interface Step3PropsInner {
+  allAgree: boolean;
+  setAllAgree: (v: boolean) => void;
+  agreements: AgreementItem[];
+}
+interface PhotoItem { url: string; file?: File; }
+interface Step4PropsInner {
+  profilePhotos: PhotoItem[];
+  MAX_PHOTOS: number;
+  removePhoto: (idx: number) => void;
+  fileRef: React.RefObject<HTMLInputElement>;
+  handlePhotoAdd: React.ChangeEventHandler<HTMLInputElement>;
+  bio: string; setBio: (v: string) => void;
+  TRAVEL_STYLES: string[];
+  selectedStyles: string[];
+  toggleItem: (item: string, list: string[], set: (v: string[]) => void) => void;
+  setSelectedStyles: (v: string[]) => void;
+  LANGUAGES: string[];
+  selectedLangs: string[];
+  setSelectedLangs: (v: string[]) => void;
+  REGIONS: string[];
+  selectedRegions: string[];
+  setSelectedRegions: (v: string[]) => void;
+}
+interface LoginPropsInner {
+  email: string; setEmail: (v: string) => void;
+  password: string; setPassword: (v: string) => void;
+  showPass: boolean; setShowPass: (v: boolean) => void;
+  navigate: (path: string, opts?: object) => void;
+  t: (key: string) => string;
+}
+
 // ─── STEP 0: PURPOSE ───
-export const SignupStep0 = ({ signupPurpose, setSignupPurpose, PURPOSE_OPTIONS }: any) => {
+export const SignupStep0 = ({ signupPurpose, setSignupPurpose, PURPOSE_OPTIONS }: Step0Props) => {
   return (
     <motion.div key="step0" className="px-6 pt-4 pb-4 space-y-3" {...stepVariants}>
-      {PURPOSE_OPTIONS.map((opt: any) => (
+      {PURPOSE_OPTIONS.map((opt: PurposeOption) => (
         <motion.button
           key={opt.id}
           onClick={() => setSignupPurpose(opt.id)}
@@ -45,7 +124,7 @@ export const SignupStep0 = ({ signupPurpose, setSignupPurpose, PURPOSE_OPTIONS }
 };
 
 // ─── STEP 1: ACCOUNT ───
-export const SignupStep1 = ({ props }: any) => {
+export const SignupStep1 = ({ props }: { props: Step1PropsInner }) => {
   const { name, setName, email, setEmail, age, setAge, gender, setGender, nationality, setNationality, NATIONALITIES, password, setPassword, showPass, setShowPass, pwStrength, confirmPassword, setConfirmPassword, showConfirmPass, setShowConfirmPass, t } = props;
   
   return (
@@ -126,7 +205,7 @@ export const SignupStep1 = ({ props }: any) => {
 };
 
 // ─── STEP 2: PHONE OTP (Twilio) ───
-export const SignupStep2 = ({ props }: any) => {
+export const SignupStep2 = ({ props }: { props: Step2PropsInner }) => {
   const { phoneCountry, setPhoneCountry, phone, setPhone, otpVerified, sendOtp, otpLoading, otpSent, otpTimeout, otp, setOtp, verifyOtp, t } = props;
 
   return (
@@ -205,7 +284,7 @@ export const SignupStep2 = ({ props }: any) => {
 };
 
 // ─── STEP 3: SAFETY AGREEMENTS ───
-export const SignupStep3 = ({ props }: any) => {
+export const SignupStep3 = ({ props }: { props: Step3PropsInner }) => {
   const { allAgree, setAllAgree, agreements } = props;
   
   return (
@@ -222,7 +301,7 @@ export const SignupStep3 = ({ props }: any) => {
         <span className="font-extrabold text-sm text-foreground truncate">{i18n.t("auto.g_1430", "아래 약관에 모두 동의합니다")}</span>
       </button>
       <div className="w-full h-px bg-border" />
-      {agreements.map(({ key, value, set, label, sub, required }: any) => (
+      {agreements.map(({ key, value, set, label, sub, required }: AgreementItem) => (
         <button key={key} onClick={() => set(!value)} className="w-full flex items-center gap-3 py-2">
           <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0 ${value ? "gradient-primary" : "border-2 border-border"}`}>
             {value && <Check size={11} className="text-primary-foreground" />}
@@ -246,7 +325,7 @@ export const SignupStep3 = ({ props }: any) => {
 };
 
 // ─── STEP 4: TRAVEL PROFILE ───
-export const SignupStep4 = ({ props }: any) => {
+export const SignupStep4 = ({ props }: { props: Step4PropsInner }) => {
   const { profilePhotos, MAX_PHOTOS, removePhoto, fileRef, handlePhotoAdd, bio, setBio, TRAVEL_STYLES, selectedStyles, toggleItem, setSelectedStyles, LANGUAGES, selectedLangs, setSelectedLangs, REGIONS, selectedRegions, setSelectedRegions } = props;
 
   return (
@@ -259,7 +338,7 @@ export const SignupStep4 = ({ props }: any) => {
           <span className="text-muted-foreground font-normal truncate">({profilePhotos.length}/{MAX_PHOTOS}{i18n.t("auto.g_1436", "장")})</span>
         </label>
         <div className="grid grid-cols-3 gap-2 truncate">
-          {profilePhotos.map((photo: any, idx: number) => (
+          {profilePhotos.map((photo: PhotoItem, idx: number) => (
             <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-border truncate">
               <img src={photo.url} alt="" className="w-full h-full object-cover" />
               {idx === 0 && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-extrabold px-1.5 py-0.5 rounded-full truncate">{i18n.t("auto.g_1437", "대표")}</div>}
@@ -328,7 +407,7 @@ export const SignupStep4 = ({ props }: any) => {
 };
 
 // ─── LOGIN FORM ───
-export const LoginForm = ({ props }: any) => {
+export const LoginForm = ({ props }: { props: LoginPropsInner }) => {
   const { email, setEmail, password, setPassword, showPass, setShowPass, navigate, t } = props;
 
   return (

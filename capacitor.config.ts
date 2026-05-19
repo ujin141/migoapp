@@ -1,13 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.lunaticsgroup.migo',
+  appId: 'com.migo.app',
   appName: 'Migo',
   webDir: 'dist',
   server: {
-    // Android에서 HTTPS 스킴 사용 (Mixed Content 방지 + Google Play 정책 준수)
     androidScheme: 'https',
-    // iOS에서도 동일하게 적용
     iosScheme: 'capacitor',
     allowNavigation: [
       'supabase.co',
