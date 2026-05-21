@@ -103,7 +103,7 @@ const WriteReview = ({
     }
     await supabase.from('meet_reviews').insert({
       reviewer_id: me.id,
-      target_id: user.id,
+      reviewed_id: user.id,
       rating,
       tags: selectedTags,
       text,
@@ -257,7 +257,7 @@ const MeetReviewPage = () => {
       // 내가 받은 후기
       const {
         data: revData
-      } = await supabase.from('meet_reviews').select('*, profiles!reviewer_id (name, photo_url)').eq('target_id', user.id);
+      } = await supabase.from('meet_reviews').select('*, profiles!reviewer_id (name, photo_url)').eq('reviewed_id', user.id);
       if (revData) {
         setReviews(revData.map(r => ({
           id: r.id,

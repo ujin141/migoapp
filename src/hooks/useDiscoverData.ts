@@ -202,7 +202,7 @@ export function useDiscoverData(user: User) {
       if (hostIds.length > 0 || groupIds.length > 0) {
         const [revRes, msgRes] = await Promise.all([
           hostIds.length > 0
-            ? supabase.from("meet_reviews").select("target_id").in("target_id", hostIds)
+            ? supabase.from("meet_reviews").select("reviewed_id").in("reviewed_id", hostIds)
             : Promise.resolve({ data: [] }),
           groupIds.length > 0
             ? supabase
@@ -216,7 +216,7 @@ export function useDiscoverData(user: User) {
 
         if (revRes.data) {
           revRes.data.forEach((r: any) => {
-            reviewCounts[r.target_id] = (reviewCounts[r.target_id] || 0) + 1;
+            reviewCounts[r.reviewed_id] = (reviewCounts[r.reviewed_id] || 0) + 1;
           });
         }
         if (msgRes.data) {
