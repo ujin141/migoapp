@@ -63,7 +63,11 @@ const PlusGate = ({
 
   const handleClick = () => {
     if (!locked) return;
-    onLockedClick ? onLockedClick() : setShowModal(true);
+    if (onLockedClick) {
+      onLockedClick();
+    } else {
+      setShowModal(true);
+    }
   };
 
   if (!locked) return <>{children}</>;

@@ -1,4 +1,3 @@
-import i18n from "@/i18n";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,7 +38,7 @@ export default function MatchResultCard({
   onClose,
   onChat
 }: MatchResultCardProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const ICE_BREAKERS = useMemo(() => [
     t("auto.z_\uAC00\uC7A5\uC778\uC0C1\uAE4A\uC5C8\uB358\uC5EC\uD589\uC9C0_1377"),
     t("auto.z_\uC5EC\uD589\uC911\uAC00\uC7A5\uAE30\uC5B5\uC5D0\uB0A8\uB294_1378"),
@@ -48,7 +47,7 @@ export default function MatchResultCard({
     t("auto.z_\uC9C0\uAE08\uAE4C\uC9C0\uAC00\uBCF8\uB098\uB77C\uAC00\uBA87_1381"),
     t("auto.z_\uC5EC\uD589\uC911\uAC00\uC7A5\uBB34\uC11C\uC6E0\uB358\uACBD_1382"),
     t("auto.z_\uC774\uBC88\uC5EC\uD589\uC5D0\uC11C\uAF2D\uD574\uBCF4\uACE0_1383"),
-  ], [i18n.language]);
+  ], [t]);
   const common = findCommon(myProfile, matchedProfile, t);
   const ice = ICE_BREAKERS[Math.floor(Math.random() * ICE_BREAKERS.length)];
   return <AnimatePresence>

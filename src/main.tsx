@@ -52,7 +52,13 @@ window.addEventListener('unhandledrejection', (event) => {
       const errorDiv = document.createElement('div');
       errorDiv.id = 'migo-critical-error';
       errorDiv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#ff9900;color:black;z-index:999999;padding:60px 20px;overflow:auto;word-wrap:break-word;font-family:monospace;font-size:14px;';
-      errorDiv.innerHTML = `<h2>⚠️ UNHANDLED PROMISE [DEV ONLY]</h2><br/><p><strong>${msg}</strong></p>`;
+      const title = document.createElement('h2');
+      title.textContent = 'UNHANDLED PROMISE [DEV ONLY]';
+      const message = document.createElement('p');
+      const strong = document.createElement('strong');
+      strong.textContent = msg;
+      message.appendChild(strong);
+      errorDiv.append(title, document.createElement('br'), message);
       document.body.appendChild(errorDiv);
     }
   }
@@ -77,10 +83,9 @@ window.addEventListener('error', (event) => {
       const safePreText = document.createElement('pre');
       safePreText.style.cssText = 'white-space:pre-wrap;font-size:11px;';
       safePreText.textContent = event.error?.stack || '';
-      errorDiv.innerHTML = '<h2>🚀 CRITICAL JS ERROR [DEV ONLY]</h2><br/>';
-      errorDiv.appendChild(safeMsgText);
-      errorDiv.appendChild(document.createElement('br'));
-      errorDiv.appendChild(safePreText);
+      const title = document.createElement('h2');
+      title.textContent = 'CRITICAL JS ERROR [DEV ONLY]';
+      errorDiv.append(title, document.createElement('br'), safeMsgText, document.createElement('br'), safePreText);
       document.body.appendChild(errorDiv);
     }
   }

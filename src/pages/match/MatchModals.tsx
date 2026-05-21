@@ -569,12 +569,12 @@ export const FilterModal = ({
     { id: i18n.t("auto.x4053", "자연"), i18nKey: "auto.g_1486" },
     { id: i18n.t("auto.x4054", "럭셔리"), i18nKey: "auto.g_1487" },
     { id: i18n.t("auto.x4055", "배낙여행"), i18nKey: "auto.g_1488" }
-  ], [i18n.language]);
+  ], [i18n]);
 
   const LANGUAGE_OPTIONS = useMemo(() => [
     { id: i18n.t("auto.x4056", "한국어"), i18nKey: "auto.g_1489" },
     ...LANGUAGE_OPTIONS_STATIC
-  ], [i18n.language]);
+  ], [i18n]);
 
   return createPortal(
     <AnimatePresence>

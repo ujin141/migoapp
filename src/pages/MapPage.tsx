@@ -124,7 +124,7 @@ const MapPage = () => {
   const [showMyProfile, setShowMyProfile] = useState(false);
   const [myProfilePhoto, setMyProfilePhoto] = useState<string>(user?.photoUrl || "");
 
-  // 프로필 사진 실시간 동기화: profiles 변경 시 내 마커 즉시 업데이트
+  // 프로필 사진 실시간 동기화 및 최초 로드: profiles 변경 시 내 마커 즉시 업데이트 & 내 최근 핀 위치 로드
   useEffect(() => {
     if (!user) return;
     setMyProfilePhoto(user.photoUrl || "");
@@ -640,12 +640,6 @@ const MapPage = () => {
         }
       });
     });
-
-    return () => {
-      isMounted = false;
-      channel.unsubscribe();
-      seekerChannel.unsubscribe();
-    };
   }, [t]);
 
   // ―― Nearest Traveler Auto-Select (딱 한 번만) ――

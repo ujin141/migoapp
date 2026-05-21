@@ -296,7 +296,7 @@ const MeetReviewPage = () => {
       }
     };
     fetchReviewsAndUsers();
-  }, [user]);
+  }, [t, user]);
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
   const markReviewed = (userId: string) => {
     setUsers(prev => prev.map(u => u.id === userId ? {

@@ -640,8 +640,9 @@ const ProfilePage = () => {
             .select('id, name, photo_url, location, age, bio, languages, interests, mbti, nationality')
             .in('id', allViewerIds);
 
-          if (viewerProfiles && viewerProfiles.length > 0) {
-            const profileMap = new Map(viewerProfiles.map((p: any) => [p.id, p]));
+          const typedViewerProfiles = (viewerProfiles || []) as any[];
+          if (typedViewerProfiles.length > 0) {
+            const profileMap = new Map(typedViewerProfiles.map((p: any) => [p.id, p]));
             const ordered = allViewerIds
               .map(id => profileMap.get(id))
               .filter(Boolean)
@@ -706,7 +707,7 @@ const ProfilePage = () => {
     };
     fetchProfile(0);
     return () => { isMounted = false; };
-  }, [user?.id]);
+  }, [t, user]);
 
   // ─── 프로필 조회 알림 실시간 구독 → 최근 방문자 즉시 업데이트 ───
   useEffect(() => {
@@ -758,7 +759,7 @@ const ProfilePage = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
+  }, [t, user?.id]);
 
   // Settings state
   const [notifMatch, setNotifMatch] = useState(true);

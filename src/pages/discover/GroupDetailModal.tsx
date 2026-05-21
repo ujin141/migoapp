@@ -1,12 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Share2, Languages, MapPin, Calendar, Users, Clock } from "lucide-react";
 import i18n from "@/i18n";
+import type { TFunction } from "i18next";
 import { TripGroup } from "@/types";
 
 interface GroupDetailModalProps {
   currentDetail: TripGroup | null;
   setDetailGroup: (group: TripGroup | null) => void;
-  t: (key: string, fallback?: string | object) => string;
+  t: TFunction;
   handleShare: (group: TripGroup) => void;
   translateMap: Record<string, string>;
   loadingMap: Record<string, boolean>;

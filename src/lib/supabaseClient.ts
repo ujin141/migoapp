@@ -34,7 +34,6 @@ function _readSessionFromStorage() {
 
 // ── 싱글톤 클라이언트 ────────────────────────────────────────────────────────
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   interface Window { __SUPABASE__?: any; }
 }
 
@@ -92,7 +91,7 @@ if (!window.__SUPABASE__ && isSupabaseConfigured) {
     }
     // 콜백을 현재 microtask 이후에 실행 → initializePromise 완료 후 실행됨
     const emitters = Array.from(
-      (this.stateChangeEmitters as Map<string, { callback: Function }>).values()
+      (this.stateChangeEmitters as Map<string, { callback: (...args: unknown[]) => unknown }>).values()
     );
     for (const x of emitters) {
       Promise.resolve()

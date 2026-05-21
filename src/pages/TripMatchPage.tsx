@@ -184,7 +184,7 @@ const TripMatchPage: React.FC = () => {
         }
       }
     });
-  }, [user]);
+  }, [location.pathname, location.state, t, user]);
 
   // ── Load real groups from Supabase — GlobalFilter 연동 ──
   useEffect(() => {
@@ -251,7 +251,7 @@ const TripMatchPage: React.FC = () => {
       setGroups(mapped);
       setLoading(false);
     });
-  }, [user, globalFilters]);
+  }, [globalFilters, t, user]);
 
   // ── Run matching engine ─────────────────────
   const matchInput = useMemo<MatchInput>(() => ({

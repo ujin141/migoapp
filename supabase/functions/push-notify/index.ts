@@ -99,7 +99,11 @@ async function sendFcmV1(
           },
           android: {
             priority: "high",
-            notification: { sound: "default" },
+            notification: {
+              sound: "default",
+              icon: "ic_stat_notification",
+              color: "#10B981"
+            },
           },
         },
       }),

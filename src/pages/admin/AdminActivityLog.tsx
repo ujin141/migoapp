@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ClipboardList, RefreshCw, User, Search, Filter, Shield, Ban, Check, Trash2, Eye } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -40,7 +40,7 @@ export const AdminActivityLog = () => {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 30;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     // adminSupabase로 RLS 우회
     const { data, error } = await adminSupabase
@@ -62,9 +62,9 @@ export const AdminActivityLog = () => {
       setLogs(data || []);
     }
     setLoading(false);
-  };
+  }, [page]);
 
-  useEffect(() => { load(); }, [page]);
+  useEffect(() => { load(); }, [load]);
 
   const actionTypes = Array.from(new Set(logs.map(l => l.action)));
 

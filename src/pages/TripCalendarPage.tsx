@@ -261,7 +261,7 @@ const TripCalendarPage = () => {
       fetchNearby(formatted);
     };
     fetchAll();
-  }, [user]);
+  }, [t, user]);
   const sendDM = async (targetUserId: string, targetName: string) => {
     if (!user) return;
     try {

@@ -187,10 +187,18 @@ export const restoreIAPPurchases = async (): Promise<{
     return { restored: false, activeSubscriptions: [], error: 'not_native' };
   }
   try {
-    const { customerInfo } = await NativePurchases.restorePurchases();
+    await NativePurchases.restorePurchases();
+    const { purchases } = await NativePurchases.getPurchases({
+      productType: PURCHASE_TYPE.SUBS,
+      onlyCurrentEntitlements: true,
+    });
+    const activeSubscriptions = purchases
+      .filter((purchase) => purchase.isActive ?? purchase.purchaseState === '1')
+      .map((purchase) => purchase.productIdentifier);
+
     return {
       restored: true,
-      activeSubscriptions: customerInfo.activeSubscriptions as unknown as string[],
+      activeSubscriptions,
     };
   } catch (e: any) {
     // 에러 메시지를 외부에 노출하지 않고 오류 코드만 전달

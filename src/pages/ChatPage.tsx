@@ -135,7 +135,7 @@ const ChatPage = () => {
     return () => {
       setSelectedChat(null);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // nav 표시/숨김 — selectedChat 변경 시 동기 DOM 업데이트
   useLayoutEffect(() => {
@@ -161,7 +161,7 @@ const ChatPage = () => {
     return () => {
       setOpenThread(null);
     };
-  }, [selectedChat]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [markRead, selectedChat, setOpenThread, trackOpenedThread]);
 
   // ─── Translate a single message ───────────────────────────
   // BUG-14 fix: translateMap을 ref로도 관리 → autoTranslate effect에서 stale closure 없이 접근
@@ -702,4 +702,4 @@ const ChatPage = () => {
     </div>
   );
 };
-export default ChatPage;
+export default ChatPage;

@@ -21,7 +21,7 @@ const SplashPage = ({ isOverlay = false }: { isOverlay?: boolean }) => {
     }, 1800);
 
     return () => clearTimeout(timer);
-  }, []); // 마운트 시 1회만
+  }, [isOverlay, navigate]);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background overflow-hidden">

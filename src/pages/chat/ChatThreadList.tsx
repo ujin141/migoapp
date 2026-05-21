@@ -9,6 +9,7 @@ import type { GroupThread } from "@/context/ChatContext";
 export interface ChatThreadListProps {
   filteredThreads: any[];
   searchQuery: string;
+  removedChats?: string[];
   swipedChatId: string | null;
   setSwipedChatId: (id: string | null) => void;
   mutedChats: string[];
@@ -23,6 +24,7 @@ export interface ChatThreadListProps {
 export const ChatThreadList: React.FC<ChatThreadListProps> = ({
   filteredThreads,
   searchQuery,
+  removedChats: _removedChats,
   swipedChatId,
   setSwipedChatId,
   mutedChats,

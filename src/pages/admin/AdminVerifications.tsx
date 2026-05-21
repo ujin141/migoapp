@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "@/hooks/use-toast";
 import { Check, X, Clock, RefreshCw, Eye, Crown } from "lucide-react";
@@ -36,7 +36,7 @@ export const AdminVerifications = () => {
   } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [processing, setProcessing] = useState<string | null>(null);
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     let query = supabase.from("id_verifications").select("*, profiles:user_id(name, email, photo_url, plan)").order("created_at", {
       ascending: false
@@ -60,10 +60,10 @@ export const AdminVerifications = () => {
       setRecords(filtered);
     }
     setLoading(false);
-  };
+  }, [filter, t]);
   useEffect(() => {
     load();
-  }, [filter]);
+  }, [load]);
   const approve = async (rec: VerifRecord) => {
     setProcessing(rec.id);
     try {

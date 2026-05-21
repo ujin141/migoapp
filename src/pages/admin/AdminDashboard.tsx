@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, Heart, Plane, TrendingUp, FileText, Flag, Crown, Check, Clock, DollarSign, Bell, X, Plus, Megaphone, RefreshCw, AlertTriangle } from "lucide-react";
 import { fetchAdminStats, fetchAdminUsers, fetchAdminReports, fetchAnnouncements, createAnnouncement, deleteAnnouncement, fetchWeeklyStats, fetchTodayStats } from "@/lib/adminService";
@@ -22,6 +22,7 @@ const CustomTooltip = ({
   return null;
 };
 type AnnouncementType = "info" | "warning" | "update";
+const withTimeout = <T,>(p: Promise<T>, fallback: T, ms = 8000): Promise<T> => Promise.race([p, new Promise<T>(r => setTimeout(() => r(fallback), ms))]);
 export const AdminDashboard = () => {
   const {
     t
@@ -50,8 +51,7 @@ export const AdminDashboard = () => {
   const [savingAnn, setSavingAnn] = useState(false);
 
   // 쿼리가 hang될 경우 ms 후 fallback 값으로 resolve
-  const withTimeout = <T,>(p: Promise<T>, fallback: T, ms = 8000): Promise<T> => Promise.race([p, new Promise<T>(r => setTimeout(() => r(fallback), ms))]);
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const emptyStats = {
@@ -102,10 +102,10 @@ export const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
   const handleCreateAnnouncement = async () => {
     if (!annTitle || !annContent) return;
     setSavingAnn(true);

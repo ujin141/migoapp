@@ -36,7 +36,7 @@ const GenderBar = ({
 // ──────────────────────────────────────────────
 // Vibe icon
 // ──────────────────────────────────────────────
-function vibeEmoji(tags: string[]): string {
+function vibeEmoji(tags: string[], t: ReturnType<typeof useTranslation>["t"]): string {
   const all = tags.join(" ").toLowerCase();
   if ([t("auto.g_0051", "클럽"), t("auto.g_0052", "파티"), t("auto.g_0053", "나이트"), "bar"].some(k => all.includes(k))) return "🎉";
   if ([t("auto.g_0054", "힐링"), t("auto.g_0055", "카페"), t("auto.g_0056", "편한")].some(k => all.includes(k))) return "😊";
@@ -66,7 +66,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
   isTop
 }) => {
   const {
-    i18n
+    i18n,
+    t
   } = useTranslation();
   const targetLangAuto = i18n.language.split("-")[0] || "en";
   const targetLang = targetLangAuto as "en" | "ko" | "ja" | "zh" | "es" | "fr" | "th" | "id" | "vi" | "de";
@@ -158,7 +159,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
         {/* Vibe */}
         <div className="absolute bottom-2 left-3">
-          <span className="text-2xl">{vibeEmoji(group.tags)}</span>
+          <span className="text-2xl">{vibeEmoji(group.tags, t)}</span>
         </div>
 
         {/* Title */}

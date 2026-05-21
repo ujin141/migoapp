@@ -36,8 +36,8 @@ const Section = ({
 };
 
 // ─── Badge component ──────────────────────────────────────────────────────────
-const Badge = ({ color, children }: { color: string; children: React.ReactNode }) => (
-  <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mr-1 ${color}`}>
+const Badge = ({ color, children, className = "" }: { color: string; children: React.ReactNode; className?: string }) => (
+  <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mr-1 ${color} ${className}`}>
     {children}
   </span>
 );

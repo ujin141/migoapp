@@ -199,7 +199,7 @@ const AppContent = () => {
       sessionStorage.setItem('migo_splash_shown', '1');
     }, 4000);
     return () => clearTimeout(hardCap);
-  }, []); // 마운트 1회만
+  }, [showInitialSplash]);
 
   const showNav = !hideNavRoutes.includes(location.pathname);
   const isAdmin = location.pathname.startsWith("/admin");

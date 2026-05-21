@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MapPin, Users, Zap, RefreshCw, Navigation, Plane, Coffee, Camera } from "lucide-react";
@@ -90,7 +90,7 @@ const NearbyPage = () => {
       });
     };
   }, [user, myPos]);
-  const loadNearby = async (showRefreshing = false) => {
+  const loadNearby = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);else setLoading(true);
     try {
       if (myPos) {
@@ -172,10 +172,10 @@ const NearbyPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [myPos, t, user?.id]);
   useEffect(() => {
     loadNearby();
-  }, [myPos]);
+  }, [loadNearby]);
   const filtered = filterPurpose === "all" ? profiles : profiles.filter(p => p.travelPurpose === filterPurpose);
   const formatDistance = (km?: number) => {
     if (!km) return "";

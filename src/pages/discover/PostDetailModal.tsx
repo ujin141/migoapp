@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, MapPin, Languages, Send } from "lucide-react";
 import i18n from "@/i18n";
+import type { TFunction } from "i18next";
 import { Post, PostComment } from "@/types";
 
 interface AuthUser { id: string; name?: string; email?: string; photoUrl?: string; }
@@ -8,7 +9,7 @@ interface AuthUser { id: string; name?: string; email?: string; photoUrl?: strin
 interface PostDetailModalProps {
   detailPost: Post | null;
   setDetailPost: (post: Post | null) => void;
-  t: (key: string, fallback?: string) => string;
+  t: TFunction;
   handleProfileClick: (e: React.MouseEvent, authorId: string) => void;
   handleTranslate: (text: string, refId: string) => void;
   translateMap: Record<string, string>;

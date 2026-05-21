@@ -86,7 +86,8 @@ export const AdminReports = () => {
     // adminBanUser RPC 우선 (push 알림 내장)
     const banOk = await adminBanUser(targetId) || await updateUserBan(targetId, true);
     if (banOk) {
-      await adminResolveReport(reportId, "resolved") || await updateReportStatus(reportId, "resolved");
+      const resolved = await adminResolveReport(reportId, "resolved");
+      if (!resolved) await updateReportStatus(reportId, "resolved");
       setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: "resolved" } : r));
       setSelected(null);
       notifyStatChange();

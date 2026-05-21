@@ -7,6 +7,7 @@ import { Browser } from "@capacitor/browser";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 // ─── Constants for the forms ───
 const GLOBAL_DIAL_CODES = ["+82 🇰🇷", "+1 🇺🇸", "+1 🇨🇦", "+44 🇬🇧", "+61 🇦🇺", "+81 🇯🇵", "+86 🇨🇳", "+49 🇩🇪", "+33 🇫🇷", "+39 🇮🇹", "+34 🇪🇸", "+7 🇷🇺", "+55 🇧🇷", "+52 🇲🇽", "+91 🇮🇳", "+62 🇮🇩", "+90 🇹🇷", "+27 🇿🇦", "+54 🇦🇷", "+56 🇨🇱", "+57 🇨🇴", "+51 🇵🇪", "+66 🇹🇭", "+84 🇻🇳", "+60 🇲🇾", "+63 🇵🇭", "+65 🇸🇬", "+886 🇹🇼", "+852 🇭🇰", "+853 🇲🇴", "+971 🇦🇪", "+966 🇸🇦", "+972 🇮🇱", "+20 🇪🇬", "+212 🇲🇦", "+234 🇳🇬", "+254 🇰🇪", "+46 🇸🇪", "+47 🇳🇴", "+45 🇩🇰", "+358 🇫🇮", "+31 🇳🇱", "+32 🇧🇪", "+41 🇨🇭", "+43 🇦🇹", "+48 🇵🇱", "+420 🇨🇿", "+36 🇭🇺", "+30 🇬🇷", "+351 🇵🇹", "+353 🇮🇪", "+64 🇳🇿", "+53 🇨🇺", "+593 🇪🇨", "+598 🇺🇾", "+58 🇻🇪", "+506 🇨🇷"];
@@ -44,7 +45,7 @@ interface Step1PropsInner {
   pwStrength: { level: number; color: string; label: string };
   confirmPassword: string; setConfirmPassword: (v: string) => void;
   showConfirmPass: boolean; setShowConfirmPass: (v: boolean) => void;
-  t: (key: string, fallback?: string) => string;
+  t: TFunction;
 }
 interface Step2PropsInner {
   phoneCountry: string; setPhoneCountry: (v: string) => void;
@@ -56,7 +57,7 @@ interface Step2PropsInner {
   otpTimeout: number;
   otp: string; setOtp: (v: string) => void;
   verifyOtp: () => void;
-  t: (key: string, fallback?: string) => string;
+  t: TFunction;
 }
 interface AgreementItem {
   key: string;
@@ -95,7 +96,7 @@ interface LoginPropsInner {
   password: string; setPassword: (v: string) => void;
   showPass: boolean; setShowPass: (v: boolean) => void;
   navigate: (path: string, opts?: object) => void;
-  t: (key: string) => string;
+  t: TFunction;
 }
 
 // ─── STEP 0: PURPOSE ───

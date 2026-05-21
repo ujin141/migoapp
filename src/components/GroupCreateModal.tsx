@@ -171,7 +171,10 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
   const { i18n } = useTranslation();
   const { showInterstitial } = useAdMob();
 
-  const DESTINATIONS = useMemo(() => buildDestinations(), [i18n.language]);
+  const DESTINATIONS = useMemo(() => {
+    void i18n.language;
+    return buildDestinations();
+  }, [i18n.language]);
   const STYLE_OPTIONS = useMemo(() => [
     { label: i18n.t("auto.ko_0393", "관광 · 투어"), emoji: "🗺️" },
     { label: i18n.t("auto.ko_0394", "맛집 탐방"), emoji: "🍜" },
@@ -179,17 +182,17 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
     { label: i18n.t("auto.ko_0396", "휴양 · 힐링"), emoji: "🏖️" },
     { label: i18n.t("auto.ko_0397", "나이트라이프"), emoji: "🎉" },
     { label: i18n.t("auto.ko_0398", "문화 · 예술"), emoji: "🎨" },
-  ], [i18n.language]);
+  ], [i18n]);
   const QUICK_TAGS = useMemo(() => [
     i18n.t("auto.ko_0399", "감성"), i18n.t("auto.ko_0400", "맛집"), i18n.t("auto.ko_0401", "사진"),
     i18n.t("auto.ko_0402", "쇼핑"), i18n.t("auto.ko_0403", "트레킹"), i18n.t("auto.ko_0404", "드라이브"),
     i18n.t("auto.ko_0405", "건축"), i18n.t("auto.ko_0406", "야경"), i18n.t("auto.ko_0407", "온천"), i18n.t("auto.ko_0408", "럭셔리")
-  ], [i18n.language]);
+  ], [i18n]);
   const STEPS = useMemo(() => [
     i18n.t("auto.ko_0409", "경로 설정"),
     i18n.t("auto.ko_0410", "일정 · 인원"),
     i18n.t("auto.ko_0411", "스타일 · 태그")
-  ], [i18n.language]);
+  ], [i18n]);
 
   // 스텝
   const [step, setStep] = useState(0);

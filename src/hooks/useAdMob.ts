@@ -9,8 +9,8 @@ import {
   BannerAdOptions,
   BannerAdSize,
   BannerAdPosition,
-  RewardAdOptions,
-  RewardItem,
+  BannerAdPluginEvents,
+  AdMobRewardItem,
 } from '@capacitor-community/admob';
 
 // ── 실제 광고 유닛 ID (Play Store 출시 시 사용) ───────────────────
@@ -68,8 +68,8 @@ async function ensureInit(): Promise<void> {
     // 단, reject를 catch하지 않으면 await ensureInit()이 throw하므로 caller가 try-catch 필수
     initPromise = (async () => {
       try {
+        await AdMob.requestTrackingAuthorization().catch(() => {});
         await AdMob.initialize({
-          requestTrackingAuthorization: true, // iOS ATT 권한
           initializeForTesting: IS_DEBUG_BUILD,
           testingDevices: IS_DEBUG_BUILD ? ['EMULATOR'] : [],
         });
@@ -142,14 +142,14 @@ export function useAdMob() {
 
   // ── 보상형 광고 표시 → 보상 콜백 ────────────────────────────
   const showRewarded = useCallback(async (
-    onReward: (item: RewardItem) => void,
+    onReward: (item: AdMobRewardItem) => void,
   ): Promise<boolean> => {
     if (!Capacitor.isNativePlatform()) return false;
     await ensureInit();
     try {
       if (!rewardedLoadedRef.current) await preloadRewarded();
       const result = await AdMob.showRewardVideoAd();
-      if (result?.value) onReward(result.value);
+      if (result) onReward(result);
       rewardedLoadedRef.current = false;
       preloadRewarded();
       return true;
@@ -182,8 +182,8 @@ export function useAdMobBanner(
       try {
         // ── 배너 로드 완료 이벤트: 실제 높이를 CSS 변수로 주입 ──────────
         // BottomNav가 이 값을 읽어 정확히 배너 위에 위치함
-        listenerRef.current = await AdMob.addListener('bannerAdLoaded', (info: any) => {
-          const heightPx = info?.adSize?.height ?? 60;
+        listenerRef.current = await AdMob.addListener(BannerAdPluginEvents.SizeChanged, (info) => {
+          const heightPx = info?.height ?? 60;
           document.documentElement.style.setProperty('--admob-banner-height', `${heightPx}px`);
           console.log(`[AdMob] 배너 로드됨: 실제 높이=${heightPx}px`);
         });

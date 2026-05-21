@@ -1,7 +1,7 @@
 import i18n from "@/i18n";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MoreVertical, ShieldAlert, Phone, CheckSquare, Shield, Crown, AlertTriangle, Languages, ChevronDown, Check, MapPin, Calendar, Map, Lock, Send, Globe } from "lucide-react";
+import { ArrowLeft, MoreVertical, ShieldAlert, Phone, CheckSquare, Shield, Crown, AlertTriangle, Languages, ChevronDown, Check, MapPin, Calendar, Map, Lock, Send, Globe, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { LANG_NAMES, SupportedLang } from "@/lib/translateService";
@@ -151,7 +151,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       .catch((err) => {
         console.warn('[ChatRoom] fetchMessages failed:', err);
       });
-  }, [selectedChat, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchMessages, selectedChat, user?.id]);
 
   // 메시지 추가될 때마다 스크롤 아래로
   useEffect(() => {
@@ -183,7 +183,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     } finally {
       setTranslateSending(false);
     }
-  }, [message, targetLang, isPlus, sendMessage, setMessage]);
+  }, [message, targetLang, sendMessage, setShowPlusModal]);
 
 
   return (

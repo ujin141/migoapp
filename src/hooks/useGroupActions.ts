@@ -362,6 +362,7 @@ export function useGroupActions(
     setApplyMessage,
     applySubmitting,
     appliedGroups,
+    setAppliedGroups,
     handleApply,
     // Applicants
     showApplicants,

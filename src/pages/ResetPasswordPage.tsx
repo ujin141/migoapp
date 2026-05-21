@@ -44,7 +44,7 @@ const ResetPasswordPage = () => {
         navigate("/login", { replace: true });
       }
     });
-  }, [navigate]);
+  }, [navigate, t]);
 
   const handleSubmit = async () => {
     if (password.length < 8) {

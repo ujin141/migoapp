@@ -12,6 +12,12 @@ export interface AuthUser {
   setupComplete?: boolean;
 }
 
+declare global {
+  interface Window {
+    __MIGO_PROFILE_CHANNEL__?: ReturnType<typeof supabase.channel> | null;
+  }
+}
+
 // profiles.photo_url 을 DB에서 가져와 user.photoUrl에 반영 (캐시 버스팅 포함)
 async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<AuthUser> {
   try {
@@ -180,7 +186,6 @@ if (!isSupabaseConfigured) {
 
   // 프로필 실시간 데이터 갱신 리스너 (글로벌 1회 등록)
   // BUG-16 fix: HMR 재로드 시 이전 채널 누수 방지 — window에 ref 저장
-  declare global { interface Window { __MIGO_PROFILE_CHANNEL__?: ReturnType<typeof supabase.channel> | null; } }
   let profileChannel: ReturnType<typeof supabase.channel> | null = null;
 
   const setupProfileListener = (userId: string) => {

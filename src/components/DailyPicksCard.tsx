@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,11 +25,6 @@ export default function DailyPicksCard({ onProfileClick }: { onProfileClick?: (i
   const [currentIdx, setCurrentIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState("");
 
-  useEffect(() => {
-    if (!user) return;
-    loadDailyPicks();
-  }, [user]);
-
   // 자정까지 남은 시간 카운트다운
   useEffect(() => {
     const update = () => {
@@ -46,7 +41,7 @@ export default function DailyPicksCard({ onProfileClick }: { onProfileClick?: (i
     return () => clearInterval(interval);
   }, []);
 
-  const loadDailyPicks = async () => {
+  const loadDailyPicks = useCallback(async () => {
     if (!user) return;
 
     // 날짜 기반 시드로 일관된 추천 (같은 날 같은 3명)
@@ -110,7 +105,12 @@ export default function DailyPicksCard({ onProfileClick }: { onProfileClick?: (i
 
     setPicks(pickResults);
     sessionStorage.setItem(`migo_daily_picks_${today}`, JSON.stringify(pickResults));
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadDailyPicks();
+  }, [loadDailyPicks, user]);
 
   if (picks.length === 0) return null;
 

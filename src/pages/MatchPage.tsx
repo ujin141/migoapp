@@ -152,11 +152,11 @@ const MatchPage = () => {
     filterTravelStyle.length +
     (filterAge[0] !== 18 || filterAge[1] !== 45 ? 1 : 0);
   // SEC-2 fix: localStorage 조작으로 인증 우회 불가 — Supabase 세션만 신뢰
-  const isLoggedIn = () => !!user;
-  const requireLogin = () => {
+  const isLoggedIn = useCallback(() => !!user, [user]);
+  const requireLogin = useCallback(() => {
     setShowLoginGate(true);
     return false;
-  };
+  }, []);
 
   // In-app notification banner
   const [inAppNotif, setInAppNotif] = useState<InAppNotifData | null>(null);
@@ -440,7 +440,7 @@ const MatchPage = () => {
     return () => {
       if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
     };
-  }, [user]);
+  }, [t, user]);
 
   // ── Supabase Realtime: online_status 실시간 구독 ──
   useEffect(() => {
@@ -562,7 +562,7 @@ const MatchPage = () => {
       result.push(pendingLikers[likerIdx++]);
     }
     return result;
-  }, [profiles, pendingLikers, ads, isPlus, isPremium, hasMyGps, filterDistance, filterGender, filterAge, filterLanguages, filterMbti, filterTravelStyle]);
+  }, [profiles, pendingLikers, ads, isPlus, isPremium, hasMyGps, filterDistance, filterGender, filterAge, filterLanguages, filterMbti, filterTravelStyle, t]);
   const handleSwipeLeft = useCallback(() => {
     const profile = withAds[currentIndex];
     if (profile?.isAd) {
@@ -698,7 +698,7 @@ const MatchPage = () => {
       });
     }
     return false;
-  }, [user, withAds]); // ISSUE-1 fix: withAds에 stale closure 방지
+  }, [t, user, withAds]); // ISSUE-1 fix: withAds에 stale closure 방지
   const handleSwipeRight = useCallback(() => {
     if (!isLoggedIn()) {
       requireLogin();
@@ -789,7 +789,7 @@ const MatchPage = () => {
         duration: 5000,
       });
     }
-  }, [currentIndex, withAds, addUnread, saveLikeAndCheckMatch, isPlus, isPremium, dailyLikesUsed, showInterstitial, t]);
+  }, [currentIndex, withAds, addUnread, saveLikeAndCheckMatch, isPlus, isPremium, dailyLikesUsed, showInterstitial, t, DAILY_LIKE_LIMIT, isLoggedIn, requireLogin]);
   const openSuperLikeModal = useCallback(() => {
     if (!isLoggedIn()) {
       requireLogin();
@@ -805,7 +805,7 @@ const MatchPage = () => {
     setPendingSuperProfile(profile);
     setSuperMsg("");
     setShowSuperLikeModal(true);
-  }, [currentIndex, withAds, superLikesLeft, isPlus]);
+  }, [currentIndex, withAds, superLikesLeft, isPlus, isLoggedIn, requireLogin]);
   const confirmSuperLike = useCallback(() => {
     if (!pendingSuperProfile) return;
     const profile = pendingSuperProfile;

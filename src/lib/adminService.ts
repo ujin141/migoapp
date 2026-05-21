@@ -765,7 +765,8 @@ export async function fetchSafetyCheckins() {
 // ? NOTIFICATIONS BROADCAST ???????????????????????????????????????
 
 /**
- * push-notify Edge Function에 직접 요청 (DB Webhook 미구성 환경에서도 FCM 발송)
+ * push-notify Edge Function 직접 호출은 서버 전용 Service Role 인증이 필요합니다.
+ * 클라이언트에서는 in-app 알림을 저장하고 DB Webhook/서버가 FCM을 처리하게 둡니다.
  */
 async function sendPushViaEdgeFunction(
   userId: string,
@@ -774,28 +775,11 @@ async function sendPushViaEdgeFunction(
   notifType = "system"
 ): Promise<boolean> {
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-    // ⚠️ SECURITY: Service Role Key는 클라이언트 번들에 포함되면 안 됨 → anon key 사용
-    const authKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-    if (!supabaseUrl || !authKey) return false;
-
-    const res = await fetch(`${supabaseUrl}/functions/v1/push-notify`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${authKey}`,
-      },
-      body: JSON.stringify({
-        table: "in_app_notifications",
-        record: {
-          user_id: userId,
-          title,
-          content: body,
-          type: notifType,
-        },
-      }),
-    });
-    return res.ok;
+    void userId;
+    void title;
+    void body;
+    void notifType;
+    return false;
   } catch (e) {
     console.warn("[adminService] sendPushViaEdgeFunction failed:", e);
     return false;

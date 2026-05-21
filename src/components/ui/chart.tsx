@@ -5,6 +5,18 @@ import { cn } from "@/lib/utils";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
+const CSS_IDENTIFIER_SAFE = /[^a-zA-Z0-9_-]/g;
+
+function sanitizeCssIdentifier(value: string) {
+  return value.replace(CSS_IDENTIFIER_SAFE, "-");
+}
+
+function sanitizeCssColor(value: string | undefined) {
+  const color = value?.trim();
+  if (!color || /[;{}<>]/.test(color)) return undefined;
+  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return color;
+  return CSS.supports("color", color) ? color : undefined;
+}
 
 export type ChartConfig = {
   [k in string]: {
@@ -37,7 +49,7 @@ const ChartContainer = React.forwardRef<
   }
 >(({ id, className, children, config, ...props }, ref) => {
   const uniqueId = React.useId();
-  const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
+  const chartId = `chart-${sanitizeCssIdentifier(id || uniqueId.replace(/:/g, ""))}`;
 
   return (
     <ChartContext.Provider value={{ config }}>
@@ -74,9 +86,10 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    const color = sanitizeCssColor(itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color);
+    return color ? `  --color-${sanitizeCssIdentifier(key)}: ${color};` : null;
   })
+  .filter(Boolean)
   .join("\n")}
 }
 `,

@@ -125,7 +125,7 @@ export const HotplaceSheet = ({
       setActiveTab("info");
       loadSeekers();
     }
-  }, [hotplace?.id]);
+  }, [hotplace, loadSeekers]);
 
   // ── 구인 등록 ─────────────────────────────────────────────────
   const handleRegisterSeeker = async () => {

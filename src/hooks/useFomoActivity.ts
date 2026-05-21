@@ -41,7 +41,6 @@ export const useFomoActivity = (enabled: boolean = true, userId?: string) => {
     fi: ["Pariisi", "Lontoo", "Tokio", "Jeju", "Osaka", "New York", "Rooma", "Bangkok", "Barcelona", "Bali"],
     da: ["Paris", "London", "Tokyo", "Jeju", "Osaka", "New York", "Rom", "Bangkok", "Barcelona", "Bali"],
     no: ["Paris", "London", "Tokyo", "Jeju", "Osaka", "New York", "Roma", "Bangkok", "Barcelona", "Bali"],
-    sv: ["Paris", "London", "Tokyo", "Jeju", "Osaka", "New York", "Rom", "Bangkok", "Barcelona", "Bali"],
   }), []);
 
   type TplFn = (p: { flag: string; name: string; loc: string; count1: number; count2: number }) => string;

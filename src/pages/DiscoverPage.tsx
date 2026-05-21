@@ -147,7 +147,7 @@ const DiscoverPage = () => {
     handleJoin, joinPopup, setJoinPopup, closeJoinPopup,
     countdown, setCountdown, timersRef, clearAllTimers,
     confirmDialog, setConfirmDialog,
-    applyGroup, setApplyGroup, applyMessage, setApplyMessage, applySubmitting, appliedGroups, handleApply,
+    applyGroup, setApplyGroup, applyMessage, setApplyMessage, applySubmitting, appliedGroups, setAppliedGroups, handleApply,
     showApplicants, setShowApplicants, applicantsList,
     handleViewApplicants, handleApproveApplicant, handleRejectApplicant,
     deleteGroup: deleteGroupAction,
@@ -870,7 +870,7 @@ const DiscoverPage = () => {
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [joinPopup, t]);
+  }, [joinPopup, setCountdown, t]);
 
   // ── Join group: handleJoin / joinGroup → useGroupActions 훅으로 이동 ──
 
@@ -2037,7 +2037,7 @@ const DiscoverPage = () => {
                     </div>
                     {app.status === 'pending' && <div className="flex gap-2">
                         <button onClick={() => handleRejectApplicant(app.id)} className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-400 font-bold text-xs border border-red-500/20">{t("auto.ko_0116", "거절")}</button>
-                        <button onClick={() => handleApproveApplicant(app.id, app.applicant_id, showApplicants)} className="flex-1 py-2 rounded-xl gradient-primary text-primary-foreground font-bold text-xs">{t("auto.ko_0117", "동행승인8")}</button>
+                        <button onClick={() => handleApproveApplicant(app.id)} className="flex-1 py-2 rounded-xl gradient-primary text-primary-foreground font-bold text-xs">{t("auto.ko_0117", "동행승인8")}</button>
                       </div>}
                   </div>)}
               </div>}

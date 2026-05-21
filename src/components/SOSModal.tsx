@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Phone, AlertTriangle, Shield, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -63,20 +63,7 @@ const SOSModal = ({
     });
   }, [isOpen]);
 
-  // Countdown + DB 저장
-  useEffect(() => {
-    if (phase !== "sending") return;
-    if (countdown <= 0) {
-      setPhase("sent");
-      setLocSent(true);
-      saveSOS();
-      return;
-    }
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [phase, countdown]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const saveSOS = async () => {
+  const saveSOS = useCallback(async () => {
     if (!user) return;
     try {
       await supabase.from("sos_alerts").insert({
@@ -105,7 +92,20 @@ const SOSModal = ({
         description: i18n.t("alert.t8Desc")
       });
     }
-  };
+  }, [address, coords?.lat, coords?.lng, targetGroupId, targetUserId, user]);
+
+  // Countdown + DB 저장
+  useEffect(() => {
+    if (phase !== "sending") return;
+    if (countdown <= 0) {
+      setPhase("sent");
+      setLocSent(true);
+      saveSOS();
+      return;
+    }
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phase, countdown, saveSOS]);
   return <AnimatePresence>
       {isOpen && <motion.div className="fixed inset-0 z-[80] flex items-center justify-center px-6" initial={{
       opacity: 0

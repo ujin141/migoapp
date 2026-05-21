@@ -76,7 +76,7 @@ export default defineConfig(({ mode }) => ({
     minify: "esbuild",
     modulePreload: { polyfill: false }, // crossorigin 없는 preload
     target: "es2020",
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 950,
     cssCodeSplit: true,
     reportCompressedSize: false,
 

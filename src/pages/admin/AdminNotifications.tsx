@@ -69,7 +69,7 @@ export const AdminNotifications = () => {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<{ count: number } | null>(null);
   const [log, setLog] = useState<typeof history>(history);
-  const [hasFcmWarning, setHasFcmWarning] = useState(!import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY);
+  const [hasFcmWarning, setHasFcmWarning] = useState(false);
 
   const send = async () => {
     if (!title || !content) return;
@@ -117,8 +117,8 @@ export const AdminNotifications = () => {
           <div>
             <p className="text-xs font-bold text-amber-500">FCM 직접 푸시 미설정</p>
             <p className="text-xs text-amber-500/80 mt-0.5">
-              <code className="font-mono">VITE_SUPABASE_SERVICE_ROLE_KEY</code> 환경변수가 없어 in-app 알림만 저장됩니다.
-              Service Role Key를 설정하면 FCM 푸시까지 직접 발송됩니다.
+              FCM 직접 발송은 서버 Webhook 또는 Edge Function secret으로만 처리해야 합니다.
+              Service Role Key는 클라이언트 환경변수에 설정하지 마세요.
             </p>
           </div>
           <button onClick={() => setHasFcmWarning(false)} className="ml-auto text-amber-500/60 hover:text-amber-500 text-xs">✕</button>

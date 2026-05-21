@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
 
@@ -24,6 +24,15 @@ export default function StoryViewer({ posts, initialIndex, onClose, onLike, onCo
 
   const currentPost = posts[currentIndex];
 
+  const handleNext = useCallback(() => {
+    if (currentIndex < posts.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setProgress(0);
+    } else {
+      onClose();
+    }
+  }, [currentIndex, onClose, posts.length]);
+
   useEffect(() => {
     if (isPaused || !currentPost) return;
 
@@ -46,16 +55,7 @@ export default function StoryViewer({ posts, initialIndex, onClose, onLike, onCo
     animationFrameId = requestAnimationFrame(updateProgress);
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [currentIndex, isPaused, currentPost]);
-
-  const handleNext = () => {
-    if (currentIndex < posts.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-      setProgress(0);
-    } else {
-      onClose(); // End of stories
-    }
-  };
+  }, [currentIndex, isPaused, currentPost, handleNext]);
 
   const handlePrev = () => {
     if (currentIndex > 0) {

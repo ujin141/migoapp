@@ -104,6 +104,7 @@ function formatTime(isoStr: string): string {
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const { user, sessionReady } = useAuth();
+  const userId = user?.id;
 
   // CRIT-3 fix: 내 채팅방 ID 목록을 ref로 캐시 (매 메시지마다 DB 조회 방지)
   const myThreadIdsRef = useRef<Set<string>>(new Set());
@@ -132,20 +133,20 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
   // ── 알림 목록 fetch ──
   useEffect(() => {
-    if (!user || !sessionReady) return;
+    if (!userId || !sessionReady) return;
 
     const fetchNotifs = async () => {
       const [notifsRes, inAppRes] = await Promise.all([
         supabase
           .from("notifications")
           .select("id, type, actor_id, target_text, is_read, created_at, profiles!notifications_actor_id_fkey(name, photo_url)")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(25),  // 50 → 25 (egress 50% 절감)
         supabase
           .from("in_app_notifications")
           .select("id, type, title, content, is_read, created_at")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(20)
           .then(r => r.error ? { data: [], error: null } : r)
@@ -196,7 +197,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
     // ── 단일 채널: notifications + in_app_notifications + messages ──
     const channel = supabase
-      .channel(`notifs_all:${user.id}`)
+      .channel(`notifs_all:${userId}`)
 
       // 1) notifications 테이블 (좋아요 / 매칭 / 댓글 / 그룹)
       .on(
@@ -205,7 +206,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           event: "INSERT",
           schema: "public",
           table: "notifications",
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
           const n = payload.new as any;
@@ -258,7 +259,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           event: "INSERT",
           schema: "public",
           table: "in_app_notifications",
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           const n = payload.new as any;
@@ -293,7 +294,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         },
         async (payload) => {
           const msg = payload.new as any;
-          if (!msg.sender_id || msg.sender_id === user.id) return;
+          if (!msg.sender_id || msg.sender_id === userId) return;
 
           // CRIT-3 fix: DB 조회 없이 ref 캐시로 멤버십 확인 (O(1))
           if (!myThreadIdsRef.current.has(msg.thread_id)) return;
@@ -337,7 +338,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     supabase
       .from("chat_members")
       .select("thread_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .then(({ data }) => {
         if (data) {
           myThreadIdsRef.current = new Set(data.map((m: any) => m.thread_id));
@@ -346,10 +347,10 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
     // 매치 INSERT 시 ref 업데이트 (chat_members 실시간 구독 없이 매치 후 갱신)
     const matchChannel = supabase
-      .channel(`notif_match_refresh:${user.id}`)
+      .channel(`notif_match_refresh:${userId}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'chat_members',
-        filter: `user_id=eq.${user.id}`
+        filter: `user_id=eq.${userId}`
       }, (payload) => {
         const newThreadId = (payload.new as any)?.thread_id;
         if (newThreadId) myThreadIdsRef.current.add(newThreadId);
@@ -365,7 +366,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         bannerTimerRef.current = null;
       }
     };
-  }, [user?.id, sessionReady]);
+  }, [userId, sessionReady]);
 
 
   // ── 읽음 처리 (notifications + in_app_notifications 모두) ──
@@ -398,7 +399,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   // ── 전체 읽음 처리 ──
   const markAllRead = useCallback(
     async () => {
-      if (!user) return;
+      if (!userId) return;
 
       setNotifs((prev) => {
         const allIds = prev.map((n) => n.id);
@@ -415,29 +416,29 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         supabase
           .from("notifications")
           .update({ is_read: true })
-          .eq("user_id", user.id),
+          .eq("user_id", userId),
         supabase
           .from("in_app_notifications")
           .update({ is_read: true })
-          .eq("user_id", user.id),
+          .eq("user_id", userId),
       ]);
     },
-    [user?.id]
+    [userId]
   );
 
   // ── 직접 알림 추가 (UI 레벨에서 필요한 경우) ──
   const addNotif = useCallback(
     async (template: Omit<Notif, "id" | "time" | "read">) => {
-      if (!user) return;
+      if (!userId) return;
       const { error: notifErr } = await supabase.from("notifications").insert({
-        user_id: user.id,
+        user_id: userId,
         type: template.type,
-        actor_id: user.id,
+        actor_id: userId,
         target_text: template.target,
       });
       if (notifErr && notifErr.code !== '23505') console.warn("addNotif:", notifErr.message);
     },
-    [user]
+    [userId]
   );
 
   const clearMessageBanner = useCallback(() => setMessageBanner(null), []);
