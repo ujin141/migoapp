@@ -12,7 +12,7 @@ async function checkErrors() {
   const poRet = await supabase.from('posts').select('id,content,image_urls,image_url,created_at,post_likes(count),comments(id)').limit(1);
   if (poRet.error) console.log('Posts Error:', poRet.error.message, poRet.error.details, poRet.error.hint);
 
-  const rRet = await supabase.from('meet_reviews').select('target_id,rating').limit(1);
+  const rRet = await supabase.from('meet_reviews').select('reviewed_id,rating').limit(1);
   if (rRet.error) console.log('Reviews Error:', rRet.error.message, rRet.error.details, rRet.error.hint);
 }
 
