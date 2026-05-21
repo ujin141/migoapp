@@ -231,6 +231,7 @@ CREATE TABLE IF NOT EXISTS in_app_notifications (
   title      TEXT,
   content    TEXT,
   type       TEXT DEFAULT 'info',
+  target_id  UUID,  -- 포스트, 그룹, 사용자 등 관련 리소스 ID
   read       BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -634,6 +635,10 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS visited_countries       TEX
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profile_theme           TEXT DEFAULT 'default';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS photo_urls              TEXT[] DEFAULT '{}';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS travel_dates            TEXT;
+-- 알림 빈도 제한 컬럼 (스팸 방지)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS notif_sent_today        INT DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS notif_sent_at           TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS max_notif_per_day       INT DEFAULT 10;
 -- ⚠️ block_sensitive_profile_updates 트리거가 참조하는 컬럼 (없으면 모든 UPDATE가 실패함)
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS super_likes_left        INTEGER DEFAULT 3;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS super_likes_reset       TIMESTAMPTZ;
@@ -1343,6 +1348,152 @@ CREATE TRIGGER trg_notify_on_group_join
   AFTER INSERT ON trip_group_members
   FOR EACH ROW EXECUTE FUNCTION notify_on_group_join();
 
+-- ========== 신규: 포스트 좋아요 알림 트리거 ==========
+-- 누군가 내 포스트를 좋아할 때 알림 생성
+CREATE OR REPLACE FUNCTION notify_on_post_like()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_post_author UUID;
+  v_post_snippet TEXT;
+BEGIN
+  SELECT author_id, LEFT(content, 80) INTO v_post_author, v_post_snippet
+  FROM posts WHERE id = NEW.post_id;
+  
+  IF v_post_author IS NULL OR v_post_author = NEW.user_id THEN
+    RETURN NEW;
+  END IF;
+  
+  -- 알림 생성
+  INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
+  VALUES (v_post_author, 'post_like', NEW.user_id, NEW.post_id, v_post_snippet)
+  ON CONFLICT DO NOTHING;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_notify_on_post_like ON post_likes;
+CREATE TRIGGER trg_notify_on_post_like
+  AFTER INSERT ON post_likes
+  FOR EACH ROW EXECUTE FUNCTION notify_on_post_like();
+
+-- ========== 신규: 포스트 인기도 알림 (in-app) ==========
+-- 좋아요 수가 특정 milestone(10, 50, 100, 500)에 도달할 때 인앱 알림
+CREATE OR REPLACE FUNCTION check_post_popularity_milestone()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_post_author UUID;
+  v_like_count INT;
+  v_milestone INT;
+  v_prev_milestone INT;
+BEGIN
+  SELECT author_id INTO v_post_author FROM posts WHERE id = NEW.post_id;
+  IF v_post_author IS NULL THEN RETURN NEW; END IF;
+  
+  SELECT COUNT(*) INTO v_like_count FROM post_likes WHERE post_id = NEW.post_id;
+  
+  -- Milestone 판정: 10, 50, 100, 500
+  CASE
+    WHEN v_like_count >= 500 AND v_like_count < 501 THEN
+      v_milestone := 500;
+    WHEN v_like_count >= 100 AND v_like_count < 101 THEN
+      v_milestone := 100;
+    WHEN v_like_count >= 50 AND v_like_count < 51 THEN
+      v_milestone := 50;
+    WHEN v_like_count >= 10 AND v_like_count < 11 THEN
+      v_milestone := 10;
+    ELSE
+      RETURN NEW;
+  END CASE;
+  
+  -- 이전 milestone 확인 (중복 방지)
+  SELECT CAST(title AS INT) INTO v_prev_milestone
+  FROM in_app_notifications
+  WHERE user_id = v_post_author
+    AND type = 'post_milestone'
+    AND target_id = NEW.post_id
+  ORDER BY created_at DESC
+  LIMIT 1;
+  
+  -- 새로운 milestone이면 알림 생성
+  IF v_prev_milestone IS NULL OR v_prev_milestone < v_milestone THEN
+    INSERT INTO in_app_notifications (user_id, title, content, type, target_id)
+    VALUES (
+      v_post_author,
+      v_milestone::TEXT,
+      '🔥 포스트가 ' || v_milestone || '개의 좋아요를 받았어요!',
+      'post_milestone',
+      NEW.post_id
+    );
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_check_post_milestone ON post_likes;
+CREATE TRIGGER trg_check_post_milestone
+  AFTER INSERT ON post_likes
+  FOR EACH ROW EXECUTE FUNCTION check_post_popularity_milestone();
+
+-- ========== 신규: 알림 빈도 제한 함수 ==========
+CREATE OR REPLACE FUNCTION should_notify_user(user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_sent_today INT;
+  v_max_per_day INT;
+  v_last_reset BOOLEAN;
+BEGIN
+  SELECT notif_sent_today, max_notif_per_day INTO v_sent_today, v_max_per_day
+  FROM profiles
+  WHERE id = user_id;
+  
+  -- 카운터 리셋 필요한지 확인
+  v_last_reset := (
+    SELECT DATE(notif_sent_at) < CURRENT_DATE
+    FROM profiles
+    WHERE id = user_id
+  );
+  
+  IF v_last_reset THEN
+    UPDATE profiles
+    SET notif_sent_today = 0, notif_sent_at = NOW()
+    WHERE id = user_id;
+    v_sent_today := 0;
+  END IF;
+  
+  -- 오늘 보낸 알림이 최대치 미만이면 TRUE, 초과하면 FALSE
+  RETURN v_sent_today < v_max_per_day;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.should_notify_user(UUID) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION increment_notif_sent_today(user_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE profiles
+  SET notif_sent_today = notif_sent_today + 1,
+      notif_sent_at = NOW()
+  WHERE id = user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.increment_notif_sent_today(UUID) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION reset_daily_notif_counters()
+RETURNS TABLE(reset_count INT) AS $$
+BEGIN
+  UPDATE profiles
+  SET notif_sent_today = 0
+  WHERE DATE(notif_sent_at) < CURRENT_DATE;
+  
+  RETURN QUERY SELECT COUNT(*)::INT FROM profiles WHERE DATE(notif_sent_at) < CURRENT_DATE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.reset_daily_notif_counters() TO authenticated, service_role;
+
 -- 만료 채팅방 자동 삭제 함수 (pg_cron용)
 CREATE OR REPLACE FUNCTION cleanup_expired_chat_threads()
 RETURNS INTEGER
@@ -1893,11 +2044,14 @@ CREATE INDEX IF NOT EXISTS idx_posts_created           ON posts(created_at DESC)
 
 -- notifications
 CREATE INDEX IF NOT EXISTS idx_notif_user              ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notif_type              ON notifications(type, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_notif_profile_view_dedup
   ON notifications (user_id, actor_id, type) WHERE type = 'profile_view';
 
 -- in_app_notifications
 CREATE INDEX IF NOT EXISTS idx_inapp_user              ON in_app_notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inapp_target            ON in_app_notifications(target_id);
+CREATE INDEX IF NOT EXISTS idx_inapp_type              ON in_app_notifications(type, created_at DESC);
 
 -- trip_groups
 CREATE INDEX IF NOT EXISTS idx_trip_groups_is_active    ON trip_groups(is_active);
