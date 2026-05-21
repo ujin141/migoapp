@@ -230,6 +230,15 @@ const AppContent = () => {
         navigate('/chat', { state: { threadId: data.thread_id } });
       } else if (data?.type === 'like' || data?.type === 'superlike') {
         navigate('/');
+      } else if (data?.type === 'post_like' && data?.post_id) {
+        // 포스트 좋아요 → 커뮤니티 피드로 이동
+        navigate('/community');
+      } else if (data?.type === 'post_milestone' && data?.post_id) {
+        // 포스트 인기도 알림 → 커뮤니티 피드로 이동
+        navigate('/community');
+      } else if (data?.type === 'comment' && data?.post_id) {
+        // 댓글 알림 → 커뮤니티 피드로 이동
+        navigate('/community');
       } else {
         navigate('/notifications');
       }

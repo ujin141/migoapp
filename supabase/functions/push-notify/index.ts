@@ -167,6 +167,12 @@ function buildMessage(
         body: `${actorName}: ${record.target_text ?? "게시글에 댓글이 달렸습니다"}`,
         data: { type: "comment", post_id: record.target_id ?? "" },
       };
+    case "post_like":
+      return {
+        title: "❤️ 포스트 좋아요",
+        body: `${actorName}님이 포스트를 좋아합니다`,
+        data: { type: "post_like", post_id: record.target_id ?? "" },
+      };
     case "group_join":
       return {
         title: "👥 그룹 새 멤버",
@@ -218,6 +224,7 @@ function toPrefKey(notifType: string): string | null {
   switch (notifType) {
     case "like":        return "like";
     case "superlike":   return "superlike";
+    case "post_like":   return "like"; // 포스트 좋아요도 'like' pref로 필터
     case "match":       return "match";
     case "comment":     return "comment";
     case "group_join":  return "group";

@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS in_app_notifications (
   title      TEXT,
   content    TEXT,
   type       TEXT DEFAULT 'info',
+  target_id  UUID,
   read       BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

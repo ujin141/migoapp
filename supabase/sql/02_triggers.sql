@@ -316,6 +316,94 @@ CREATE TRIGGER trg_notify_on_group_join
   AFTER INSERT ON trip_group_members
   FOR EACH ROW EXECUTE FUNCTION notify_on_group_join();
 
+-- ========== 신규: 포스트 좋아요 알림 트리거 ==========
+-- 누군가 내 포스트를 좋아할 때 알림 생성
+CREATE OR REPLACE FUNCTION notify_on_post_like()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_post_author UUID;
+  v_post_snippet TEXT;
+BEGIN
+  SELECT author_id, LEFT(content, 80) INTO v_post_author, v_post_snippet
+  FROM posts WHERE id = NEW.post_id;
+  
+  IF v_post_author IS NULL OR v_post_author = NEW.user_id THEN
+    RETURN NEW;
+  END IF;
+  
+  -- 알림 생성
+  INSERT INTO notifications (user_id, type, actor_id, target_id, target_text)
+  VALUES (v_post_author, 'post_like', NEW.user_id, NEW.post_id, v_post_snippet)
+  ON CONFLICT DO NOTHING;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_notify_on_post_like ON post_likes;
+CREATE TRIGGER trg_notify_on_post_like
+  AFTER INSERT ON post_likes
+  FOR EACH ROW EXECUTE FUNCTION notify_on_post_like();
+
+-- ========== 신규: 포스트 인기도 알림 (in-app) ==========
+-- 좋아요 수가 특정 milestone(10, 50, 100, 500)에 도달할 때 인앱 알림
+CREATE OR REPLACE FUNCTION check_post_popularity_milestone()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_post_author UUID;
+  v_like_count INT;
+  v_milestone INT;
+  v_prev_milestone INT;
+BEGIN
+  SELECT author_id INTO v_post_author FROM posts WHERE id = NEW.post_id;
+  IF v_post_author IS NULL THEN RETURN NEW; END IF;
+  
+  SELECT COUNT(*) INTO v_like_count FROM post_likes WHERE post_id = NEW.post_id;
+  
+  -- Milestone 판정: 10, 50, 100, 500
+  CASE
+    WHEN v_like_count >= 500 AND v_like_count < 501 THEN
+      v_milestone := 500;
+    WHEN v_like_count >= 100 AND v_like_count < 101 THEN
+      v_milestone := 100;
+    WHEN v_like_count >= 50 AND v_like_count < 51 THEN
+      v_milestone := 50;
+    WHEN v_like_count >= 10 AND v_like_count < 11 THEN
+      v_milestone := 10;
+    ELSE
+      RETURN NEW;
+  END CASE;
+  
+  -- 이전 milestone 확인 (중복 방지)
+  SELECT CAST(title AS INT) INTO v_prev_milestone
+  FROM in_app_notifications
+  WHERE user_id = v_post_author
+    AND type = 'post_milestone'
+    AND target_id = NEW.post_id
+  ORDER BY created_at DESC
+  LIMIT 1;
+  
+  -- 새로운 milestone이면 알림 생성
+  IF v_prev_milestone IS NULL OR v_prev_milestone < v_milestone THEN
+    INSERT INTO in_app_notifications (user_id, title, content, type, target_id)
+    VALUES (
+      v_post_author,
+      v_milestone::TEXT,
+      '🔥 포스트가 ' || v_milestone || '개의 좋아요를 받았어요!',
+      'post_milestone',
+      NEW.post_id
+    );
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_check_post_milestone ON post_likes;
+CREATE TRIGGER trg_check_post_milestone
+  AFTER INSERT ON post_likes
+  FOR EACH ROW EXECUTE FUNCTION check_post_popularity_milestone();
+
 -- 만료 채팅방 자동 삭제 함수 (pg_cron용)
 CREATE OR REPLACE FUNCTION cleanup_expired_chat_threads()
 RETURNS INTEGER
