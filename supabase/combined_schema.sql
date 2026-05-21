@@ -235,6 +235,7 @@ CREATE TABLE IF NOT EXISTS in_app_notifications (
   read       BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS target_id UUID;
 ALTER TABLE in_app_notifications ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "inapp_select_own" ON in_app_notifications;
 DROP POLICY IF EXISTS "inapp_insert"     ON in_app_notifications;

@@ -44,6 +44,11 @@ ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS entry_fee   INTEGER DEFAULT 0;
 ALTER TABLE trip_groups ADD COLUMN IF NOT EXISTS is_premium  BOOLEAN DEFAULT false;
 
 -- ─────────────────────────────────────────────
+-- 5b. in_app_notifications 누락 컬럼
+-- ─────────────────────────────────────────────
+ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS target_id UUID;
+
+-- ─────────────────────────────────────────────
 -- 6. messages: text ↔ content 동기화 트리거
 -- (text로 insert하면 content에도 반영, vice versa)
 -- ─────────────────────────────────────────────
