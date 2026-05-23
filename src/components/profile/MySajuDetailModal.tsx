@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Calendar, Globe, Sparkles, MapPin, Compass, Info, Check, User } from "lucide-react";
+import { X, Calendar, Globe, Sparkles, MapPin, Compass, Info, Check, User, Heart, Crown } from "lucide-react";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { Solar, Lunar } from "lunar-javascript";
 
