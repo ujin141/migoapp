@@ -2,7 +2,7 @@ import i18n from "@/i18n";
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Settings, ChevronLeft, ChevronRight, MapPin, Calendar, Globe, Camera, LogOut, Shield, Bell, HelpCircle, X, Check, Edit2, Plus, Heart, MessageCircle, Star, Users, Plane, Handshake, Crown, AlertTriangle, ShoppingBag, FileText, Eye, Zap, Navigation, Lock, Send } from "lucide-react";
+import { Settings, ChevronLeft, ChevronRight, MapPin, Calendar, Globe, Camera, LogOut, Shield, Bell, HelpCircle, X, Check, Edit2, Plus, Heart, MessageCircle, Star, Sparkles, Users, Plane, Handshake, Crown, AlertTriangle, ShoppingBag, FileText, Eye, Zap, Navigation, Lock, Send } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import SOSModal from "@/components/SOSModal";
