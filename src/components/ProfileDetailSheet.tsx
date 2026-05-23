@@ -26,6 +26,7 @@ const SAJU_ELEMENTS: Record<
     textBg: string;
     glowColor: string;
     name: Record<string, string>;
+    shortName: Record<string, string>;
     desc: Record<string, string>;
   }
 > = {
@@ -39,6 +40,12 @@ const SAJU_ELEMENTS: Record<
       en: "Gentle Breeze Nomad (Wood Element)",
       ja: "そよ風の即興放浪者 (木)",
       zh: "微风即兴流浪者 (木)"
+    },
+    shortName: {
+      ko: "산들바람 (木)",
+      en: "Breeze (Wood)",
+      ja: "そよ風 (木)",
+      zh: "微风 (木)"
     },
     desc: {
       ko: "푸르른 나무처럼 자유롭고 생기발랄하며, 계획보다 발길이 닿는 대로 즉흥 탐험을 즐기는 활기찬 성향입니다.",
@@ -55,8 +62,14 @@ const SAJU_ELEMENTS: Record<
     name: {
       ko: "태양의 열정 여행자 (火 - Golden Flame)",
       en: "Golden Flame Traveler (Fire Element)",
-      ja: "太陽の情熱旅行者 (火)",
+      ja: "太陽의 情熱旅行者 (火)",
       zh: "太阳的激情旅行者 (火)"
+    },
+    shortName: {
+      ko: "태양열정 (火)",
+      en: "Flame (Fire)",
+      ja: "太陽情熱 (火)",
+      zh: "太阳激情 (火)"
     },
     desc: {
       ko: "뜨겁게 타오르는 불꽃처럼 강렬한 에너지를 지녔으며, 밤새 즐기는 축제나 현지 번개 핫플레이스 탐험을 사랑합니다.",
@@ -73,8 +86,14 @@ const SAJU_ELEMENTS: Record<
     name: {
       ko: "단단한 바위 계획 여행자 (土 - Iron Mountain)",
       en: "Iron Mountain Wanderer (Earth Element)",
-      ja: "頑丈な岩の計画旅行者 (土)",
+      ja: "頑丈な岩의 計画旅行者 (土)",
       zh: "坚实岩石计划旅行者 (土)"
+    },
+    shortName: {
+      ko: "단단바위 (土)",
+      en: "Mountain (Earth)",
+      ja: "頑丈岩 (土)",
+      zh: "坚实岩石 (土)"
     },
     desc: {
       ko: "넓고 따뜻한 대지처럼 묵직하며, 꼼꼼하게 동선과 예산을 짜서 함께하는 사람들에게 높은 신뢰를 주는 든든한 가이드형입니다.",
@@ -94,6 +113,12 @@ const SAJU_ELEMENTS: Record<
       ja: "華やかな宝石の感性旅行者 (金)",
       zh: "华丽宝石感性旅行者 (金)"
     },
+    shortName: {
+      ko: "화려보석 (金)",
+      en: "Jewel (Metal)",
+      ja: "華やか宝石 (金)",
+      zh: "华丽宝石 (金)"
+    },
     desc: {
       ko: "다이아몬드처럼 빛나는 감각을 지녔으며, 감성 미술관, 빈티지 숍, 그리고 완벽한 미적 레이아웃의 인생샷을 찍는 여정을 선호합니다.",
       en: "Possesses a sparkling sensibility like a diamond. You prefer gorgeous art museums, vintage boutiques, and aesthetic photo walks.",
@@ -109,8 +134,14 @@ const SAJU_ELEMENTS: Record<
     name: {
       ko: "유연한 강물 미식 탐험가 (水 - Ocean Explorer)",
       en: "Ocean Tides Explorer (Water Element)",
-      ja: "柔軟な川の流れの美食探検家 (水)",
+      ja: "柔軟な川の流れ의 美食探検家 (水)",
       zh: "柔美江河美食探险家 (水)"
+    },
+    shortName: {
+      ko: "유연강물 (水)",
+      en: "Ocean (Water)",
+      ja: "柔軟な川 (水)",
+      zh: "柔美江河 (水)"
     },
     desc: {
       ko: "끝없이 흐르는 강물처럼 유연하며, 유명한 숨겨진 미식 골목 투어를 좋아하고 어떤 낯선 여행 환경에도 막힘없이 녹아듭니다.",
@@ -890,7 +921,9 @@ const ProfileDetailSheet = ({
                               {myEl ? (
                                 <div className="flex flex-col items-center">
                                   <span className="text-xl filter drop-shadow">{myEl.emoji}</span>
-                                  <p className="text-[10px] font-bold text-foreground mt-0.5">{myEl.name[lang] || myEl.name.en}</p>
+                                  <p className="text-[10px] font-black text-foreground mt-0.5 whitespace-normal break-words leading-snug">
+                                    {myEl.shortName[lang] || myEl.shortName.en}
+                                  </p>
                                 </div>
                               ) : (
                                 <div className="flex flex-col items-center py-0.5">
@@ -905,7 +938,9 @@ const ProfileDetailSheet = ({
                               <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">{targetElementLabel}</p>
                               <div className="flex flex-col items-center">
                                 <span className="text-xl filter drop-shadow">{targetEl.emoji}</span>
-                                <p className="text-[10px] font-bold text-foreground mt-0.5">{targetEl.name[lang] || targetEl.name.en}</p>
+                                <p className="text-[10px] font-black text-foreground mt-0.5 whitespace-normal break-words leading-snug">
+                                  {targetEl.shortName[lang] || targetEl.shortName.en}
+                                </p>
                               </div>
                             </div>
                           </div>

@@ -24,6 +24,167 @@ import { checkInStreak } from "@/lib/streakService";
 import { getCurrentLocation } from "@/lib/locationService";
 import StoryViewer from "@/components/StoryViewer";
 import ProfileCompletionBar from "@/components/ProfileCompletionBar";
+
+const getDeterministicHash = (str: string): number => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const SAJU_ELEMENTS: Record<
+  string,
+  {
+    emoji: string;
+    color: string;
+    textBg: string;
+    glowColor: string;
+    name: Record<string, string>;
+    shortName: Record<string, string>;
+    desc: Record<string, string>;
+  }
+> = {
+  wood: {
+    emoji: "🌲",
+    color: "from-emerald-500 to-teal-600",
+    textBg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+    glowColor: "shadow-emerald-500/20",
+    name: {
+      ko: "산들바람 즉흥 방랑자 (木 - Wood Nomad)",
+      en: "Gentle Breeze Nomad (Wood Element)",
+      ja: "そよ風の即興放浪者 (木)",
+      zh: "微风即兴流浪者 (木)"
+    },
+    shortName: {
+      ko: "산들바람 (木)",
+      en: "Breeze (Wood)",
+      ja: "そよ風 (木)",
+      zh: "微风 (木)"
+    },
+    desc: {
+      ko: "푸르른 나무처럼 자유롭고 생기발랄하며, 계획보다 발길이 닿는 대로 즉흥 탐험을 즐기는 활기찬 성향입니다.",
+      en: "Free-spirited and vibrant like a green tree. You love spontaneous wanders where your feet lead, rather than strict plans.",
+      ja: "青々とした木のように自由で活気に満ち、計画よりも足의 향하는 대로 즉흥적인 모험을 즐깁니다.",
+      zh: "像青翠的树木一样自由而充满活力，相比死板的计划，更喜欢随心所欲的即兴探索。"
+    }
+  },
+  fire: {
+    emoji: "🔥",
+    color: "from-rose-500 to-orange-600",
+    textBg: "bg-rose-500/10 text-rose-400 border-rose-500/30",
+    glowColor: "shadow-rose-500/20",
+    name: {
+      ko: "태양의 열정 여행자 (火 - Golden Flame)",
+      en: "Golden Flame Traveler (Fire Element)",
+      ja: "太陽の情熱旅行者 (火)",
+      zh: "太阳的激情旅行者 (火)"
+    },
+    shortName: {
+      ko: "태양열정 (火)",
+      en: "Flame (Fire)",
+      ja: "太陽情熱 (火)",
+      zh: "太阳激情 (火)"
+    },
+    desc: {
+      ko: "뜨겁게 타오르는 불꽃처럼 강렬한 에너지를 지녔으며, 밤새 즐기는 축제나 현지 번개 핫플레이스 탐험을 사랑합니다.",
+      en: "Possesses an intense energy like a blazing flame. You love vibrant festivals, nightlife, and exploring local hot spots.",
+      ja: "燃え上がる炎のような強烈なエネルギーを持ち、一晩中楽しむ祭りや現地のホットプレイス探検を愛しています。",
+      zh: "拥有像烈火般强烈的能量，热爱彻夜狂欢的节日以及探索当地最热门的聚会场所。"
+    }
+  },
+  earth: {
+    emoji: "⛰️",
+    color: "from-amber-600 to-yellow-700",
+    textBg: "bg-amber-600/10 text-amber-400 border-amber-600/30",
+    glowColor: "shadow-amber-600/20",
+    name: {
+      ko: "단단한 바위 계획 여행자 (土 - Iron Mountain)",
+      en: "Iron Mountain Wanderer (Earth Element)",
+      ja: "頑丈な岩の計画旅行者 (土)",
+      zh: "坚实岩石计划旅行者 (土)"
+    },
+    shortName: {
+      ko: "단단바위 (土)",
+      en: "Mountain (Earth)",
+      ja: "頑丈岩 (土)",
+      zh: "坚实岩石 (土)"
+    },
+    desc: {
+      ko: "넓고 따뜻한 대지처럼 묵직하며, 꼼꼼하게 동선과 예산을 짜서 함께하는 사람들에게 높은 신뢰를 주는 든든한 가이드형입니다.",
+      en: "Grounded and steady like the warm earth. You meticulously plan routes and budgets, providing safety and trust for everyone.",
+      ja: "広大で温かい大地のように頼もしく、几帳面に移動ルートや予算を計画し、同伴者に高い信頼感を与えるガイドタイプです。",
+      zh: "像宽广温暖的大地一样稳重，严谨地规划路线与预算，给旅伴带来百分百安全感与信任的向导型人格。"
+    }
+  },
+  metal: {
+    emoji: "💎",
+    color: "from-cyan-500 to-blue-600",
+    textBg: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30",
+    glowColor: "shadow-cyan-500/20",
+    name: {
+      ko: "화려한 보석 감성 Voyager (金 - Glimmering Jewel)",
+      en: "Glimmering Jewel Voyager (Metal Element)",
+      ja: "華やかな宝石의 惑性旅行者 (金)",
+      zh: "华丽宝石感性旅行者 (金)"
+    },
+    shortName: {
+      ko: "화려보석 (金)",
+      en: "Jewel (Metal)",
+      ja: "華やか宝石 (金)",
+      zh: "华丽宝石 (金)"
+    },
+    desc: {
+      ko: "다이아몬드처럼 빛나는 감각을 지녔으며, 감성 미술관, 빈티지 숍, 그리고 완벽한 미적 레이아웃의 인생샷을 찍는 여정을 선호합니다.",
+      en: "Possesses a sparkling sensibility like a diamond. You prefer gorgeous art museums, vintage boutiques, and aesthetic photo walks.",
+      ja: "ダイヤモンドのように輝く感性を持ち、おしゃれな美術館、ヴィンテージショップ、そして完璧なアングルの人生ショットを撮る旅を好みます。",
+      zh: "拥有如钻石般闪耀的感官，偏爱感性美术馆、复古买手店，以及拍摄极具美感艺术照的打卡旅程。"
+    }
+  },
+  water: {
+    emoji: "🌊",
+    color: "from-sky-500 to-indigo-600",
+    textBg: "bg-sky-500/10 text-sky-400 border-sky-500/30",
+    glowColor: "shadow-sky-500/20",
+    name: {
+      ko: "유연한 강물 미식 탐험가 (水 - Ocean Explorer)",
+      en: "Ocean Tides Explorer (Water Element)",
+      ja: "柔軟な川の流れの美食探検家 (水)",
+      zh: "柔美江河美食探险家 (水)"
+    },
+    shortName: {
+      ko: "유연강물 (水)",
+      en: "Ocean (Water)",
+      ja: "柔軟な川 (水)",
+      zh: "柔美江河 (水)"
+    },
+    desc: {
+      ko: "끝없이 흐르는 강물처럼 유연하며, 유명한 숨겨진 미식 골목 투어를 좋아하고 어떤 낯선 여행 환경에도 막힘없이 녹아듭니다.",
+      en: "Fluid and flexible like a flowing river. You adore hunting for hidden local restaurants and seamlessly adapt to any environment.",
+      ja: "絶え間なく流れる川のように柔軟で、隠れたグルメ通りの探訪를 사랑하며 낯선 여행지 환경에도 기분 좋게 녹아듭니다.",
+      zh: "像奔流不息的江河一样温柔且包容，热爱打卡隐藏的街头美食，并能毫无阻碍地融入任何陌生的旅行环境。"
+    }
+  }
+};
+
+const calculateSajuElement = (p: any): "wood" | "fire" | "earth" | "metal" | "water" => {
+  if (!p) return "wood";
+  const seedStr = p.id || p.name || "migo";
+  const hash = getDeterministicHash(seedStr);
+  
+  const mbti = p.mbti || "";
+  let mbtiModifier = 0;
+  if (mbti.includes("E")) mbtiModifier += 1;
+  if (mbti.includes("N")) mbtiModifier += 2;
+  if (mbti.includes("F")) mbtiModifier += 3;
+  if (mbti.includes("P")) mbtiModifier += 4;
+  
+  const idx = (hash + mbtiModifier + (p.age || 0)) % 5;
+  const elements = ["wood", "fire", "earth", "metal", "water"] as const;
+  return elements[idx];
+};
+
 const ProfilePage = () => {
   const {
     t
@@ -1297,6 +1458,74 @@ const ProfilePage = () => {
           </div>
         </div>
       )}
+
+      {/* ☯️ My Traditional Saju Element Compass */}
+      {(() => {
+        const mbti = tags.find(t => t.length === 4 && /^[IE][SN][TF][JP]$/i.test(t)) || "";
+        const myElementKey = calculateSajuElement({ id: user?.id, name, mbti, age: 25 });
+        const myEl = SAJU_ELEMENTS[myElementKey];
+        const lang = (i18n.language?.split('-')[0] || 'ko').toLowerCase();
+
+        const titleLabel = {
+          ko: "☯️ 나의 한국 전통 여행 사주 (K-Fortune)",
+          en: "☯️ My Traditional K-Saju Element",
+          ja: "☯️ 私の韓国伝統四柱推命 (K-Fortune)",
+          zh: "☯️ 我的韩国传统八字出行运势"
+        }[lang] || "☯️ My Traditional K-Saju Element";
+
+        const subtitleLabel = {
+          ko: "음양오행 기반 나의 여행 아키타입",
+          en: "Yin-Yang based travel archetype",
+          ja: "陰陽五行ベースの旅行アーキタイプ",
+          zh: "基于阴阳五行的出行人格"
+        }[lang] || "Yin-Yang based travel archetype";
+
+        return (
+          <div className="mx-4 mt-3 relative overflow-hidden bg-gradient-to-br from-amber-950/20 to-card border border-amber-500/25 rounded-2xl p-4 shadow-sm space-y-3">
+            {/* Background glow */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-amber-500/10 pb-2">
+              <div className="flex items-center gap-2">
+                <motion.span 
+                  className="text-xl inline-block"
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+                >
+                  ☯️
+                </motion.span>
+                <div>
+                  <h4 className="text-xs font-black text-amber-400 tracking-wide leading-tight">
+                    {titleLabel}
+                  </h4>
+                  <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">
+                    {subtitleLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex items-center gap-4 bg-muted/20 border border-amber-500/5 rounded-xl p-3">
+              {/* Large Element Avatar */}
+              <div className="relative w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500/10 to-amber-600/30 border border-amber-500/40 flex items-center justify-center shrink-0">
+                <span className="text-3xl filter drop-shadow">{myEl.emoji}</span>
+              </div>
+
+              {/* Text Details */}
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-black text-amber-400 leading-tight">
+                  {myEl.name[lang] || myEl.name.en}
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed mt-1 whitespace-normal break-words">
+                  {myEl.desc[lang] || myEl.desc.en}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─── 나를 좋아한 사람들 섹션 ─── */}
       {likers.length > 0 && (
