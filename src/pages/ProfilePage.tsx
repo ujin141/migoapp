@@ -26,6 +26,7 @@ import StoryViewer from "@/components/StoryViewer";
 import ProfileCompletionBar from "@/components/ProfileCompletionBar";
 import MySajuDetailModal from "@/components/profile/MySajuDetailModal";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { Solar, Lunar } from "lunar-javascript";
 
 const getDeterministicHash = (str: string): number => {
   let hash = 0;
@@ -1476,10 +1477,47 @@ const ProfilePage = () => {
 
       {/* ☯️ My Traditional Saju Element Compass */}
       {(() => {
-        const mbti = tags.find(t => t.length === 4 && /^[IE][SN][TF][JP]$/i.test(t)) || "";
-        const myElementKey = calculateSajuElement({ id: user?.id, name, mbti, age: 25 });
-        const myEl = SAJU_ELEMENTS[myElementKey];
         const lang = (i18n.language?.split('-')[0] || 'ko').toLowerCase();
+        let myElementKey: "wood" | "fire" | "earth" | "metal" | "water" = "wood";
+
+        if (sajuBirthInfo) {
+          try {
+            const yr = parseInt(sajuBirthInfo.year);
+            const mo = parseInt(sajuBirthInfo.month);
+            const dy = parseInt(sajuBirthInfo.day);
+            const hr = sajuBirthInfo.hour === "unknown" ? 12 : parseInt(sajuBirthInfo.hour);
+
+            let lunarDate;
+            if (sajuBirthInfo.calendarType === "lunar") {
+              lunarDate = Lunar.fromYmdHms(yr, mo, dy, hr, 0, 0);
+            } else {
+              const solarDate = Solar.fromYmdHms(yr, mo, dy, hr, 0, 0);
+              lunarDate = solarDate.getLunar();
+            }
+
+            const eightChar = lunarDate.getEightChar();
+            const dyStr = eightChar.getDay(); // e.g. "乙卯"
+            const dayStem = dyStr.substring(0, 1);
+
+            const STEM_TO_ELEMENT: Record<string, "wood" | "fire" | "earth" | "metal" | "water"> = {
+              "甲": "wood", "乙": "wood",
+              "丙": "fire", "丁": "fire",
+              "戊": "earth", "己": "earth",
+              "庚": "metal", "辛": "metal",
+              "壬": "water", "癸": "water"
+            };
+            myElementKey = STEM_TO_ELEMENT[dayStem] || "wood";
+          } catch (e) {
+            console.error("Saju computation error in profile", e);
+            const mbti = tags.find(t => t.length === 4 && /^[IE][SN][TF][JP]$/i.test(t)) || "";
+            myElementKey = calculateSajuElement({ id: user?.id, name, mbti, age: 25 });
+          }
+        } else {
+          const mbti = tags.find(t => t.length === 4 && /^[IE][SN][TF][JP]$/i.test(t)) || "";
+          myElementKey = calculateSajuElement({ id: user?.id, name, mbti, age: 25 });
+        }
+
+        const myEl = SAJU_ELEMENTS[myElementKey];
 
         const titleLabel = {
           ko: "☯️ 나의 한국 전통 여행 사주 (K-Fortune)",
