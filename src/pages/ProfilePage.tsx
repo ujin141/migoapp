@@ -138,6 +138,8 @@ const ProfilePage = () => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [userType, setUserType] = useState<string>("traveler");
   const [profileTheme, setProfileTheme] = useState<string>("default");
+  const [myPhoneVerified, setMyPhoneVerified] = useState(false);
+  const [myIdVerified, setMyIdVerified] = useState(false);
   const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
 
   // ─ 테마 스타일 맵 ─
@@ -394,7 +396,7 @@ const ProfilePage = () => {
           data,
           error
         } = await supabase.from('profiles').select(
-          'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus, earned_badges'
+          'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus, earned_badges, phone_verified, id_verified'
         ).eq('id', user.id).single();
 
         // DB에 이 유저 레코드가 없다면 (예: 트리거 실패, 레거시 계정) 빈 레코드 자동 생성으로 복구!
@@ -406,7 +408,7 @@ const ProfilePage = () => {
             email: user.email
           }]);
           const retry = await supabase.from('profiles').select(
-            'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus, earned_badges'
+            'id, name, location, bio, interests, photo_url, photo_urls, travel_dates, travel_mission, visited_countries, user_type, profile_theme, notif_match, notif_chat, notif_group, plan, is_plus, earned_badges, phone_verified, id_verified'
           ).eq('id', user.id).single();
           data = retry.data;
           error = retry.error;
@@ -422,6 +424,8 @@ const ProfilePage = () => {
           setLocation(data.location || "");
           setBio(data.bio || "");
           setTags(data.interests || []);
+          setMyPhoneVerified(!!data.phone_verified);
+          setMyIdVerified(!!data.id_verified);
           if (data.photo_url) {
             // 캐시 버스팅
             const bustedUrl = data.photo_url.includes('?') ? data.photo_url.replace(/[?&]t=\d+/, `?t=${Date.now()}`) : `${data.photo_url}?t=${Date.now()}`;
@@ -2044,7 +2048,7 @@ const ProfilePage = () => {
       <LicenseModal showLicenseModal={showLicenseModal} setShowLicenseModal={setShowLicenseModal} />
 
       {/* 신뢰 인증 모달 */}
-      <TrustVerifyModal isOpen={showVerifyModal} onClose={() => setShowVerifyModal(false)} currentLevel="basic" phoneVerified={true} ticketVerified={true} />
+      <TrustVerifyModal isOpen={showVerifyModal} onClose={() => setShowVerifyModal(false)} currentLevel={myIdVerified ? "id" : "basic"} phoneVerified={myPhoneVerified} ticketVerified={myIdVerified} />
       </div>
     </div>;
 };

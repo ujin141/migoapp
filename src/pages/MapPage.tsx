@@ -19,7 +19,7 @@ import { useLocationTracker } from "@/hooks/useLocationTracker";
 import { getCurrentLocation } from "@/lib/locationService";
 import StoryViewer from "@/components/StoryViewer";
 import ReportBlockActionSheet from "@/components/ReportBlockActionSheet";
-import { GoogleMap, useLoadScript, OverlayView } from "@react-google-maps/api";
+import { GoogleMap, useLoadScript, OverlayView, Circle } from "@react-google-maps/api";
 import { HOTPLACES, Hotplace, getRecommendationsForHotplace, PlaceRecommendation } from "@/lib/placeRecommendations";
 import CreateTripPage from "./CreateTripPage";
 import GroupDetailFilter, { GroupDetailFilterState, DEFAULT_GROUP_DETAIL_FILTER, countGroupDetailFilters } from "@/components/GroupDetailFilter";
@@ -1112,7 +1112,12 @@ const MapPage = () => {
             {/* Hotplace markers - 항상 보이게 하거나, 여행자 모드에서도 보이도록 수정 */}
             {(displayMode === "hotplaces" || displayMode === "travelers") && HOTPLACES.filter(h => hotplaceCategory === 'all' || h.category === hotplaceCategory).map(h => {
               const isSelected = selectedHotplace?.id === h.id;
-              return <HotplaceMarker key={h.id} h={h} isSelected={isSelected} onClick={() => {
+              
+              // 🔴 실시간 밀집도(여행자 수) 계산 + 왁자지껄 효과용 기본 보정치
+              const travelerCount = travelers.filter(t => t.lat && t.lng && haversineKm({ lat: h.lat, lng: h.lng }, { lat: t.lat, lng: t.lng }) <= 5).length
+                + Math.floor(h.id.charCodeAt(0) % 6) + 3;
+
+              return <HotplaceMarker key={h.id} h={h} isSelected={isSelected} travelerCount={travelerCount} onClick={() => {
                 setSelectedHotplace(h);
                 if (mapRef.current) {
                   mapRef.current.panTo({ lat: h.lat, lng: h.lng });
@@ -1120,6 +1125,35 @@ const MapPage = () => {
                   if (currentZoom < 14) mapRef.current.setZoom(14);
                 }
               }} />;
+            })}
+
+            {/* 🔴 영역형 라이브 덴시티 서클 (Live Density Circles) */}
+            {(displayMode === "hotplaces" || displayMode === "travelers") && HOTPLACES.filter(h => hotplaceCategory === 'all' || h.category === hotplaceCategory).map(h => {
+              const travelerCount = travelers.filter(t => t.lat && t.lng && haversineKm({ lat: h.lat, lng: h.lng }, { lat: t.lat, lng: t.lng }) <= 5).length
+                + Math.floor(h.id.charCodeAt(0) % 6) + 3;
+
+              // 밀집도 색상 분기: 많음(Rose), 보통(Purple), 적음(Emerald)
+              const densityColor = travelerCount >= 7 
+                ? "#F43F5E" // Rose-500
+                : travelerCount >= 5 
+                  ? "#8B5CF6" // Purple-500
+                  : "#10B981"; // Emerald-500
+
+              return (
+                <Circle
+                  key={`density_circle_${h.id}`}
+                  center={{ lat: h.lat, lng: h.lng }}
+                  radius={1800} // 1.8km 반경
+                  options={{
+                    strokeColor: densityColor,
+                    strokeOpacity: 0.4,
+                    strokeWeight: 1.5,
+                    fillColor: densityColor,
+                    fillOpacity: 0.08,
+                    clickable: false,
+                  }}
+                />
+              );
             })}
 
             {/* Community Post markers */}

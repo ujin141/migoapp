@@ -430,7 +430,7 @@ const AppContent = () => {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="w-full overflow-y-auto"
+            className="w-full overflow-y-auto page-transition"
             style={{
               position: 'absolute',
               top: 0,

@@ -59,7 +59,7 @@ export const SmoothTravelerMarker = ({ t, isSelected, onClick }: { t: any, isSel
 };
 
 // 핫플레이스 마커 컴포넌트
-export const HotplaceMarker = ({ h, isSelected, onClick }: { h: Hotplace, isSelected: boolean, onClick: () => void }) => {
+export const HotplaceMarker = ({ h, isSelected, onClick, travelerCount }: { h: Hotplace, isSelected: boolean, onClick: () => void, travelerCount?: number }) => {
   return (
     <OverlayView position={{ lat: h.lat, lng: h.lng }} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
       <div className={`flex flex-col items-center cursor-pointer transition-transform ${isSelected ? 'scale-125 z-50' : 'scale-100 z-10 hover:scale-110'} -translate-x-1/2 -translate-y-[100%]`} onClick={onClick}>
@@ -69,8 +69,16 @@ export const HotplaceMarker = ({ h, isSelected, onClick }: { h: Hotplace, isSele
           </div>
           <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 transform origin-center border-b-2 border-r-2 border-transparent shadow-sm" />
           
+          {/* 🔴 라이브 여행자 수 배지 (왁자지껄 효과) */}
+          {travelerCount && travelerCount > 0 && (
+            <div className="absolute -top-2.5 -right-2.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-extrabold text-[9px] shadow-[0_0_10px_rgba(244,63,94,0.6)] border border-white flex items-center gap-0.5 animate-bounce z-20 shrink-0">
+              <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+              <span>{travelerCount}</span>
+            </div>
+          )}
+          
           {isSelected && (
-             <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center border border-white shadow-sm">
+             <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center border border-white shadow-sm z-10">
                <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
              </div>
           )}

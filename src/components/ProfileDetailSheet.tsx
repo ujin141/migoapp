@@ -276,6 +276,11 @@ const ProfileDetailSheet = ({
                       {profile.nationality && <span className="text-xl ml-1 drop-shadow-sm shrink-0">{profile.nationality.match(/[^\x00-\x7F가-힣a-zA-Z]+/g)?.[0]?.trim() || profile.nationality}</span>}
                       {profile.isPlus && <span className="shrink-0"><Crown size={18} className="text-amber-500 fill-amber-500 ml-0.5" /></span>}
                       {profile.verified && <span className="shrink-0"><VerifyBadge level={profile.verifyLevel} /></span>}
+                      {(profile.id_verified || profile.ticketVerified) && (
+                        <span className="shrink-0 inline-flex items-center gap-1 bg-gradient-to-r from-emerald-400 to-teal-500 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(52,211,153,0.3)] border border-emerald-300 pointer-events-none text-white text-[9px] font-extrabold uppercase tracking-widest">
+                          ✈️ Real Traveler
+                        </span>
+                      )}
                     </h2>
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">

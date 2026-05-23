@@ -6,6 +6,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { triggerHaptic } from "@/lib/haptics";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { Capacitor } from "@capacitor/core";
+import { motion } from "framer-motion";
 
 interface TabDef {
   path: string;
@@ -58,23 +59,28 @@ const BottomNav = () => {
             <button
               key={tab.path}
               onClick={() => { triggerHaptic("light"); navigate(tab.path); }}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200 min-w-0 group"
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-0 group relative active:scale-95 transition-all duration-150"
             >
-              <div className={`relative flex items-center justify-center rounded-xl transition-all duration-200 ${
-                isActive ? 'gradient-primary w-10 h-7 shadow-sm scale-105' : 'w-10 h-7'
-              }`}>
+              <div className="relative flex items-center justify-center w-10 h-7">
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabBackground"
+                    className="absolute inset-0 gradient-primary rounded-xl shadow-sm z-0"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
                 <Icon
                   size={isActive ? 17 : 18}
-                  className={`transition-all duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"}`}
+                  className={`relative z-10 transition-all duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"}`}
                   strokeWidth={isActive ? 2.5 : 1.8}
                 />
                 {showChatBadge && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-0.5 rounded-full bg-red-500 flex items-center justify-center text-[9px] font-extrabold text-white shadow-sm">
+                  <span className="absolute -top-1.5 -right-1.5 z-20 min-w-[16px] h-[16px] px-0.5 rounded-full bg-red-500 flex items-center justify-center text-[9px] font-extrabold text-white shadow-sm">
                     {totalUnread > 99 ? "99+" : totalUnread}
                   </span>
                 )}
                 {showNotifBadge && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-0.5 rounded-full bg-red-500 flex items-center justify-center text-[9px] font-extrabold text-white shadow-sm">
+                  <span className="absolute -top-1.5 -right-1.5 z-20 min-w-[16px] h-[16px] px-0.5 rounded-full bg-red-500 flex items-center justify-center text-[9px] font-extrabold text-white shadow-sm">
                     {notifUnread > 99 ? "99+" : notifUnread}
                   </span>
                 )}

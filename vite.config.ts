@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
     port: 8080,
+    strictPort: true,
     hmr: { overlay: false },
     // SEC-XSS: 개발 서버 보안 헤더 추가
     // ⚠️ 프로덕션(Nginx/Cloudflare)에서도 동일 헤더를 서버 레벨에서 설정 필요
@@ -57,6 +58,7 @@ export default defineConfig(({ mode }) => ({
 
   // ── 의존성 사전 번들 (콜드 스타트 단축) ────────────────────────
   optimizeDeps: {
+    entries: ["index.html"],
     include: [
       "react",
       "react-dom",

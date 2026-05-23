@@ -8,7 +8,7 @@ import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import ProfileDetailSheet from "./ProfileDetailSheet";
 import ReportBlockActionSheet from "./ReportBlockActionSheet";
 import VerifyBadge from "./VerifyBadge";
-import TravelDNA from "./TravelDNA";
+import TravelDNA, { inferDNA, getMatchPct } from "./TravelDNA";
 import { useSubscription } from "@/context/SubscriptionContext";
 const NATIONALITY_FLAG: Record<string, string> = {
   "South Korea": "🇰🇷",
@@ -132,6 +132,7 @@ const SwipeCard = ({
   const [bioT, setBioT] = useState('');
   const [loadingBio, setLoadingBio] = useState(false);
   const [showCompat, setShowCompat] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
   const handleBioTranslate = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (bioT) {
@@ -175,6 +176,72 @@ const SwipeCard = ({
       budgetScore
     };
   })();
+
+  // 1. Calculate overall compatibility score
+  const overallMatch = (() => {
+    const theirDNA = inferDNA(profile);
+    const myDNA = myProfile ? inferDNA(myProfile) : null;
+    if (!myDNA) return 75; // Fallback score
+    
+    const spontaneousVal = getMatchPct(myDNA.spontaneous, theirDNA.spontaneous);
+    const activeVal = getMatchPct(myDNA.active, theirDNA.active);
+    const earlyBirdVal = getMatchPct(myDNA.earlyBird, theirDNA.earlyBird);
+    const budgetVal = getMatchPct(myDNA.budget, theirDNA.budget);
+    const socialVal = getMatchPct(myDNA.social, theirDNA.social);
+    
+    return Math.round((spontaneousVal + activeVal + earlyBirdVal + budgetVal + socialVal) / 5);
+  })();
+
+  // 신비롭고 럭셔리한 천체 여행 타로카드 아키타입 매핑
+  const getTarotArchetype = () => {
+    const mbti = profile.mbti || "";
+    const interests = profile.interests || [];
+    const isSpontaneous = mbti.includes("P") || profile.travelMission === "즉흥 번개" || interests.some((i: string) => i.includes("즉흥"));
+    const isFoodie = profile.travelMission?.includes("맛집") || interests.some((i: string) => i.includes("맛집") || i.includes("미식") || i.includes("카페"));
+    const isNight = profile.travelMission?.includes("야경") || interests.some((i: string) => i.includes("야경") || i.includes("밤") || i.includes("클럽") || i.includes("술"));
+    
+    if (isSpontaneous && isFoodie) {
+      return {
+        title: "THE CELESTIAL GOURMETS",
+        subtitle: "🔮 우주적 즉흥 미식 탐험가 🔮",
+        spark: "98%",
+        description: "두 분은 낯선 도시의 뒷골목 노포 맛집과 즉흥적인 밤 야시장 투어를 함께 정복하기 위해 매칭된 환상의 미식 메이트입니다! 식도락의 별자리가 빛납니다. 🍲"
+      };
+    }
+    if (isSpontaneous && isNight) {
+      return {
+        title: "THE NEON NOMADS",
+        subtitle: "🔮 화려한 네온 야경의 유랑자 🔮",
+        spark: "96%",
+        description: "찬란한 도시 야경 아래 시원한 생맥주 잔을 즉흥적으로 부딪칠 때 케미가 은하수처럼 폭발하는 밤동행 파트너입니다. 어둠 속에 가장 찬란한 우정입니다! 🌃"
+      };
+    }
+    if (isFoodie) {
+      return {
+        title: "THE LOCAL GOURMETS",
+        subtitle: "🔮 깊은 미식 맛의 순례자 🔮",
+        spark: "93%",
+        description: "숨겨진 로컬 맛집부터 SNS 핫플 디저트 카페 투어까지 취향이 온전히 통합니다. 함께 맛있는 추억을 숟가락 가득 채워갈 운명적인 맛 인연입니다. ☕"
+      };
+    }
+    if (mbti.includes("E")) {
+      return {
+        title: "THE SUN KINGS & QUEENS",
+        subtitle: "🔮 에너제틱 태양의 동반자 🔮",
+        spark: "94%",
+        description: "지치지 않는 텐션으로 전 세계 테마파크와 페스티벌을 누비며 우정을 증폭시킬 최고의 동행입니다. 걷는 곳마다 축제 분위기가 열릴 거예요! 🎡"
+      };
+    }
+    return {
+      title: "THE WANDERLUST STARS",
+      subtitle: "🔮 고요하게 흐르는 은하수 여행자 🔮",
+      spark: "95%",
+      description: "노을 지는 강변을 묵묵히 걷거나 잔잔한 음악을 함께 들으며 여행할 때 가장 완벽한 교감을 나눕니다. 서로를 말없이 배려하는 가장 품격있는 동행입니다. ✈️"
+    };
+  };
+
+  const tarot = getTarotArchetype();
+
   const isDragging = useRef(false);
   const dragDistance = useRef(0);
   const hapticTriggered = useRef(false);
@@ -241,7 +308,22 @@ const SwipeCard = ({
         damping: 25
       }
     }}>
-      <div className="relative w-full h-full rounded-[28px] bg-card overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] truncate touch-none select-none">
+      <div 
+        className="w-full h-full relative transition-transform duration-700"
+        style={{
+          transformStyle: "preserve-3d",
+          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          perspective: "1000px"
+        }}
+      >
+        {/* 앞면 (Profile Front Card) */}
+        <div 
+          className="absolute inset-0 rounded-[28px] bg-card overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] truncate touch-none select-none"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden"
+          }}
+        >
         {/* Top Progress Dots */}
         {photos.length > 1 && (
           <div className="absolute top-2 left-2 right-2 flex gap-1 z-30 pointer-events-none">
@@ -269,6 +351,33 @@ const SwipeCard = ({
              <p className="text-white/80 text-sm font-semibold truncate">{i18n.t('auto.j507')}</p>
           </div>}
 
+        {/* ── DNA 궁합 매칭 배지 ── */}
+        {isTop && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut", delay: 0.15 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
+              setIsFlipped(true);
+            }}
+            className="absolute top-5 left-3 flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-full px-2.5 py-1.5 shadow-[0_0_15px_rgba(251,191,36,0.35)] border border-amber-400/40 z-30 pointer-events-auto cursor-pointer select-none active:scale-95 transition-transform"
+          >
+            <motion.span 
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className="text-xs shrink-0"
+            >
+              🔮
+            </motion.span>
+            <span className="text-[10px] text-amber-300 font-extrabold tracking-wide leading-none shrink-0">
+              Fate Sync {overallMatch}%
+            </span>
+            <span className="text-[7px] text-amber-300/60 leading-none shrink-0">▼</span>
+          </motion.div>
+        )}
+
         {/* ── 실시간 접속 상태 배지 ── */}
         {(() => {
           const onlineBadge = getOnlineLabel(profile.isOnline, profile.lastSeen, profile.id);
@@ -278,7 +387,7 @@ const SwipeCard = ({
               initial={{ opacity: 0, scale: 0.8, y: -4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.35, ease: "easeOut" }}
-              className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-md rounded-full px-2.5 py-1.5 shadow-lg border border-white/15 z-30 pointer-events-none"
+              className="absolute top-5 right-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-md rounded-full px-2.5 py-1.5 shadow-lg border border-white/15 z-30 pointer-events-none"
             >
               <span
                 className={`w-2 h-2 rounded-full shrink-0 ${onlineBadge.color} ${onlineBadge.pulse ? 'animate-pulse' : ''}`}
@@ -344,6 +453,11 @@ const SwipeCard = ({
             shadows.push(THEME_GLOWS[profile.profileTheme] || THEME_GLOWS.aurora);
           } else if (profile.isPremium) {
             shadows.push("0 0 30px rgba(251,191,36,0.4)");
+          }
+
+          // 3. Holographic Match Aura Glow for 90%+ compatibility
+          if (overallMatch >= 90) {
+            shadows.push("0 0 35px 5px rgba(244,63,94,0.45), inset 0 0 0 4px rgba(244,63,94,0.75)");
           }
 
           if (shadows.length > 0) {
@@ -474,11 +588,30 @@ const SwipeCard = ({
           </div>
 
           {/* Mission & Tags */}
-          <div className="flex flex-wrap gap-1.5 mt-2 truncate">
+          <div className="flex flex-wrap gap-1.5 mt-2 truncate pointer-events-auto">
             {profile.travelMission && (
-              <span className={`px-1.5 py-0.5 rounded-md backdrop-blur border text-[10px] font-extrabold uppercase tracking-widest shadow-sm flex items-center gap-1 ${profile.travelMission === myDailyMission ? 'bg-primary/80 border-primary text-white shadow-primary/30 shadow-md ring-1 ring-white/50' : 'bg-white/20 border-white/30 text-white'}`}>
-                🎯 {profile.travelMission} {profile.travelMission === myDailyMission && i18n.t("auto.g_0235", "매치!")}
-              </span>
+              <motion.span 
+                animate={profile.travelMission === myDailyMission ? {
+                  boxShadow: [
+                    "0 0 0px rgba(244,63,94,0)",
+                    "0 0 12px rgba(244,63,94,0.6)",
+                    "0 0 0px rgba(244,63,94,0)"
+                  ],
+                  scale: [1, 1.03, 1]
+                } : {}}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                className={`px-2 py-1 rounded-md backdrop-blur border text-[10px] font-extrabold uppercase tracking-widest shadow-sm flex items-center gap-1.5 ${
+                  profile.travelMission === myDailyMission 
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 border-rose-400 text-white shadow-rose-500/30 shadow-md ring-1 ring-white/50 pointer-events-auto' 
+                    : 'bg-white/20 border-white/30 text-white'
+                }`}
+              >
+                🎯 {profile.travelMission} {profile.travelMission === myDailyMission && (
+                  <span className="text-[9px] bg-white text-rose-500 font-extrabold px-1 rounded animate-pulse shrink-0">
+                    {i18n.t("auto.g_0235", "매치!")} 🔥
+                  </span>
+                )}
+              </motion.span>
             )}
             {profile.tags && profile.tags.slice(0, 3).map((tag: string) => (
               <span key={tag} className="px-1.5 py-0.5 rounded-md bg-white/10 backdrop-blur border border-white/20 text-white text-[10px] font-extrabold uppercase tracking-widest shadow-sm">
@@ -487,8 +620,135 @@ const SwipeCard = ({
             ))}
           </div>
         </div>
-      </div>
-    </motion.div>
+
+        {/* DNA Match detail overlay sheet inside the card */}
+        <AnimatePresence>
+          {showCompat && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="absolute inset-x-3 bottom-20 top-12 bg-black/90 backdrop-blur-lg rounded-2xl p-4 z-40 border border-white/10 flex flex-col justify-between overflow-y-auto pointer-events-auto cursor-default"
+              onClick={(e) => e.stopPropagation()} // Prevent card swipe actions on taps
+            >
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🧬</span>
+                    <div>
+                      <h4 className="text-sm font-black text-white leading-tight">
+                        {profile.name}{t("auto.ko_with_compatibility", { defaultValue: "님과의 여행 DNA 궁합" })}
+                      </h4>
+                      <p className="text-[10px] text-white/50">{t("auto.ko_dna_desc", { defaultValue: "5차원 분석 매칭 지수" })}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Close button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                      setShowCompat(false);
+                    }}
+                    className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/70 active:bg-white/20 active:scale-95 transition-transform"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="py-2">
+                  <TravelDNA profile={profile} myProfile={myProfile} compact={false} />
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-white/5 text-center">
+                <p className="text-[10px] text-white/40 leading-relaxed">
+                  {t("auto.ko_dna_footer", { defaultValue: "취향이 잘 맞을수록 매치 및 동행 성사율이 3.8배 높아집니다! ✈️" })}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div> {/* 앞면 (Profile Front Card) 종료 */}
+
+      {/* 뒷면 (Tarot Back Card) */}
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+          setIsFlipped(false); // Flip back to front on click!
+        }}
+        className="absolute inset-0 rounded-[28px] overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] touch-none select-none border-[5px] border-amber-400/60 cursor-pointer pointer-events-auto flex flex-col justify-between p-6 text-white text-center"
+        style={{ 
+          transform: "rotateY(180deg)", 
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+          background: "radial-gradient(circle at center, #2e1065 0%, #090514 100%)"
+        }}
+      >
+        {/* Ornate Gold Inner Frame */}
+        <div className="absolute inset-2 border border-amber-400/30 rounded-[22px] pointer-events-none z-0 flex flex-col justify-between p-4" />
+        
+        {/* Starry dust background */}
+        <div 
+          className="absolute inset-0 opacity-30 mix-blend-screen pointer-events-none z-0" 
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&q=80')",
+            backgroundSize: "cover"
+          }}
+        />
+
+        {/* Tarot Card Top Header */}
+        <div className="flex flex-col items-center gap-1.5 mt-2 z-10">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-amber-300 font-extrabold drop-shadow">MIGO DESTINY TAROT</span>
+          <div className="h-[1px] w-12 bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
+        </div>
+        
+        {/* Cosmic emblem and details */}
+        <div className="flex flex-col items-center gap-3 my-auto z-10">
+          {/* Pulsing celestial moon/sun emblem */}
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            className="w-20 h-20 rounded-full border-2 border-dashed border-amber-400/40 flex items-center justify-center relative bg-amber-400/5 backdrop-blur-sm shadow-[0_0_20px_rgba(251,191,36,0.1)]"
+          >
+            <div className="w-14 h-14 rounded-full border border-amber-400/30 flex items-center justify-center bg-black/40">
+              <span className="text-2xl filter drop-shadow-[0_0_12px_rgba(251,191,36,0.6)]">🔮</span>
+            </div>
+            <span className="absolute -top-1.5 text-[8px] text-amber-300/60">★</span>
+            <span className="absolute -bottom-1.5 text-[8px] text-amber-300/60">★</span>
+            <span className="absolute -left-1.5 text-[8px] text-amber-300/60">★</span>
+            <span className="absolute -right-1.5 text-[8px] text-amber-300/60">★</span>
+          </motion.div>
+
+          <div className="flex flex-col items-center mt-1">
+            <h3 className="font-serif text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wider leading-none">
+              {tarot.title}
+            </h3>
+            <p className="text-[10px] text-amber-300 font-extrabold mt-1 tracking-widest uppercase drop-shadow">{tarot.subtitle}</p>
+          </div>
+
+          <div className="bg-amber-400/10 border border-amber-400/35 px-4 py-1 rounded-full mt-1.5 shadow-[0_0_15px_rgba(251,191,36,0.15)] flex items-center gap-1.5">
+            <span className="text-[9px] text-amber-300 font-extrabold uppercase tracking-wider">⚡ Fate Spark</span>
+            <span className="text-[11px] font-black text-amber-200 animate-pulse">{tarot.spark}</span>
+          </div>
+
+          <p className="text-[11px] text-slate-200 leading-relaxed font-bold px-3 max-w-[280px] mt-2 whitespace-pre-line drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]">
+            {tarot.description}
+          </p>
+        </div>
+
+        {/* Card bottom flip hint */}
+        <div className="flex flex-col items-center gap-1 mb-2 z-10">
+          <span className="text-[9px] text-amber-400/70 font-black uppercase tracking-wider animate-pulse flex items-center gap-1">
+            <span>↩</span> 카드를 탭하여 사진으로 복귀
+          </span>
+          <span className="text-[7px] text-white/20">MIGO Travelers Starry Match System</span>
+        </div>
+      </div> {/* 뒷면 (Tarot Back Card) 종료 */}
+    </div> {/* 3D Perspective Card 종료 */}
+  </motion.div>
 
     {showDetail && <ProfileDetailSheet profile={profile} onClose={() => setShowDetail(false)} onLike={onSwipeRight} onChat={onChat} showActions={true} />}
     {/* 신고/차단 시트 — Guideline 1.2 */}

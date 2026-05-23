@@ -20,9 +20,9 @@ const IOS_IDS = {
   rewarded:     'ca-app-pub-2237857753220220/7787301346',
 };
 const ANDROID_IDS = {
-  banner:       'ca-app-pub-2237857753220220/1502084272',
-  interstitial: 'ca-app-pub-2237857753220220/5191259293',
-  rewarded:     'ca-app-pub-2237857753220220/9189002604',
+  banner:       'ca-app-pub-2237857753220220/4530582610',
+  interstitial: 'ca-app-pub-2237857753220220/5600121706',
+  rewarded:     'ca-app-pub-2237857753220220/3303314161',
 };
 
 // ── Google 공식 테스트 Ad Unit ID (항상 테스트 광고 반환) ──────────
@@ -105,7 +105,9 @@ export function useAdMob() {
     if (!Capacitor.isNativePlatform()) return;
     await ensureInit();
     try {
-      await AdMob.prepareInterstitial({ adId: getAdIds().interstitial });
+      const adId = getAdIds().interstitial;
+      console.log(`[AdMob] prepare interstitial: ${adId}`);
+      await AdMob.prepareInterstitial({ adId });
       interstitialLoadedRef.current = true;
     } catch (e) {
       console.warn('[AdMob] preloadInterstitial error', e);
@@ -133,7 +135,9 @@ export function useAdMob() {
     if (!Capacitor.isNativePlatform()) return;
     await ensureInit();
     try {
-      await AdMob.prepareRewardVideoAd({ adId: getAdIds().rewarded });
+      const adId = getAdIds().rewarded;
+      console.log(`[AdMob] prepare rewarded: ${adId}`);
+      await AdMob.prepareRewardVideoAd({ adId });
       rewardedLoadedRef.current = true;
     } catch (e) {
       console.warn('[AdMob] preloadRewarded error', e);
@@ -195,6 +199,7 @@ export function useAdMobBanner(
           margin: marginDp,
           isTesting: IS_DEBUG_BUILD,
         };
+        console.log(`[AdMob] show banner: ${options.adId}`);
         await AdMob.showBanner(options);
         shownRef.current = true;
       } catch (e) {

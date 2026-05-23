@@ -28,6 +28,7 @@ import { requestNotificationPermission, notifyMatch } from "@/lib/notificationSe
 import { MoreHorizontal } from "lucide-react";
 import { MissionModal, LikePopupModal, PassPopupModal, SuperLikeModal, LoginGateModal, FilterModal } from "./match/MatchModals";
 import { useAdMob } from "@/hooks/useAdMob";
+import { triggerHaptic } from "@/lib/haptics";
 
 const MatchPage = () => {
   const {
@@ -219,7 +220,7 @@ const MatchPage = () => {
 
       // 자신을 DB 레벨에서 확실히 제외 (캐시 제거: 정지된 계정이 즉각 사라지도록)
       const res = await supabase.from('profiles')
-        .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,new_user_boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned,setup_complete,is_admin,role')
+        .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,new_user_boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned,setup_complete,is_admin,role,id_verified,trust_score')
         .neq('id', user.id)
         .or('is_banned.is.null,is_banned.eq.false')
         .or('banned.is.null,banned.eq.false')
@@ -325,8 +326,10 @@ const MatchPage = () => {
             visitedCountries: p.visited_countries || [],
             matchScore: isBoosted ? score + 1000 : isNewUserBoosted ? score + 500 : score,
             // 부스트 유저 최상단 → 신규 유저 2순위 → 일반 매칭점수 순
-            verified: !!p.verified,
-            verifyLevel: p.verified ? 'gold' as const : 'basic' as const,
+            verified: !!p.verified || !!p.id_verified,
+            verifyLevel: p.verified ? 'gold' as const : p.id_verified ? 'id' as const : 'basic' as const,
+            ticketVerified: !!p.id_verified,
+            trustScore: p.trust_score ?? 0,
             travelStyle: p.interests || [],
             languages: p.languages || [],
             isPlus: !!p.is_plus,
@@ -363,7 +366,7 @@ const MatchPage = () => {
       if (likerIds.length > 0) {
         const {
           data: likerProfiles
-        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme').or('is_banned.is.null,is_banned.eq.false').or('banned.is.null,banned.eq.false').in('id', likerIds);
+        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme,id_verified,trust_score').or('is_banned.is.null,is_banned.eq.false').or('banned.is.null,banned.eq.false').in('id', likerIds);
         if (likerProfiles) {
           const { data: likerReviews } = await supabase.from('meet_reviews').select('reviewed_id, rating').in('reviewed_id', likerIds);
           if (likerReviews) {
@@ -394,8 +397,10 @@ const MatchPage = () => {
             visitedCountries: p.visited_countries || [],
             matchScore: 999,
             // 최상단 우선
-            verified: !!p.verified,
-            verifyLevel: p.verified ? 'gold' as const : 'basic' as const,
+            verified: !!p.verified || !!p.id_verified,
+            verifyLevel: p.verified ? 'gold' as const : p.id_verified ? 'id' as const : 'basic' as const,
+            ticketVerified: !!p.id_verified,
+            trustScore: p.trust_score ?? 0,
             travelStyle: p.interests || [],
             languages: p.languages || [],
             mbti: p.mbti || '',
@@ -564,6 +569,7 @@ const MatchPage = () => {
     return result;
   }, [profiles, pendingLikers, ads, isPlus, isPremium, hasMyGps, filterDistance, filterGender, filterAge, filterLanguages, filterMbti, filterTravelStyle, t]);
   const handleSwipeLeft = useCallback(() => {
+    triggerHaptic("light");
     const profile = withAds[currentIndex];
     if (profile?.isAd) {
       // Just swipe away
@@ -704,6 +710,7 @@ const MatchPage = () => {
       requireLogin();
       return;
     }
+    triggerHaptic("medium");
     const profile = withAds[currentIndex];
     if (!profile) return;
     if (profile.isAd) {
@@ -753,6 +760,7 @@ const MatchPage = () => {
     // DB 저장 + 매칭 확인
     saveLikeAndCheckMatch(profile.id).then(isMatch => {
       if (isMatch) {
+         triggerHaptic("success");
          if (showMatchRef.current) {
            // 이미 매칭창이 떠있으면 조용히 백그라운드 매칭 (인앱 알리미만)
            addUnread(profile.id);
@@ -808,6 +816,7 @@ const MatchPage = () => {
   }, [currentIndex, withAds, superLikesLeft, isPlus, isLoggedIn, requireLogin]);
   const confirmSuperLike = useCallback(() => {
     if (!pendingSuperProfile) return;
+    triggerHaptic("heavy");
     const profile = pendingSuperProfile;
     setShowSuperLikeModal(false);
     setSuperLikeMessage(superMsg);
@@ -825,6 +834,7 @@ const MatchPage = () => {
         setSuperLikedId(null);
         setCurrentIndex(i => i + 1);
         if (isMatch) {
+          triggerHaptic("success");
           if (showMatchRef.current) {
             addUnread(profile.id);
             setInAppNotif({ type: "superlike", actorName: profile.name, actorPhoto: profile.photo, message: superMsg || undefined });
@@ -1166,7 +1176,7 @@ const MatchPage = () => {
       </div>
 
       {/* Action Buttons - inline below card */}
-      {remaining.length > 0 && <div className="flex flex-col items-center gap-2 px-4 pt-2 pb-6 shrink-0">
+      {remaining.length > 0 && <div className="relative z-50 pointer-events-auto flex flex-col items-center gap-2 px-4 pt-2 pb-6 shrink-0">
           {/* Boost row */}
           <div className="flex justify-center">
              <motion.button whileTap={{
