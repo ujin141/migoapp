@@ -4,6 +4,7 @@ import i18n from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, Heart, MessageCircle, Zap, ChevronLeft, ChevronRight, User, Globe, Sparkles, Crown, Star, Languages, Loader2 } from "lucide-react";
 import VerifyBadge from "./VerifyBadge";
+import TravelDNA from "./TravelDNA";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { translateText } from "@/lib/translateService";
@@ -31,6 +32,20 @@ const ProfileDetailSheet = ({
   const [bioTranslated, setBioTranslated] = useState<string | null>(null);
   const [bioTranslating, setBioTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true); // default open
+  const [myProfileData, setMyProfileData] = useState<any>(null);
+  const [selectedIcebreaker, setSelectedIcebreaker] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      const getMyProfile = async () => {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (data) {
+          setMyProfileData(data);
+        }
+      };
+      getMyProfile();
+    }
+  }, [user?.id]);
 
   // UUID validation helper
   const isValidUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -85,6 +100,59 @@ const ProfileDetailSheet = ({
     };
     doTranslate();
   }, [profile?.id, profile?.bio]);
+  // AI 성향 궁합 피드백 코칭 생성
+  const getChemistryAdvice = (p: any, my: any) => {
+    if (!my) return "Migo Plus로 가입하거나 로그인하시면 두 분만의 상세한 취향 분석 가이드를 열람하실 수 있습니다. ✨";
+    const mbti = p.mbti || "";
+    const myMbti = my.mbti || "";
+    const isSpontaneous = mbti.includes("P") || p.travelMission === "즉흥 번개" || (p.interests && p.interests.includes("즉흥"));
+    const mySpontaneous = myMbti.includes("P") || my.travel_mission === "즉흥 번개" || (my.interests && my.interests.includes("즉흥"));
+    const isFoodie = p.travelMission?.includes("맛집") || p.interests?.some((i: string) => i.includes("맛집") || i.includes("미식"));
+    const myFoodie = my.travel_mission?.includes("맛집") || my.interests?.some((i: string) => i.includes("맛집") || i.includes("미식"));
+    
+    if (isSpontaneous && mySpontaneous) {
+      return "두 분은 무계획 즉흥 여행에서 최고의 행복을 느끼는 '완벽한 번개 소울메이트'입니다! 빡빡한 타임라인 대신 끌리는 골목길로 가벼운 발걸음을 옮길 때 시너지가 200% 납니다. 오늘 도쿄 골목 선술집이나 미식 투어를 즉흥적으로 같이 도전해보세요. 🌃";
+    }
+    if (isFoodie && myFoodie) {
+      return "미식 탐험에 진심인 두 분! 로컬 숨겨진 이자카야 골목부터 예약 없이는 못 가는 핫플 디저트 카페까지 최고의 먹방 투어가 가능합니다. 서로 사진을 100장씩 찍어주며 음식을 정복하는 미식 번개를 적극 추천합니다! 🍲";
+    }
+    if (isSpontaneous && !mySpontaneous) {
+      return "체계적인 계획파인 나(J)와 유연하고 즉흥적인 상대(P)의 보완적인 조합입니다! 한 명이 든든하게 중심 이동 경로를 잡고, 상대방이 예기치 못한 당일치기 모험의 즐거움을 더해준다면 가장 완벽하고 균형 잡힌 꿀조합이 완성됩니다. ⚖️";
+    }
+    if (mbti === myMbti && mbti) {
+      return `서로 성향이 같은 '${mbti}'로 통합니다! 대화 스타일이나 체력 충전 주기 등이 물 흐르듯 비슷하여, 어색하게 애쓰지 않아도 노을 지는 강변이나 야경을 보며 편안하고 기분 좋은 침묵을 나눌 수 있는 최적의 여행 파트너입니다. 🌅`;
+    }
+    return "서로 다른 취향이 신선한 조화를 이루는 영양가 높은 인연입니다. 한 명의 액티브한 로컬 퀘스트 도전에 다른 한 명이 고즈넉한 카페 힐링 일정을 보태면서, 혼자라면 가보지 않았을 여행의 경계를 기분 좋게 확장하게 됩니다! ✈️";
+  };
+
+  // AI 아이스브레이커 덱 카드 리스트
+  const getIcebreakerQuestions = (p: any, my: any) => {
+    const mission = p.travelMission || "로컬 번개";
+    return [
+      {
+        id: "photo",
+        icon: "📸",
+        title: "인생샷 미션",
+        desc: "사진 찍어주기",
+        question: `안녕하세요! 두 분 모두 여행 중에 서로 인생샷 건지는 걸 정말 좋아하시네요! 📸 서로 도쿄 골목에서 전신 인생샷 100장씩 찍어주며 경쟁해 볼까요?`
+      },
+      {
+        id: "food",
+        icon: "🍲",
+        title: "비밀 로컬 미식",
+        desc: "이자카야 맛집",
+        question: `안녕하세요! 성향 궁합에서 미식 코드가 정말 높게 매칭되셨어요! 🍲 현지인만 아는 비밀 이자카야 맛집이나 숨겨진 로컬 꼬치구이 골목 오늘 저녁 같이 도장 깨기 하실래요?`
+      },
+      {
+        id: "spontaneous",
+        icon: "🎲",
+        title: "즉흥 번개 퀘스트",
+        desc: "성향 매칭 질문",
+        question: `안녕하세요! MIGO 궁합에서 '${mission}' 케미가 아주 훌륭하게 나오셨어요! 🎲 오늘 오후 일정 없으시면 즉흥적으로 시부야 스크램블 교차로 근처 이색 카페에서 가볍게 커피 번개 어떠세요?`
+      }
+    ];
+  };
+
   if (!profile) return null;
 
   // 여러 사진 지원 — photo_urls 또는 단일 photo
@@ -405,6 +473,124 @@ const ProfileDetailSheet = ({
                       {languages.map(l => <span key={l} className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted text-foreground">{l}</span>)}
                     </div>
                   </div>}
+
+                {/* 🧬 AI 5D 여행 DNA 궁합 Sandbox */}
+                <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-sm space-y-4 mt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg animate-pulse">🔮</span>
+                      <div>
+                        <h4 className="text-sm font-black text-foreground leading-tight">AI 5D 여행 궁합 리포트</h4>
+                        <p className="text-[10px] text-muted-foreground">성향 매칭 알고리즘 2.0</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full shrink-0">
+                      {profile.matchScore || 85}% 매치
+                    </span>
+                  </div>
+                  
+                  {/* Travel DNA Radar arcs */}
+                  <div className="py-1 border-y border-border/40 my-1 pointer-events-auto">
+                    <TravelDNA profile={profile} myProfile={myProfileData} compact={false} />
+                  </div>
+
+                  {/* AI Chemistry Advice */}
+                  <div className="bg-muted/65 rounded-xl p-3 border border-border/50 text-xs leading-relaxed space-y-2">
+                    <p className="font-extrabold text-foreground flex items-center gap-1">
+                      <span>⚡</span> MIGO AI 성향 코칭 가이드
+                    </p>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {getChemistryAdvice(profile, myProfileData)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 🃏 AI 아이스브레이커 카드 덱 */}
+                <div className="space-y-3 mt-4">
+                  <div>
+                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 truncate">
+                      <span>🃏</span> AI 아이스브레이커 카드 덱
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{i18n.t("auto.ko_deck_desc", { defaultValue: "성향 궁합 맞춤형 대화 추천 덱입니다. 탭하여 카드를 골라보세요!" })}</p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pointer-events-auto">
+                    {getIcebreakerQuestions(profile, myProfileData).map((c) => (
+                      <motion.button
+                        key={c.id}
+                        whileTap={{ scale: 0.95, y: 2 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                          setSelectedIcebreaker(selectedIcebreaker === c.id ? null : c.id);
+                        }}
+                        className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-between gap-1.5 transition-all ${
+                          selectedIcebreaker === c.id
+                            ? 'bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-400 shadow-md shadow-amber-500/10 ring-1 ring-amber-400'
+                            : 'bg-muted/40 border-border hover:bg-muted'
+                        }`}
+                      >
+                        <span className="text-2xl filter drop-shadow">{c.icon}</span>
+                        <div className="min-w-0">
+                          <p className={`text-[10px] font-black truncate ${selectedIcebreaker === c.id ? 'text-amber-500' : 'text-foreground'}`}>
+                            {c.title}
+                          </p>
+                          <p className="text-[8px] text-muted-foreground truncate leading-none mt-0.5">{c.desc}</p>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+
+                  {/* Selected card detail bubble */}
+                  <AnimatePresence>
+                    {selectedIcebreaker && (() => {
+                      const activeCard = getIcebreakerQuestions(profile, myProfileData).find(c => c.id === selectedIcebreaker);
+                      if (!activeCard) return null;
+                      return (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="bg-gradient-to-r from-amber-500/5 via-orange-500/5 to-transparent border border-amber-300/30 rounded-2xl p-4 space-y-3 mt-1.5 pointer-events-auto">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+                                🔮 AI 추천 대화 첫마디
+                              </span>
+                              {/* Close */}
+                              <button 
+                                onClick={() => setSelectedIcebreaker(null)}
+                                className="text-muted-foreground hover:text-foreground text-xs font-bold"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            
+                            <p className="text-xs text-foreground leading-relaxed font-semibold italic bg-card/45 p-3 rounded-xl border border-border/50">
+                              "{activeCard.question}"
+                            </p>
+
+                            <motion.button
+                              whileTap={{ scale: 0.97 }}
+                              onClick={() => {
+                                // Copy to clipboard & trigger chat action
+                                navigator.clipboard.writeText(activeCard.question).catch(() => {});
+                                if (onChat) {
+                                  onChat();
+                                  onClose();
+                                }
+                              }}
+                              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold text-[11px] shadow-md flex items-center justify-center gap-1.5"
+                            >
+                              <span>💬</span> 이 질문을 복사하고 대화 시작하기
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      );
+                    })()}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
 

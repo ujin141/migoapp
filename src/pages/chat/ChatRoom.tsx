@@ -187,7 +187,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
 
 
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--background)', overflow: 'hidden' }}>
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground [--background:0_0%_100%] [--foreground:222.2_84%_4.9%] [--card:0_0%_100%] [--card-foreground:222.2_84%_4.9%] [--muted:210_40%_96.1%] [--muted-foreground:215.4_16.3%_46.9%] [--border:214.3_31.8%_91.4%]">
       {/* Header (Backdrop Blur) */}
       <header className="sticky top-0 z-20 pt-safe bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
@@ -267,7 +267,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-muted/25">
         {messages.map((msg, idx) => {
           const isMe = msg.sender === "me";
           const isLastMine = isMe && messages.slice(idx + 1).every(m => m.sender !== "me");

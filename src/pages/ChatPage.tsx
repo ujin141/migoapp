@@ -506,7 +506,10 @@ const ChatPage = () => {
 
   // ─── Chat list ────────────────────────────────────────────
   return (
-    <div className="flex flex-col bg-background" style={{ height: '100%', maxHeight: '100%' }}>
+    <div
+      className="flex flex-col bg-background text-foreground [--background:0_0%_100%] [--foreground:222.2_84%_4.9%] [--card:0_0%_100%] [--card-foreground:222.2_84%_4.9%] [--muted:210_40%_96.1%] [--muted-foreground:215.4_16.3%_46.9%] [--border:214.3_31.8%_91.4%]"
+      style={{ height: '100%', maxHeight: '100%' }}
+    >
 
       {/* ── Header (고정) ── */}
       <div className="shrink-0 px-5 pb-4 pt-[max(env(safe-area-inset-top),24px)] bg-card/90 backdrop-blur-xl border-b border-border/50 z-10">

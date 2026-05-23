@@ -192,6 +192,41 @@ const SwipeCard = ({
     return Math.round((spontaneousVal + activeVal + earlyBirdVal + budgetVal + socialVal) / 5);
   })();
 
+  const fateInsight = (() => {
+    const source = `${profile.id || profile.name || "migo"}:${profile.location || ""}`;
+    const seed = Array.from(source).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const tags: string[] = profile.tags || profile.interests || profile.travelStyle || [];
+    const mood = profile.travelMission || tags[0] || "여행 무드";
+    const routeScore = Math.min(96, Math.max(61, overallMatch + (seed % 17) - 6));
+    const nearMinutes = 12 + (seed % 39);
+    const distanceKm = typeof profile.distanceKm === "number" ? profile.distanceKm : null;
+
+    if (distanceKm !== null && distanceKm <= 5) {
+      return {
+        label: "MISSED CROSSING",
+        title: "오늘 스친 가능성",
+        detail: `${nearMinutes}분 차이로 근처에 있었을 수 있어요`,
+        metric: `${Math.min(94, routeScore + 4)}%`,
+      };
+    }
+
+    if (routeScore >= 84) {
+      return {
+        label: "ROUTE FATE",
+        title: "내일 동선 겹침",
+        detail: `${mood} 루트가 비슷한 여행자`,
+        metric: `${routeScore}%`,
+      };
+    }
+
+    return {
+      label: "TRAVEL DNA",
+      title: "여행 취향 닮음",
+      detail: `${mood} 성향이 가까운 사람`,
+      metric: `${routeScore}%`,
+    };
+  })();
+
   // 신비롭고 럭셔리한 천체 여행 타로카드 아키타입 매핑
   const getTarotArchetype = () => {
     const mbti = profile.mbti || "";
@@ -581,6 +616,33 @@ const SwipeCard = ({
               {profile.distance ? ` • ${profile.distance}` : ""}
             </span>
           </div>
+
+          {isTop && !isBlurTarget && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                setIsFlipped(true);
+              }}
+              className="pointer-events-auto w-full rounded-xl bg-black/45 border border-white/15 backdrop-blur-md px-3 py-2 text-left active:scale-[0.99] transition-transform"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Zap size={12} className="text-amber-300 fill-amber-300" />
+                    <span className="text-[9px] font-black tracking-[0.18em] text-amber-200">
+                      {fateInsight.label}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs font-black text-white truncate">{fateInsight.title}</p>
+                  <p className="mt-0.5 text-[10px] font-semibold text-white/65 truncate">{fateInsight.detail}</p>
+                </div>
+                <div className="shrink-0 h-10 w-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center">
+                  <span className="text-[11px] font-black text-white">{fateInsight.metric}</span>
+                </div>
+              </div>
+            </button>
+          )}
           
           <div className="flex items-center gap-2 text-white/80 text-[13px] font-medium drop-shadow-md line-clamp-2 leading-snug max-w-[85%]">
              <span className="opacity-70"><User size={14} className="inline mr-1 -mt-0.5" /></span>
