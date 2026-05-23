@@ -4,6 +4,7 @@ import i18n from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, Globe, Sparkles, MapPin, Compass, Info, Check, User } from "lucide-react";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { Solar, Lunar } from "lunar-javascript";
 
 // 천간 데이터 정의 (Heavenly Stems)
 interface StemData {
@@ -335,39 +336,53 @@ export default function MySajuDetailModal({
     const dy = parseInt(day);
     const hr = hour === "unknown" ? 12 : parseInt(hour);
 
-    // 1. 연주 (Year Pillar)
-    const yrCycle = (yr - 1984 + 6000) % 60;
-    const yrStemIdx = yrCycle % 10;
-    const yrBranchIdx = yrCycle % 12;
+    const getStemByHanja = (hanja: string): StemData => {
+      return STEMS.find(s => s.hanja === hanja) || STEMS[0];
+    };
 
-    // 2. 월주 (Month Pillar)
-    const moCycle = ((yr - 1984) * 12 + mo + 2 + 6000) % 60;
-    const moStemIdx = moCycle % 10;
-    const moBranchIdx = (mo + 1) % 12;
+    const getBranchByHanja = (hanja: string): BranchData => {
+      return BRANCHES.find(b => b.hanja === hanja) || BRANCHES[0];
+    };
 
-    // 3. 일주 (Day Pillar)
-    // 1984년 1월 1일은 갑술(甲戌)일 (천간 0, 지지 10)
-    const baseDate = new Date(1984, 0, 1);
-    const targetDate = new Date(yr, mo - 1, dy);
-    const diffTime = targetDate.getTime() - baseDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    // 안전 장치
-    const dayCycle = (diffDays + 10 + 60000) % 60;
-    const dyStemIdx = dayCycle % 10;
-    const dyBranchIdx = dayCycle % 12;
+    let lunarDate;
+    if (calendarType === "lunar") {
+      lunarDate = Lunar.fromYmdHms(yr, mo, dy, hr, 0, 0);
+    } else {
+      const solarDate = Solar.fromYmdHms(yr, mo, dy, hr, 0, 0);
+      lunarDate = solarDate.getLunar();
+    }
 
-    // 4. 시주 (Hour Pillar) - 시두법 (Sixty-Cycle Hour Stems) 적용
-    const hrBranchIdx = Math.floor((hr + 1) / 2) % 12;
-    // 시두법 공식
-    const startHourStemIdx = (dyStemIdx % 5) * 2;
-    const hrStemIdx = (startHourStemIdx + hrBranchIdx) % 10;
+    const eightChar = lunarDate.getEightChar();
+    const yrStr = eightChar.getYear();
+    const moStr = eightChar.getMonth();
+    const dyStr = eightChar.getDay();
+    const hrStr = eightChar.getTime();
+
+    const yearPillar = {
+      stem: getStemByHanja(yrStr.substring(0, 1)),
+      branch: getBranchByHanja(yrStr.substring(1, 2))
+    };
+
+    const monthPillar = {
+      stem: getStemByHanja(moStr.substring(0, 1)),
+      branch: getBranchByHanja(moStr.substring(1, 2))
+    };
+
+    const dayPillar = {
+      stem: getStemByHanja(dyStr.substring(0, 1)),
+      branch: getBranchByHanja(dyStr.substring(1, 2))
+    };
+
+    const hourPillar = hour === "unknown" ? null : {
+      stem: getStemByHanja(hrStr.substring(0, 1)),
+      branch: getBranchByHanja(hrStr.substring(1, 2))
+    };
 
     return {
-      yearPillar: { stem: STEMS[yrStemIdx], branch: BRANCHES[yrBranchIdx] },
-      monthPillar: { stem: STEMS[moStemIdx], branch: BRANCHES[moBranchIdx] },
-      dayPillar: { stem: STEMS[dyStemIdx], branch: BRANCHES[dyBranchIdx] },
-      hourPillar: hour === "unknown" ? null : { stem: STEMS[hrStemIdx], branch: BRANCHES[hrBranchIdx] }
+      yearPillar,
+      monthPillar,
+      dayPillar,
+      hourPillar
     };
   };
 
