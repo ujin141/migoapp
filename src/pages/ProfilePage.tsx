@@ -24,6 +24,8 @@ import { checkInStreak } from "@/lib/streakService";
 import { getCurrentLocation } from "@/lib/locationService";
 import StoryViewer from "@/components/StoryViewer";
 import ProfileCompletionBar from "@/components/ProfileCompletionBar";
+import MySajuDetailModal from "@/components/profile/MySajuDetailModal";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
 const getDeterministicHash = (str: string): number => {
   let hash = 0;
@@ -218,6 +220,14 @@ const ProfilePage = () => {
   const [showProfileViews, setShowProfileViews] = useState(false);
   const [showRefundPolicyModal, setShowRefundPolicyModal] = useState(false);
   const [boostJustActivated, setBoostJustActivated] = useState(false);
+  const [showSajuModal, setShowSajuModal] = useState(false);
+  const [sajuBirthInfo, setSajuBirthInfo] = useState<any>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("migo_saju_birth_info") || "null");
+    } catch {
+      return null;
+    }
+  });
 
   // ─── 실시간 DB 데이터 state ───
   const [matchedUsers, setMatchedUsers] = useState<any[]>([]);
@@ -356,6 +366,11 @@ const ProfilePage = () => {
   }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileRef2 = useRef<HTMLInputElement>(null); // Edit modal multi-photo
+
+  const handleSaveSajuBirthInfo = (info: any) => {
+    setSajuBirthInfo(info);
+    localStorage.setItem("migo_saju_birth_info", JSON.stringify(info));
+  };
 
   // ─ 라이커와 1:1 채팅 시작 (Plus 전용) ─
   const startChatWithLiker = async (likerId: string) => {
@@ -1523,6 +1538,28 @@ const ProfilePage = () => {
                 </p>
               </div>
             </div>
+
+            {/* Action Button for Detailed Saju Analysis */}
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                setShowSajuModal(true);
+              }}
+              className="w-full py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-[11px] font-black text-amber-400 active:opacity-95 transition-all flex items-center justify-center gap-1.5"
+            >
+              <Sparkles size={11} className="animate-pulse" />
+              <span>
+                {
+                  {
+                    ko: "🔮 내 사주팔자 만세력 상세 분석하기",
+                    en: "🔮 Analyze My Detailed K-Saju Palja",
+                    ja: "🔮 私の四柱推命・八字精密鑑定",
+                    zh: "🔮 生成我的四柱八字详批"
+                  }[lang]
+                }
+              </span>
+            </motion.button>
           </div>
         );
       })()}
@@ -2187,6 +2224,14 @@ const ProfilePage = () => {
         setProfileTheme={setProfileTheme}
         saveProfile={saveProfile}
         saving={saving}
+      />
+
+      {/* ─── Detailed Saju-Palja Modal ─── */}
+      <MySajuDetailModal
+        isOpen={showSajuModal}
+        onClose={() => setShowSajuModal(false)}
+        savedBirthInfo={sajuBirthInfo}
+        onSaveBirthInfo={handleSaveSajuBirthInfo}
       />
 
       {/* ─── Settings Modal ─── */}
