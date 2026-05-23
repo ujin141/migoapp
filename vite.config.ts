@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
 
   server: {
     host: "0.0.0.0",
-    port: 8080,
+    port: 8082,
     strictPort: true,
     hmr: { overlay: false },
     // SEC-XSS: 개발 서버 보안 헤더 추가
