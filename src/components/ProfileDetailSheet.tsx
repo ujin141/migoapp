@@ -404,11 +404,11 @@ const ProfileDetailSheet = ({
               )}
 
               {/* Details */}
-              <div className="px-5 py-4 space-y-4 truncate">
+              <div className="px-5 py-4 space-y-4">
 
                 {/* Bio with translation toggle */}
-                {profile.bio && <div className="bg-muted/40 rounded-2xl p-4 border border-border truncate">
-                    <div className="flex items-center justify-between mb-2 truncate">
+                {profile.bio && <div className="bg-muted/40 rounded-2xl p-4 border border-border">
+                    <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-extrabold text-muted-foreground uppercase tracking-widest truncate">{i18n.t("auto.z_\uC790\uAE30\uC18C\uAC1C_1276", "\uC790\uAE30\uC18C\uAC1C")}</p>
                       {profile.bio && <button onClick={() => setShowTranslation(v => !v)} className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-all ${showTranslation ? "bg-primary/15 text-primary border border-primary/30" : "bg-muted text-muted-foreground border border-border"}`}>
                           {bioTranslating ? <Loader2 size={10} className="animate-spin" /> : <Languages size={10} />}{i18n.t("auto.z_\uBC88\uC5ED_1277", "\uBC88\uC5ED")}{showTranslation ? "ON" : "OFF"}
@@ -499,7 +499,7 @@ const ProfileDetailSheet = ({
                     <p className="font-extrabold text-foreground flex items-center gap-1">
                       <span>⚡</span> MIGO AI 성향 코칭 가이드
                     </p>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed whitespace-normal break-words">
                       {getChemistryAdvice(profile, myProfileData)}
                     </p>
                   </div>
