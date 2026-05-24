@@ -212,6 +212,36 @@ const ChatPage = () => {
     handleTranslate(last.id, last.text);
   }, [messages, autoTranslate, handleTranslate]); // translateMap 제거 (ref 사용)
 
+  const insertMessageAndNotify = async (textToSend: string) => {
+    if (!selectedChat || !user) {
+      return { error: new Error("Missing chat context") };
+    }
+
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        thread_id: selectedChat,
+        sender_id: user.id,
+        text: textToSend,
+        content: textToSend,
+      })
+      .select("id, thread_id, sender_id, text, content, created_at")
+      .single();
+
+    if (!error && data) {
+      void supabase.functions
+        .invoke("push-notify", { body: { table: "messages", record: data } })
+        .then(({ error: pushError }) => {
+          if (pushError) console.warn("[Chat] push notification failed:", pushError.message);
+        })
+        .catch((pushError) => {
+          console.warn("[Chat] push notification failed:", pushError);
+        });
+    }
+
+    return { error };
+  };
+
   const sendMessage = async (overrideText?: string) => {
     const finalMessage = overrideText || message;
     if (!finalMessage.trim() || !selectedChat || !user) return;
@@ -229,11 +259,7 @@ const ChatPage = () => {
     const textToSend = finalMessage.trim();
     setMessage("");
 
-    const { error } = await supabase.from('messages').insert({
-      thread_id: selectedChat,
-      sender_id: user.id,
-      text: textToSend
-    });
+    const { error } = await insertMessageAndNotify(textToSend);
 
     if (error) {
       setMessage(textToSend);
@@ -263,11 +289,7 @@ const ChatPage = () => {
         }
         const text = `${t("auto.t_0019", "📍 현재 위치 공유")}\n${locationStr || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}`;
         // CRIT-2 fix: insert 성공 후에만 consumeDm (실패 시 DM 손실 방지)
-        const { error: insertErr } = await supabase.from('messages').insert({
-          thread_id: selectedChat,
-          sender_id: user.id,
-          text: text
-        });
+        const { error: insertErr } = await insertMessageAndNotify(text);
         if (!insertErr) {
           consumeDm();
           toast({ title: t("alert.t22Title") });
@@ -290,11 +312,7 @@ const ChatPage = () => {
     if (!canSendDm) { setShowPlusModal(true); return; }
     const text = t("auto.t_0020", `📅 일정 공유\n날짜: ${scheduleDate}\n내용: ${scheduleText}`);
     // CRIT-2 fix: insert 성공 후에만 consumeDm
-    const { error: insertErr } = await supabase.from('messages').insert({
-      thread_id: selectedChat,
-      sender_id: user.id,
-      text: text
-    });
+    const { error: insertErr } = await insertMessageAndNotify(text);
     if (!insertErr) {
       consumeDm();
       setShowScheduleModal(false);
@@ -315,11 +333,7 @@ const ChatPage = () => {
     if (!canSendDm) { setShowPlusModal(true); return; }
     const text = t("auto.t_0021", `🤝 만남 제안\n날짜: ${meetDate}\n장소: ${meetPlace}`);
     // CRIT-2 fix: insert 성공 후에만 consumeDm
-    const { error: insertErr } = await supabase.from('messages').insert({
-      thread_id: selectedChat,
-      sender_id: user.id,
-      text: text
-    });
+    const { error: insertErr } = await insertMessageAndNotify(text);
     if (!insertErr) {
       consumeDm();
       setShowMeetProposal(false);
@@ -519,15 +533,15 @@ const ChatPage = () => {
     >
 
       {/* ── Header (고정) ── */}
-      <div className="shrink-0 px-5 pb-4 pt-[max(env(safe-area-inset-top),24px)] bg-card/90 backdrop-blur-xl border-b border-border/50 z-10">
-        <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-black text-foreground tracking-tight">{t('chat.title')}</h1>
+      <div className="shrink-0 px-4 pb-3 pt-[max(env(safe-area-inset-top),18px)] bg-card/95 backdrop-blur-xl border-b border-border/50 z-10">
+        <div className="flex items-center justify-between mb-3">
+            <h1 className="text-xl font-black text-foreground tracking-tight">{t('chat.title')}</h1>
           <div className="flex items-center gap-2">
             {!canSendDm && (
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowPlusModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-md text-white text-[11px] font-extrabold"
+                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-[11px] font-extrabold"
               >
                 <Crown size={14} className="drop-shadow-sm" />
                 Plus
@@ -536,7 +550,7 @@ const ChatPage = () => {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowFilterSheet(prev => !prev)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center -mr-1 transition-all ${(showFilterSheet || filterType !== 'all') ? 'bg-primary/15 text-primary shadow-sm' : 'bg-muted text-foreground'}`}
+               className={`w-8 h-8 rounded-lg flex items-center justify-center -mr-1 transition-all ${(showFilterSheet || filterType !== 'all') ? 'bg-primary/15 text-primary shadow-sm' : 'bg-muted text-foreground'}`}
             >
               <SlidersHorizontal size={16} />
             </motion.button>
@@ -544,7 +558,7 @@ const ChatPage = () => {
         </div>
 
         {/* 검색바 */}
-        <div className="flex items-center gap-2.5 bg-muted/60 border border-border/60 rounded-full px-4 py-2.5 transition-all focus-within:bg-card focus-within:border-primary/40 focus-within:shadow-sm">
+        <div className="flex items-center gap-2.5 bg-muted/60 border border-border/60 rounded-xl px-4 py-2 transition-all focus-within:bg-card focus-within:border-primary/40">
           <Search size={16} className="text-muted-foreground shrink-0" />
           <input
             type="text"
@@ -565,7 +579,7 @@ const ChatPage = () => {
           className="overflow-hidden transition-all duration-150"
           style={{ maxHeight: showFilterSheet ? "200px" : "0px", opacity: showFilterSheet ? 1 : 0, marginTop: showFilterSheet ? "8px" : "0px" }}
         >
-          <div className="grid grid-cols-2 gap-2 pb-1">
+          <div className="grid grid-cols-4 gap-1.5 pb-1">
             {([
               { id: "all",    emoji: "💬", label: t("chat.filterAll",    "전체") },
               { id: "unread", emoji: "🔔", label: t("chat.filterUnread", "안읽음") },
@@ -579,14 +593,14 @@ const ChatPage = () => {
                   setFilterUnread(opt.id === "unread");
                   setShowFilterSheet(false);
                 }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                 className={`flex items-center justify-center gap-1 px-2 py-2 rounded-lg text-sm font-bold transition-all ${
                   filterType === opt.id
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted/70 text-muted-foreground"
                 }`}
               >
                 <span>{opt.emoji}</span>
-                <span className="flex-1 text-left text-xs">{opt.label}</span>
+                <span className="text-xs truncate">{opt.label}</span>
                 {filterType === opt.id && <Check size={12} />}
               </button>
             ))}
@@ -618,7 +632,7 @@ const ChatPage = () => {
 
         {/* Ad Banner */}
         {!isPlus && !isPremium && ads.length > 0 && (
-          <div className="px-5 mb-3">
+          <div className="px-4 mb-2">
             {ads.map((ad, i) => {
               if (i > 0) return null;
               return (
@@ -628,7 +642,7 @@ const ChatPage = () => {
                     recordAdClick(ad.id, null);
                     if (ad.cta_url) Browser.open({ url: ad.cta_url, presentationStyle: 'fullscreen' });
                   }}
-                  className="w-full bg-card rounded-2xl overflow-hidden shadow-card cursor-pointer relative border border-border/30 animate-in fade-in slide-in-from-top-2"
+                  className="w-full bg-card rounded-xl overflow-hidden shadow-sm cursor-pointer relative border border-border/30 animate-in fade-in slide-in-from-top-2"
                 >
                   {ad.image_url && <img src={ad.image_url} alt={ad.title} className="w-full h-16 object-cover opacity-80" loading="lazy" />}
                   <div className={`px-4 py-2.5 ${ad.image_url ? "absolute inset-0 bg-gradient-to-t from-black/80 flex flex-col justify-end" : ""}`}>
@@ -664,8 +678,8 @@ const ChatPage = () => {
 
         {/* ── 채팅 없음 (필터 없음) ── */}
         {filteredThreads.length === 0 && filterType === 'all' && !searchQuery && (
-          <div className="mx-5 mt-4">
-            <div className="bg-gradient-to-br from-emerald-500/8 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-4">
+          <div className="mx-4 mt-3">
+            <div className="bg-card border border-border/60 rounded-xl p-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
                   <Shield size={17} className="text-emerald-500" />
@@ -675,7 +689,7 @@ const ChatPage = () => {
                   <p className="text-[11px] text-muted-foreground">{t("chat.safeChatDesc", "모든 채팅은 암호화 보호됩니다")}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 mt-3">
+              {false && <div className="grid grid-cols-3 gap-2 mt-3">
                 {[
                   { icon: "🔒", text: t("chat.e2eProtection", "종단간 보호") },
                   { icon: "🛡️", text: t("chat.reportHandled", "신고 즉각 처리") },
@@ -686,7 +700,7 @@ const ChatPage = () => {
                     <span className="text-[9px] font-bold text-muted-foreground text-center">{text}</span>
                   </div>
                 ))}
-              </div>
+              </div>}
             </div>
           </div>
         )}

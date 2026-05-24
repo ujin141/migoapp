@@ -238,6 +238,10 @@ const ProfilePage = () => {
   const [likers, setLikers] = useState<any[]>([]); // 나를 좋아한 사람들
   const [visitors, setVisitors] = useState<any[]>([]); // 최근 프로필 방문자
   const [showMyPosts, setShowMyPosts] = useState(false);
+  const [showSocialPanel, setShowSocialPanel] = useState(false);
+  const [showBadgesPanel, setShowBadgesPanel] = useState(false);
+  const [showActivityPanel, setShowActivityPanel] = useState(false);
+  const [showProfileMore, setShowProfileMore] = useState(false);
   const [selectedLiker, setSelectedLiker] = useState<any | null>(null);
   const [selectedLikerIdx, setSelectedLikerIdx] = useState<number>(0);
 
@@ -1179,7 +1183,7 @@ const ProfilePage = () => {
         })()}
       </AnimatePresence>
       {/* ── Decorative background (테마 반영) ── */}
-      <div className={`absolute top-0 left-0 w-full h-[280px] bg-gradient-to-b ${theme.decorBg} to-transparent z-0 pointer-events-none transition-all duration-500`} />
+      <div className="absolute top-0 left-0 w-full h-[140px] bg-muted/35 z-0 pointer-events-none transition-all duration-500" />
       
       {/* ─── 부스트 활성화 플래시 효과 ─── */}
       <AnimatePresence>
@@ -1224,8 +1228,8 @@ const ProfilePage = () => {
       <div className="relative z-10">
 
       {/* ── Top Bar ── */}
-      <header className="flex items-center justify-between px-4 pt-safe pb-2">
-        <h1 className="text-xl font-black text-foreground tracking-tight">{t('profile.title')}</h1>
+      <header className="flex items-center justify-between px-4 pt-safe pb-1">
+        <h1 className="text-lg font-black text-foreground tracking-tight">{t('profile.title')}</h1>
         <div className="flex items-center gap-1.5">
           {isPlus && (
             <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
@@ -1248,14 +1252,14 @@ const ProfilePage = () => {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className={`rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.07)] border overflow-hidden transition-all duration-500 ${theme.cardBg}`}
+          className="rounded-2xl shadow-sm border border-border/60 overflow-hidden bg-card transition-all duration-500"
         >
           {/* 상단: 프로필 사진 + 통계 한 줄 */}
-          <div className="flex items-center gap-5 px-5 pt-5 pb-3">
+          <div className="flex items-center gap-4 px-4 pt-4 pb-2">
             {/* Avatar — 크게 */}
             <div className="relative shrink-0">
               <div
-                className={`w-[84px] h-[84px] rounded-full overflow-hidden border-[3px] shadow-lg transition-all duration-500 ${theme.avatarRing}`}
+                className="w-[72px] h-[72px] rounded-full overflow-hidden border-2 border-border shadow-sm transition-all duration-500"
                 onClick={() => {
                   const allPhotos = profilePhotos.map(p => p.url).filter(Boolean);
                   if (allPhotos.length > 0) { setGalleryOpen({ photos: allPhotos, startIdx: 0 }); setGalleryIdx(0); }
@@ -1271,7 +1275,7 @@ const ProfilePage = () => {
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full gradient-primary flex items-center justify-center text-primary-foreground text-3xl font-black">
+                  <div className="w-full h-full gradient-primary flex items-center justify-center text-primary-foreground text-2xl font-black">
                     {name.charAt(0) || 'M'}
                   </div>
                 )}
@@ -1295,7 +1299,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Stats — 3열 인라인 */}
-            <div className="flex-1 grid grid-cols-3 gap-1">
+            <div className="flex-1 grid grid-cols-3 gap-1 rounded-xl bg-muted/45 p-2">
               {[
                 { value: myPosts.length, label: t('profilePage.stats.posts', 'Posts'), action: () => setShowMyPosts(true) },
                 { value: matchedUsers.length, label: t('profilePage.stats.matched', 'Matched'), action: () => setShowMatchDetail(true) },
@@ -1304,7 +1308,7 @@ const ProfilePage = () => {
                 <button
                   key={stat.label}
                   onClick={stat.action}
-                  className="flex flex-col items-center py-1 active:opacity-60 transition-opacity"
+                  className="flex flex-col items-center py-0.5 active:opacity-60 transition-opacity"
                 >
                   <span className="text-[18px] font-black text-foreground leading-none">{stat.value}</span>
                   <span className="text-[10px] text-muted-foreground font-semibold mt-1 truncate">{stat.label}</span>
@@ -1314,7 +1318,7 @@ const ProfilePage = () => {
           </div>
 
           {/* 이름 + 뱃지 + 위치 + 바이오 */}
-          <div className="px-5 pb-3">
+          <div className="px-4 pb-3">
             {/* Name row */}
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-[18px] font-black text-foreground leading-tight">{name}</h2>
@@ -1369,7 +1373,7 @@ const ProfilePage = () => {
           </div>
 
           {/* ─── Profile Completion Bar (리텐션 강화) ─── */}
-          <div className="px-4 pb-3">
+          <div className="px-4 pb-2">
             <ProfileCompletionBar
               compact
               profile={{ name, bio, photoUrl, location, travelDates, travelMission, visitedCountries, tags, profilePhotos, userType }}
@@ -1378,7 +1382,7 @@ const ProfilePage = () => {
           </div>
 
           {/* Quick Action Buttons — 카드 안에 통합 */}
-          <div className="flex gap-2 px-4 pb-4">
+          <div className="flex gap-2 px-4 pb-3">
             <motion.button
               whileTap={{ scale: 0.96 }}
               onClick={() => setShowEditModal(true)}
@@ -1442,7 +1446,24 @@ const ProfilePage = () => {
       </div>
 
       {/* ── Plus Upgrade Banner (non-Plus only) ── */}
-      {!isPlus && (
+      <div className="mx-4 mt-2 grid grid-cols-2 gap-2">
+        <button
+          onClick={() => navigate('/safety')}
+          className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2.5 text-[12px] font-extrabold text-emerald-700 active:opacity-80"
+        >
+          <Shield size={14} />
+          {t("profile.quickSafety", "Safety")}
+        </button>
+        <button
+          onClick={() => setShowProfileMore(v => !v)}
+          className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-[12px] font-extrabold text-foreground active:opacity-80"
+        >
+          <Settings size={14} />
+          {showProfileMore ? t("common.close", "Close") : t("common.more", "More")}
+        </button>
+      </div>
+
+      {!isPlus && false && (
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => setShowPlusModal(true)}
@@ -1461,7 +1482,7 @@ const ProfilePage = () => {
 
       {/* ── Tags & Mission ── */}
       {(travelMission || visitedCountries.length > 0 || tags.length > 0) && (
-        <div className="mx-4 mt-3 space-y-2">
+        <div className="mx-4 mt-2 space-y-2">
           {travelMission && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-primary/5 border border-primary/10">
               <span className="text-sm shrink-0">🎯</span>
@@ -1481,6 +1502,51 @@ const ProfilePage = () => {
           </div>
         </div>
       )}
+
+      <div className="mx-4 mt-2 grid grid-cols-3 gap-2">
+        {[
+          {
+            label: t("profilePage.profileHub.reactions", "반응"),
+            value: likers.length + visitors.length,
+            icon: Heart,
+            active: showSocialPanel,
+            action: () => setShowSocialPanel((v) => !v),
+          },
+          {
+            label: t("profile.myBadges", "뱃지"),
+            value: earnedBadges.length,
+            icon: Star,
+            active: showBadgesPanel,
+            action: () => setShowBadgesPanel((v) => !v),
+          },
+          {
+            label: t("profilePage.profileHub.activity", "활동"),
+            value: myPosts.length + matchedUsers.length + myTrips.length,
+            icon: Sparkles,
+            active: showActivityPanel,
+            action: () => setShowActivityPanel((v) => !v),
+          },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.label}
+              onClick={item.action}
+              className={`min-h-[58px] rounded-xl border px-3 py-2 text-left transition-all active:scale-[0.98] ${
+                item.active
+                  ? "border-primary/30 bg-primary/10"
+                  : "border-border/50 bg-card"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <Icon size={16} className={item.active ? "text-primary" : "text-muted-foreground"} />
+                <span className="text-[15px] font-black text-foreground">{item.value}</span>
+              </div>
+              <p className="mt-1 text-[10px] font-extrabold text-muted-foreground truncate">{item.label}</p>
+            </button>
+          );
+        })}
+      </div>
 
       {/* ☯️ My Traditional Saju Element Compass */}
       {(() => {
@@ -1541,12 +1607,12 @@ const ProfilePage = () => {
         }[lang] || "Yin-Yang based travel archetype";
 
         return (
-          <div className="mx-4 mt-3 relative overflow-hidden bg-gradient-to-br from-amber-950/20 to-card border border-amber-500/25 rounded-2xl p-4 shadow-sm space-y-3">
+          <div className="mx-4 mt-3 relative overflow-hidden bg-card border border-amber-500/20 rounded-2xl p-3 shadow-sm space-y-2.5">
             {/* Background glow */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none" />
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-amber-500/10 pb-2">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <motion.span 
                   className="text-xl inline-block"
@@ -1559,7 +1625,7 @@ const ProfilePage = () => {
                   <h4 className="text-xs font-black text-amber-400 tracking-wide leading-tight">
                     {titleLabel}
                   </h4>
-                  <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">
+                  <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider truncate">
                     {subtitleLabel}
                   </p>
                 </div>
@@ -1567,10 +1633,10 @@ const ProfilePage = () => {
             </div>
 
             {/* Content */}
-            <div className="flex items-center gap-4 bg-muted/20 border border-amber-500/5 rounded-xl p-3">
+            <div className="flex items-center gap-3 bg-muted/30 border border-amber-500/5 rounded-xl p-3">
               {/* Large Element Avatar */}
-              <div className="relative w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500/10 to-amber-600/30 border border-amber-500/40 flex items-center justify-center shrink-0">
-                <span className="text-3xl filter drop-shadow">{myEl.emoji}</span>
+              <div className="relative w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500/10 to-amber-600/30 border border-amber-500/40 flex items-center justify-center shrink-0">
+                <span className="text-2xl filter drop-shadow">{myEl.emoji}</span>
               </div>
 
               {/* Text Details */}
@@ -1578,7 +1644,7 @@ const ProfilePage = () => {
                 <p className="text-[12px] font-black text-amber-400 leading-tight">
                   {myEl.name[lang] || myEl.name.en}
                 </p>
-                <p className="text-[10px] text-muted-foreground leading-relaxed mt-1 whitespace-normal break-words">
+                <p className="text-[10px] text-muted-foreground leading-relaxed mt-1 line-clamp-2">
                   {myEl.desc[lang] || myEl.desc.en}
                 </p>
               </div>
@@ -1591,7 +1657,7 @@ const ProfilePage = () => {
                 Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
                 setShowSajuModal(true);
               }}
-              className="w-full py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-[11px] font-black text-amber-400 active:opacity-95 transition-all flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-[11px] font-black text-amber-500 active:opacity-95 transition-all flex items-center justify-center gap-1.5"
             >
               <Sparkles size={11} className="animate-pulse" />
               <span>
@@ -1610,7 +1676,7 @@ const ProfilePage = () => {
       })()}
 
       {/* ─── 나를 좋아한 사람들 섹션 ─── */}
-      {likers.length > 0 && (
+      {showSocialPanel && likers.length > 0 && (
         <div className="mx-5 mt-6">
           {/* 헤더 배너 */}
         <motion.div
@@ -1779,7 +1845,7 @@ const ProfilePage = () => {
       )}
 
       {/* ─── 최근 방문자 (현질 유도 탭) ─── */}
-      {visitors.length > 0 && (
+      {showSocialPanel && visitors.length > 0 && (
         <div className="mx-5 mt-6 pb-2 relative">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
@@ -1864,7 +1930,7 @@ const ProfilePage = () => {
       )}
 
       {/* ── My Badges Section ── */}
-      <div className="mx-5 mt-6 mb-2">
+      {showBadgesPanel && <div className="mx-5 mt-6 mb-2">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5">
             <Crown size={18} className="text-amber-500" />
@@ -1897,7 +1963,7 @@ const ProfilePage = () => {
             <p className="text-[10px] text-muted-foreground mt-1">{t("profile.earnBadgesDesc", "앱에서 활동하며 멋진 뱃지를 수집해보세요!")}</p>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* My Posts Section */}
       <AnimatePresence>
@@ -2163,16 +2229,16 @@ const ProfilePage = () => {
       </AnimatePresence>
 
       {/* 활동 리포트 */}
-      <div className="mt-5">
+      {showActivityPanel && <div className="mt-5">
         <ActivityReport />
-      </div>
+      </div>}
 
       
       {/* Dashboard Menu Groups */}
-      <div className="mx-4 mt-5 pb-6 space-y-4">
+      {showProfileMore && <div className="mx-4 mt-4 pb-6 space-y-3">
 
         {/* Safety CTA */}
-        <button onClick={() => navigate('/safety')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 active:scale-95 transition-transform shadow-sm">
+        {false && <button onClick={() => navigate('/safety')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 active:scale-95 transition-transform shadow-sm">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
             <span className="text-lg">🛡️</span>
           </div>
@@ -2181,18 +2247,18 @@ const ProfilePage = () => {
             <p className="text-[10px] text-emerald-600/70 font-semibold mt-0.5 truncate">{t("auto.g_0895", "만남 전 체크리스트 확인")}</p>
           </div>
           <span className="text-[9px] font-black text-white px-2 py-0.5 rounded-full bg-emerald-500 shrink-0">NEW</span>
-        </button>
+        </button>}
 
         {/* Group 1: Explore & Organize */}
         <div>
           <h4 className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2 pl-1">{t("profilePage.menu.exploreTitle", "Explore")}</h4>
-          <div className="bg-card rounded-2xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {menuItems.slice(0, 4).map((item, i) => {
               const Icon = item.icon;
               return (
-                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-3 px-4 py-3.5 bg-card active:bg-muted/50 transition-colors ${i !== 3 ? 'border-b border-border/30' : ''}`}>
-                  <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center shrink-0 shadow-sm">
-                    <Icon size={14} className="text-white" />
+                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-3 px-4 py-3 bg-card active:bg-muted/50 transition-colors ${i !== 3 ? 'border-b border-border/30' : ''}`}>
+                  <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <Icon size={14} className="text-muted-foreground" />
                   </div>
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-[13px] font-semibold text-foreground truncate">{item.label}</p>
@@ -2208,12 +2274,12 @@ const ProfilePage = () => {
         {/* Group 2: Account & Settings */}
         <div>
           <h4 className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2 pl-1">{t("profilePage.menu.accountTitle", "Account")}</h4>
-          <div className="bg-card rounded-2xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {menuItems.slice(4).map((item, i, arr) => {
               const Icon = item.icon;
               return (
-                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-3 px-4 py-3.5 bg-card active:bg-muted/50 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/30' : ''}`}>
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${item.highlight ? 'bg-amber-500/15' : 'bg-muted/60'}`}>
+                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-3 px-4 py-3 bg-card active:bg-muted/50 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/30' : ''}`}>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${item.highlight ? 'bg-amber-500/15' : 'bg-muted/60'}`}>
                     <Icon size={14} className={item.highlight ? 'text-amber-500' : 'text-muted-foreground'} />
                   </div>
                   <div className="flex-1 text-left min-w-0">
@@ -2223,8 +2289,8 @@ const ProfilePage = () => {
                 </button>
               );
             })}
-            <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center gap-3 px-4 py-3.5 bg-card active:bg-destructive/10 transition-colors">
-              <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
+            <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center gap-3 px-4 py-3 bg-card active:bg-destructive/10 transition-colors">
+              <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
                 <LogOut size={14} className="text-destructive" />
               </div>
               <div className="flex-1 text-left min-w-0">
@@ -2238,7 +2304,7 @@ const ProfilePage = () => {
         <div className="pb-2 text-center">
           <p className="text-[10px] text-muted-foreground/50">🔒 {t('profilePage.trustFooter', '모든 데이터는 암호화되어 안전하게 보호됩니다')}</p>
         </div>
-      </div>
+      </div>}
 
       {/* ─── Edit Profile Modal ─── */}
       <EditProfileModal

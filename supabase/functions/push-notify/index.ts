@@ -127,8 +127,9 @@ function buildMessage(
   actorName: string,
 ): { title: string; body: string; data: Record<string, string> } {
   if (table === "messages") {
-    const preview = record.content
-      ? record.content.length > 60 ? record.content.slice(0, 60) + "…" : record.content
+    const messageText = record.content ?? record.text ?? "";
+    const preview = messageText
+      ? messageText.length > 60 ? messageText.slice(0, 60) + "…" : messageText
       : "새 메시지";
     return {
       title: `💬 ${actorName}`,
@@ -294,8 +295,19 @@ serve(async (req) => {
 
   const auth = req.headers.get("Authorization") ?? "";
   const token = auth.replace(/^Bearer\s+/i, "");
-  // Service Role Key 또는 Anon Key 모두 허용 (어드민 패널에서 직접 호출 지원)
-  const isAuthorized = token === supabaseServiceKey || token === SUPABASE_ANON_KEY;
+  let callerUserId: string | null = null;
+  const hasServiceAuth = token === supabaseServiceKey;
+  const hasAnonAuth = token === SUPABASE_ANON_KEY;
+  let isAuthorized = hasServiceAuth || hasAnonAuth;
+
+  if (!isAuthorized && token) {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (!error && data.user?.id) {
+      callerUserId = data.user.id;
+      isAuthorized = true;
+    }
+  }
+
   if (!isAuthorized) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -310,6 +322,27 @@ serve(async (req) => {
     }
 
     if (table === "messages") {
+      if (!hasServiceAuth && !callerUserId) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      if (callerUserId) {
+        if (record.sender_id !== callerUserId) {
+          return new Response("Forbidden", { status: 403 });
+        }
+
+        const { data: callerMember } = await supabase
+          .from("chat_members")
+          .select("user_id")
+          .eq("thread_id", record.thread_id)
+          .eq("user_id", callerUserId)
+          .maybeSingle();
+
+        if (!callerMember) {
+          return new Response("Forbidden", { status: 403 });
+        }
+      }
+
       // 채팅방 다른 멤버들에게 전송 (채팅은 별도 pref 없음 → 항상 발송)
       const { data: members } = await supabase
         .from("chat_members")

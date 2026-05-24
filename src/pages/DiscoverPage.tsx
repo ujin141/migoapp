@@ -1304,9 +1304,9 @@ const DiscoverPage = () => {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/40 pt-safe transition-transform duration-300" style={{ transform: headerVisible ? "translateY(0)" : "translateY(-100%)" }}>
         {/* Row 1: 타이틀 + 액션 버튼 */}
-        <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
+        <div className="flex items-center justify-between px-4 pt-2 pb-1">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center shadow-sm">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
               <Compass size={15} className="text-white" />
             </div>
             <div>
@@ -1330,7 +1330,7 @@ const DiscoverPage = () => {
         </div>
 
         {/* Trust stat bar — groups tab */}
-        {activeTab === "groups" && (
+        {false && activeTab === "groups" && (
           <div className="flex items-center gap-0 px-4 pb-2 pt-1">
             {[
               { emoji: "✅", label: t("discover.trustHost", "인증 호스트"), value: `${Math.min(filtered.length, 50)}+` },
@@ -1349,12 +1349,12 @@ const DiscoverPage = () => {
         )}
 
         {/* Row 2: 탭 스위처 */}
-        <div className="px-4 pb-3 pt-1">
-          <div className="flex bg-muted/60 p-1 rounded-[1.25rem] w-full border border-border/50">
-            <button onClick={() => setActiveTab("groups")} className={`flex-1 py-2 rounded-[1rem] text-[12px] font-extrabold transition-all flex items-center justify-center gap-1.5 ${activeTab === "groups" ? "bg-white dark:bg-zinc-800 text-foreground shadow-[0_2px_10px_rgba(0,0,0,0.05)]" : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"}`}>
+        <div className="px-4 pb-2 pt-1">
+          <div className="flex bg-muted/60 p-1 rounded-xl w-full border border-border/50">
+            <button onClick={() => setActiveTab("groups")} className={`flex-1 py-1.5 rounded-lg text-[12px] font-extrabold transition-all flex items-center justify-center gap-1.5 ${activeTab === "groups" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"}`}>
               {t("auto.ko_0003", "✈️ 동행 구하기")}{filtered.length > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeTab === "groups" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>{filtered.length}</span>}
             </button>
-            <button onClick={() => setActiveTab("community")} className={`flex-1 py-2 rounded-[1rem] text-[12px] font-extrabold transition-all flex items-center justify-center gap-1.5 ${activeTab === "community" ? "bg-white dark:bg-zinc-800 text-foreground shadow-[0_2px_10px_rgba(0,0,0,0.05)]" : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"}`}>
+            <button onClick={() => setActiveTab("community")} className={`flex-1 py-1.5 rounded-lg text-[12px] font-extrabold transition-all flex items-center justify-center gap-1.5 ${activeTab === "community" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"}`}>
               <ImageIcon size={14} /> {t("auto.ko_0004", "여행 피드")}{posts.length > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeTab === "community" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>{posts.length}</span>}
             </button>
           </div>
@@ -1362,7 +1362,7 @@ const DiscoverPage = () => {
       </div>
 
       {/* TodayContent & DailyPicksCard */}
-      {activeTab === "groups" && (
+      {false && activeTab === "groups" && (
         <div className="flex flex-col pt-2">
           <TodayContent />
           <DailyPicksCard onProfileClick={(id) => handleProfileClick({ stopPropagation: () => {} } as any, id)} />
@@ -1370,8 +1370,8 @@ const DiscoverPage = () => {
       )}
 
       {/* Search + Filter Row */}
-      <div className="px-4 pt-3 pb-2 flex items-center gap-2">
-        <div className="flex-1 flex items-center gap-2 bg-card border border-border/60 rounded-2xl px-3.5 py-2.5 shadow-sm focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_rgba(var(--primary)/0.08)] transition-all">
+      <div className="px-4 pt-2 pb-2 flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 bg-card border border-border/60 rounded-xl px-3.5 py-2 shadow-sm focus-within:border-primary/50 transition-all">
           <Search size={15} className="text-primary/60 shrink-0" />
           <input
             value={searchQuery}
@@ -1384,7 +1384,7 @@ const DiscoverPage = () => {
         {activeTab === "groups" && (
           <button
             onClick={() => setShowGroupDetailFilter(true)}
-            className={`w-10 h-10 rounded-2xl border flex items-center justify-center shadow-sm transition-all active:scale-95 shrink-0 ${
+            className={`w-9 h-9 rounded-xl border flex items-center justify-center shadow-sm transition-all active:scale-95 shrink-0 ${
               groupDetailFilterCount > 0 ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border/60 text-muted-foreground'
             }`}
           >
@@ -1392,7 +1392,7 @@ const DiscoverPage = () => {
           </button>
         )}
         {activeTab === "community" && user && (
-          <button onClick={() => setShowWriteModal(true)} className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-teal-400 to-blue-500 text-white font-extrabold shadow-sm active:scale-95 transition-all text-[12px] shrink-0">
+          <button onClick={() => setShowWriteModal(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white font-extrabold shadow-sm active:scale-95 transition-all text-[12px] shrink-0">
             <Pencil size={13} className="text-white" /> {t("auto.ko_0005", "여행글 쓰기")}
           </button>
         )}
@@ -1457,7 +1457,7 @@ const DiscoverPage = () => {
             {FILTER_LIST.map(f => {
               const label = f === "all" ? t("auto.ko_0014", "전체") : f === "recruiting" ? t("auto.ko_0015", "모집 중") : f === "almostFull" ? t("auto.ko_0016", "마감 임박") : t("auto.ko_0017", "인기 동행");
               return (
-                <button key={f} onClick={() => setActiveFilter(f)} className={`px-3.5 py-1.5 rounded-full text-[11px] font-extrabold whitespace-nowrap transition-all border shadow-sm ${activeFilter === f ? "bg-gradient-to-r from-teal-400 to-blue-500 text-white border-transparent" : "bg-card text-muted-foreground border-border/50 hover:bg-muted"}`}>
+                 <button key={f} onClick={() => setActiveFilter(f)} className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition-all border ${activeFilter === f ? "bg-primary text-white border-transparent" : "bg-card text-muted-foreground border-border/50 hover:bg-muted"}`}>
                   {label}
                 </button>
               );
@@ -1539,6 +1539,16 @@ const DiscoverPage = () => {
           transition={{ duration: 0.18 }}
           className="px-4 space-y-3 pt-2 pb-6"
         >
+          {filtered.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowGroupCreate(true)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-white shadow-sm active:scale-[0.98] transition-transform"
+            >
+              <Plus size={17} />
+              {t("auto.ko_0013", "동행 구하기")}
+            </button>
+          )}
           {loadingGroups ? (
             <div className="space-y-3">
               {[0,1,2].map(i => (
@@ -1592,18 +1602,18 @@ const DiscoverPage = () => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: gIdx * 0.04, duration: 0.2 }}
-                className="bg-card rounded-2xl shadow-sm overflow-hidden cursor-pointer border border-border/50 active:scale-[0.985] transition-transform"
+                className="bg-card rounded-xl shadow-sm overflow-hidden cursor-pointer border border-border/50 active:scale-[0.985] transition-transform"
                 onClick={() => setDetailGroup(g)}
               >
                 {/* Tier accent bar */}
-                <div className={`h-[3px] w-full bg-gradient-to-r ${cfg.gradient}`} />
-                <div className="p-4">
+                {false && <div className={`h-[3px] w-full bg-gradient-to-r ${cfg.gradient}`} />}
+                <div className="p-3.5">
                   {/* Row 1: host avatar + title + D-day badge */}
-                  <div className="flex items-start gap-3 mb-3">
+                  <div className="flex items-start gap-3 mb-2.5">
                     <div className="relative shrink-0">
                       {g.hostPhoto
-                        ? <img src={g.hostPhoto} alt="" className="w-10 h-10 rounded-xl object-cover shadow-sm" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                        : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400/30 to-blue-500/30 flex items-center justify-center text-primary font-extrabold text-sm">{g.hostName?.[0] || 'M'}</div>
+                        ? <img src={g.hostPhoto} alt="" className="w-9 h-9 rounded-lg object-cover shadow-sm" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                        : <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-primary font-extrabold text-sm">{g.hostName?.[0] || 'M'}</div>
                       }
                       {/* Host verified badge */}
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-card flex items-center justify-center">
@@ -1630,7 +1640,7 @@ const DiscoverPage = () => {
                   </div>
 
                   {/* Row 2: 출발 → 목적지 + 날짜 */}
-                  <div className="flex items-center gap-1.5 mb-3 bg-gradient-to-r from-muted/60 to-muted/30 rounded-xl px-3 py-2">
+                  <div className="flex items-center gap-1.5 mb-2 bg-muted/50 rounded-lg px-3 py-2">
                     <MapPin size={10} className="text-muted-foreground shrink-0" />
                     <span className="text-[11px] font-semibold text-foreground truncate">{g.departure || t("auto.ko_0086", "미정")}</span>
                     <span className="text-primary font-black text-[11px] px-1">→</span>
@@ -1643,10 +1653,10 @@ const DiscoverPage = () => {
                   </div>
 
                   {/* Row 3: 인원 progress + seat info */}
-                  <div className="mb-2">
+                  <div className="mb-1.5">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
-                        <div className="flex -space-x-1">
+                        {false && <div className="flex -space-x-1">
                           {g.memberPhotos.slice(0, 4).map((p, i) => (
                             <img key={i} src={p} className="w-5 h-5 rounded-full border border-background object-cover" />
                           ))}
@@ -1655,7 +1665,7 @@ const DiscoverPage = () => {
                               <Users size={8} className="text-muted-foreground" />
                             </div>
                           )}
-                        </div>
+                        </div>}
                         <span className={`text-[11px] font-bold ${
                           isFull ? 'text-red-500' : isAlmostFull ? 'text-orange-500' : 'text-foreground'
                         }`}>
@@ -1668,7 +1678,7 @@ const DiscoverPage = () => {
                         {isFull ? t("discover.full", "마감🔴") : isAlmostFull ? t("discover.almostFull", `잔여 ${seatsLeft}석`) : t("discover.seatsLeft", `${seatsLeft}자리 남음`)}
                       </span>
                     </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-1 bg-muted rounded-full overflow-hidden">
                       <motion.div
                         className={`h-full rounded-full ${
                           isFull ? 'bg-red-500' : isAlmostFull ? 'bg-orange-400' : 'bg-gradient-to-r from-teal-400 to-blue-500'
@@ -1681,7 +1691,7 @@ const DiscoverPage = () => {
                   </div>
 
                   {/* Row 4: tags */}
-                  {g.tags.filter(tg => !tg.startsWith('_')).length > 0 && (
+                  {false && g.tags.filter(tg => !tg.startsWith('_')).length > 0 && (
                     <div className="flex gap-1 flex-wrap">
                       {g.tags.filter(tg => !tg.startsWith('_')).slice(0, 4).map(tag => (
                         <span key={tag} className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-primary/8 text-primary border border-primary/15">#{tag}</span>
@@ -1706,7 +1716,7 @@ const DiscoverPage = () => {
             transition={{ type: "spring", stiffness: 380, damping: 28 }}
             whileTap={{ scale: 0.94 }}
             onClick={() => setShowGroupCreate(true)}
-            className="fixed right-5 z-40 flex items-center gap-2 px-5 py-3.5 rounded-2xl gradient-primary text-white font-extrabold text-sm shadow-float"
+            className="hidden"
             style={{ bottom: (!isPlus && !isPremium) ? "var(--app-floating-bottom)" : "calc(68px + env(safe-area-inset-bottom, 0px))" }}
           >
             <span className="text-base leading-none">✈️</span>

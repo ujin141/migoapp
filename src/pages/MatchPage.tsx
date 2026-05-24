@@ -227,7 +227,6 @@ const MatchPage = () => {
         .or('is_admin.is.null,is_admin.eq.false')   // ?대뱶誘??쒖쇅
         .neq('role', 'admin')                        // role='admin' ?쒖쇅
         .eq('setup_complete', true)                  // ?꾨줈??誘몄셿???쒖쇅
-        .eq('saju_completed', true)
         .limit(200);
         
       const data = res.data;
@@ -297,7 +296,6 @@ const MatchPage = () => {
           && !p.is_admin               // ?대뱶誘?怨꾩젙 ?쒖쇅 (?댁쨷 ?덉쟾?μ튂)
           && p.role !== 'admin'
           && p.setup_complete === true  // ?꾨줈??誘몄셿???쒖쇅
-          && p.saju_completed === true
         );
         // localStorage GPS fallback: DB lat/lng ?놁쑝硫????쒖옉 ????λ맂 醫뚰몴 ?ъ슜
         const myLat = me?.lat || parseFloat(localStorage.getItem('migo_my_lat') || '0') || null;
@@ -348,13 +346,17 @@ const MatchPage = () => {
           };
         });
         // matchScore ?믪? ???뺣젹
-        mapped.sort((a, b) => b.matchScore - a.matchScore);
+        mapped.sort((a, b) => {
+          if (a.sajuCompleted !== b.sajuCompleted) return a.sajuCompleted ? -1 : 1;
+          return b.matchScore - a.matchScore;
+        });
         // DB媛 鍮꾩뼱?덉쑝硫?(濡쒖뺄 ?섍꼍 ?꾨뱶 ?뚯뒪?몄슜) 鍮?諛곗뿴 ?명똿
         if (mapped.length === 0) {
           setProfiles([]);
         } else {
           setProfiles(personalize(mapped));
         }
+        setCurrentIndex(0);
       }
 
       // ?섎? ?쇱씠?ы뻽吏留??닿? ?꾩쭅 ?ㅼ??댄봽 ?????щ엺 議고쉶
@@ -372,7 +374,7 @@ const MatchPage = () => {
       if (likerIds.length > 0) {
         const {
           data: likerProfiles
-        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme,id_verified,trust_score,saju_completed,saju_profile,saju_day_master,saju_element').or('is_banned.is.null,is_banned.eq.false').or('banned.is.null,banned.eq.false').eq('saju_completed', true).in('id', likerIds);
+        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme,id_verified,trust_score,saju_completed,saju_profile,saju_day_master,saju_element').or('is_banned.is.null,is_banned.eq.false').or('banned.is.null,banned.eq.false').in('id', likerIds);
         if (likerProfiles) {
           const { data: likerReviews } = await supabase.from('meet_reviews').select('reviewed_id, rating').in('reviewed_id', likerIds);
           if (likerReviews) {
@@ -1085,7 +1087,7 @@ const MatchPage = () => {
           exit={{ height: 0, opacity: 0 }}
           className="overflow-hidden"
         >
-          <div className="mx-4 mb-1 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 overflow-hidden">
+          <div className="mx-4 mb-1 rounded-xl bg-purple-600 overflow-hidden">
             {/* ??대㉧ 吏꾪뻾瑜?諛?*/}
             <motion.div
               className="h-0.5 bg-white/40"
@@ -1123,7 +1125,7 @@ const MatchPage = () => {
 
       {/* Card Stack ??遺?ㅻ뒗 湲濡쒖슦 留??놁쓬 */}
       <div
-        className="flex-1 relative w-full px-4 mx-auto pb-4 truncate"
+        className="flex-1 relative w-full px-3 mx-auto pb-2 truncate"
         style={{
           minHeight: 0,
           maxWidth: "420px",
@@ -1155,20 +1157,20 @@ const MatchPage = () => {
             transition={{ delay: 0.1, type: "spring", damping: 25 }}
             className="flex flex-col items-center justify-center h-full text-center px-8"
           >
-            <div className="relative mb-6">
-              <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent flex items-center justify-center shadow-lg border border-primary/20">
-                <Globe size={56} strokeWidth={1.8} className="text-primary animate-float drop-shadow-sm" style={{ animationDuration: '3s' }} />
+            <div className="relative mb-5">
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                <Globe size={40} strokeWidth={1.8} className="text-primary" />
               </div>
-              <motion.div
+              {false && <motion.div
                 animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.8, 0.3] }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary/30 blur-sm"
-              />
-              <motion.div
+              />}
+              {false && <motion.div
                 animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.6, 0.2] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
                 className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-primary/40 blur-sm inline-block"
-              />
+              />}
             </div>
             <h3 className="text-xl font-extrabold text-foreground mb-2 text-center">{t("auto.j502", { defaultValue: "You've seen all travelers!" })}</h3>
             <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-[240px] text-center whitespace-pre-line">
@@ -1177,7 +1179,7 @@ const MatchPage = () => {
             <motion.button 
               whileTap={{ scale: 0.96 }}
               onClick={() => setShowFilterModal(true)} 
-              className="px-8 py-3.5 rounded-full gradient-primary text-primary-foreground text-[13px] font-extrabold shadow-float flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-primary text-primary-foreground text-[13px] font-extrabold flex items-center gap-2"
             >
                 <span className="text-lg">Reset</span> {t("auto.j504", { defaultValue: "Reset filters" })}
             </motion.button>
@@ -1186,9 +1188,9 @@ const MatchPage = () => {
       </div>
 
       {/* Action Buttons - inline below card */}
-      {remaining.length > 0 && <div className="relative z-50 pointer-events-auto flex flex-col items-center gap-2 px-4 pt-2 pb-6 shrink-0">
+      {remaining.length > 0 && <div className="relative z-50 pointer-events-auto flex flex-col items-center gap-2 px-4 pt-1 pb-4 shrink-0">
           {/* Boost row */}
-          <div className="flex justify-center">
+          {false && <div className="flex justify-center">
              <motion.button whileTap={{
           scale: 0.92
         }} onClick={async () => {
@@ -1215,14 +1217,14 @@ const MatchPage = () => {
                 <Zap size={13} fill={boostActive ? "white" : "none"} />
                 {boostActive ? t("auto.t_0047", `遺?ㅽ똿 以?${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")}`) : isPlus ? t("auto.ko_0263", "遺?ㅽ듃 ?ъ슜") : t("auto.ko_0264", "遺?ㅽ듃 (Plus)")}
              </motion.button>
-          </div>
+          </div>}
 
           {/* Core swipe buttons ??prominent X / Star / Heart */}
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-3">
             <motion.button
               whileTap={{ scale: 0.88, rotate: -8 }}
               onClick={handleSwipeLeft}
-              className="w-12 h-12 rounded-full bg-card shadow-[0_4px_20px_rgba(244,63,94,0.2)] border-2 border-rose-400/40 flex items-center justify-center text-rose-500 active:bg-rose-50"
+              className="w-12 h-12 rounded-full bg-card shadow-sm border border-rose-400/40 flex items-center justify-center text-rose-500 active:bg-rose-50"
             >
               <X size={22} strokeWidth={3} />
             </motion.button>
@@ -1230,7 +1232,7 @@ const MatchPage = () => {
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={openSuperLikeModal}
-              className={`w-10 h-10 rounded-full shadow-float border-2 flex items-center justify-center transition-all ${
+              className={`w-10 h-10 rounded-full shadow-sm border flex items-center justify-center transition-all ${
                 superLikesLeft > 0
                   ? "bg-card border-blue-400/60 text-blue-500 shadow-[0_4px_18px_rgba(59,130,246,0.2)]"
                   : "bg-muted border-border opacity-40 text-muted-foreground"
@@ -1242,7 +1244,7 @@ const MatchPage = () => {
             <motion.button
               whileTap={{ scale: 0.88, rotate: 8 }}
               onClick={handleSwipeRight}
-              className="w-12 h-12 rounded-full bg-card shadow-[0_4px_20px_rgba(16,185,129,0.25)] border-2 border-emerald-400/50 flex items-center justify-center text-emerald-500 active:bg-emerald-50"
+              className="w-12 h-12 rounded-full bg-card shadow-sm border border-emerald-400/50 flex items-center justify-center text-emerald-500 active:bg-emerald-50"
             >
               <Heart size={22} strokeWidth={2.5} className="fill-emerald-500" />
             </motion.button>

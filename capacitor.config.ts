@@ -42,6 +42,10 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
+    LocalNotifications: {
+      smallIcon: 'ic_stat_notification',
+      iconColor: '#10B981',
+    },
     // ── Google AdMob ─────────────────────────────────────────────
     // iOS:     https://apps.admob.com → 앱 → 앱 설정 → 앱 ID
     // Android: 별도 android/app/src/main/AndroidManifest.xml에도 추가 필요

@@ -102,15 +102,18 @@ export function useAdMob() {
 
   // ── 전면 광고 사전 로드 ──────────────────────────────────────
   const preloadInterstitial = useCallback(async () => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!Capacitor.isNativePlatform()) return false;
     await ensureInit();
     try {
       const adId = getAdIds().interstitial;
       console.log(`[AdMob] prepare interstitial: ${adId}`);
       await AdMob.prepareInterstitial({ adId });
       interstitialLoadedRef.current = true;
+      return true;
     } catch (e) {
+      interstitialLoadedRef.current = false;
       console.warn('[AdMob] preloadInterstitial error', e);
+      return false;
     }
   }, []);
 
@@ -119,7 +122,10 @@ export function useAdMob() {
     if (!Capacitor.isNativePlatform()) return false;
     await ensureInit();
     try {
-      if (!interstitialLoadedRef.current) await preloadInterstitial();
+      if (!interstitialLoadedRef.current) {
+        const loaded = await preloadInterstitial();
+        if (!loaded) return false;
+      }
       await AdMob.showInterstitial();
       interstitialLoadedRef.current = false;
       preloadInterstitial(); // 다음을 위해 미리 로드
@@ -132,15 +138,18 @@ export function useAdMob() {
 
   // ── 보상형 광고 사전 로드 ─────────────────────────────────────
   const preloadRewarded = useCallback(async () => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!Capacitor.isNativePlatform()) return false;
     await ensureInit();
     try {
       const adId = getAdIds().rewarded;
       console.log(`[AdMob] prepare rewarded: ${adId}`);
       await AdMob.prepareRewardVideoAd({ adId });
       rewardedLoadedRef.current = true;
+      return true;
     } catch (e) {
+      rewardedLoadedRef.current = false;
       console.warn('[AdMob] preloadRewarded error', e);
+      return false;
     }
   }, []);
 
@@ -151,7 +160,10 @@ export function useAdMob() {
     if (!Capacitor.isNativePlatform()) return false;
     await ensureInit();
     try {
-      if (!rewardedLoadedRef.current) await preloadRewarded();
+      if (!rewardedLoadedRef.current) {
+        const loaded = await preloadRewarded();
+        if (!loaded) return false;
+      }
       const result = await AdMob.showRewardVideoAd();
       if (result) onReward(result);
       rewardedLoadedRef.current = false;
@@ -201,6 +213,9 @@ export function useAdMobBanner(
         };
         console.log(`[AdMob] show banner: ${options.adId}`);
         await AdMob.showBanner(options);
+        if (!mounted) {
+          return;
+        }
         shownRef.current = true;
       } catch (e) {
         console.warn('[AdMob] showBanner error:', e);

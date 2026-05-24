@@ -327,6 +327,13 @@ const ProfileDetailSheet = ({
   const [selectedIcebreaker, setSelectedIcebreaker] = useState<string | null>(null);
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent('migo:ad-overlay', { detail: { active: true } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('migo:ad-overlay', { detail: { active: false } }));
+    };
+  }, []);
+
+  useEffect(() => {
     if (user?.id) {
       const getMyProfile = async () => {
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -393,7 +400,14 @@ const ProfileDetailSheet = ({
   }, [profile?.id, profile?.bio]);
   // AI 성향 궁합 피드백 코칭 생성
   const getChemistryAdvice = (p: any, my: any) => {
-    if (!my) return "Migo Plus로 가입하거나 로그인하시면 두 분만의 상세한 취향 분석 가이드를 열람하실 수 있습니다. ✨";
+    const lang = (i18n.language?.split("-")[0] || "ko").toLowerCase();
+    const pick = (text: Record<string, string>) => text[lang] || text.en || text.ko;
+    if (!my) return pick({
+      ko: "Migo Plus로 가입하거나 로그인하시면 두 분만의 상세한 취향 분석 가이드를 열람하실 수 있습니다. ✨",
+      en: "Join Migo Plus or log in to unlock a detailed travel chemistry guide for the two of you. ✨",
+      ja: "Migo Plusに加入、またはログインすると、二人だけの詳しい相性ガイドを確認できます。✨",
+      zh: "加入 Migo Plus 或登录后，可以查看你们两人的详细旅行契合指南。✨",
+    });
     const mbti = p.mbti || "";
     const myMbti = my.mbti || "";
     const isSpontaneous = mbti.includes("P") || p.travelMission === "즉흥 번개" || (p.interests && p.interests.includes("즉흥"));
@@ -402,44 +416,86 @@ const ProfileDetailSheet = ({
     const myFoodie = my.travel_mission?.includes("맛집") || my.interests?.some((i: string) => i.includes("맛집") || i.includes("미식"));
     
     if (isSpontaneous && mySpontaneous) {
-      return "두 분은 무계획 즉흥 여행에서 최고의 행복을 느끼는 '완벽한 번개 소울메이트'입니다! 빡빡한 타임라인 대신 끌리는 골목길로 가벼운 발걸음을 옮길 때 시너지가 200% 납니다. 오늘 도쿄 골목 선술집이나 미식 투어를 즉흥적으로 같이 도전해보세요. 🌃";
+      return pick({
+        ko: "두 분은 무계획 즉흥 여행에서 최고의 행복을 느끼는 '완벽한 번개 소울메이트'입니다! 빡빡한 타임라인 대신 끌리는 골목길로 가벼운 발걸음을 옮길 때 시너지가 200% 납니다. 오늘 골목 선술집이나 미식 투어를 즉흥적으로 같이 도전해보세요. 🌃",
+        en: "You are spontaneous travel soulmates. Skip the tight timeline and follow the streets that pull you in. A casual local bar or food walk could be your best first route. 🌃",
+        ja: "二人は即興旅で最も相性が高まるソウルメイトです。細かい予定より、気になる路地やローカル酒場を一緒に歩くと自然に盛り上がります。🌃",
+        zh: "你们是适合即兴旅行的灵魂旅伴。与其排满行程，不如一起走进吸引你们的小巷、当地小酒馆或美食路线。🌃",
+      });
     }
     if (isFoodie && myFoodie) {
-      return "미식 탐험에 진심인 두 분! 로컬 숨겨진 이자카야 골목부터 예약 없이는 못 가는 핫플 디저트 카페까지 최고의 먹방 투어가 가능합니다. 서로 사진을 100장씩 찍어주며 음식을 정복하는 미식 번개를 적극 추천합니다! 🍲";
+      return pick({
+        ko: "미식 탐험에 진심인 두 분! 숨겨진 로컬 맛집부터 예약 없이는 못 가는 디저트 카페까지 최고의 먹방 투어가 가능합니다. 서로 사진을 찍어주며 음식을 정복하는 미식 번개를 추천합니다! 🍲",
+        en: "You are both serious about food. Hidden local restaurants, dessert cafes, and photo-worthy plates can turn into the perfect food-hunting meetup. 🍲",
+        ja: "二人とも美食への熱量が高いタイプです。隠れた名店や話題のデザートカフェを巡るフードツアーがよく合います。🍲",
+        zh: "你们都很重视美食体验。隐藏小店、甜品咖啡馆和适合拍照的美食路线，会是很适合的第一次同行。🍲",
+      });
     }
     if (isSpontaneous && !mySpontaneous) {
-      return "체계적인 계획파인 나(J)와 유연하고 즉흥적인 상대(P)의 보완적인 조합입니다! 한 명이 든든하게 중심 이동 경로를 잡고, 상대방이 예기치 못한 당일치기 모험의 즐거움을 더해준다면 가장 완벽하고 균형 잡힌 꿀조합이 완성됩니다. ⚖️";
+      return pick({
+        ko: "계획적인 쪽과 즉흥적인 쪽이 서로를 보완하는 조합입니다. 한 명은 중심 동선을 잡고, 다른 한 명은 예상 밖의 즐거움을 더해주면 균형 잡힌 동행이 됩니다. ⚖️",
+        en: "This is a complementary match between planning and spontaneity. One can anchor the route while the other adds unexpected fun along the way. ⚖️",
+        ja: "計画派と即興派が補い合う組み合わせです。一人が動線を整え、もう一人が予想外の楽しさを加えると良いバランスになります。⚖️",
+        zh: "这是计划型与即兴型互补的组合。一个人负责稳定路线，另一个人带来意外乐趣，会形成很好的平衡。⚖️",
+      });
     }
     if (mbti === myMbti && mbti) {
-      return `서로 성향이 같은 '${mbti}'로 통합니다! 대화 스타일이나 체력 충전 주기 등이 물 흐르듯 비슷하여, 어색하게 애쓰지 않아도 노을 지는 강변이나 야경을 보며 편안하고 기분 좋은 침묵을 나눌 수 있는 최적의 여행 파트너입니다. 🌅`;
+      return pick({
+        ko: `서로 성향이 같은 '${mbti}'로 통합니다! 대화 스타일이나 체력 충전 주기가 비슷해서, 어색하게 애쓰지 않아도 편안한 여행 호흡을 만들 수 있습니다. 🌅`,
+        en: `You share the same '${mbti}' rhythm. Conversation style and recharge timing may feel naturally familiar, making quiet travel moments comfortable. 🌅`,
+        ja: `二人は同じ '${mbti}' のリズムを持っています。会話のテンポや休み方が近く、無理せず心地よく過ごせそうです。🌅`,
+        zh: `你们拥有相同的 '${mbti}' 节奏。聊天方式和充电节奏都可能很接近，安静相处也会很舒服。🌅`,
+      });
     }
-    return "서로 다른 취향이 신선한 조화를 이루는 영양가 높은 인연입니다. 한 명의 액티브한 로컬 퀘스트 도전에 다른 한 명이 고즈넉한 카페 힐링 일정을 보태면서, 혼자라면 가보지 않았을 여행의 경계를 기분 좋게 확장하게 됩니다! ✈️";
+    return pick({
+      ko: "서로 다른 취향이 신선한 조화를 이루는 인연입니다. 한 명의 액티브한 로컬 탐험에 다른 한 명의 여유로운 힐링 일정이 더해지면, 혼자라면 가보지 않았을 여행의 경계가 넓어집니다! ✈️",
+      en: "Your different tastes can create a fresh balance. One person's local adventure plus the other's relaxed healing route can expand the trip in a good way. ✈️",
+      ja: "違う好みが新鮮なバランスを作る相性です。ローカル探索とゆったりした癒しの予定が合わさると、旅の幅が自然に広がります。✈️",
+      zh: "你们不同的偏好能形成新鲜的平衡。一个人的本地探索加上另一个人的放松行程，会让旅行边界自然变宽。✈️",
+    });
   };
 
   // AI 아이스브레이커 덱 카드 리스트
   const getIcebreakerQuestions = (p: any, my: any) => {
-    const mission = p.travelMission || "로컬 번개";
+    const lang = (i18n.language?.split("-")[0] || "ko").toLowerCase();
+    const pick = (text: Record<string, string>) => text[lang] || text.en || text.ko;
+    const mission = p.travelMission || pick({ ko: "로컬 번개", en: "local meetup", ja: "ローカル即席旅", zh: "本地即兴同行" });
     return [
       {
         id: "photo",
         icon: "📸",
-        title: "인생샷 미션",
-        desc: "사진 찍어주기",
-        question: `안녕하세요! 두 분 모두 여행 중에 서로 인생샷 건지는 걸 정말 좋아하시네요! 📸 서로 도쿄 골목에서 전신 인생샷 100장씩 찍어주며 경쟁해 볼까요?`
+        title: pick({ ko: "인생샷 미션", en: "Photo Mission", ja: "ベストショット作戦", zh: "人生照任务" }),
+        desc: pick({ ko: "사진 찍어주기", en: "Take photos", ja: "写真を撮り合う", zh: "互相拍照" }),
+        question: pick({
+          ko: "안녕하세요! 여행 중 서로 인생샷 건지는 걸 좋아하시는 것 같아요. 📸 근처 예쁜 골목에서 서로 사진 찍어주며 가볍게 걸어볼까요?",
+          en: "Hi! It looks like we both enjoy finding great travel photos. 📸 Want to walk around a pretty nearby street and take photos for each other?",
+          ja: "こんにちは！二人とも旅先で素敵な写真を撮るのが好きそうですね。📸 近くの雰囲気の良い通りで写真を撮り合いながら歩きませんか？",
+          zh: "你好！感觉我们都喜欢在旅行中拍好看的照片。📸 要不要在附近好看的街道互相拍照、轻松走走？",
+        })
       },
       {
         id: "food",
         icon: "🍲",
-        title: "비밀 로컬 미식",
-        desc: "이자카야 맛집",
-        question: `안녕하세요! 성향 궁합에서 미식 코드가 정말 높게 매칭되셨어요! 🍲 현지인만 아는 비밀 이자카야 맛집이나 숨겨진 로컬 꼬치구이 골목 오늘 저녁 같이 도장 깨기 하실래요?`
+        title: pick({ ko: "비밀 로컬 미식", en: "Hidden Local Food", ja: "隠れローカルグルメ", zh: "隐藏本地美食" }),
+        desc: pick({ ko: "맛집 탐험", en: "Food hunt", ja: "グルメ探索", zh: "美食探索" }),
+        question: pick({
+          ko: "안녕하세요! 성향 궁합에서 미식 코드가 높게 나왔어요. 🍲 현지인들이 가는 숨은 맛집이나 디저트 카페를 같이 찾아가 보실래요?",
+          en: "Hi! Our food-code match looks high. 🍲 Want to find a hidden local restaurant or dessert cafe together?",
+          ja: "こんにちは！美食の相性がかなり高そうです。🍲 地元の隠れた名店やデザートカフェを一緒に探しに行きませんか？",
+          zh: "你好！我们的美食契合度看起来很高。🍲 要不要一起去找本地隐藏小店或甜品咖啡馆？",
+        })
       },
       {
         id: "spontaneous",
         icon: "🎲",
-        title: "즉흥 번개 퀘스트",
-        desc: "성향 매칭 질문",
-        question: `안녕하세요! MIGO 궁합에서 '${mission}' 케미가 아주 훌륭하게 나오셨어요! 🎲 오늘 오후 일정 없으시면 즉흥적으로 시부야 스크램블 교차로 근처 이색 카페에서 가볍게 커피 번개 어떠세요?`
+        title: pick({ ko: "즉흥 번개 퀘스트", en: "Spontaneous Quest", ja: "即興ミッション", zh: "即兴同行任务" }),
+        desc: pick({ ko: "성향 매칭 질문", en: "Match opener", ja: "相性オープナー", zh: "契合开场白" }),
+        question: pick({
+          ko: `안녕하세요! MIGO 궁합에서 '${mission}' 케미가 좋게 나왔어요. 🎲 오늘 일정 괜찮으시면 근처 이색 카페에서 가볍게 커피 번개 어떠세요?`,
+          en: `Hi! MIGO says our '${mission}' chemistry is strong. 🎲 If your schedule is open today, want to grab a casual coffee at a nearby unique cafe?`,
+          ja: `こんにちは！MIGOでは '${mission}' の相性が良く出ています。🎲 今日少し時間があれば、近くの個性的なカフェで軽くコーヒーしませんか？`,
+          zh: `你好！MIGO 显示我们的 '${mission}' 契合度不错。🎲 如果你今天有空，要不要在附近有特色的咖啡馆轻松喝杯咖啡？`,
+        })
       }
     ];
   };
@@ -454,7 +510,13 @@ const ProfileDetailSheet = ({
   const prevPhoto = () => setPhotoIdx(i => Math.max(0, i - 1));
   const nextPhoto = () => setPhotoIdx(i => Math.min(photos.length - 1, i + 1));
   return <AnimatePresence>
-      {profile && <motion.div className="fixed inset-0 z-[70] flex items-end justify-center px-safe pb-safe pt-safe" initial={{
+      {profile && <motion.div
+        className="fixed inset-0 z-[70] flex items-end justify-center px-safe"
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 48px)",
+          paddingBottom: "calc(var(--app-bottom-reserved, 0px) + 12px)",
+        }}
+        initial={{
       opacity: 0
     }} animate={{
       opacity: 1
@@ -464,7 +526,12 @@ const ProfileDetailSheet = ({
           {/* Backdrop */}
           <div className="absolute inset-0 bg-foreground/70 backdrop-blur-md" onClick={onClose} />
 
-          <motion.div className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl mb-4 sm:mb-8 overflow-hidden shadow-float max-h-[92vh] flex flex-col" initial={{
+          <motion.div
+            className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-3xl overflow-hidden shadow-float flex flex-col"
+            style={{
+              maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - var(--app-bottom-reserved, 0px) - 72px)",
+            }}
+            initial={{
         y: "100%"
       }} animate={{
         y: 0
@@ -611,7 +678,7 @@ const ProfileDetailSheet = ({
                   </>}
 
                 {/* Close button */}
-                <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-card/80 backdrop-blur-sm flex items-center justify-center shadow-card z-30">
+                <button onClick={onClose} className="absolute top-5 right-4 w-10 h-10 rounded-xl bg-card/90 backdrop-blur-sm flex items-center justify-center shadow-card z-40">
                   <X size={16} className="text-foreground" />
                 </button>
 
@@ -771,12 +838,16 @@ const ProfileDetailSheet = ({
                     <div className="flex items-center gap-2">
                       <span className="text-lg animate-pulse">🔮</span>
                       <div>
-                        <h4 className="text-sm font-black text-foreground leading-tight">AI 5D 여행 궁합 리포트</h4>
-                        <p className="text-[10px] text-muted-foreground">성향 매칭 알고리즘 2.0</p>
+                        <h4 className="text-sm font-black text-foreground leading-tight">
+                          {i18n.t("profileDetail.aiDnaReport", "AI 5D 여행 궁합 리포트")}
+                        </h4>
+                        <p className="text-[10px] text-muted-foreground">
+                          {i18n.t("profileDetail.matchAlgorithm", "성향 매칭 알고리즘 2.0")}
+                        </p>
                       </div>
                     </div>
                     <span className="text-xs font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full shrink-0">
-                      {profile.matchScore || 85}% 매치
+                      {profile.matchScore || 85}% {i18n.t("profileDetail.match", "매치")}
                     </span>
                   </div>
                   
@@ -788,7 +859,7 @@ const ProfileDetailSheet = ({
                   {/* AI Chemistry Advice */}
                   <div className="bg-muted/65 rounded-xl p-3 border border-border/50 text-xs leading-relaxed space-y-2">
                     <p className="font-extrabold text-foreground flex items-center gap-1">
-                      <span>⚡</span> MIGO AI 성향 코칭 가이드
+                      <span>⚡</span> {i18n.t("profileDetail.aiCoachingGuide", "MIGO AI 성향 코칭 가이드")}
                     </p>
                     <p className="text-muted-foreground leading-relaxed whitespace-normal break-words">
                       {getChemistryAdvice(profile, myProfileData)}
@@ -981,7 +1052,7 @@ const ProfileDetailSheet = ({
                 <div className="space-y-3 mt-4">
                   <div>
                     <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 truncate">
-                      <span>🃏</span> AI 아이스브레이커 카드 덱
+                      <span>🃏</span> {i18n.t("profileDetail.icebreakerDeck", "AI 아이스브레이커 카드 덱")}
                     </h4>
                     <p className="text-[10px] text-muted-foreground mt-0.5">{i18n.t("auto.ko_deck_desc", { defaultValue: "성향 궁합 맞춤형 대화 추천 덱입니다. 탭하여 카드를 골라보세요!" })}</p>
                   </div>
@@ -1028,7 +1099,7 @@ const ProfileDetailSheet = ({
                           <div className="bg-gradient-to-r from-amber-500/5 via-orange-500/5 to-transparent border border-amber-300/30 rounded-2xl p-4 space-y-3 mt-1.5 pointer-events-auto">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
-                                🔮 AI 추천 대화 첫마디
+                                {i18n.t("profileDetail.recommendedOpener", "🔮 AI 추천 대화 첫마디")}
                               </span>
                               {/* Close */}
                               <button 
@@ -1055,7 +1126,7 @@ const ProfileDetailSheet = ({
                               }}
                               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold text-[11px] shadow-md flex items-center justify-center gap-1.5"
                             >
-                              <span>💬</span> 이 질문을 복사하고 대화 시작하기
+                              <span>💬</span> {i18n.t("profileDetail.copyQuestionStart", "이 질문을 복사하고 대화 시작하기")}
                             </motion.button>
                           </div>
                         </motion.div>

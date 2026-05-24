@@ -2,7 +2,7 @@
 
 # Capacitor 코어 (크래시 방지)
 -keep class com.getcapacitor.** { *; }
--keep class com.lunaticsgroup.migo.** { *; }
+-keep class com.migo.app.** { *; }
 -keepattributes Signature
 -keepattributes *Annotation*
 -keepattributes SourceFile,LineNumberTable

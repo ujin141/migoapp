@@ -1062,7 +1062,7 @@ const MapPage = () => {
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          className="z-30 mx-4 mb-1 text-[10px] font-bold bg-destructive/10 text-destructive px-3 py-2 rounded-xl border border-destructive/20"
+          className="z-30 mx-4 mb-1 text-[10px] font-bold bg-destructive/10 text-destructive px-3 py-1.5 rounded-lg border border-destructive/20"
         >
           {t("auto.ko_0119", "위치가 공유되지 않아 지도에 표시되지 않습니다")}
         </motion.div>
@@ -1070,8 +1070,8 @@ const MapPage = () => {
 
       {/* Map Mode Toggles */}
       <div className="z-30 w-full px-4 pb-2 pointer-events-auto">
-        <div className="w-full bg-card/90 backdrop-blur-md rounded-full border border-border/50 p-1 flex shadow-sm overflow-x-auto hide-scrollbar">
-           <button onClick={() => handleModeChange("travelers")} className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${displayMode === "travelers" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"}`}>
+        <div className="w-full bg-card/95 backdrop-blur-md rounded-xl border border-border/50 p-1 flex shadow-sm overflow-x-auto hide-scrollbar">
+           <button onClick={() => handleModeChange("travelers")} className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap ${displayMode === "travelers" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"}`}>
               {t("auto.ko_0120", "👥 여행자")}
               {!canViewTravelers && <span className="ml-1 text-[8px] text-amber-400 font-extrabold">👑</span>}
             </button>

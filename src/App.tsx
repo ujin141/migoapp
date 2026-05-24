@@ -164,6 +164,7 @@ const AppContent = () => {
   const eulaRef = useRef<HTMLDivElement>(null);
   // 배너에서 열리는 App 레벨 Plus 모달
   const [showAppPlusModal, setShowAppPlusModal] = useState(false);
+  const [adOverlaySuppressions, setAdOverlaySuppressions] = useState(0);
 
   useEffect(() => {
     if (user && !localStorage.getItem('migo_eula_agreed')) {
@@ -208,7 +209,26 @@ const AppContent = () => {
   const { show: tutorialVisible, complete: completeTutorial } = useTutorial();
   const { isPlus, isPremium } = useSubscription();
   const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.() === true;
-  const showAdBanner = showNav && !isPlus && !isPremium && isNative;
+  const isAdOverlaySuppressed = adOverlaySuppressions > 0;
+  const showAdBanner = showNav && !isPlus && !isPremium && isNative && !isAdOverlaySuppressed;
+  const pageBottomInset = isAdOverlaySuppressed ? "0px" : "var(--app-bottom-reserved)";
+
+  useEffect(() => {
+    const handleAdOverlay = (event: Event) => {
+      const active = Boolean((event as CustomEvent<{ active?: boolean }>).detail?.active);
+      setAdOverlaySuppressions((count) => Math.max(0, count + (active ? 1 : -1)));
+      if (active) {
+        document.documentElement.style.removeProperty('--admob-banner-height');
+      }
+    };
+    window.addEventListener('migo:ad-overlay', handleAdOverlay);
+    return () => window.removeEventListener('migo:ad-overlay', handleAdOverlay);
+  }, [isNative]);
+
+  useEffect(() => {
+    if (showAdBanner) return;
+    document.documentElement.style.removeProperty('--admob-banner-height');
+  }, [showAdBanner, isAdOverlaySuppressed, location.pathname]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -232,14 +252,16 @@ const AppContent = () => {
     );
     root.style.setProperty(
       "--app-modal-bottom-padding",
-      showNav
+      isAdOverlaySuppressed
+        ? "calc(env(safe-area-inset-bottom, 0px) + 16px)"
+        : showNav
         ? showAdBanner
           ? "calc(var(--app-bottom-reserved) + 18px)"
           : "calc(var(--app-bottom-reserved) + 16px)"
         : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
     );
     root.style.setProperty("--toast-pb", "var(--app-floating-bottom)");
-  }, [showNav, showAdBanner]);
+  }, [showNav, showAdBanner, isAdOverlaySuppressed]);
 
   // ── 네트워크 상태 감지 (오프라인 배너) ───────────────────────────────
   useNetworkStatus();
@@ -462,7 +484,9 @@ const AppContent = () => {
         : "calc(var(--app-bottom-reserved) + 12px)"
       : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
     "--app-modal-bottom-padding": showNav
-      ? showAdBanner
+      ? isAdOverlaySuppressed
+        ? "calc(env(safe-area-inset-bottom, 0px) + 16px)"
+        : showAdBanner
         ? "calc(var(--app-bottom-reserved) + 18px)"
         : "calc(var(--app-bottom-reserved) + 16px)"
       : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
@@ -489,7 +513,7 @@ const AppContent = () => {
               top: 0,
               left: 0,
               right: 0,
-              bottom: 'var(--app-bottom-reserved)',
+              bottom: pageBottomInset,
             }}
           >
             <ErrorBoundary key={location.pathname} pageBoundary={true}>
@@ -535,6 +559,7 @@ const AppContent = () => {
       {/* ── 광고 배너: BottomNav 바로 위에 고정 ── */}
       {showAdBanner && (
         <div
+          data-ad-banner-root="true"
           className="fixed left-0 right-0 z-[99] flex items-center justify-center bg-background"
           style={{
             bottom: `calc(${BANNER_MARGIN}px + env(safe-area-inset-bottom, 0px))`,

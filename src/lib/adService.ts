@@ -99,23 +99,21 @@ export const MOCK_ADS: Ad[] = [];
 
 /** 모든 광고 슬롯 조회 */
 export async function fetchAdSlots(): Promise<AdSlot[]> {
-  if (!isSupabaseConfigured) return MOCK_AD_SLOTS;
+  if (!isSupabaseConfigured) return [];
   const {
     data,
     error
   } = await supabase.from("ad_slots").select("*").order("app_screen");
   if (error) {
     console.warn("fetchAdSlots error:", error);
-    return MOCK_AD_SLOTS;
+    return [];
   }
   return data as AdSlot[];
 }
 
 /** 모든 광고 캠페인 조회 (어드민) */
 export async function fetchAds(status?: AdStatus): Promise<Ad[]> {
-  if (!isSupabaseConfigured) {
-    return status ? MOCK_ADS.filter(a => a.status === status) : MOCK_ADS;
-  }
+  if (!isSupabaseConfigured) return [];
   let q = supabase.from("ads").select("*").order("created_at", {
     ascending: false
   });
@@ -126,25 +124,14 @@ export async function fetchAds(status?: AdStatus): Promise<Ad[]> {
   } = await q;
   if (error) {
     console.warn("fetchAds error:", error);
-    return MOCK_ADS;
+    return [];
   }
   return data as Ad[];
 }
 
 /** 광고 생성 */
 export async function createAd(ad: Omit<Ad, "id" | "created_at" | "impressions" | "clicks" | "budget_spent">): Promise<Ad | null> {
-  if (!isSupabaseConfigured) {
-    const newAd: Ad = {
-      ...ad,
-      id: Date.now().toString(),
-      created_at: new Date().toISOString(),
-      impressions: 0,
-      clicks: 0,
-      budget_spent: 0
-    };
-    MOCK_ADS.unshift(newAd);
-    return newAd;
-  }
+  if (!isSupabaseConfigured) return null;
   const {
     data,
     error
@@ -158,11 +145,7 @@ export async function createAd(ad: Omit<Ad, "id" | "created_at" | "impressions" 
 
 /** 광고 상태 변경 */
 export async function updateAdStatus(id: string, status: AdStatus): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    const idx = MOCK_ADS.findIndex(a => a.id === id);
-    if (idx >= 0) MOCK_ADS[idx].status = status;
-    return true;
-  }
+  if (!isSupabaseConfigured) return false;
   const {
     error
   } = await supabase.from("ads").update({
@@ -177,11 +160,7 @@ export async function updateAdStatus(id: string, status: AdStatus): Promise<bool
 
 /** 광고 삭제 */
 export async function deleteAd(id: string): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    const idx = MOCK_ADS.findIndex(a => a.id === id);
-    if (idx >= 0) MOCK_ADS.splice(idx, 1);
-    return true;
-  }
+  if (!isSupabaseConfigured) return false;
   const {
     error
   } = await supabase.from("ads").delete().eq("id", id);
@@ -194,11 +173,7 @@ export async function deleteAd(id: string): Promise<boolean> {
 
 /** 광고 슬롯 활성화/비활성화 */
 export async function toggleAdSlot(id: string, enabled: boolean): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    const slot = MOCK_AD_SLOTS.find(s => s.id === id);
-    if (slot) slot.enabled = enabled;
-    return true;
-  }
+  if (!isSupabaseConfigured) return false;
   const {
     error
   } = await supabase.from("ad_slots").update({
@@ -213,10 +188,7 @@ export async function toggleAdSlot(id: string, enabled: boolean): Promise<boolea
 
 /** 이미지를 Supabase Storage에 업로드 */
 export async function uploadAdImage(file: File): Promise<string | null> {
-  if (!isSupabaseConfigured) {
-    // ⚠️ Mock 모드: Object URL은 콨포넌트 언마운트 시 URL.revokeObjectURL(url)로 반드시 정리해야 함 (메모리 누수)
-    return URL.createObjectURL(file);
-  }
+  if (!isSupabaseConfigured) return null;
   const compressedFile = await compressImage(file);
   const ext = compressedFile.name.split(".").pop();
   const uuidPrefix = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID().split('-')[0] : Array.from(crypto.getRandomValues(new Uint8Array(4))).map(b => b.toString(16).padStart(2, '0')).join('');

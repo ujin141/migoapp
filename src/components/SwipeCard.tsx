@@ -209,7 +209,14 @@ const SwipeCard = ({
       };
     }
     const tags: string[] = profile.tags || profile.interests || profile.travelStyle || [];
-    const mood = profile.travelMission || tags[0] || "여행 무드";
+    const lang = (i18n.language?.split("-")[0] || "ko").toLowerCase();
+    const pick = (text: Record<string, string>) => text[lang] || text.en || text.ko;
+    const mood = profile.travelMission || tags[0] || pick({
+      ko: "여행 무드",
+      en: "travel mood",
+      ja: "旅のムード",
+      zh: "旅行氛围",
+    });
     const routeScore = Math.min(96, Math.max(61, overallMatch + (seed % 17) - 6));
     const nearMinutes = 12 + (seed % 39);
     const distanceKm = typeof profile.distanceKm === "number" ? profile.distanceKm : null;
@@ -217,8 +224,18 @@ const SwipeCard = ({
     if (distanceKm !== null && distanceKm <= 5) {
       return {
         label: "MISSED CROSSING",
-        title: "오늘 스친 가능성",
-        detail: `${nearMinutes}분 차이로 근처에 있었을 수 있어요`,
+        title: pick({
+          ko: "오늘 스친 가능성",
+          en: "Near Miss Today",
+          ja: "今日すれ違った可能性",
+          zh: "今日擦肩而过的可能",
+        }),
+        detail: pick({
+          ko: `${nearMinutes}분 차이로 근처에 있었을 수 있어요`,
+          en: `You may have been nearby within ${nearMinutes} minutes`,
+          ja: `${nearMinutes}分差で近くにいたかもしれません`,
+          zh: `你们可能只差 ${nearMinutes} 分钟就在附近`,
+        }),
         metric: `${Math.min(94, routeScore + 4)}%`,
       };
     }
@@ -226,16 +243,36 @@ const SwipeCard = ({
     if (routeScore >= 84) {
       return {
         label: "ROUTE FATE",
-        title: "내일 동선 겹침",
-        detail: `${mood} 루트가 비슷한 여행자`,
+        title: pick({
+          ko: "내일 동선 겹침",
+          en: "Route Overlap",
+          ja: "明日の動線が重なる",
+          zh: "明日路线重合",
+        }),
+        detail: pick({
+          ko: `${mood} 루트가 비슷한 여행자`,
+          en: `A traveler with a similar ${mood} route`,
+          ja: `${mood}のルートが近い旅行者`,
+          zh: `${mood}路线相近的旅伴`,
+        }),
         metric: `${routeScore}%`,
       };
     }
 
     return {
       label: "TRAVEL DNA",
-      title: "여행 취향 닮음",
-      detail: `${mood} 성향이 가까운 사람`,
+      title: pick({
+        ko: "여행 취향 닮음",
+        en: "Similar Travel Taste",
+        ja: "旅の好みが似ている",
+        zh: "旅行偏好相似",
+      }),
+      detail: pick({
+        ko: `${mood} 성향이 가까운 사람`,
+        en: `Someone close to your ${mood} style`,
+        ja: `${mood}の傾向が近い人`,
+        zh: `与你的${mood}风格相近的人`,
+      }),
       metric: `${routeScore}%`,
     };
   })();
@@ -244,47 +281,124 @@ const SwipeCard = ({
   const getTarotArchetype = () => {
     const mbti = profile.mbti || "";
     const interests = profile.interests || [];
+    const lang = (i18n.language?.split("-")[0] || "ko").toLowerCase();
+    const pick = (text: Record<string, string>) => text[lang] || text.en || text.ko;
     const isSpontaneous = mbti.includes("P") || profile.travelMission === "즉흥 번개" || interests.some((i: string) => i.includes("즉흥"));
     const isFoodie = profile.travelMission?.includes("맛집") || interests.some((i: string) => i.includes("맛집") || i.includes("미식") || i.includes("카페"));
     const isNight = profile.travelMission?.includes("야경") || interests.some((i: string) => i.includes("야경") || i.includes("밤") || i.includes("클럽") || i.includes("술"));
     
     if (isSpontaneous && isFoodie) {
       return {
-        title: "THE CELESTIAL GOURMETS",
-        subtitle: "🔮 우주적 즉흥 미식 탐험가 🔮",
+        title: pick({
+          ko: "별빛 미식 탐험가",
+          en: "THE CELESTIAL GOURMETS",
+          ja: "星の美食トラベラー",
+          zh: "星光美食探险家",
+        }),
+        subtitle: pick({
+          ko: "🔮 우주적 즉흥 미식 탐험가 🔮",
+          en: "🔮 Spontaneous gourmet explorers 🔮",
+          ja: "🔮 気ままな美食探検家 🔮",
+          zh: "🔮 即兴美食探险家 🔮",
+        }),
         spark: "98%",
-        description: "두 분은 낯선 도시의 뒷골목 노포 맛집과 즉흥적인 밤 야시장 투어를 함께 정복하기 위해 매칭된 환상의 미식 메이트입니다! 식도락의 별자리가 빛납니다. 🍲"
+        description: pick({
+          ko: "두 분은 낯선 도시의 뒷골목 노포 맛집과 즉흥적인 밤 야시장 투어를 함께 정복하기 위해 매칭된 환상의 미식 메이트입니다! 식도락의 별자리가 빛납니다. 🍲",
+          en: "You are matched as dream food companions, ready to conquer hidden old restaurants and spontaneous night-market routes together. Your gourmet constellation is glowing. 🍲",
+          ja: "二人は知らない街の路地裏グルメや夜市を一緒に楽しむために出会った、最高の美食パートナーです。食の星座が輝いています。🍲",
+          zh: "你们像是为了探索陌生城市里的巷弄老店和夜市路线而相遇的美食搭档。属于吃货的星座正在发光。🍲",
+        })
       };
     }
     if (isSpontaneous && isNight) {
       return {
-        title: "THE NEON NOMADS",
-        subtitle: "🔮 화려한 네온 야경의 유랑자 🔮",
+        title: pick({
+          ko: "네온 야경 유랑자",
+          en: "THE NEON NOMADS",
+          ja: "ネオン夜景の旅人",
+          zh: "霓虹夜景游牧者",
+        }),
+        subtitle: pick({
+          ko: "🔮 화려한 네온 야경의 유랑자 🔮",
+          en: "🔮 Nomads of glowing city nights 🔮",
+          ja: "🔮 ネオンに導かれる夜の旅人 🔮",
+          zh: "🔮 被霓虹点亮的夜行旅人 🔮",
+        }),
         spark: "96%",
-        description: "찬란한 도시 야경 아래 시원한 생맥주 잔을 즉흥적으로 부딪칠 때 케미가 은하수처럼 폭발하는 밤동행 파트너입니다. 어둠 속에 가장 찬란한 우정입니다! 🌃"
+        description: pick({
+          ko: "찬란한 도시 야경 아래 시원한 생맥주 잔을 즉흥적으로 부딪칠 때 케미가 은하수처럼 폭발하는 밤동행 파트너입니다. 어둠 속에 가장 찬란한 우정입니다! 🌃",
+          en: "Your chemistry shines brightest under city lights, when a spontaneous night walk or a cold drink turns into a memorable travel story. 🌃",
+          ja: "きらめく夜景の下で、ふと思い立った夜散歩や乾杯が忘れられない旅の物語になります。🌃",
+          zh: "你们的默契会在城市夜景下最亮，随性的夜游或一杯冰啤酒都能变成难忘的旅行故事。🌃",
+        })
       };
     }
     if (isFoodie) {
       return {
-        title: "THE LOCAL GOURMETS",
-        subtitle: "🔮 깊은 미식 맛의 순례자 🔮",
+        title: pick({
+          ko: "로컬 미식 순례자",
+          en: "THE LOCAL GOURMETS",
+          ja: "ローカル美食巡礼者",
+          zh: "本地美食巡礼者",
+        }),
+        subtitle: pick({
+          ko: "🔮 깊은 미식 맛의 순례자 🔮",
+          en: "🔮 Pilgrims of local flavors 🔮",
+          ja: "🔮 地元の味を巡る旅人 🔮",
+          zh: "🔮 探寻本地味道的旅人 🔮",
+        }),
         spark: "93%",
-        description: "숨겨진 로컬 맛집부터 SNS 핫플 디저트 카페 투어까지 취향이 온전히 통합니다. 함께 맛있는 추억을 숟가락 가득 채워갈 운명적인 맛 인연입니다. ☕"
+        description: pick({
+          ko: "숨겨진 로컬 맛집부터 SNS 핫플 디저트 카페 투어까지 취향이 온전히 통합니다. 함께 맛있는 추억을 숟가락 가득 채워갈 운명적인 맛 인연입니다. ☕",
+          en: "From hidden local spots to photogenic dessert cafes, your tastes line up beautifully. This is a delicious travel connection. ☕",
+          ja: "隠れた地元グルメから話題のデザートカフェまで、二人の好みはきれいに重なります。おいしい旅の縁です。☕",
+          zh: "从隐藏的本地小店到热门甜品咖啡馆，你们的口味非常合拍。这是一段美味的旅行缘分。☕",
+        })
       };
     }
     if (mbti.includes("E")) {
       return {
-        title: "THE SUN KINGS & QUEENS",
-        subtitle: "🔮 에너제틱 태양의 동반자 🔮",
+        title: pick({
+          ko: "태양 에너지 동반자",
+          en: "THE SUN KINGS & QUEENS",
+          ja: "太陽のような旅仲間",
+          zh: "太阳能量旅伴",
+        }),
+        subtitle: pick({
+          ko: "🔮 에너제틱 태양의 동반자 🔮",
+          en: "🔮 Radiant companions with bright energy 🔮",
+          ja: "🔮 明るいエネルギーの旅仲間 🔮",
+          zh: "🔮 充满阳光能量的旅伴 🔮",
+        }),
         spark: "94%",
-        description: "지치지 않는 텐션으로 전 세계 테마파크와 페스티벌을 누비며 우정을 증폭시킬 최고의 동행입니다. 걷는 곳마다 축제 분위기가 열릴 거예요! 🎡"
+        description: pick({
+          ko: "지치지 않는 텐션으로 전 세계 테마파크와 페스티벌을 누비며 우정을 증폭시킬 최고의 동행입니다. 걷는 곳마다 축제 분위기가 열릴 거예요! 🎡",
+          en: "With bright, tireless energy, you can turn theme parks, festivals, and busy streets into a shared celebration. 🎡",
+          ja: "明るく疲れ知らずのエネルギーで、テーマパークもフェスも街歩きも一緒に楽しめます。🎡",
+          zh: "你们拥有明亮又不易疲惫的能量，主题乐园、节庆和街头漫步都会变成共同的庆典。🎡",
+        })
       };
     }
     return {
-      title: "THE WANDERLUST STARS",
-      subtitle: "🔮 고요하게 흐르는 은하수 여행자 🔮",
+      title: pick({
+        ko: "은하수 여행자",
+        en: "THE WANDERLUST STARS",
+        ja: "銀河を歩く旅人",
+        zh: "银河旅行者",
+      }),
+      subtitle: pick({
+        ko: "🔮 고요하게 흐르는 은하수 여행자 🔮",
+        en: "🔮 Calm travelers under the Milky Way 🔮",
+        ja: "🔮 静かに流れる銀河の旅人 🔮",
+        zh: "🔮 静静流动的银河旅人 🔮",
+      }),
       spark: "95%",
-      description: "노을 지는 강변을 묵묵히 걷거나 잔잔한 음악을 함께 들으며 여행할 때 가장 완벽한 교감을 나눕니다. 서로를 말없이 배려하는 가장 품격있는 동행입니다. ✈️"
+      description: pick({
+        ko: "노을 지는 강변을 묵묵히 걷거나 잔잔한 음악을 함께 들으며 여행할 때 가장 완벽한 교감을 나눕니다. 서로를 말없이 배려하는 가장 품격있는 동행입니다. ✈️",
+        en: "Your best moments come from quiet walks, soft music, and unforced comfort. This is a calm, thoughtful travel match. ✈️",
+        ja: "夕暮れの川辺を歩いたり、穏やかな音楽を聴いたりする時間に、自然な心地よさが生まれます。✈️",
+        zh: "你们最适合安静散步、听轻柔音乐，在不费力的舒适感里建立默契。✈️",
+      })
     };
   };
 
@@ -366,7 +480,7 @@ const SwipeCard = ({
       >
         {/* 앞면 (Profile Front Card) */}
         <div 
-          className="absolute inset-0 rounded-[28px] bg-card overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] truncate touch-none select-none"
+          className="absolute inset-0 rounded-2xl bg-card overflow-hidden shadow-[0_6px_24px_-12px_rgba(0,0,0,0.35)] truncate touch-none select-none"
           style={{
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden"
@@ -400,7 +514,7 @@ const SwipeCard = ({
           </div>}
 
         {/* ── DNA 궁합 매칭 배지 ── */}
-        {isTop && (
+        {false && isTop && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -564,7 +678,7 @@ const SwipeCard = ({
         })()}
 
         {/* Profile Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 pt-12 flex flex-col gap-2 pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 z-40 p-6 pt-12 flex flex-col gap-2 pointer-events-none">
           <div className="flex justify-between items-end gap-2">
              <div className="flex flex-col flex-1 min-w-0">
                 <h2 className="text-2xl font-black text-white drop-shadow-lg flex items-center gap-2 truncate">
@@ -597,9 +711,9 @@ const SwipeCard = ({
              </div>
 
              {/* Action Buttons */}
-             <div className="flex gap-2 pointer-events-auto">
+             <div className="relative z-50 flex gap-2 pointer-events-auto">
                {/* 신고하기 버튼 — Guideline 1.2 */}
-               <button onClick={e => {
+               <button type="button" onPointerDown={e => e.stopPropagation()} onClick={e => {
                  e.stopPropagation();
                  Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
                  setShowReport(true);
@@ -607,7 +721,7 @@ const SwipeCard = ({
                  <ShieldAlert size={16} className="text-red-300" />
                </button>
                {/* Info Button */}
-               <button onClick={e => {
+               <button type="button" onPointerDown={e => e.stopPropagation()} onClick={e => {
                  e.stopPropagation();
                  if (isBlurTarget) {
                    if (onPremiumClick) onPremiumClick();
@@ -630,7 +744,7 @@ const SwipeCard = ({
             </span>
           </div>
 
-          {isTop && !isBlurTarget && (
+        {false && isTop && !isBlurTarget && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -663,7 +777,7 @@ const SwipeCard = ({
           </div>
 
           {/* Mission & Tags */}
-          <div className="flex flex-wrap gap-1.5 mt-2 truncate pointer-events-auto">
+          {false && <div className="flex flex-wrap gap-1.5 mt-2 truncate pointer-events-auto">
             {profile.travelMission && (
               <motion.span 
                 animate={profile.travelMission === myDailyMission ? {
@@ -693,7 +807,7 @@ const SwipeCard = ({
                 {tag}
               </span>
             ))}
-          </div>
+          </div>}
         </div>
 
         {/* DNA Match detail overlay sheet inside the card */}
@@ -805,7 +919,9 @@ const SwipeCard = ({
           </div>
 
           <div className="bg-amber-400/10 border border-amber-400/35 px-4 py-1 rounded-full mt-1.5 shadow-[0_0_15px_rgba(251,191,36,0.15)] flex items-center gap-1.5">
-            <span className="text-[9px] text-amber-300 font-extrabold uppercase tracking-wider">⚡ Fate Spark</span>
+            <span className="text-[9px] text-amber-300 font-extrabold uppercase tracking-wider">
+              {t("tarot.fateSpark", "⚡ Fate Spark")}
+            </span>
             <span className="text-[11px] font-black text-amber-200 animate-pulse">{tarot.spark}</span>
           </div>
 
@@ -817,15 +933,15 @@ const SwipeCard = ({
         {/* Card bottom flip hint */}
         <div className="flex flex-col items-center gap-1 mb-2 z-10">
           <span className="text-[9px] text-amber-400/70 font-black uppercase tracking-wider animate-pulse flex items-center gap-1">
-            <span>↩</span> 카드를 탭하여 사진으로 복귀
+            <span>↩</span> {t("tarot.tapBack", "카드를 탭하여 사진으로 복귀")}
           </span>
-          <span className="text-[7px] text-white/20">MIGO Travelers Starry Match System</span>
+          <span className="text-[7px] text-white/20">{t("tarot.systemName", "MIGO Travelers Starry Match System")}</span>
         </div>
       </div> {/* 뒷면 (Tarot Back Card) 종료 */}
     </div> {/* 3D Perspective Card 종료 */}
   </motion.div>
 
-    {showDetail && <ProfileDetailSheet profile={profile} onClose={() => setShowDetail(false)} onLike={onSwipeRight} onChat={onChat} showActions={true} />}
+    {showDetail && <ProfileDetailSheet profile={profile} onClose={() => setShowDetail(false)} onLike={onSwipeRight} showActions={true} />}
     {/* 신고/차단 시트 — Guideline 1.2 */}
     <ReportBlockActionSheet
       isOpen={showReport}

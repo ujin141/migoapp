@@ -129,8 +129,14 @@ export const AdminUsers = () => {
       ? success
       : await updateUserBan(id, !currentBanned);
     if (finalSuccess) {
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, banned: !currentBanned } : u));
-      if (selectedUser?.id === id) setSelectedUser((p: any) => ({ ...p, banned: !currentBanned }));
+      if (!currentBanned) {
+        setUsers(prev => prev.filter(u => u.id !== id));
+        if (selectedUser?.id === id) setSelectedUser(null);
+      } else {
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, banned: false, is_banned: false } : u));
+        if (selectedUser?.id === id) setSelectedUser((p: any) => ({ ...p, banned: false, is_banned: false }));
+      }
+      window.dispatchEvent(new Event("adminStatsNeedRefresh"));
       toast({
         title: !currentBanned ? t("auto.t_ban_complete", "🚫 계정 정지 완료") : t("auto.t_unban_complete", "✅ 계정 정지 해제 완료"),
         description: !currentBanned ? t("auto.t_ban_complete_desc", "사용자에게 알림이 발송되었습니다.") : t("auto.t_unban_complete_desc", "사용자가 다시 서비스를 이용할 수 있습니다.")
@@ -150,6 +156,7 @@ export const AdminUsers = () => {
     if (success) {
       setUsers(prev => prev.filter(u => u.id !== id));
       setSelectedUser(null);
+      window.dispatchEvent(new Event("adminStatsNeedRefresh"));
       toast({ title: t("auto.t_delete_complete", "✅ 계정 영구 삭제 완료") });
     } else {
       toast({ title: t("auto.t_fail", "❌ 실패"), description: t("auto.t_delete_fail", "계정 삭제에 실패했습니다."), variant: "destructive" });

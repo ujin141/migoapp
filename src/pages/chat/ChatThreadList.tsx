@@ -38,18 +38,18 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="px-0 pb-28 pt-2">
+    <div className="px-0 pb-28 pt-1">
       {filteredThreads.length === 0 ? (
         /* Empty State */
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1, duration: 0.3 }}
-          className="flex flex-col items-center text-center pt-20 pb-8 px-6"
+          className="flex flex-col items-center text-center pt-16 pb-8 px-6"
         >
           <div className="relative mb-6">
-            <div className="w-24 h-24 rounded-[32px] bg-muted/60 flex items-center justify-center shadow-inner border border-white/10">
-              <MessageCircle size={36} className="text-muted-foreground/50" />
+            <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center border border-border/40">
+              <MessageCircle size={28} className="text-muted-foreground/50" />
             </div>
           </div>
           <h3 className="text-lg font-extrabold text-foreground mb-1.5 tracking-tight truncate">
@@ -64,7 +64,7 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => { window.location.hash = '/'; }}
-              className="px-6 py-3.5 rounded-full bg-foreground text-background font-bold text-[13px] shadow-md flex items-center gap-2 hover:opacity-90 transition-opacity"
+              className="px-5 py-3 rounded-xl bg-foreground text-background font-bold text-[13px] flex items-center gap-2 hover:opacity-90 transition-opacity"
             >
               {i18n.t("auto.g_1385", "Browse Travelers")}</motion.button>
           )}
@@ -139,19 +139,19 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
                         setSelectedChat(chat.id);
                       }
                     }}
-                    className={`w-full flex items-center gap-4 px-5 py-3 transition-colors active:bg-muted/50 bg-background ${swipedChatId === chat.id ? 'shadow-[4px_0_15px_rgba(0,0,0,0.1)] rounded-xl' : ''} ${isLocked ? 'opacity-60' : ''}`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors active:bg-muted/50 bg-background ${swipedChatId === chat.id ? 'shadow-sm rounded-xl' : ''} ${isLocked ? 'opacity-60' : ''}`}
                   >
                     {/* Avatar */}
                     <div className="relative shrink-0 py-1">
                       {groupChat.isGroup && groupChat.memberPhotos && groupChat.memberPhotos.length >= 2 ? (
-                        <div className="w-[52px] h-[52px] relative">
-                          <img src={groupChat.memberPhotos[0]} alt="" className="w-9 h-9 rounded-full object-cover absolute top-0 left-0 border-2 border-background shadow-sm" loading="lazy" />
-                          <img src={groupChat.memberPhotos[1]} alt="" className="w-9 h-9 rounded-full object-cover absolute bottom-0 right-0 border-2 border-background shadow-sm" loading="lazy" />
+                         <div className="w-12 h-12 relative">
+                          <img src={groupChat.memberPhotos[0]} alt="" className="w-8 h-8 rounded-full object-cover absolute top-0 left-0 border-2 border-background shadow-sm" loading="lazy" />
+                          <img src={groupChat.memberPhotos[1]} alt="" className="w-8 h-8 rounded-full object-cover absolute bottom-0 right-0 border-2 border-background shadow-sm" loading="lazy" />
                         </div>
                       ) : chat.photo ? (
-                        <img src={chat.photo} alt="" className="w-[52px] h-[52px] rounded-full object-cover shadow-sm border border-border/30" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                        <img src={chat.photo} alt="" className="w-12 h-12 rounded-full object-cover shadow-sm border border-border/30" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : (
-                        <div className="w-[52px] h-[52px] rounded-full gradient-primary flex items-center justify-center text-primary-foreground text-xl font-extrabold shadow-sm">
+                        <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center text-primary-foreground text-lg font-extrabold shadow-sm">
                           {chat.name?.[0] ?? "?"}
                         </div>
                       )}
@@ -174,7 +174,7 @@ export const ChatThreadList: React.FC<ChatThreadListProps> = ({
                     </div>
 
                     {/* Content wrapped with border-b for seamless list */}
-                    <div className={`flex-1 min-w-0 text-left py-3 flex items-center gap-2 ${!isLast && swipedChatId !== chat.id ? 'border-b border-border/40' : ''}`}>
+                    <div className={`flex-1 min-w-0 text-left py-2 flex items-center gap-2 ${!isLast && swipedChatId !== chat.id ? 'border-b border-border/40' : ''}`}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline justify-between gap-2 mb-1">
                           <div className="flex items-center gap-1.5 min-w-0">

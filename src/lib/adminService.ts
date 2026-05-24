@@ -1,21 +1,9 @@
 import i18n from "@/i18n";
-import { createClient } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured, invalidateCache } from "./supabaseClient";
 
-// ⚠️ SECURITY: Service Role Key는 절대 VITE_ prefix로 사용하면 안 됨 (클라이언트 번들에 포함됨)
-// 관리자 기능은 checkAdminRole() + Supabase RLS 정책으로 보호
-// adminSupabase는 anon key 사용 — DB 단 RLS + checkAdminRole() 이중 방어
-export const adminSupabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL ?? "",
-  import.meta.env.VITE_SUPABASE_ANON_KEY ?? "",
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    }
-  }
-);
+// Admin calls must keep the logged-in session. A separate anon client loses
+// auth.uid(), which makes RLS/RPC treat admin actions like anonymous requests.
+export const adminSupabase = supabase;
 
 /** Admin Dashboard Stats */
 export async function fetchAdminStats() {
@@ -86,8 +74,16 @@ export async function fetchAdminUsers() {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const { data, error } = await adminSupabase
     .from("profiles")
-    // PERF-1 fix: select("*") 제거 — photo_urls 등 대용량 불필요 데이터 제외
-    .select("id, name, email, photo_url, plan, is_plus, is_banned, banned, verified, created_at, nationality, role, is_admin")
+    .select(`
+      id, name, email, bio, photo_url, photo_urls, plan, is_plus, plus_expires_at,
+      is_banned, banned, ban_reason, banned_until, verified, id_verified,
+      created_at, nationality, location, role, is_admin, admin_note,
+      age, gender, mbti, interests, languages, travel_style, budget_range,
+      home_city, preferred_regions, travel_dates, travel_mission, visited_countries
+    `)
+    .or("is_banned.is.null,is_banned.eq.false")
+    .or("banned.is.null,banned.eq.false")
+    .not("name", "eq", "[Deleted User]")
     .order("created_at", { ascending: false })
     .limit(300);
   if (error) {
@@ -852,7 +848,7 @@ export async function logAdminAction(action: string, targetType: string, targetI
 // 안전 체크인 해제 (추가)
 // ─────────────────────────────────────────────────
 export async function resolveSafetyCheckin(id: string) {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const { error } = await adminSupabase
     .from("safety_checkins")
     .update({ status: "resolved", updated_at: new Date().toISOString() })
@@ -865,7 +861,7 @@ export async function resolveSafetyCheckin(id: string) {
 // 채팅방 모니터링
 // ─────────────────────────────────────────────────
 export async function fetchAdminChatRooms(limit = 50) {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
 
   // ① 여행 그룹 채팅방
   const { data: groups } = await adminSupabase
@@ -911,7 +907,7 @@ export async function fetchAdminChatRooms(limit = 50) {
 }
 
 export async function fetchAdminMessages(roomId: string, limit = 30) {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
 
   // 1:1 채팅 메시지 (chat_messages 테이블)
   const { data: chatMsgs, error: chatErr } = await adminSupabase
@@ -950,7 +946,7 @@ export async function fetchAdminMessages(roomId: string, limit = 30) {
 }
 
 export async function deactivateChatRoom(groupId: string) {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const { error } = await adminSupabase
     .from("trip_groups")
     .update({ is_active: false })
@@ -962,7 +958,7 @@ export async function deactivateChatRoom(groupId: string) {
 // 대시보드용 오늘 통계
 // ─────────────────────────────────────────────────
 export async function fetchTodayStats() {
-  if (!isSupabaseConfigured) return { newUsers: 0, sosCheckins: 0, activeChats: 0, newReports: 0 };
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return { newUsers: 0, sosCheckins: 0, activeChats: 0, newReports: 0 };
   const today = new Date().toISOString().split("T")[0];
   const [usersRes, checkinsRes, chatsRes, reportsRes] = await Promise.all([
     adminSupabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", today),
@@ -984,7 +980,7 @@ export async function fetchTodayStats() {
 
 /** 유저 정지 */
 export async function adminBanUser(userId: string, reason?: string, banDays?: number) {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const { data, error } = await adminSupabase.rpc("admin_ban_user", {
     target_user_id: userId,
     reason: reason || null,
@@ -995,6 +991,7 @@ export async function adminBanUser(userId: string, reason?: string, banDays?: nu
     // Fallback: 직접 update
     const { error: e2 } = await adminSupabase.from("profiles").update({
       is_banned: true,
+      banned: true,
       ban_reason: reason || null,
       banned_until: banDays ? new Date(Date.now() + banDays * 86400000).toISOString() : null,
     }).eq("id", userId);
@@ -1009,12 +1006,13 @@ export async function adminBanUser(userId: string, reason?: string, banDays?: nu
 
 /** 유저 정지 해제 */
 export async function adminUnbanUser(userId: string) {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const { data, error } = await adminSupabase.rpc("admin_unban_user", { target_user_id: userId });
   if (error) {
     // Fallback
     const { error: e2 } = await adminSupabase.from("profiles").update({
       is_banned: false,
+      banned: false,
       ban_reason: null,
       banned_until: null,
     }).eq("id", userId);
@@ -1029,7 +1027,7 @@ export async function adminUnbanUser(userId: string) {
 
 /** 신고 처리 (RPC) */
 export async function adminResolveReport(reportId: string, action: string, comment?: string) {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const { data, error } = await adminSupabase.rpc("admin_resolve_report", {
     report_id: reportId,
     action,
@@ -1049,7 +1047,7 @@ export async function adminResolveReport(reportId: string, action: string, comme
 
 /** 신분증 인증 승인 */
 export async function adminApproveVerification(verifId: string) {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const { data, error } = await adminSupabase.rpc("admin_approve_verification", { verif_id: verifId });
   if (error) {
     console.error("adminApproveVerification error:", error);
@@ -1060,7 +1058,7 @@ export async function adminApproveVerification(verifId: string) {
 
 /** 신분증 인증 거절 */
 export async function adminRejectVerification(verifId: string, reason?: string) {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const { data, error } = await adminSupabase.rpc("admin_reject_verification", {
     verif_id: verifId,
     reason: reason || null,
@@ -1074,7 +1072,7 @@ export async function adminRejectVerification(verifId: string, reason?: string) 
 
 /** 어드민 뷰: SOS 긴급 체크인 목록 */
 export async function fetchSosActive() {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const { data, error } = await adminSupabase
     .from("admin_sos_active")
     .select("*")
@@ -1085,7 +1083,7 @@ export async function fetchSosActive() {
 
 /** 어드민 뷰: 채팅방 요약 */
 export async function fetchChatRoomSummary(limit = 50) {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const { data, error } = await adminSupabase
     .from("admin_chat_room_summary")
     .select("*")

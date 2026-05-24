@@ -26,7 +26,8 @@ export function useLocalNotifications(userId: string | undefined) {
           title: '새로운 동행을 찾아보세요! ✈️',
           body: '내 근처에 새로운 여행자가 등록되었을지도 몰라요. 지금 확인해보세요!',
           schedule: { at: new Date(Date.now() + 1000 * 60 * 60 * 24) }, // 24시간 뒤
-          smallIcon: 'ic_stat_icon_config_sample',
+          smallIcon: 'ic_stat_notification',
+          largeIcon: 'migo_notification_large',
           actionTypeId: '',
           extra: null
         },
@@ -35,7 +36,8 @@ export function useLocalNotifications(userId: string | undefined) {
           title: '누군가 회원님에게 관심이 있어요 💕',
           body: '회원님의 프로필을 조회한 사람이 있습니다. 매칭 기회를 놓치지 마세요!',
           schedule: { at: new Date(Date.now() + 1000 * 60 * 60 * 48) }, // 48시간 뒤
-          smallIcon: 'ic_stat_icon_config_sample',
+          smallIcon: 'ic_stat_notification',
+          largeIcon: 'migo_notification_large',
           actionTypeId: '',
           extra: null
         },
@@ -44,7 +46,8 @@ export function useLocalNotifications(userId: string | undefined) {
           title: '여행 피드가 업데이트 되었습니다! 🌍',
           body: '여행자들이 남긴 새로운 사진과 팁을 구경해보세요. 이번 주말엔 어디로 떠날까요?',
           schedule: { at: new Date(Date.now() + 1000 * 60 * 60 * 72) }, // 72시간 뒤
-          smallIcon: 'ic_stat_icon_config_sample',
+          smallIcon: 'ic_stat_notification',
+          largeIcon: 'migo_notification_large',
           actionTypeId: '',
           extra: null
         }

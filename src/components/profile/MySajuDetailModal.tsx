@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
@@ -6,7 +6,6 @@ import { X, Calendar, Globe, Sparkles, MapPin, Compass, Info, Check, User, Heart
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { Capacitor } from "@capacitor/core";
 import { Solar, Lunar } from "lunar-javascript";
-import { useAdMob } from "@/hooks/useAdMob";
 import { useToast } from "@/hooks/use-toast";
 
 // 천간 데이터 정의 (Heavenly Stems)
@@ -702,8 +701,16 @@ export default function MySajuDetailModal({
 }: MySajuDetailModalProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { preloadRewarded, showRewarded } = useAdMob();
   const lang = (i18n.language?.split('-')[0] || 'ko').toLowerCase();
+  const hasHydratedBirthInfoRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    window.dispatchEvent(new CustomEvent("migo:ad-overlay", { detail: { active: true } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("migo:ad-overlay", { detail: { active: false } }));
+    };
+  }, [isOpen]);
 
   // 입력 필드들
   const [year, setYear] = useState<string>("1995");
@@ -715,23 +722,41 @@ export default function MySajuDetailModal({
   const [activeTab, setActiveTab] = useState<"pillars" | "personality" | "love" | "wealth" | "travel">("pillars");
   const [isCalculated, setIsCalculated] = useState<boolean>(false);
   const [isRewardAdLoading, setIsRewardAdLoading] = useState(false);
+  const [calculationResult, setCalculationResult] = useState<{
+    yearPillar: { stem: StemData; branch: BranchData };
+    monthPillar: { stem: StemData; branch: BranchData };
+    dayPillar: { stem: StemData; branch: BranchData };
+    hourPillar: { stem: StemData; branch: BranchData } | null;
+  } | null>(null);
 
-  // 로드 시 기존 저장 정보 복원
+  const selectResultTab = (tab: "pillars" | "personality" | "love" | "wealth" | "travel") => {
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+    setActiveTab(tab);
+  };
+
+  // Load saved birth info only when the modal opens. Saving an analysis updates
+  // savedBirthInfo from the parent, and resetting here would hide the result.
   useEffect(() => {
+    if (!isOpen) {
+      hasHydratedBirthInfoRef.current = false;
+      return;
+    }
+
+    if (hasHydratedBirthInfoRef.current) return;
+    hasHydratedBirthInfoRef.current = true;
+
     if (savedBirthInfo) {
       setYear(savedBirthInfo.year || "1995");
       setMonth(savedBirthInfo.month || "5");
       setDay(savedBirthInfo.day || "24");
       setHour(savedBirthInfo.hour !== undefined ? String(savedBirthInfo.hour) : "14");
       setCalendarType(savedBirthInfo.calendarType || "solar");
-      setIsCalculated(true);
     }
-  }, [savedBirthInfo]);
 
-  useEffect(() => {
-    if (!isOpen || isCalculated) return;
-    preloadRewarded().catch(() => {});
-  }, [isOpen, isCalculated, preloadRewarded]);
+    setActiveTab("pillars");
+    setCalculationResult(null);
+    setIsCalculated(false);
+  }, [isOpen, savedBirthInfo]);
 
   // ── 육십갑자 만세력 수학적 공식 연산 엔진 ──
   const runSajuCalculation = () => {
@@ -739,6 +764,21 @@ export default function MySajuDetailModal({
     const mo = parseInt(month);
     const dy = parseInt(day);
     const hr = hour === "unknown" ? 12 : parseInt(hour);
+
+    if (
+      Number.isNaN(yr) ||
+      Number.isNaN(mo) ||
+      Number.isNaN(dy) ||
+      Number.isNaN(hr) ||
+      mo < 1 ||
+      mo > 12 ||
+      dy < 1 ||
+      dy > 31 ||
+      hr < 0 ||
+      hr > 23
+    ) {
+      throw new Error("Invalid birth date input");
+    }
 
     const getStemByHanja = (hanja: string): StemData => {
       return STEMS.find(s => s.hanja === hanja) || STEMS[0];
@@ -792,64 +832,59 @@ export default function MySajuDetailModal({
 
   const handleCalculate = () => {
     Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
-    const result = runSajuCalculation();
-    const master = result.dayPillar.stem;
-    const info = {
-      year,
-      month,
-      day,
-      hour,
-      calendarType,
-      sajuCompleted: true,
-      sajuProfile: {
-        dayMaster: {
-          hanja: master.hanja,
-          korean: master.korean,
-          element: master.element,
-          emoji: master.emoji,
-          title: master.title,
-          desc: master.desc,
-          travelVibe: master.travelVibe,
-          loveVibe: master.loveVibe,
-          wealthVibe: master.wealthVibe,
-          charmVibe: master.charmVibe,
-          careerVibe: master.careerVibe,
-        },
-        pillars: {
-          year: `${result.yearPillar.stem.hanja}${result.yearPillar.branch.hanja}`,
-          month: `${result.monthPillar.stem.hanja}${result.monthPillar.branch.hanja}`,
-          day: `${result.dayPillar.stem.hanja}${result.dayPillar.branch.hanja}`,
-          hour: result.hourPillar ? `${result.hourPillar.stem.hanja}${result.hourPillar.branch.hanja}` : null,
-        },
-        updatedAt: new Date().toISOString(),
-      }
-    };
-    onSaveBirthInfo(info);
-    setIsCalculated(true);
+    try {
+      const result = runSajuCalculation();
+      const master = result.dayPillar.stem;
+      setCalculationResult(result);
+      const info = {
+        year,
+        month,
+        day,
+        hour,
+        calendarType,
+        sajuCompleted: true,
+        sajuProfile: {
+          dayMaster: {
+            hanja: master.hanja,
+            korean: master.korean,
+            element: master.element,
+            emoji: master.emoji,
+            title: master.title,
+            desc: master.desc,
+            travelVibe: master.travelVibe,
+            loveVibe: master.loveVibe,
+            wealthVibe: master.wealthVibe,
+            charmVibe: master.charmVibe,
+            careerVibe: master.careerVibe,
+          },
+          pillars: {
+            year: `${result.yearPillar.stem.hanja}${result.yearPillar.branch.hanja}`,
+            month: `${result.monthPillar.stem.hanja}${result.monthPillar.branch.hanja}`,
+            day: `${result.dayPillar.stem.hanja}${result.dayPillar.branch.hanja}`,
+            hour: result.hourPillar ? `${result.hourPillar.stem.hanja}${result.hourPillar.branch.hanja}` : null,
+          },
+          updatedAt: new Date().toISOString(),
+        }
+      };
+      onSaveBirthInfo(info);
+      setIsCalculated(true);
+    } catch (error) {
+      console.error("[Saju] calculation failed", error);
+      setCalculationResult(null);
+      setIsCalculated(false);
+      toast({
+        title: t("saju.calculateFail", "분석을 완료하지 못했습니다."),
+        description: t("saju.calculateFailDesc", "생년월일을 다시 확인한 뒤 시도해주세요."),
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCalculateWithRewardAd = async () => {
     if (isRewardAdLoading) return;
-    Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
-
-    if (!Capacitor.isNativePlatform()) {
-      handleCalculate();
-      return;
-    }
-
     setIsRewardAdLoading(true);
     try {
-      const shown = await showRewarded(() => {
-        handleCalculate();
-      });
-
-      if (!shown) {
-        toast({
-          title: "광고를 불러오지 못했습니다",
-          description: "잠시 후 다시 시도해주세요.",
-          variant: "destructive",
-        });
-      }
+      handleCalculate();
     } finally {
       setIsRewardAdLoading(false);
     }
@@ -857,9 +892,9 @@ export default function MySajuDetailModal({
 
   const resetCalculation = () => {
     setIsCalculated(false);
+    setCalculationResult(null);
   };
 
-  const calculationResult = isCalculated ? runSajuCalculation() : null;
   const dayMaster = calculationResult?.dayPillar.stem;
 
   // 오행 8글자 갯수 세기
@@ -1155,7 +1190,13 @@ export default function MySajuDetailModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[80] flex items-end justify-center px-safe pb-safe pt-safe">
+      <div
+        className="fixed inset-0 z-[80] flex items-end justify-center px-safe"
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 18px)",
+          paddingBottom: "calc(var(--app-nav-height, 84px) + env(safe-area-inset-bottom, 0px) + 12px)",
+        }}
+      >
         {/* Backdrop */}
         <motion.div
           className="absolute inset-0 bg-foreground/60 backdrop-blur-md"
@@ -1167,7 +1208,10 @@ export default function MySajuDetailModal({
 
         {/* Modal Container */}
         <motion.div
-          className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl overflow-hidden shadow-float max-h-[94vh] flex flex-col border border-amber-500/20"
+          className="relative z-10 w-full max-w-lg mx-auto bg-card rounded-t-3xl overflow-hidden shadow-float flex flex-col border border-amber-500/20"
+          style={{
+            maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - var(--app-nav-height, 84px) - env(safe-area-inset-bottom, 0px) - 42px)",
+          }}
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
@@ -1194,7 +1238,7 @@ export default function MySajuDetailModal({
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto px-5 pt-4 space-y-4" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))" }}>
             {!isCalculated ? (
               /* ── 입력 폼 (Input Form) ── */
               <div className="space-y-4">
@@ -1309,8 +1353,8 @@ export default function MySajuDetailModal({
                   <Sparkles size={14} className="animate-pulse" />
                   <span>
                     {isRewardAdLoading
-                      ? "\uAD11\uACE0 \uBD88\uB7EC\uC624\uB294 \uC911..."
-                      : ({ ko: "\uAD11\uACE0 \uBCF4\uACE0 \uC0AC\uC8FC \uD314\uC790 \uB9CC\uC138\uB825 \uC0C1\uC138\uBD84\uC11D\uD558\uAE30", en: "Watch Ad & Start Saju-Palja Analysis", ja: "\u5E83\u544A\u3092\u898B\u3066\u56DB\u67F1\u63A8\u547D\u3092\u8A73\u3057\u304F\u5206\u6790", zh: "\u89C2\u770B\u5E7F\u544A\u540E\u751F\u6210\u516B\u5B57\u8BE6\u6279" }[lang])
+                      ? ({ ko: "\uBD84\uC11D \uC911...", en: "Analyzing...", ja: "\u5206\u6790\u4E2D...", zh: "\u5206\u6790\u4E2D..." }[lang])
+                      : ({ ko: "\uC0AC\uC8FC \uD314\uC790 \uB9CC\uC138\uB825 \uC0C1\uC138\uBD84\uC11D\uD558\uAE30", en: "Start Saju-Palja Analysis", ja: "\u56DB\u67F1\u63A8\u547D\u3092\u8A73\u3057\u304F\u5206\u6790", zh: "\u751F\u6210\u516B\u5B57\u8BE6\u6279" }[lang])
                     }
                   </span>
                 </motion.button>
@@ -1330,10 +1374,18 @@ export default function MySajuDetailModal({
                     }[tab];
                     return (
                       <button
+                        type="button"
                         key={tab}
-                        onClick={() => {
-                          Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
-                          setActiveTab(tab);
+                        role="tab"
+                        aria-selected={activeTab === tab}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          selectResultTab(tab);
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          selectResultTab(tab);
                         }}
                         className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${
                           activeTab === tab
