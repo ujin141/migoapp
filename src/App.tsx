@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { App as CapApp } from "@capacitor/app";
@@ -210,6 +210,37 @@ const AppContent = () => {
   const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.() === true;
   const showAdBanner = showNav && !isPlus && !isPremium && isNative;
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--app-nav-height", `${NAV_H}px`);
+    root.style.setProperty("--app-ad-reserved-height", `${BANNER_H}px`);
+    root.style.setProperty(
+      "--app-bottom-reserved",
+      showNav
+        ? showAdBanner
+          ? "calc(var(--app-nav-height) + var(--admob-banner-height, var(--app-ad-reserved-height)) + env(safe-area-inset-bottom, 0px))"
+          : "calc(var(--app-nav-height) + env(safe-area-inset-bottom, 0px))"
+        : "0px",
+    );
+    root.style.setProperty(
+      "--app-floating-bottom",
+      showNav
+        ? showAdBanner
+          ? "calc(var(--app-bottom-reserved) + 16px)"
+          : "calc(var(--app-bottom-reserved) + 12px)"
+        : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+    );
+    root.style.setProperty(
+      "--app-modal-bottom-padding",
+      showNav
+        ? showAdBanner
+          ? "calc(var(--app-bottom-reserved) + 18px)"
+          : "calc(var(--app-bottom-reserved) + 16px)"
+        : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+    );
+    root.style.setProperty("--toast-pb", "var(--app-floating-bottom)");
+  }, [showNav, showAdBanner]);
+
   // ── 네트워크 상태 감지 (오프라인 배너) ───────────────────────────────
   useNetworkStatus();
 
@@ -415,9 +446,31 @@ const AppContent = () => {
   }
 
   const pageVariants = makePageVariants(navDirection);
+  const appShellStyle = {
+    "--app-nav-height": `${NAV_H}px`,
+    "--app-ad-reserved-height": `${BANNER_H}px`,
+    "--app-has-bottom-nav": showNav ? "1" : "0",
+    "--app-has-bottom-ad": showAdBanner ? "1" : "0",
+    "--app-bottom-reserved": showNav
+      ? showAdBanner
+        ? "calc(var(--app-nav-height) + var(--admob-banner-height, var(--app-ad-reserved-height)) + env(safe-area-inset-bottom, 0px))"
+        : "calc(var(--app-nav-height) + env(safe-area-inset-bottom, 0px))"
+      : "0px",
+    "--app-floating-bottom": showNav
+      ? showAdBanner
+        ? "calc(var(--app-bottom-reserved) + 16px)"
+        : "calc(var(--app-bottom-reserved) + 12px)"
+      : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+    "--app-modal-bottom-padding": showNav
+      ? showAdBanner
+        ? "calc(var(--app-bottom-reserved) + 18px)"
+        : "calc(var(--app-bottom-reserved) + 16px)"
+      : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+    "--toast-pb": "var(--app-floating-bottom)",
+  } as CSSProperties;
 
   return (
-    <div className="relative h-screen overflow-hidden w-full">
+    <div id="migo-app-shell" className="relative h-screen overflow-hidden w-full" style={appShellStyle}>
       {/* ── 구독 만료 경고 배너 (D-7 ~ D-0) ── */}
       <SubscriptionExpiryBanner onOpenPlusModal={() => setShowAppPlusModal(true)} />
       <MigoPlusModal isOpen={showAppPlusModal} onClose={() => setShowAppPlusModal(false)} />
@@ -436,12 +489,7 @@ const AppContent = () => {
               top: 0,
               left: 0,
               right: 0,
-              // 페이지 컨텐츠 영역: 광고가 있을 때는 BANNER_MARGIN + BANNER_H + safe-area 만큼 확보
-              bottom: showNav
-                ? showAdBanner
-                  ? `calc(${BANNER_MARGIN + BANNER_H}px + env(safe-area-inset-bottom, 0px))`
-                  : `calc(${NAV_H}px + env(safe-area-inset-bottom, 0px))`
-                : 0,
+              bottom: 'var(--app-bottom-reserved)',
             }}
           >
             <ErrorBoundary key={location.pathname} pageBoundary={true}>
@@ -490,7 +538,7 @@ const AppContent = () => {
           className="fixed left-0 right-0 z-[99] flex items-center justify-center bg-background"
           style={{
             bottom: `calc(${BANNER_MARGIN}px + env(safe-area-inset-bottom, 0px))`,
-            height: `${BANNER_H}px`,
+            height: 'var(--admob-banner-height, var(--app-ad-reserved-height))',
           }}
         >
           <AdBanner

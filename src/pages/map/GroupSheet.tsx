@@ -24,7 +24,7 @@ export const GroupSheet = ({
 
   return (
     <AnimatePresence>
-      {selectedGroup && <motion.div className="absolute left-4 right-4 z-30" style={{ bottom: "calc(95px + env(safe-area-inset-bottom, 0px))" }} initial={{
+      {selectedGroup && <motion.div className="absolute left-4 right-4 z-30" style={{ bottom: "var(--app-floating-bottom)" }} initial={{
       y: 40,
       opacity: 0
     }} animate={{

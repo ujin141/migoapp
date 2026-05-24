@@ -23,12 +23,14 @@ export function useKeyboard() {
 
     if (Capacitor.isNativePlatform()) {
       // ── 네이티브: @capacitor/keyboard API 사용 ──
+      let active = true;
       let showListener: any;
       let hideListener: any;
 
       (async () => {
         try {
           const { Keyboard } = await import("@capacitor/keyboard");
+          if (!active) return;
 
           showListener = await Keyboard.addListener("keyboardWillShow", (info) => {
             setKbHeight(info.keyboardHeight);
@@ -37,12 +39,18 @@ export function useKeyboard() {
           hideListener = await Keyboard.addListener("keyboardWillHide", () => {
             setKbHeight(0);
           });
+
+          if (!active) {
+            showListener?.remove?.();
+            hideListener?.remove?.();
+          }
         } catch {
           // Keyboard 플러그인 미지원 환경 fallback
         }
       })();
 
       return () => {
+        active = false;
         showListener?.remove?.();
         hideListener?.remove?.();
       };

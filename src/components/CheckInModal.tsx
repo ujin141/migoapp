@@ -122,7 +122,8 @@ export default function CheckInModal({
       if (e.target === e.currentTarget) onClose();
     }}>
           <motion.div className="w-full max-w-md bg-card rounded-t-3xl shadow-2xl overflow-hidden" style={{
-        paddingBottom: hasAds ? "170px" : "calc(env(safe-area-inset-bottom, 0px) + var(--nav-height) + 1rem)"
+        marginBottom: hasAds ? "var(--app-bottom-reserved)" : 0,
+        paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))"
       }} initial={{
         y: "100%"
       }} animate={{

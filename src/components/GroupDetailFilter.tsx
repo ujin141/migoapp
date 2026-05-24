@@ -99,7 +99,8 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
             key="gdf-sheet"
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 320 }}
-            className="fixed bottom-0 left-0 right-0 z-[110] max-w-lg mx-auto"
+            className="fixed left-0 right-0 z-[110] max-w-lg mx-auto"
+            style={{ bottom: "var(--app-bottom-reserved)" }}
           >
             <div className="bg-background rounded-t-3xl shadow-2xl flex flex-col" style={{ maxHeight: "90dvh" }}>
               {/* Handle */}
@@ -295,7 +296,7 @@ const GroupDetailFilter: React.FC<GroupDetailFilterProps> = ({ open, onClose, va
               </div>
 
               {/* Apply button */}
-              <div className="flex-shrink-0 bg-background border-t border-border px-5 py-4" style={{ paddingBottom: hasAds ? "170px" : "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
+              <div className="flex-shrink-0 bg-background border-t border-border px-5 py-4" style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
                 <motion.button whileTap={{ scale: 0.97 }} onClick={handleApply}
                   className="w-full py-4 rounded-2xl font-extrabold text-base text-white shadow-lg gradient-primary relative overflow-hidden"
                 >

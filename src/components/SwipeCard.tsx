@@ -195,6 +195,19 @@ const SwipeCard = ({
   const fateInsight = (() => {
     const source = `${profile.id || profile.name || "migo"}:${profile.location || ""}`;
     const seed = Array.from(source).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const saju = profile.sajuProfile?.dayMaster || profile.saju_profile?.dayMaster;
+    if (saju) {
+      const charm = saju.charmVibe?.ko || saju.charmVibe?.en || "";
+      const career = saju.careerVibe?.ko || saju.careerVibe?.en || "";
+      const title = `${saju.korean || profile.sajuDayMaster || profile.saju_day_master || "사주"} 일간 매력`;
+      const detail = charm || career || "만세력 분석을 완료한 여행자";
+      return {
+        label: "SAJU FATE",
+        title,
+        detail,
+        metric: `${Math.min(99, Math.max(72, overallMatch + (seed % 13)))}%`,
+      };
+    }
     const tags: string[] = profile.tags || profile.interests || profile.travelStyle || [];
     const mood = profile.travelMission || tags[0] || "여행 무드";
     const routeScore = Math.min(96, Math.max(61, overallMatch + (seed % 17) - 6));

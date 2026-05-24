@@ -275,6 +275,11 @@ const ProfileSetupPage = () => {
           uploadedUrls.push(data.publicUrl);
         }
       }
+
+      if (uploadedUrls.length === 0) {
+        throw new Error(t("setup.error.uploadFailed", "프로필 사진 업로드에 실패했습니다. 이미지 파일 규격 또는 네트워크 상태를 확인해 주세요."));
+      }
+
       const { error } = await supabase.from("profiles").update({
         name: nickname.trim(),
         user_type: userType,

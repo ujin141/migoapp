@@ -634,7 +634,7 @@ const GroupCreateModal: React.FC<GroupCreateModalProps> = ({ isOpen, onClose, on
             {/* ── 하단 고정 버튼 ── */}
             <div
               className="bg-card border-t border-border/40 px-5 pt-4 shrink-0 z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.02)]"
-              style={{ paddingBottom: (!isPlus && !isPremium) ? "170px" : "max(28px, env(safe-area-inset-bottom, 28px))" }}
+              style={{ paddingBottom: (!isPlus && !isPremium) ? "var(--app-modal-bottom-padding)" : "max(28px, env(safe-area-inset-bottom, 28px))" }}
             >
               <div className="flex gap-3">
                 {step > 0 && (

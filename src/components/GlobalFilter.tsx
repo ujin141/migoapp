@@ -333,7 +333,8 @@ const GlobalFilter: React.FC<GlobalFilterProps> = ({
         type: "spring",
         damping: 30,
         stiffness: 320
-      }} className="fixed left-0 right-0 bottom-0 z-[110] max-w-lg mx-auto rounded-t-3xl bg-background shadow-2xl" style={{
+      }} className="fixed left-0 right-0 z-[110] max-w-lg mx-auto rounded-t-3xl bg-background shadow-2xl" style={{
+        bottom: "var(--app-bottom-reserved)",
         maxHeight: "95vh",
         overflowY: "scroll",
         WebkitOverflowScrolling: "touch",
@@ -491,7 +492,7 @@ const GlobalFilter: React.FC<GlobalFilterProps> = ({
 
             {/* ── Apply button — sticky bottom ── */}
             <div className="sticky bottom-0 bg-background border-t border-border px-5 py-4" style={{
-          paddingBottom: (!isPlus && !isPremium) ? "170px" : "calc(1rem + env(safe-area-inset-bottom, 0px))"
+          paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))"
         }}>
               <motion.button whileTap={{
             scale: 0.97

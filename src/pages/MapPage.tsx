@@ -1363,7 +1363,7 @@ const MapPage = () => {
 
         {/* Selected Traveler Card */}
         <AnimatePresence>
-          {selectedTraveler && <motion.div className="absolute left-3 right-3 z-30" style={{ bottom: "calc(68px + env(safe-area-inset-bottom, 0px))" }} initial={{
+          {selectedTraveler && <motion.div className="absolute left-3 right-3 z-30" style={{ bottom: "var(--app-floating-bottom)" }} initial={{
           y: 40,
           opacity: 0
         }} animate={{
@@ -1421,7 +1421,7 @@ const MapPage = () => {
           {selectedRestaurant && displayMode === 'restaurants' && (
             <motion.div
               className="absolute left-4 right-4 z-30"
-              style={{ bottom: 'calc(68px + env(safe-area-inset-bottom, 0px))' }}
+              style={{ bottom: 'var(--app-floating-bottom)' }}
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}
@@ -1579,7 +1579,7 @@ const MapPage = () => {
 
         {/* Selected Community Post Card */}
         <AnimatePresence>
-          {selectedPost && <motion.div className="absolute left-3 right-3 z-30" style={{ bottom: "calc(68px + env(safe-area-inset-bottom, 0px))" }} initial={{
+          {selectedPost && <motion.div className="absolute left-3 right-3 z-30" style={{ bottom: "var(--app-floating-bottom)" }} initial={{
           y: 40,
           opacity: 0
         }} animate={{
@@ -1669,7 +1669,7 @@ const MapPage = () => {
         />
 
         {/* Default bottom card if none selected */}
-        {displayMode === "travelers" && !selectedTraveler && travelers.length > 0 && <div className="absolute left-3 right-3 z-30" style={{ bottom: "calc(68px + env(safe-area-inset-bottom, 0px))" }}>
+        {displayMode === "travelers" && !selectedTraveler && travelers.length > 0 && <div className="absolute left-3 right-3 z-30" style={{ bottom: "var(--app-floating-bottom)" }}>
             <div className="bg-card rounded-2xl p-4 shadow-float flex items-center gap-3">
               {travelers[0].photo ? <img src={travelers[0].photo} alt="" className="w-12 h-12 rounded-xl object-cover cursor-pointer" onClick={() => setProfileDetail(travelers[0])} onError={e => {
             (e.target as HTMLImageElement).style.display = 'none';
@@ -1743,7 +1743,7 @@ const MapPage = () => {
               exit={{ scale: 0, opacity: 0 }}
               onClick={() => setShowGroupCreate(true)}
               className="absolute right-4 z-30 bg-amber-500 rounded-full p-3.5 shadow-float border-2 border-white transition-transform active:scale-90 pointer-events-auto"
-              style={{ bottom: "calc(85px + env(safe-area-inset-bottom, 0px))" }}
+              style={{ bottom: "var(--app-floating-bottom)" }}
             >
               <Plus size={24} className="text-white" />
             </motion.button>
@@ -2040,7 +2040,7 @@ const MapPage = () => {
         {showFlightTrends && (
           <motion.div className="fixed inset-0 z-[110] flex items-end justify-center px-0 pt-safe font-sans" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowFlightTrends(false)} />
-            <motion.div className="relative w-full max-w-lg mx-auto bg-card rounded-t-[32px] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col" style={{ maxHeight: '85vh', marginBottom: 'calc(52px + env(safe-area-inset-bottom, 0px))' }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
+            <motion.div className="relative w-full max-w-lg mx-auto bg-card rounded-t-[32px] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col" style={{ maxHeight: '85vh', marginBottom: 'var(--app-bottom-reserved)' }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
               
               {/* Drawer Header */}
               <div className="flex justify-center pt-3 pb-2 flex-shrink-0 bg-card z-10 w-full relative">
@@ -2160,7 +2160,7 @@ const MapPage = () => {
         {showLodgingTrends && (
           <motion.div className="fixed inset-0 z-[110] flex items-end justify-center px-0 pt-safe font-sans" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLodgingTrends(false)} />
-            <motion.div className="relative w-full max-w-lg mx-auto bg-card rounded-t-[32px] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col" style={{ maxHeight: '85vh', marginBottom: 'calc(52px + env(safe-area-inset-bottom, 0px))' }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
+            <motion.div className="relative w-full max-w-lg mx-auto bg-card rounded-t-[32px] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col" style={{ maxHeight: '85vh', marginBottom: 'var(--app-bottom-reserved)' }} initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
               
               {/* Drawer Header */}
               <div className="flex justify-center pt-3 pb-2 flex-shrink-0 bg-card z-10 w-full relative">

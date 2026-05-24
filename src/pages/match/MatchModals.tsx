@@ -809,7 +809,7 @@ export const FilterModal = ({
             </div>
 
             {/* ── Sticky Footer: 확인 버튼 ── */}
-            <div className="shrink-0 px-5 py-4 border-t border-border/50 bg-card" style={{ paddingBottom: hasAds ? '170px' : 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
+            <div className="shrink-0 px-5 py-4 border-t border-border/50 bg-card" style={{ paddingBottom: hasAds ? 'var(--app-modal-bottom-padding)' : 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => {

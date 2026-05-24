@@ -140,12 +140,19 @@ const ChatPage = () => {
   // nav 표시/숨김 — selectedChat 변경 시 동기 DOM 업데이트
   useLayoutEffect(() => {
     const nav = document.getElementById("migo-bottom-nav");
-    if (!nav) return;
-    nav.style.display = selectedChat ? "none" : "";
+    if (nav) {
+      nav.style.display = selectedChat ? "none" : "";
+    }
+    if (selectedChat) {
+      document.documentElement.classList.add("chat-room-active");
+    } else {
+      document.documentElement.classList.remove("chat-room-active");
+    }
     return () => {
       // 컴포넌트 unmount 시 인라인 스타일 완전 제거로 CSS 기본값 복원
       const el = document.getElementById("migo-bottom-nav");
       if (el) el.style.display = "";
+      document.documentElement.classList.remove("chat-room-active");
     };
   }, [selectedChat]);
 

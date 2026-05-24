@@ -79,6 +79,12 @@ CREATE TABLE IF NOT EXISTS profiles (
   -- 추가 누락 컬럼
   sns_handle            TEXT,                          -- SNS 연동 핸들 (VerificationPage)
   setup_complete        BOOLEAN DEFAULT false,         -- 프로필 설정 완료 여부 (LoginPage, useAuth)
+  saju_completed        BOOLEAN DEFAULT false,
+  saju_birth_info       JSONB,
+  saju_profile          JSONB,
+  saju_day_master       TEXT,
+  saju_element          TEXT,
+  saju_updated_at       TIMESTAMPTZ,
   last_active_at        TIMESTAMPTZ DEFAULT NOW()      -- 마지막 활동 시간 (리텐션 기능)
 );
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -664,6 +670,12 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banned                  BOO
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS ban_reason              TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banned_until            TIMESTAMPTZ;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS admin_note              TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS saju_completed          BOOLEAN DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS saju_birth_info         JSONB;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS saju_profile            JSONB;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS saju_day_master         TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS saju_element            TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS saju_updated_at         TIMESTAMPTZ;
 
 -- ============================================================
 -- 신규 유저 스와이프 부스트 (최초 프로필 완성 시 24시간 우선 노출)
@@ -2025,6 +2037,7 @@ END $$;
 
 -- profiles
 CREATE INDEX IF NOT EXISTS idx_profiles_lat_lng       ON profiles(lat, lng);
+CREATE INDEX IF NOT EXISTS idx_profiles_saju_completed ON public.profiles(saju_completed) WHERE saju_completed = true;
 
 -- likes
 CREATE INDEX IF NOT EXISTS idx_likes_from             ON likes(from_user);

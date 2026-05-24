@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, Heart, MessageCircle, Zap, ChevronLeft, ChevronRight, User, Globe, Sparkles, Crown, Star, Languages, Loader2 } from "lucide-react";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import VerifyBadge from "./VerifyBadge";
 import TravelDNA from "./TravelDNA";
 import { useAuth } from "@/hooks/useAuth";

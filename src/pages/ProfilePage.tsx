@@ -479,6 +479,13 @@ const ProfilePage = () => {
   // ─ 프로필 저장 ─
   const saveProfile = async () => {
     if (!user) return;
+    if (profilePhotos.length === 0) {
+      toast({
+        title: t("profilePage.validatePhoto", "📸 최소 1장 이상의 프로필 사진이 필요합니다."),
+        variant: "destructive"
+      });
+      return;
+    }
     setSaving(true);
     try {
       // 새로 추가된 사진만 업로드

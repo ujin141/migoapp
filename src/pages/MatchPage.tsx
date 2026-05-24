@@ -1,10 +1,10 @@
-import i18n from "@/i18n";
+﻿import i18n from "@/i18n";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { Browser } from "@capacitor/browser"; // w3 Guideline 3.2: 인앱 브라우저로 외부 URL 쳐리
+import { Browser } from "@capacitor/browser"; // w3 Guideline 3.2: ?몄빋 釉뚮씪?곗?濡??몃? URL 爾먮━
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Heart, Star, SlidersHorizontal, Check, Bell, Zap, Crown, Lock, Navigation, ShoppingBag, MapPin } from "lucide-react";
+import { X, Heart, Star, SlidersHorizontal, Check, Bell, Zap, Crown, Lock, Navigation, ShoppingBag, MapPin, Globe } from "lucide-react";
 import SwipeCard from "@/components/SwipeCard";
 import MatchModal from "@/components/MatchModal";
 import MigoPlusModal from "@/components/MigoPlusModal";
@@ -64,18 +64,18 @@ const MatchPage = () => {
   const [showPlusModal, setShowPlusModal] = useState(false);
   const [showLoginGate, setShowLoginGate] = useState(false);
   const [actionSheetProfile, setActionSheetProfile] = useState<any>(null);
-  // ―― GPS 체크인 ――
+  // ?뺚?GPS 泥댄겕???뺚?
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [activeCheckIn, setActiveCheckIn] = useState<CheckIn | null>(null);
-  // ―― Daily Mission (오늘의 목적) ――
+  // ?뺚?Daily Mission (?ㅻ뒛??紐⑹쟻) ?뺚?
   const [showMissionModal, setShowMissionModal] = useState(false);
   const [myDailyMission, setMyDailyMission] = useState<string>("");
   const [checkInCityTravelers, setCheckInCityTravelers] = useState<any[]>([]);
 
-  // ── AdMob ──
+  // ?? AdMob ??
   const { showInterstitial, showRewarded } = useAdMob();
-  // QUAL-8 fix: 당일 날짜 기준 sessionStorage에 swipeCount 유지
-  // 앱 재시작 시 실수로 3회마다 전면광고 표시되는 AdMob 정유 위반 방지
+  // QUAL-8 fix: ?뱀씪 ?좎쭨 湲곗? sessionStorage??swipeCount ?좎?
+  // ???ъ떆?????ㅼ닔濡?3?뚮쭏???꾨㈃愿묎퀬 ?쒖떆?섎뒗 AdMob ?뺤쑀 ?꾨컲 諛⑹?
   const [swipeCount, setSwipeCount] = useState(() => {
     try {
       const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
@@ -89,16 +89,16 @@ const MatchPage = () => {
   });
   const [showRewardedAdOffer, setShowRewardedAdOffer] = useState(false);
   const [showBoostAdOffer, setShowBoostAdOffer] = useState(false);
-  // ── 부스트 활성화 플래시 효과 ──
+  // ?? 遺?ㅽ듃 ?쒖꽦???뚮옒???④낵 ??
   const [boostJustActivated, setBoostJustActivated] = useState(false);
   const [showPeakBanner, setShowPeakBanner] = useState(true);
 
-  // QUAL-8 fix: swipeCount 변경 시 sessionStorage에 당일 날짜와 함께 저장
+  // QUAL-8 fix: swipeCount 蹂寃???sessionStorage???뱀씪 ?좎쭨? ?④퍡 ???
   useEffect(() => {
     try {
       const today = new Date().toISOString().slice(0, 10);
       sessionStorage.setItem('migo_swipe_count', JSON.stringify({ date: today, count: swipeCount }));
-    } catch { /* sessionStorage 용량 초과 등 무시 */ }
+    } catch { /* sessionStorage ?⑸웾 珥덇낵 ??臾댁떆 */ }
   }, [swipeCount]);
 
   useEffect(() => {
@@ -106,14 +106,14 @@ const MatchPage = () => {
       getMyCheckIn(user.id).then(ci => {
         if (ci) setActiveCheckIn(ci);
       });
-      // 알림 권한 요청 (처음 방문 시)
+      // ?뚮┝ 沅뚰븳 ?붿껌 (泥섏쓬 諛⑸Ц ??
       requestNotificationPermission();
 
-      // 오늘의 미션 설정 체크
+      // ?ㅻ뒛??誘몄뀡 ?ㅼ젙 泥댄겕
       const today = new Date().toISOString().split('T')[0];
       const savedMissionDate = localStorage.getItem('migo_mission_date');
       if (savedMissionDate !== today) {
-        // 아직 오늘 미션을 설정 안 함
+        // ?꾩쭅 ?ㅻ뒛 誘몄뀡???ㅼ젙 ????
         setShowMissionModal(true);
       } else {
         setMyDailyMission(localStorage.getItem('migo_today_mission') || "");
@@ -131,20 +131,20 @@ const MatchPage = () => {
     if (user) {
       await supabase.from('profiles').update({ travel_mission: mission }).eq('id', user.id);
       toast({
-        title: t("auto.g_0044", "오늘의 여행 목적이 설정되었습니다 🎯"),
+        title: t("auto.g_0044", "?ㅻ뒛???ы뻾 紐⑹쟻???ㅼ젙?섏뿀?듬땲???렞"),
       });
     }
   };
 
-  // ―― 필터 모달 (단일 통합 필터) ――
+  // ?뺚??꾪꽣 紐⑤떖 (?⑥씪 ?듯빀 ?꾪꽣) ?뺚?
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filterAge, setFilterAge] = useState<[number, number]>([18, 45]);
-  const [filterDistance, setFilterDistance] = useState(9999); // 기본값: 전체 (거리 제한 없음)
+  const [filterDistance, setFilterDistance] = useState(9999); // 湲곕낯媛? ?꾩껜 (嫄곕━ ?쒗븳 ?놁쓬)
   const [filterGender, setFilterGender] = useState<'all' | 'male' | 'female'>('all');
   const [filterMbti, setFilterMbti] = useState<string[]>([]);
   const [filterLanguages, setFilterLanguages] = useState<string[]>([]);
   const [filterTravelStyle, setFilterTravelStyle] = useState<string[]>([]);
-  // 활성 필터 총 개수
+  // ?쒖꽦 ?꾪꽣 珥?媛쒖닔
   const totalActiveFilterCount =
     (filterGender !== 'all' ? 1 : 0) +
     (filterDistance !== 9999 ? 1 : 0) +
@@ -152,7 +152,7 @@ const MatchPage = () => {
     filterLanguages.length +
     filterTravelStyle.length +
     (filterAge[0] !== 18 || filterAge[1] !== 45 ? 1 : 0);
-  // SEC-2 fix: localStorage 조작으로 인증 우회 불가 — Supabase 세션만 신뢰
+  // SEC-2 fix: localStorage 議곗옉?쇰줈 ?몄쬆 ?고쉶 遺덇? ??Supabase ?몄뀡留??좊ː
   const isLoggedIn = useCallback(() => !!user, [user]);
   const requireLogin = useCallback(() => {
     setShowLoginGate(true);
@@ -163,16 +163,16 @@ const MatchPage = () => {
   const [inAppNotif, setInAppNotif] = useState<InAppNotifData | null>(null);
   const [ads, setAds] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
-  // 실시간 온라인 상태 맵 { userId -> { isOnline, lastSeen } }
+  // ?ㅼ떆媛??⑤씪???곹깭 留?{ userId -> { isOnline, lastSeen } }
   const [onlineMap, setOnlineMap] = useState<Record<string, { isOnline: boolean; lastSeen: string | null }>>({});
-  const [pendingLikers, setPendingLikers] = useState<any[]>([]); // 나를 라이크한 사람
-  const [dailyLikesUsed, setDailyLikesUsed] = useState(0); // 오늘 보낸 라이크 수
-  const [hasMyGps, setHasMyGps] = useState(true); // 내 위치 정보가 있는지 여부
-  const DAILY_LIKE_LIMIT = dailyLikeLimit; // SubscriptionContext 기준: free=10, plus=∞, premium=∞
+  const [pendingLikers, setPendingLikers] = useState<any[]>([]); // ?섎? ?쇱씠?ы븳 ?щ엺
+  const [dailyLikesUsed, setDailyLikesUsed] = useState(0); // ?ㅻ뒛 蹂대궦 ?쇱씠????
+  const [hasMyGps, setHasMyGps] = useState(true); // ???꾩튂 ?뺣낫媛 ?덈뒗吏 ?щ?
+  const DAILY_LIKE_LIMIT = dailyLikeLimit; // SubscriptionContext 湲곗?: free=10, plus=?? premium=??
   
   const matchTimersRef = useRef<{ timeouts: any[] }>({ timeouts: [] });
   const showMatchRef = useRef(false);
-  // MatchPage-TIMER fix: fetchProfiles 내 likeReset 타이머를 ref로 관리 (async 함수 내 return cleanup 불가)
+  // MatchPage-TIMER fix: fetchProfiles ??likeReset ??대㉧瑜?ref濡?愿由?(async ?⑥닔 ??return cleanup 遺덇?)
   const likeResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -190,12 +190,12 @@ const MatchPage = () => {
 
       const ratingsMap: Record<string, { sum: number; count: number; }> = {};
 
-      // 내 프로필 정보 (matchScore 계산 기준)
+      // ???꾨줈???뺣낫 (matchScore 怨꾩궛 湲곗?)
       const {
         data: me
-      } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates').eq('id', user.id).single();
+      } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,saju_completed,saju_profile,saju_day_master,saju_element').eq('id', user.id).single();
 
-      // 이미 스와이프한 상대 ID 수집 (최근 24시간 이내 데이터만 DB 레벨에서 필터링)
+      // ?대? ?ㅼ??댄봽???곷? ID ?섏쭛 (理쒓렐 24?쒓컙 ?대궡 ?곗씠?곕쭔 DB ?덈꺼?먯꽌 ?꾪꽣留?
       const since24hStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const {
         data: swipedData
@@ -209,7 +209,7 @@ const MatchPage = () => {
         swipedIds.add(r.to_user);
       });
 
-      // **매칭된 사람(채팅창이 열린 사람)**은 영구적으로 스와이프에 나오면 안됨
+      // **留ㅼ묶???щ엺(梨꾪똿李쎌씠 ?대┛ ?щ엺)**? ?곴뎄?곸쑝濡??ㅼ??댄봽???섏삤硫??덈맖
       const { data: matchData } = await supabase.from('matches')
         .select('user1_id, user2_id')
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
@@ -218,22 +218,23 @@ const MatchPage = () => {
         swipedIds.add(m.user1_id === user.id ? m.user2_id : m.user1_id);
       });
 
-      // 자신을 DB 레벨에서 확실히 제외 (캐시 제거: 정지된 계정이 즉각 사라지도록)
+      // ?먯떊??DB ?덈꺼?먯꽌 ?뺤떎???쒖쇅 (罹먯떆 ?쒓굅: ?뺤???怨꾩젙??利됯컖 ?щ씪吏?꾨줉)
       const res = await supabase.from('profiles')
-        .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,new_user_boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned,setup_complete,is_admin,role,id_verified,trust_score')
+        .select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,boost_expires_at,new_user_boost_expires_at,travel_mission,visited_countries,user_type,profile_theme,is_banned,banned,setup_complete,is_admin,role,id_verified,trust_score,saju_completed,saju_profile,saju_day_master,saju_element')
         .neq('id', user.id)
         .or('is_banned.is.null,is_banned.eq.false')
         .or('banned.is.null,banned.eq.false')
-        .or('is_admin.is.null,is_admin.eq.false')   // 어드민 제외
-        .neq('role', 'admin')                        // role='admin' 제외
-        .eq('setup_complete', true)                  // 프로필 미완성 제외
+        .or('is_admin.is.null,is_admin.eq.false')   // ?대뱶誘??쒖쇅
+        .neq('role', 'admin')                        // role='admin' ?쒖쇅
+        .eq('setup_complete', true)                  // ?꾨줈??誘몄셿???쒖쇅
+        .eq('saju_completed', true)
         .limit(200);
         
       const data = res.data;
       const error = res.error;
 
       if (!error && data) {
-        // 방금 불러온 프로필 대상자들만의 meet_reviews 만 선별하여 가져오기 (O(N) 트래픽 최적화)
+        // 諛⑷툑 遺덈윭???꾨줈????곸옄?ㅻ쭔??meet_reviews 留??좊퀎?섏뿬 媛?몄삤湲?(O(N) ?몃옒??理쒖쟻??
         const profileIds = data.map(p => p.id);
         
         if (profileIds.length > 0) {
@@ -249,7 +250,7 @@ const MatchPage = () => {
             }
           }
 
-          // ── 온라인 상태 일괄 조회 ──
+          // ?? ?⑤씪???곹깭 ?쇨큵 議고쉶 ??
           const { data: onlineData } = await supabase
             .from('online_status')
             .select('user_id, is_online, last_seen')
@@ -263,7 +264,7 @@ const MatchPage = () => {
           }
         }
 
-        // Haversine 거리 계산
+        // Haversine 嫄곕━ 怨꾩궛
         const haversine = (lat1: number, lng1: number, lat2: number, lng2: number) => {
           const R = 6371;
           const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -272,7 +273,7 @@ const MatchPage = () => {
           return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         };
 
-        // matchScore: 공통 interests + languages + mbti 기반 실제 계산
+        // matchScore: 怨듯넻 interests + languages + mbti 湲곕컲 ?ㅼ젣 怨꾩궛
         const calcScore = (p: any) => {
           if (!me) return 70;
           const myInterests: string[] = me.interests || [];
@@ -288,16 +289,17 @@ const MatchPage = () => {
           return score;
         };
 
-        // 이미 스와이프한 상대 클라이언트 필터 + 정지 계정 이중 필터 + 어드민/미완성 제외
+        // ?대? ?ㅼ??댄봽???곷? ?대씪?댁뼵???꾪꽣 + ?뺤? 怨꾩젙 ?댁쨷 ?꾪꽣 + ?대뱶誘?誘몄셿???쒖쇅
         const filtered = data.filter(p =>
           !swipedIds.has(p.id)
           && !p.is_banned
           && !p.banned
-          && !p.is_admin               // 어드민 계정 제외 (이중 안전장치)
+          && !p.is_admin               // ?대뱶誘?怨꾩젙 ?쒖쇅 (?댁쨷 ?덉쟾?μ튂)
           && p.role !== 'admin'
-          && p.setup_complete === true  // 프로필 미완성 제외
+          && p.setup_complete === true  // ?꾨줈??誘몄셿???쒖쇅
+          && p.saju_completed === true
         );
-        // localStorage GPS fallback: DB lat/lng 없으면 앱 시작 시 저장된 좌표 사용
+        // localStorage GPS fallback: DB lat/lng ?놁쑝硫????쒖옉 ????λ맂 醫뚰몴 ?ъ슜
         const myLat = me?.lat || parseFloat(localStorage.getItem('migo_my_lat') || '0') || null;
         const myLng = me?.lng || parseFloat(localStorage.getItem('migo_my_lng') || '0') || null;
         setHasMyGps(!!(myLat && myLng));
@@ -322,10 +324,14 @@ const MatchPage = () => {
             dates: p.travel_dates || t("auto.ko_0249", "미정"),
             tags: p.interests || [],
             travelMission: p.travel_mission || undefined,
+            sajuCompleted: !!p.saju_completed,
+            sajuProfile: p.saju_profile || null,
+            sajuDayMaster: p.saju_day_master || null,
+            sajuElement: p.saju_element || null,
             userType: p.user_type || 'traveler', profileTheme: p.profile_theme,
             visitedCountries: p.visited_countries || [],
             matchScore: isBoosted ? score + 1000 : isNewUserBoosted ? score + 500 : score,
-            // 부스트 유저 최상단 → 신규 유저 2순위 → 일반 매칭점수 순
+            // 遺?ㅽ듃 ?좎? 理쒖긽?????좉퇋 ?좎? 2?쒖쐞 ???쇰컲 留ㅼ묶?먯닔 ??
             verified: !!p.verified || !!p.id_verified,
             verifyLevel: p.verified ? 'gold' as const : p.id_verified ? 'id' as const : 'basic' as const,
             ticketVerified: !!p.id_verified,
@@ -337,13 +343,13 @@ const MatchPage = () => {
             isAd: false,
             avgRating: ratingsMap[p.id]?.count > 0 ? ratingsMap[p.id].sum / ratingsMap[p.id].count : null,
             reviewCount: ratingsMap[p.id]?.count || 0,
-            isOnline: false, // Realtime 구독에서 업데이트됨
+            isOnline: false, // Realtime 援щ룆?먯꽌 ?낅뜲?댄듃??
             lastSeen: null as string | null
           };
         });
-        // matchScore 높은 순 정렬
+        // matchScore ?믪? ???뺣젹
         mapped.sort((a, b) => b.matchScore - a.matchScore);
-        // DB가 비어있으면 (로컬 환경 필드 테스트용) 빈 배열 세팅
+        // DB媛 鍮꾩뼱?덉쑝硫?(濡쒖뺄 ?섍꼍 ?꾨뱶 ?뚯뒪?몄슜) 鍮?諛곗뿴 ?명똿
         if (mapped.length === 0) {
           setProfiles([]);
         } else {
@@ -351,8 +357,8 @@ const MatchPage = () => {
         }
       }
 
-      // 나를 라이크했지만 내가 아직 스와이프 안 한 사람 조회
-      // BUG-15 fix: 이미 매칭된 유저를 matchedIds로 별도 추적해 liker 목록에서도 제외
+      // ?섎? ?쇱씠?ы뻽吏留??닿? ?꾩쭅 ?ㅼ??댄봽 ?????щ엺 議고쉶
+      // BUG-15 fix: ?대? 留ㅼ묶???좎?瑜?matchedIds濡?蹂꾨룄 異붿쟻??liker 紐⑸줉?먯꽌???쒖쇅
       const matchedIds = new Set<string>();
       (matchData || []).forEach((m: any) => {
         matchedIds.add(m.user1_id === user.id ? m.user2_id : m.user1_id);
@@ -361,12 +367,12 @@ const MatchPage = () => {
         data: likersData
       } = await supabase.from('likes').select('from_user').eq('to_user', user.id);
       const likerIds = (likersData || []).map((r: any) => r.from_user).filter((id: string) =>
-        !swipedIds.has(id) && !matchedIds.has(id) && id !== user.id  // BUG-15: 이미 매칭된 유저 제외
+        !swipedIds.has(id) && !matchedIds.has(id) && id !== user.id  // BUG-15: ?대? 留ㅼ묶???좎? ?쒖쇅
       );
       if (likerIds.length > 0) {
         const {
           data: likerProfiles
-        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme,id_verified,trust_score').or('is_banned.is.null,is_banned.eq.false').or('banned.is.null,banned.eq.false').in('id', likerIds);
+        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme,id_verified,trust_score,saju_completed,saju_profile,saju_day_master,saju_element').or('is_banned.is.null,is_banned.eq.false').or('banned.is.null,banned.eq.false').eq('saju_completed', true).in('id', likerIds);
         if (likerProfiles) {
           const { data: likerReviews } = await supabase.from('meet_reviews').select('reviewed_id, rating').in('reviewed_id', likerIds);
           if (likerReviews) {
@@ -393,10 +399,14 @@ const MatchPage = () => {
             dates: p.travel_dates || t("auto.ko_0253", "미정"),
             tags: p.interests || [],
             travelMission: p.travel_mission || undefined,
+            sajuCompleted: !!p.saju_completed,
+            sajuProfile: p.saju_profile || null,
+            sajuDayMaster: p.saju_day_master || null,
+            sajuElement: p.saju_element || null,
             userType: p.user_type || 'traveler', profileTheme: p.profile_theme,
             visitedCountries: p.visited_countries || [],
             matchScore: 999,
-            // 최상단 우선
+            // 理쒖긽???곗꽑
             verified: !!p.verified || !!p.id_verified,
             verifyLevel: p.verified ? 'gold' as const : p.id_verified ? 'id' as const : 'basic' as const,
             ticketVerified: !!p.id_verified,
@@ -408,7 +418,7 @@ const MatchPage = () => {
             isPremium: p.plan === 'premium',
             isAd: false,
             isLiker: true,
-            // 나를 라이크한 사람 표시
+            // ?섎? ?쇱씠?ы븳 ?щ엺 ?쒖떆
             avgRating: ratingsMap[p.id]?.count > 0 ? ratingsMap[p.id].sum / ratingsMap[p.id].count : null,
             reviewCount: ratingsMap[p.id]?.count || 0
           }));
@@ -416,7 +426,7 @@ const MatchPage = () => {
         }
       }
 
-      // 24시간 롤링 윈도우로 보낸 라이크 수 조회
+      // 24?쒓컙 濡ㅻ쭅 ?덈룄?곕줈 蹂대궦 ?쇱씠????議고쉶
       const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const {
         count: likeCount,
@@ -425,10 +435,10 @@ const MatchPage = () => {
         count: 'exact'
       }).eq('from_user', user.id).gte('created_at', since24h.toISOString()).order('created_at', {
         ascending: true
-      }); // ← limit(1) 제거: count가 최대 1로 고정되던 버그 수정
+      }); // ??limit(1) ?쒓굅: count媛 理쒕? 1濡?怨좎젙?섎뜕 踰꾧렇 ?섏젙
       setDailyLikesUsed(likeCount ?? 0);
 
-      // MatchPage-TIMER fix: async 내부 return은 useEffect cleanup 불가 → ref 사용
+      // MatchPage-TIMER fix: async ?대? return? useEffect cleanup 遺덇? ??ref ?ъ슜
       if (recentLikes && recentLikes.length > 0) {
         const firstLikeAt = new Date(recentLikes[0].created_at).getTime();
         const resetAt = firstLikeAt + 24 * 60 * 60 * 1000;
@@ -447,7 +457,7 @@ const MatchPage = () => {
     };
   }, [t, user]);
 
-  // ── Supabase Realtime: online_status 실시간 구독 ──
+  // ?? Supabase Realtime: online_status ?ㅼ떆媛?援щ룆 ??
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -471,7 +481,7 @@ const MatchPage = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // ── onlineMap이 바뀌면 profiles에 isOnline/lastSeen 반영 ──
+  // ?? onlineMap??諛붾뚮㈃ profiles??isOnline/lastSeen 諛섏쁺 ??
   useEffect(() => {
     if (Object.keys(onlineMap).length === 0) return;
     setProfiles(prev =>
@@ -483,15 +493,15 @@ const MatchPage = () => {
     );
   }, [onlineMap]);
 
-  // ── 광고 유무에 따른 하단 여백 대폭 상향 (네이티브 배너 높이 + safe-area 반영) ──
+  // ?? 愿묎퀬 ?좊Т???곕Ⅸ ?섎떒 ?щ갚 ????곹뼢 (?ㅼ씠?곕툕 諛곕꼫 ?믪씠 + safe-area 諛섏쁺) ??
   useEffect(() => {
     if (!isPlus && !isPremium) {
-      document.documentElement.style.setProperty('--toast-pb', '170px');
+      document.documentElement.style.setProperty('--toast-pb', 'var(--app-floating-bottom)');
     } else {
-      document.documentElement.style.removeProperty('--toast-pb');
+      document.documentElement.style.setProperty('--toast-pb', 'var(--app-floating-bottom)');
     }
     return () => {
-      document.documentElement.style.removeProperty('--toast-pb');
+      document.documentElement.style.setProperty('--toast-pb', 'var(--app-floating-bottom)');
     };
   }, [isPlus, isPremium]);
 
@@ -510,20 +520,20 @@ const MatchPage = () => {
   const [showLikePopup, setShowLikePopup] = useState(false);
   const [likePopupProfile, setLikePopupProfile] = useState<any | null>(null);
 
-  // Pass popup (X 버튼)
+  // Pass popup (X 踰꾪듉)
   const [showPassPopup, setShowPassPopup] = useState(false);
   const [passPopupProfile, setPassPopupProfile] = useState<any | null>(null);
 
-  // 통합 필터 적용 (useMemo로 메모이제이션 — 매 render 재계산 방지)
+  // ?듯빀 ?꾪꽣 ?곸슜 (useMemo濡?硫붾え?댁젣?댁뀡 ??留?render ?ш퀎??諛⑹?)
   const withAds = useMemo(() => {
     const filteredTravelers = profiles.filter(p => {
       const hasNoCoords = p.distanceKm === null;
-      // 프리 유저는 글로벌 매칭 불가. 기본적으로 최대 100km로 제한 (또는 설정된 filterDistance)
+      // ?꾨━ ?좎???湲濡쒕쾶 留ㅼ묶 遺덇?. 湲곕낯?곸쑝濡?理쒕? 100km濡??쒗븳 (?먮뒗 ?ㅼ젙??filterDistance)
       const effectiveDist = isPlus ? filterDistance : Math.min(filterDistance, 100);
       const distOk = (effectiveDist >= 9999 || !hasMyGps) ? true : (hasNoCoords ? true : p.distanceKm <= effectiveDist);
-      const genderOk = !isPlus || filterGender === 'all' || p.gender === filterGender;  // Plus 전용
-      const ageOk = !isPlus || !p.age || (p.age >= filterAge[0] && p.age <= filterAge[1]);  // Plus 전용
-      const langOk = !isPlus || filterLanguages.length === 0 || filterLanguages.some(l => p.languages.includes(l));  // Plus 전용
+      const genderOk = !isPlus || filterGender === 'all' || p.gender === filterGender;  // Plus ?꾩슜
+      const ageOk = !isPlus || !p.age || (p.age >= filterAge[0] && p.age <= filterAge[1]);  // Plus ?꾩슜
+      const langOk = !isPlus || filterLanguages.length === 0 || filterLanguages.some(l => p.languages.includes(l));  // Plus ?꾩슜
       const mbtiOk = filterMbti.length === 0 || (p.mbti && filterMbti.includes(p.mbti));
       const styleOk = filterTravelStyle.length === 0 || filterTravelStyle.some(tag => p.travelStyle.includes(tag));
       return distOk && genderOk && ageOk && langOk && mbtiOk && styleOk;
@@ -574,7 +584,7 @@ const MatchPage = () => {
     if (profile?.isAd) {
       // Just swipe away
     } else if (profile?.id) {
-      // 패스 패턴 기록
+      // ?⑥뒪 ?⑦꽩 湲곕줉
       recordSwipe({
         id: profile.id,
         nationality: profile.nationality,
@@ -582,7 +592,7 @@ const MatchPage = () => {
         age: profile.age
       }, false);
 
-      // Pass 팝업 표시
+      // Pass ?앹뾽 ?쒖떆
       setPassPopupProfile(profile);
       setShowPassPopup(true);
       matchTimersRef.current.timeouts.forEach(clearTimeout);
@@ -599,14 +609,14 @@ const MatchPage = () => {
       });
     }
 
-    // ── FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기 ──
+    // ?? FOMO ?좊룄: 臾대즺 ?좎??먭쾶 10% ?뺣쪧濡??좎뒪???꾩슦湲???
     if (!isPlus && Math.random() < 0.1) {
       toast({
-        title: t("auto.t_0046", "누군가 회원님을 마음에 들어합니다! 👀"),
-        description: t("auto.t_0047", "Migo Plus로 업그레이드하고 누군지 확인해보세요."),
+        title: t("auto.t_0046", "?꾧뎔媛 ?뚯썝?섏쓣 留덉쓬???ㅼ뼱?⑸땲?? ??"),
+        description: t("auto.t_0047", "Migo Plus濡??낃렇?덉씠?쒗븯怨??꾧뎔吏 ?뺤씤?대낫?몄슂."),
         action: (
           <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
-            {t("auto.t_0048", "확인하기")}
+            {t("auto.t_0048", "?뺤씤?섍린")}
           </button>
         ),
         duration: 5000,
@@ -615,8 +625,8 @@ const MatchPage = () => {
   }, [currentIndex, withAds, isPlus, isPremium, showInterstitial, t]);
   const saveLikeAndCheckMatch = useCallback(async (toUserId: string, kind: 'like' | 'superlike' = 'like', message?: string) => {
     if (!user) return false;
-    // BUG-5 fix: superlike + toUserId 있을 때는 consumeSuperLike에서 이미 RPC로 likes INSERT됨
-    // → 중복 INSERT 방지를 위해 superlike 케이스의 upsert를 건너뜀
+    // BUG-5 fix: superlike + toUserId ?덉쓣 ?뚮뒗 consumeSuperLike?먯꽌 ?대? RPC濡?likes INSERT??
+    // ??以묐났 INSERT 諛⑹?瑜??꾪빐 superlike 耳?댁뒪??upsert瑜?嫄대꼫?
     const shouldSkipLikesInsert = kind === 'superlike';
     if (!shouldSkipLikesInsert) {
       await supabase.from('likes').upsert({
@@ -628,20 +638,20 @@ const MatchPage = () => {
         onConflict: 'from_user,to_user'
       });
     } else {
-      // superlike: in_app_notifications만 INSERT (RPC가 이미 likes 처리함)
+      // superlike: in_app_notifications留?INSERT (RPC媛 ?대? likes 泥섎━??
       await supabase.from('in_app_notifications').insert({
         user_id: toUserId,
         type: kind,
-        title: t("auto.ko_0257", "새로운슈퍼"),
-        content: t("auto.t_0044", `${user.name}님이 슈퍼라이크를 보냈습니다! ⭐`)
+        title: t("auto.ko_0257", "새 슈퍼라이크"),
+        content: t("auto.t_0044", `${user.name}님이 슈퍼라이크를 보냈습니다.`)
       });
     }
-    // 2. 상대방도 나를 like 했는지 확인 → match
+    // 2. ?곷?諛⑸룄 ?섎? like ?덈뒗吏 ?뺤씤 ??match
     const {
       data: mutual
     } = await supabase.from('likes').select('from_user').eq('from_user', toUserId).eq('to_user', user.id).maybeSingle();
     if (mutual) {
-      // 이미 채팅방이 있는지 먼저 확인 (중복 방지)
+      // ?대? 梨꾪똿諛⑹씠 ?덈뒗吏 癒쇱? ?뺤씤 (以묐났 諛⑹?)
       const [u1, u2] = [user.id, toUserId].sort();
       const { data: existingMatch } = await supabase
         .from('matches')
@@ -651,10 +661,10 @@ const MatchPage = () => {
         .maybeSingle();
 
       if (existingMatch?.thread_id) {
-        return existingMatch.thread_id; // 이미 채팅방 존재 → 재사용
+        return existingMatch.thread_id; // ?대? 梨꾪똿諛?議댁옱 ???ъ궗??
       }
 
-      // 3. chat_thread 생성
+      // 3. chat_thread ?앹꽦
       const {
         data: thread, error: threadError
       } = await supabase.from('chat_threads').insert({
@@ -664,7 +674,7 @@ const MatchPage = () => {
         console.error('[Match] chat_threads insert failed:', threadError);
         return false;
       }
-      // MATCH-FIX: chat_members INSERT 실패 시 orphan thread 정리 후 중단
+      // MATCH-FIX: chat_members INSERT ?ㅽ뙣 ??orphan thread ?뺣━ ??以묐떒
       const { error: membersError } = await supabase.from('chat_members').insert([{
         thread_id: thread.id,
         user_id: user.id
@@ -677,34 +687,34 @@ const MatchPage = () => {
         console.error('[Match] chat_members insert failed, thread rolled back');
         return false;
       }
-      // 4. matches 테이블 저장 → DB 트리거(trg_notify_on_match)가 자동으로 양쪽 notifications INSERT
-      // ⚠️ upsert 대신 insert: 이 경로는 existingMatch가 없을 때만 도달 → 중복 트리거 방지
+      // 4. matches ?뚯씠釉??????DB ?몃━嫄?trg_notify_on_match)媛 ?먮룞?쇰줈 ?묒そ notifications INSERT
+      // ?좑툘 upsert ???insert: ??寃쎈줈??existingMatch媛 ?놁쓣 ?뚮쭔 ?꾨떖 ??以묐났 ?몃━嫄?諛⑹?
       const { error: matchInsertErr } = await supabase.from('matches').insert({
         user1_id: u1,
         user2_id: u2,
         thread_id: thread.id
       });
-      // 23505 = 동시 요청에 의한 race condition 중복 — 무시
+      // 23505 = ?숈떆 ?붿껌???섑븳 race condition 以묐났 ??臾댁떆
       if (matchInsertErr && matchInsertErr.code !== '23505') {
         console.warn('[Match] matches insert error:', matchInsertErr.message);
       }
-      // 5. 로컬 Web Push 알림 (포그라운드 시)
+      // 5. 濡쒖뺄 Web Push ?뚮┝ (?ш렇?쇱슫????
       const matchedProfile = withAds.find((p: any) => p.id === toUserId);
       if (matchedProfile?.name) notifyMatch(matchedProfile.name);
       return thread.id; // matched!
     }
-    // 좋아요: DB 트리거가 notifications 처리함 → 클라이언트에서 in_app_notifications (Realtime 배너용)만 INSERT
-    // superlike: 위 분기(589-596)에서 이미 처리함 → 이중 INSERT 방지
+    // 醫뗭븘?? DB ?몃━嫄곌? notifications 泥섎━?????대씪?댁뼵?몄뿉??in_app_notifications (Realtime 諛곕꼫??留?INSERT
+    // superlike: ??遺꾧린(589-596)?먯꽌 ?대? 泥섎━?????댁쨷 INSERT 諛⑹?
     if (kind !== 'superlike') {
       await supabase.from('in_app_notifications').insert({
         user_id: toUserId,
         type: kind,
-        title: t("auto.ko_0258", "새로운반가"),
-        content: t("auto.t_0045", `${user.name}님이 좋아요를 눌렀습니다`)
+        title: t("auto.ko_0258", "새 좋아요"),
+        content: t("auto.t_0045", `${user.name}님이 좋아요를 보냈습니다.`)
       });
     }
     return false;
-  }, [t, user, withAds]); // ISSUE-1 fix: withAds에 stale closure 방지
+  }, [t, user, withAds]); // ISSUE-1 fix: withAds??stale closure 諛⑹?
   const handleSwipeRight = useCallback(() => {
     if (!isLoggedIn()) {
       requireLogin();
@@ -715,17 +725,17 @@ const MatchPage = () => {
     if (!profile) return;
     if (profile.isAd) {
       recordAdClick(profile.originalAd.id, null);
-      // Apple Guideline 3.2: window.open 대신 인앱 브라우저(SFSafariViewController) 사용
+      // Apple Guideline 3.2: window.open ????몄빋 釉뚮씪?곗?(SFSafariViewController) ?ъ슜
       if (profile.adUrl) Browser.open({ url: profile.adUrl, presentationStyle: 'fullscreen' });
       setCurrentIndex(i => i + 1);
       return;
     }
 
-    // 유저 등급별 일일 좋아요 제한 체크 (라이커 카드는 제외)
+    // ?좎? ?깃툒蹂??쇱씪 醫뗭븘???쒗븳 泥댄겕 (?쇱씠而?移대뱶???쒖쇅)
     if (!isPremium && !profile.isLiker && dailyLikesUsed >= DAILY_LIKE_LIMIT) {
       toast({
         title: t("auto.p525"),
-        description: t("auto.t_0018", `오늘 무료 좋아요 ${DAILY_LIKE_LIMIT}개를 모두 사용했습니다.`),
+        description: t("auto.t_0018", `?ㅻ뒛 臾대즺 醫뗭븘??${DAILY_LIKE_LIMIT}媛쒕? 紐⑤몢 ?ъ슜?덉뒿?덈떎.`),
         variant: "destructive"
       });
       setShowPlusModal(true);
@@ -736,13 +746,13 @@ const MatchPage = () => {
     setLikePopupProfile(profile);
     setShowLikePopup(true);
     
-    // 이전 Like 타이머 초기화 (연속 스와이프 시 꼬임 방지)
+    // ?댁쟾 Like ??대㉧ 珥덇린??(?곗냽 ?ㅼ??댄봽 ??瑗ъ엫 諛⑹?)
     matchTimersRef.current.timeouts.forEach(clearTimeout);
     matchTimersRef.current.timeouts = [];
     const tLike = setTimeout(() => setShowLikePopup(false), 2200);
     matchTimersRef.current.timeouts.push(tLike);
 
-    // 좋아요 패턴 학습
+    // 醫뗭븘???⑦꽩 ?숈뒿
     recordSwipe({
       id: profile.id,
       nationality: profile.nationality,
@@ -757,12 +767,12 @@ const MatchPage = () => {
     });
     if (!isPlus && !profile.isLiker) setDailyLikesUsed(n => n + 1);
 
-    // DB 저장 + 매칭 확인
+    // DB ???+ 留ㅼ묶 ?뺤씤
     saveLikeAndCheckMatch(profile.id).then(isMatch => {
       if (isMatch) {
          triggerHaptic("success");
          if (showMatchRef.current) {
-           // 이미 매칭창이 떠있으면 조용히 백그라운드 매칭 (인앱 알리미만)
+           // ?대? 留ㅼ묶李쎌씠 ?좎엳?쇰㈃ 議곗슜??諛깃렇?쇱슫??留ㅼ묶 (?몄빋 ?뚮━誘몃쭔)
            addUnread(profile.id);
            setInAppNotif({ type: "like", actorName: profile.name, actorPhoto: profile.photo });
          } else {
@@ -784,14 +794,14 @@ const MatchPage = () => {
         }
     });
 
-    // ── FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기 ──
+    // ?? FOMO ?좊룄: 臾대즺 ?좎??먭쾶 10% ?뺣쪧濡??좎뒪???꾩슦湲???
     if (!isPlus && Math.random() < 0.1) {
       toast({
-        title: t("auto.t_0046", "누군가 회원님을 마음에 들어합니다! 👀"),
-        description: t("auto.t_0047", "Migo Plus로 업그레이드하고 누군지 확인해보세요."),
+        title: t("auto.t_0046", "?꾧뎔媛 ?뚯썝?섏쓣 留덉쓬???ㅼ뼱?⑸땲?? ??"),
+        description: t("auto.t_0047", "Migo Plus濡??낃렇?덉씠?쒗븯怨??꾧뎔吏 ?뺤씤?대낫?몄슂."),
         action: (
           <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
-            {t("auto.t_0048", "확인하기")}
+            {t("auto.t_0048", "?뺤씤?섍린")}
           </button>
         ),
         duration: 5000,
@@ -804,7 +814,7 @@ const MatchPage = () => {
       return;
     }
     if (!isPlus && superLikesLeft <= 0) {
-      // 보상형 광고 먼저 제안 → 광고 보고 슈퍼라이크 1개 충전
+      // 蹂댁긽??愿묎퀬 癒쇱? ?쒖븞 ??愿묎퀬 蹂닿퀬 ?덊띁?쇱씠??1媛?異⑹쟾
       setShowRewardedAdOffer(true);
       return;
     }
@@ -822,10 +832,10 @@ const MatchPage = () => {
     setSuperLikeMessage(superMsg);
     setSuperLikedId(profile.id);
 
-    // BUG-1 fix: toUserId 전달 → DB RPC record_superlike 원자적 차감+insert
+    // BUG-1 fix: toUserId ?꾨떖 ??DB RPC record_superlike ?먯옄??李④컧+insert
     consumeSuperLike(profile.id);
 
-    // DB 저장 + 매칭 확인 전에 이전 타이머 초기화 (연속 액션 꼬임 방지)
+    // DB ???+ 留ㅼ묶 ?뺤씤 ?꾩뿉 ?댁쟾 ??대㉧ 珥덇린??(?곗냽 ?≪뀡 瑗ъ엫 諛⑹?)
     matchTimersRef.current.timeouts.forEach(clearTimeout);
     matchTimersRef.current.timeouts = [];
 
@@ -860,8 +870,8 @@ const MatchPage = () => {
       matchTimersRef.current.timeouts.push(tSuperLike);
     });
     toast({
-      title: t("auto.t_0019", `⭐ ${profile.name}님에게 슈퍼라이크 전송!`),
-      description: superMsg ? `"${superMsg}"` : t("auto.g_0045", "상대방에게")
+      title: t("auto.t_0019", `${profile.name}님에게 슈퍼라이크 전송!`),
+      description: superMsg ? `"${superMsg}"` : t("auto.g_0045", "상대방에게 특별한 신호를 보냈어요.")
     });
   }, [pendingSuperProfile, superMsg, addUnread, saveLikeAndCheckMatch, consumeSuperLike, t]);
   const handleChatFromMatch = () => {
@@ -879,12 +889,12 @@ const MatchPage = () => {
     setMatchedThreadId(null);
   };
 
-  // 프로필 카드에서 직접 다이렉트 채팅 걸기
+  // ?꾨줈??移대뱶?먯꽌 吏곸젒 ?ㅼ씠?됲듃 梨꾪똿 嫄멸린
   const handleDirectChat = useCallback(async (targetProfile: any) => {
     if (!user || !targetProfile) return;
     try {
       const [u1, u2] = [user.id, targetProfile.id].sort();
-      // 이미 채팅방이 있는지 확인
+      // ?대? 梨꾪똿諛⑹씠 ?덈뒗吏 ?뺤씤
       const { data: existingMatch } = await supabase
         .from('matches')
         .select('thread_id')
@@ -920,17 +930,17 @@ const MatchPage = () => {
     }
   }, [user, navigate]);
 
-  // 프로필 조회 알림 (카드 탭 시 해당 유저에게 전송)
+  // ?꾨줈??議고쉶 ?뚮┝ (移대뱶 ?????대떦 ?좎??먭쾶 ?꾩넚)
   const sendProfileViewNotif = async (targetUserId: string) => {
-    if (!user || targetUserId === user.id) return; // 자기 자신 제외
-    // profile_view 알림: INSERT, 중복(23505) 조용히 무시
+    if (!user || targetUserId === user.id) return; // ?먭린 ?먯떊 ?쒖쇅
+    // profile_view ?뚮┝: INSERT, 以묐났(23505) 議곗슜??臾댁떆
     const { error: notifErr } = await supabase.from('notifications').insert({
       user_id: targetUserId,
       type: 'profile_view',
       actor_id: user.id
     });
     if (notifErr && notifErr.code !== '23505') {
-      // 23505 = unique_violation (중복 뷰) → 정상, 그 외 에러만 로그
+      // 23505 = unique_violation (以묐났 酉? ???뺤긽, 洹????먮윭留?濡쒓렇
       console.warn('[sendProfileViewNotif]', notifErr.message);
     }
   };
@@ -943,16 +953,16 @@ const MatchPage = () => {
   // Ad impression tracking
   useEffect(() => {
     if (topProfile?.isAd) {
-      // BUG-20 fix: user?.id 전달 (null 하드코딩 제거 → 광고 분석 데이터 정확성 향상)
+      // BUG-20 fix: user?.id ?꾨떖 (null ?섎뱶肄붾뵫 ?쒓굅 ??愿묎퀬 遺꾩꽍 ?곗씠???뺥솗???μ긽)
       recordAdImpression(topProfile.originalAd.id, user?.id ?? null);
     }
   }, [topProfile, user?.id]);
   return <div className="flex flex-col h-full bg-background truncate">
 
-      {/* ─── In-app notification banner (Like / SuperLike received) ─── */}
+      {/* ??? In-app notification banner (Like / SuperLike received) ??? */}
       <InAppNotifBanner notif={inAppNotif} onClose={() => setInAppNotif(null)} />
 
-      {/* ─── 좋아요/슈퍼라이크 수신 배너 (Realtime 실시간) ─── */}
+      {/* ??? 醫뗭븘???덊띁?쇱씠???섏떊 諛곕꼫 (Realtime ?ㅼ떆媛? ??? */}
       {!inAppNotif && (
         <InAppNotifBanner
           notif={likeBanner ? {
@@ -966,7 +976,7 @@ const MatchPage = () => {
         />
       )}
 
-      {/* ─── 프로필 조회 배너 (프로필보기했어요) ─── */}
+      {/* ??? ?꾨줈??議고쉶 諛곕꼫 (?꾨줈?꾨낫湲고뻽?댁슂) ??? */}
       {!inAppNotif && !likeBanner && (
         <InAppNotifBanner
           notif={profileViewBanner ? {
@@ -979,7 +989,7 @@ const MatchPage = () => {
         />
       )}
 
-      {/* ─── 오늘의 목적(Mission) 설정 모달 ─── */}
+      {/* ??? ?ㅻ뒛??紐⑹쟻(Mission) ?ㅼ젙 紐⑤떖 ??? */}
       <MissionModal
         showMissionModal={showMissionModal}
         setShowMissionModal={setShowMissionModal}
@@ -999,7 +1009,7 @@ const MatchPage = () => {
         showShop
       />
 
-      {/* ── FOMO: 라이브 매칭 카운터 ── */}
+      {/* ?? FOMO: ?쇱씠釉?留ㅼ묶 移댁슫???? */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1010,7 +1020,7 @@ const MatchPage = () => {
           <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
             {(() => {
               const cnt = Math.floor(Date.now() / 60000 % 150) + 120;
-              const text = t("hotplace.seekerCount", "지금 {{count}}명이 동반자를 찾고 있어요!", { count: cnt });
+              const text = t("hotplace.seekerCount", "吏湲?{{count}}紐낆씠 ?숇컲?먮? 李얘퀬 ?덉뼱??", { count: cnt });
               const parts = text.split(cnt.toString());
               return (
                 <>
@@ -1024,7 +1034,7 @@ const MatchPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── 부스트 활성화 플래시 효과 ─── */}
+      {/* ??? 遺?ㅽ듃 ?쒖꽦???뚮옒???④낵 ??? */}
       <AnimatePresence>
         {boostJustActivated && (
           <motion.div
@@ -1034,9 +1044,9 @@ const MatchPage = () => {
             exit={{ opacity: 0 }}
             transition={{ duration: 1.6, times: [0, 0.15, 1] }}
           >
-            {/* 빜백 반짙 */}
+            {/* 鍮쒕갚 諛섏쭥 */}
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/40 via-pink-500/30 to-transparent" />
-            {/* 중앙 파틱콘 아이콘 */}
+            {/* 以묒븰 ?뚰떛肄??꾩씠肄?*/}
             <motion.div
               className="absolute inset-0 flex items-center justify-center"
               initial={{ scale: 0.3, opacity: 0 }}
@@ -1044,11 +1054,11 @@ const MatchPage = () => {
               transition={{ duration: 1.4 }}
             >
               <div className="flex flex-col items-center gap-2">
-                <div className="text-6xl">⚡</div>
+                <div className="text-6xl">BOOST</div>
                 <p className="text-white text-lg font-extrabold drop-shadow-lg">Boost ON!</p>
               </div>
             </motion.div>
-            {/* 린 원 파틱콖들 */}
+            {/* 由????뚰떛肄뽯뱾 */}
             {[...Array(8)].map((_, i) => (
               <motion.div
                 key={i}
@@ -1076,7 +1086,7 @@ const MatchPage = () => {
           className="overflow-hidden"
         >
           <div className="mx-4 mb-1 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 overflow-hidden">
-            {/* 타이머 진행률 바 */}
+            {/* ??대㉧ 吏꾪뻾瑜?諛?*/}
             <motion.div
               className="h-0.5 bg-white/40"
               initial={{ width: "100%" }}
@@ -1085,7 +1095,7 @@ const MatchPage = () => {
             />
             <div className="px-4 py-2.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {/* 팬스 애니메이션 */}
+                {/* ?ъ뒪 ?좊땲硫붿씠??*/}
                 <motion.div
                   animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
                   transition={{ duration: 1.2, repeat: Infinity }}
@@ -1094,15 +1104,15 @@ const MatchPage = () => {
                 </motion.div>
                 <div>
                   <p className="text-white text-xs font-extrabold leading-none">{t("auto.j500")}</p>
-                  <p className="text-white/70 text-[10px] mt-0.5">{t("boost.activeDesc", "내 프로필이 최상단에 노출되고 있어요")}</p>
+                  <p className="text-white/70 text-[10px] mt-0.5">{t("boost.activeDesc", "내 프로필이 상단에 노출되고 있어요.")}</p>
                 </div>
               </div>
-              {/* 카운트다운 */}
+              {/* 移댁슫?몃떎??*/}
               <div className="flex flex-col items-end">
                 <span className="text-white font-mono text-sm font-extrabold">
                   {String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:{String(boostSecondsLeft % 60).padStart(2, "0")}
                 </span>
-                <span className="text-white/60 text-[9px]">{t("boost.remaining", "남음")}</span>
+                <span className="text-white/60 text-[9px]">{t("boost.remaining", "?⑥쓬")}</span>
               </div>
             </div>
           </div>
@@ -1111,7 +1121,7 @@ const MatchPage = () => {
 
 
 
-      {/* Card Stack — 부스는 글로우 링 없음 */}
+      {/* Card Stack ??遺?ㅻ뒗 湲濡쒖슦 留??놁쓬 */}
       <div
         className="flex-1 relative w-full px-4 mx-auto pb-4 truncate"
         style={{
@@ -1119,7 +1129,7 @@ const MatchPage = () => {
           maxWidth: "420px",
         }}
       >
-        {/* 부스트 중 글로우 효과 */}
+        {/* 遺?ㅽ듃 以?湲濡쒖슦 ?④낵 */}
         {boostActive && (
           <motion.div
             className="absolute inset-0 rounded-3xl pointer-events-none z-0"
@@ -1147,7 +1157,7 @@ const MatchPage = () => {
           >
             <div className="relative mb-6">
               <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent flex items-center justify-center shadow-lg border border-primary/20">
-                <span className="text-5xl animate-float block" style={{ animationDuration: '3s' }}>🌎</span>
+                <Globe size={56} strokeWidth={1.8} className="text-primary animate-float drop-shadow-sm" style={{ animationDuration: '3s' }} />
               </div>
               <motion.div
                 animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.8, 0.3] }}
@@ -1162,14 +1172,14 @@ const MatchPage = () => {
             </div>
             <h3 className="text-xl font-extrabold text-foreground mb-2 text-center">{t("auto.j502", { defaultValue: "You've seen all travelers!" })}</h3>
             <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-[240px] text-center whitespace-pre-line">
-              {t("auto.j503", { defaultValue: "New friends nearby\nwill show up soon ✨" })}
+                {t("auto.j503", { defaultValue: "New friends nearby\nwill show up soon." })}
             </p>
             <motion.button 
               whileTap={{ scale: 0.96 }}
               onClick={() => setShowFilterModal(true)} 
               className="px-8 py-3.5 rounded-full gradient-primary text-primary-foreground text-[13px] font-extrabold shadow-float flex items-center gap-2"
             >
-              <span className="text-lg">✨</span> {t("auto.j504", { defaultValue: "Reset filters" })}
+                <span className="text-lg">Reset</span> {t("auto.j504", { defaultValue: "Reset filters" })}
             </motion.button>
           </motion.div>
         )}
@@ -1183,14 +1193,14 @@ const MatchPage = () => {
           scale: 0.92
         }} onClick={async () => {
           if (!isPlus) {
-            // Migo Plus가 아닌 경우: 광고 보고 부스트 받기 모달 표시
+            // Migo Plus媛 ?꾨땶 寃쎌슦: 愿묎퀬 蹂닿퀬 遺?ㅽ듃 諛쏄린 紐⑤떖 ?쒖떆
             setShowBoostAdOffer(true);
             return;
           }
           if (boostActive) {
             toast({
               title: t("auto.p526"),
-              description: t("auto.t_0020", `부스트 ${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")} 남음`)
+              description: t("auto.t_0020", `遺?ㅽ듃 ${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")} ?⑥쓬`)
             });
             return;
           }
@@ -1203,11 +1213,11 @@ const MatchPage = () => {
           });
         }} className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold shadow-lg transition-all ${boostActive ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : isPlus ? "bg-purple-500/10 border border-purple-500/30 text-purple-400" : "bg-muted text-muted-foreground"}`}>
                 <Zap size={13} fill={boostActive ? "white" : "none"} />
-                {boostActive ? t("auto.t_0047", `부스팅 중 ${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")}`) : isPlus ? t("auto.ko_0263", "부스트 사용") : t("auto.ko_0264", "부스트 (Plus)")}
+                {boostActive ? t("auto.t_0047", `遺?ㅽ똿 以?${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")}`) : isPlus ? t("auto.ko_0263", "遺?ㅽ듃 ?ъ슜") : t("auto.ko_0264", "遺?ㅽ듃 (Plus)")}
              </motion.button>
           </div>
 
-          {/* Core swipe buttons — prominent X / Star / Heart */}
+          {/* Core swipe buttons ??prominent X / Star / Heart */}
           <div className="flex items-center justify-center gap-4">
             <motion.button
               whileTap={{ scale: 0.88, rotate: -8 }}
@@ -1241,26 +1251,26 @@ const MatchPage = () => {
 
 
 
-      {/* ──────────────────────────────────────────────────────────── */}
-      {/* ❤️  LIKE POPUP — warm pink heart burst, auto-dismiss        */}
-      {/* ──────────────────────────────────────────────────────────── */}
+      {/* ???????????????????????????????????????????????????????????? */}
+      {/* ?ㅿ툘  LIKE POPUP ??warm pink heart burst, auto-dismiss        */}
+      {/* ???????????????????????????????????????????????????????????? */}
       <LikePopupModal
         showLikePopup={showLikePopup}
         likePopupProfile={likePopupProfile}
         onUpgrade={() => setShowPlusModal(true)}
       />
 
-      {/* ──────────────────────────────────────────────────────────── */}
-      {/* ✕  PASS POPUP — cool X burst, auto-dismiss                  */}
-      {/* ──────────────────────────────────────────────────────────── */}
+      {/* ???????????????????????????????????????????????????????????? */}
+      {/* ?? PASS POPUP ??cool X burst, auto-dismiss                  */}
+      {/* ???????????????????????????????????????????????????????????? */}
       <PassPopupModal
         showPassPopup={showPassPopup}
         passPopupProfile={passPopupProfile}
       />
 
-      {/* ──────────────────────────────────────────────────────────── */}
-      {/* ⭐  SUPER LIKE MODAL — deep blue star energy, bottom sheet  */}
-      {/* ──────────────────────────────────────────────────────────── */}
+      {/* ???????????????????????????????????????????????????????????? */}
+      {/* 狩? SUPER LIKE MODAL ??deep blue star energy, bottom sheet  */}
+      {/* ???????????????????????????????????????????????????????????? */}
       <SuperLikeModal
         showSuperLikeModal={showSuperLikeModal}
         setShowSuperLikeModal={setShowSuperLikeModal}
@@ -1277,16 +1287,16 @@ const MatchPage = () => {
       {/* Migo Plus Modal */}
       <MigoPlusModal isOpen={showPlusModal} onClose={() => setShowPlusModal(false)} />
 
-      {/* ─── Login Gate Modal ─── */}
+      {/* ??? Login Gate Modal ??? */}
       <LoginGateModal
         showLoginGate={showLoginGate}
         setShowLoginGate={setShowLoginGate}
       />
 
-      {/* ⋯ Report / Block action sheet */}
+      {/* ??Report / Block action sheet */}
       <ReportBlockActionSheet isOpen={!!actionSheetProfile} onClose={() => setActionSheetProfile(null)} targetType="user" targetId={actionSheetProfile?.id ?? ""} targetName={actionSheetProfile?.name ?? ""} authorId={actionSheetProfile?.id} />
 
-      {/* ─── 필터 모달 ─── */}
+      {/* ??? ?꾪꽣 紐⑤떖 ??? */}
       <FilterModal
         showFilterModal={showFilterModal}
         setShowFilterModal={setShowFilterModal}
@@ -1309,14 +1319,14 @@ const MatchPage = () => {
         setShowPlusModal={setShowPlusModal}
       />
 
-      {/* GPS 체크인 모달 */}
+      {/* GPS 泥댄겕??紐⑤떖 */}
       <CheckInModal open={showCheckInModal} onClose={() => setShowCheckInModal(false)} onCheckInSuccess={(ci, travelers) => {
       setActiveCheckIn(ci);
       setCheckInCityTravelers(travelers);
       setShowCheckInModal(false);
     }} />
 
-      {/* ─── Peak Time 현질 유도 모달 ─── */}
+      {/* ??? Peak Time ?꾩쭏 ?좊룄 紐⑤떖 ??? */}
       <AnimatePresence>
         {!isPlus && showPeakBanner && showCheckInModal === false && new Date().getHours() >= 20 && new Date().getHours() <= 23 && (
           <motion.div
@@ -1329,7 +1339,7 @@ const MatchPage = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
                 <Zap size={14} className="text-primary fill-primary" />
-                <span className="text-xs font-extrabold text-primary">{t("retention.fomo.peakTime.label", "⚡ Peak Time!")}</span>
+                <span className="text-xs font-extrabold text-primary">{t("retention.fomo.peakTime.label", "??Peak Time!")}</span>
               </div>
               <p className="text-sm font-bold text-foreground truncate">{t("retention.fomo.peakTime.desc", "Most users are online right now.")}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{t("retention.fomo.peakTime.boostCta", "Use a Boost with Migo Plus!")}</p>
@@ -1344,17 +1354,17 @@ const MatchPage = () => {
         )}
       </AnimatePresence>
 
-      {/* ─── 슈퍼라이크 보상형 광고 오퍼 모달 ─── */}
+      {/* ??? ?덊띁?쇱씠??蹂댁긽??愿묎퀬 ?ㅽ띁 紐⑤떖 ??? */}
       {showRewardedAdOffer && (
         <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center px-6">
           <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-float border border-border">
             <div className="text-center mb-4">
-              <div className="text-4xl mb-2">⭐</div>
+              <div className="text-4xl mb-2">SUPER</div>
               <h3 className="text-lg font-extrabold text-foreground">
                 {t("auto.ad_superlike_title", "슈퍼라이크 충전")}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {t("auto.ad_superlike_desc", "짧은 광고를 보고 슈퍼라이크 1개를 무료로 충전하세요!")}
+                {t("auto.ad_superlike_desc", "짧은 광고를 보고 슈퍼라이크 1개를 무료로 충전하세요.")}
               </p>
             </div>
             <div className="flex flex-col gap-2.5">
@@ -1362,9 +1372,9 @@ const MatchPage = () => {
                 onClick={async () => {
                   setShowRewardedAdOffer(false);
                    const ok = await showRewarded((_reward) => {
-                    // 보상 지급: addSuperLikes(1)로 실제 DB에 슈퍼라이크 1개 지급
+                    // 蹂댁긽 吏湲? addSuperLikes(1)濡??ㅼ젣 DB???덊띁?쇱씠??1媛?吏湲?
                     addSuperLikes(1).then(() => {
-                      toast({ title: t("auto.ad_reward_ok", "⭐ 슈퍼라이크 1개 충전 완료!") });
+                      toast({ title: t("auto.ad_reward_ok", "슈퍼라이크 1개 충전 완료!") });
                       const profile = withAds[currentIndex];
                       if (profile && !profile.isAd) {
                         setPendingSuperProfile(profile);
@@ -1374,43 +1384,43 @@ const MatchPage = () => {
                     });
                   });
                   if (!ok) {
-                    // 광고 로드 실패 시 Plus 모달로 fallback
-                    toast({ title: t("auto.ad_load_fail", "광고를 불러오지 못했습니다"), variant: "destructive" });
+                    // 愿묎퀬 濡쒕뱶 ?ㅽ뙣 ??Plus 紐⑤떖濡?fallback
+                    toast({ title: t("auto.ad_load_fail", "광고를 불러오지 못했습니다."), variant: "destructive" });
                     setShowPlusModal(true);
                   }
                 }}
                 className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm flex items-center justify-center gap-2"
               >
-                📺 {t("auto.ad_watch_btn", "광고 보고 충전하기")}
+                AD {t("auto.ad_watch_btn", "광고 보고 충전하기")}
               </button>
               <button
                 onClick={() => { setShowRewardedAdOffer(false); setShowPlusModal(true); }}
                 className="w-full py-3 rounded-2xl bg-muted text-muted-foreground font-semibold text-sm"
               >
-                {t("auto.ad_upgrade_btn", "Migo+ 구독하기")}
+                {t("auto.ad_upgrade_btn", "Migo+ 援щ룆?섍린")}
               </button>
               <button
                 onClick={() => setShowRewardedAdOffer(false)}
                 className="text-xs text-muted-foreground text-center py-1"
               >
-                {t("common.cancel", "취소")}
+                {t("common.cancel", "痍⑥냼")}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── 부스트 보상형 광고 오퍼 모달 (window.confirm 대체) ─── */}
+      {/* ??? 遺?ㅽ듃 蹂댁긽??愿묎퀬 ?ㅽ띁 紐⑤떖 (window.confirm ?泥? ??? */}
       {showBoostAdOffer && (
         <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center px-6">
           <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-float border border-border">
             <div className="text-center mb-4">
-              <div className="text-4xl mb-2">⚡</div>
+              <div className="text-4xl mb-2">BOOST</div>
               <h3 className="text-lg font-extrabold text-foreground">
                 {t("auto.ad_boost_title", "무료 부스트 받기")}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {t("auto.ad_boost_desc", "짧은 광고를 보고 5분간 내 프로필을 최상단에 노출하세요!")}
+                {t("auto.ad_boost_desc", "짧은 광고를 보고 5분간 내 프로필을 상단에 노출하세요.")}
               </p>
             </div>
             <div className="flex flex-col gap-2.5">
@@ -1422,30 +1432,30 @@ const MatchPage = () => {
                     setBoostJustActivated(true);
                     setTimeout(() => setBoostJustActivated(false), 1800);
                     toast({
-                      title: t("auto.ad_reward_ok", "🚀 부스트 활성화 완료!"),
-                      description: t("boost.activeDesc", "내 프로필이 최상단에 노출되고 있어요"),
+                      title: t("auto.ad_reward_ok", "부스트 활성화 완료!"),
+                      description: t("boost.activeDesc", "내 프로필이 상단에 노출되고 있어요."),
                     });
                   });
                   if (!ok) {
-                    toast({ title: t("auto.ad_load_fail", "광고를 불러오지 못했습니다"), variant: "destructive" });
+                    toast({ title: t("auto.ad_load_fail", "광고를 불러오지 못했습니다."), variant: "destructive" });
                     setShowPlusModal(true);
                   }
                 }}
                 className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-extrabold text-sm flex items-center justify-center gap-2"
               >
-                📺 {t("auto.ad_watch_btn", "광고 보고 부스트 받기")}
+                AD {t("auto.ad_watch_btn", "광고 보고 부스트 받기")}
               </button>
               <button
                 onClick={() => { setShowBoostAdOffer(false); setShowPlusModal(true); }}
                 className="w-full py-3 rounded-2xl bg-muted text-muted-foreground font-semibold text-sm"
               >
-                {t("auto.ad_upgrade_btn", "Migo+ 구독하기")}
+                {t("auto.ad_upgrade_btn", "Migo+ 援щ룆?섍린")}
               </button>
               <button
                 onClick={() => setShowBoostAdOffer(false)}
                 className="text-xs text-muted-foreground text-center py-1"
               >
-                {t("common.cancel", "취소")}
+                {t("common.cancel", "痍⑥냼")}
               </button>
             </div>
           </div>

@@ -126,12 +126,12 @@ const DiscoverPage = () => {
   // ── 광고 유무에 따른 Toast 기본 여백 조정 ──
   useEffect(() => {
     if (!isPlus) {
-      document.documentElement.style.setProperty('--toast-pb', '170px');
+      document.documentElement.style.setProperty('--toast-pb', 'var(--app-floating-bottom)');
     } else {
-      document.documentElement.style.removeProperty('--toast-pb');
+      document.documentElement.style.setProperty('--toast-pb', 'var(--app-floating-bottom)');
     }
     return () => {
-      document.documentElement.style.removeProperty('--toast-pb');
+      document.documentElement.style.setProperty('--toast-pb', 'var(--app-floating-bottom)');
     };
   }, [isPlus]);
 
@@ -1707,7 +1707,7 @@ const DiscoverPage = () => {
             whileTap={{ scale: 0.94 }}
             onClick={() => setShowGroupCreate(true)}
             className="fixed right-5 z-40 flex items-center gap-2 px-5 py-3.5 rounded-2xl gradient-primary text-white font-extrabold text-sm shadow-float"
-            style={{ bottom: (!isPlus && !isPremium) ? "calc(128px + env(safe-area-inset-bottom, 0px))" : "calc(68px + env(safe-area-inset-bottom, 0px))" }}
+            style={{ bottom: (!isPlus && !isPremium) ? "var(--app-floating-bottom)" : "calc(68px + env(safe-area-inset-bottom, 0px))" }}
           >
             <span className="text-base leading-none">✈️</span>
             {t("auto.ko_0013", "동행 구하기")}</motion.button>
