@@ -730,6 +730,7 @@ export default function MySajuDetailModal({
   } | null>(null);
 
   const selectResultTab = (tab: "pillars" | "personality" | "love" | "wealth" | "travel") => {
+    if (!isCalculated) return;
     Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
     setActiveTab(tab);
   };
@@ -1216,6 +1217,8 @@ export default function MySajuDetailModal({
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/80 bg-gradient-to-r from-amber-950/20 to-card">
@@ -1378,10 +1381,7 @@ export default function MySajuDetailModal({
                         key={tab}
                         role="tab"
                         aria-selected={activeTab === tab}
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          selectResultTab(tab);
-                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();

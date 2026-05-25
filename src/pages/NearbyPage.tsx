@@ -104,6 +104,7 @@ const NearbyPage = () => {
           .select("id,name,age,photo_url,location,user_type,interests,bio,nationality,trust_score,verified,lat,lng,profile_theme")
           .neq("id", user?.id ?? "")
           .eq("setup_complete", true)
+          .not("photo_url", "is", null)
           .or("is_banned.is.null,is_banned.eq.false")
           .gte("lat", myPos.lat - LAT_DELTA)
           .lte("lat", myPos.lat + LAT_DELTA)
@@ -114,13 +115,14 @@ const NearbyPage = () => {
         if (!error && data) {
           // 트래픽 최적화: online_status 전체 조회 대신 주변 50명 ID만 필터링
           // (전체 조회 매 요청 마다 수MB 소모 방지 → 99%고 트래픽 절감)
-          const nearbyIds = (data || []).map((p: any) => p.id).filter(Boolean);
+          const rowsWithPhotos = (data || []).filter((p: any) => !!p.photo_url);
+          const nearbyIds = rowsWithPhotos.map((p: any) => p.id).filter(Boolean);
           const { data: onlineData } = nearbyIds.length > 0
             ? await supabase.from("online_status").select("user_id, is_online, last_seen").in("user_id", nearbyIds)
             : { data: [] };
           const onlineMap = new Map(onlineData?.map(o => [o.user_id, o]) || []);
 
-          const nearbyUsers = data
+          const nearbyUsers = rowsWithPhotos
             .map((p: any) => {
               const dist = p.lat && p.lng ? haversineKm({ lat: myPos.lat, lng: myPos.lng }, { lat: p.lat, lng: p.lng }) : null;
               return { ...p, distance_km: dist };

@@ -30,6 +30,9 @@ import { MissionModal, LikePopupModal, PassPopupModal, SuperLikeModal, LoginGate
 import { useAdMob } from "@/hooks/useAdMob";
 import { triggerHaptic } from "@/lib/haptics";
 
+const hasProfilePhoto = (profile: any) =>
+  !!profile?.photo_url || (Array.isArray(profile?.photo_urls) && profile.photo_urls.length > 0);
+
 const MatchPage = () => {
   const {
     t
@@ -296,6 +299,7 @@ const MatchPage = () => {
           && !p.is_admin               // ?대뱶誘?怨꾩젙 ?쒖쇅 (?댁쨷 ?덉쟾?μ튂)
           && p.role !== 'admin'
           && p.setup_complete === true  // ?꾨줈??誘몄셿???쒖쇅
+          && hasProfilePhoto(p)
         );
         // localStorage GPS fallback: DB lat/lng ?놁쑝硫????쒖옉 ????λ맂 醫뚰몴 ?ъ슜
         const myLat = me?.lat || parseFloat(localStorage.getItem('migo_my_lat') || '0') || null;
@@ -385,7 +389,7 @@ const MatchPage = () => {
             }
           }
 
-          const mappedLikers = likerProfiles.map(p => ({
+          const mappedLikers = likerProfiles.filter(hasProfilePhoto).map(p => ({
             id: p.id,
             name: p.name || t("match.unknownUser", "Migo User"),
             age: p.age || 25,

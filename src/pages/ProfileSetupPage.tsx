@@ -280,7 +280,8 @@ const ProfileSetupPage = () => {
         throw new Error(t("setup.error.uploadFailed", "프로필 사진 업로드에 실패했습니다. 이미지 파일 규격 또는 네트워크 상태를 확인해 주세요."));
       }
 
-      const { error } = await supabase.from("profiles").update({
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
         name: nickname.trim(),
         user_type: userType,
         nationality,
@@ -293,7 +294,7 @@ const ProfileSetupPage = () => {
         setup_complete: true,
         lat: parseFloat(localStorage.getItem("migo_my_lat") || "0") || null,
         lng: parseFloat(localStorage.getItem("migo_my_lng") || "0") || null,
-      }).eq("id", user.id);
+      }, { onConflict: "id" });
 
       if (error) { toast({ title: t("setup.error.save", "Save failed"), description: error.message, variant: "destructive" }); setSaving(false); return; }
 

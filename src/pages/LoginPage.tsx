@@ -456,16 +456,15 @@ const LoginPage = () => {
         if (session?.user) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("setup_complete, name, nationality")
+            .select("setup_complete, name, nationality, photo_url, photo_urls")
             .eq("id", session.user.id)
             .single();
           // ✅ 완료 판정:
-          //   setup_complete === true               → 완료 (기존 로직)
-          //   setup_complete !== false && nationality → 기존 유저, 완료 처리
-          //   setup_complete === false               → 신규 유저, profile-setup 필수
-          const isComplete = profile &&
-            (profile.setup_complete === true ||
-             (profile.setup_complete !== false && !!profile.nationality));
+          //   setup_complete === true + saved photo → 완료
+          //   no photo or setup_complete !== true    → profile-setup 필수
+          const hasProfilePhoto =
+            !!profile?.photo_url || (Array.isArray(profile?.photo_urls) && profile.photo_urls.length > 0);
+          const isComplete = !!profile && profile.setup_complete === true && hasProfilePhoto;
           if (!isComplete) {
             setDone(true);
             setTimeout(() => navigate("/profile-setup"), 800);
@@ -542,6 +541,10 @@ const LoginPage = () => {
           }
         }
 
+        if (photoUrls.length === 0) {
+          throw new Error(t("setup.error.uploadFailed", "Profile photo upload failed. Please check your image file or network and try again."));
+        }
+
         // profiles 테이블에 저장 (세션 있을 때만 성공)
         const {
           error: profileErr
@@ -570,7 +573,7 @@ const LoginPage = () => {
           lat: parseFloat(localStorage.getItem('migo_my_lat') || '0') || null,
           lng: parseFloat(localStorage.getItem('migo_my_lng') || '0') || null
         });
-        if (profileErr) console.warn("Profile upsert warning:", profileErr.message);
+        if (profileErr) throw profileErr;
         setDone(true);
         toast({
           title: t('login.signupDone')

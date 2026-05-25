@@ -339,7 +339,7 @@ const AppContent = () => {
       // setupComplete === undefined → DB 조회 중 (enrichWithProfilePhoto 대기) → 리다이렉트 금지
       // setupComplete === false     → 명확히 미완료 → 앱 재시작 후에도 반드시 프로필 설정
       // setupComplete === true      → 완료 → 통과
-      if (user.setupComplete !== undefined && user.setupComplete !== true && location.pathname !== '/profile-setup') {
+      if (user.setupComplete !== true && location.pathname !== '/profile-setup') {
         navigate('/profile-setup', { replace: true });
         return;
       }
@@ -348,7 +348,7 @@ const AppContent = () => {
       // setupComplete === undefined → enrichWithProfilePhoto 실패/타임아웃 → 홈으로 (홈에서 재처리)
       // setupComplete === false   → 위의 profile-setup 가드가 먼저 처리
       const loginScreenRoutes = ['/login', '/splash', '/onboarding'];
-      if (user.setupComplete !== false && loginScreenRoutes.some(r => location.pathname.startsWith(r))) {
+      if (user.setupComplete === true && loginScreenRoutes.some(r => location.pathname.startsWith(r))) {
         navigate('/', { replace: true });
       }
     }

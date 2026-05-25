@@ -14,6 +14,20 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS setup_complete   BOOLEAN DEFAULT f
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS sns_handle       TEXT;
 -- 08_retention_push.sql: 마지막 활동 추적
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active_at  TIMESTAMPTZ DEFAULT NOW();
+UPDATE profiles
+SET setup_complete = false
+WHERE setup_complete = true
+  AND NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
+  AND COALESCE(cardinality(photo_urls), 0) = 0;
+ALTER TABLE profiles
+  DROP CONSTRAINT IF EXISTS profiles_setup_complete_requires_photo;
+ALTER TABLE profiles
+  ADD CONSTRAINT profiles_setup_complete_requires_photo
+  CHECK (
+    setup_complete IS DISTINCT FROM true
+    OR NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL
+    OR COALESCE(cardinality(photo_urls), 0) > 0
+  );
 
 -- ─────────────────────────────────────────────
 -- 2. messages 누락 컬럼
@@ -149,7 +163,6 @@ ON CONFLICT (id) DO NOTHING;
 DO $$
 BEGIN
   RAISE NOTICE '✅ Schema fixes applied!';
-  UPDATE profiles SET setup_complete = true WHERE email LIKE '%@migo.app%';
   RAISE NOTICE '   profiles: setup_complete, sns_handle, last_active_at 추가';
   RAISE NOTICE '   messages: text 컬럼 추가 + content 동기화 트리거';
   RAISE NOTICE '   reports: reported_user_id 추가';

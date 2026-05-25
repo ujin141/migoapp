@@ -18,6 +18,9 @@ declare global {
   }
 }
 
+const profileHasPhoto = (profile: any) =>
+  !!profile?.photo_url || (Array.isArray(profile?.photo_urls) && profile.photo_urls.length > 0);
+
 // profiles.photo_url 을 DB에서 가져와 user.photoUrl에 반영 (캐시 버스팅 포함)
 async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<AuthUser> {
   try {
@@ -49,14 +52,8 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
       const cleanUrl = bestPhoto?.replace(/[?&]t=\d+/, "") || "";
       const bustedUrl = cleanUrl ? `${cleanUrl}?t=${Date.now()}` : "";
 
-      // ✅ setup_complete 판정 규칙:
-      // 1) setup_complete === true  → 완료
-      // 2) setup_complete === false → 미완료 (명시적으로 false 저장된 경우)
-      // 3) setup_complete === null  → 기존 유저는 nationality 유무로 판단
-      //    (nationality가 있으면 프로필 셋팅을 완료한 유저)
-      const isActuallyComplete =
-        data.setup_complete === true ||
-        (data.setup_complete !== false && !!data.nationality);
+      // setup_complete가 true여도 실제 저장된 프로필 사진이 있어야 완료로 인정합니다.
+      const isActuallyComplete = data.setup_complete === true && profileHasPhoto(data);
 
       return {
         ...user,
@@ -216,12 +213,7 @@ if (!isSupabaseConfigured) {
           photoUrl: bustedUrl || globalUser.photoUrl || "",
           name: p.name || globalUser.name,
           verified: p.verified ?? globalUser.verified,
-        // ✅ 실시간 업데이트: nationality 기반 fallback 동일 적용
-        setupComplete: p.setup_complete === true
-          ? true
-          : (p.setup_complete !== false && !!p.nationality)
-            ? true
-            : (globalUser.setupComplete === true ? true : false)
+          setupComplete: p.setup_complete === true && !!bestPhoto
         };
         notifyAuthListeners();
       })

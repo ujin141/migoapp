@@ -28,7 +28,7 @@ const Index = () => {
     }
     // ▶ 명시적으로 false일 때만 리다이렉트 (프로필 DB 쉽취 실패 시 undefined 유지 → 홈 화면 유지)
     // !setupComplete가 아닌 setupComplete === false: undefined는 네트워크 오류 fallback, 기존 유저 보호
-    if (setupComplete === false) {
+    if (setupComplete !== true) {
       navigate('/profile-setup', { replace: true });
     }
   }, [user, loading, setupComplete, navigate]);
@@ -36,7 +36,7 @@ const Index = () => {
   if (loading) return null;
   // setupComplete === false: profile-setup으로 각지 중 → null
   // setupComplete === undefined: DB 조회 실패 fallback → MatchPage 허용
-  if (!user || setupComplete === false) return null;
+  if (!user || setupComplete !== true) return null;
 
   return <MatchPage />;
 };

@@ -75,6 +75,20 @@ CREATE TABLE IF NOT EXISTS profiles (
   setup_complete        BOOLEAN DEFAULT false,         -- 프로필 설정 완료 여부 (LoginPage, useAuth)
   last_active_at        TIMESTAMPTZ DEFAULT NOW()      -- 마지막 활동 시간 (리텐션 기능)
 );
+UPDATE profiles
+SET setup_complete = false
+WHERE setup_complete = true
+  AND NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
+  AND COALESCE(cardinality(photo_urls), 0) = 0;
+ALTER TABLE profiles
+  DROP CONSTRAINT IF EXISTS profiles_setup_complete_requires_photo;
+ALTER TABLE profiles
+  ADD CONSTRAINT profiles_setup_complete_requires_photo
+  CHECK (
+    setup_complete IS DISTINCT FROM true
+    OR NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL
+    OR COALESCE(cardinality(photo_urls), 0) > 0
+  );
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_select"     ON profiles;
 DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
