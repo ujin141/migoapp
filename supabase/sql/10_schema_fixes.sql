@@ -19,12 +19,33 @@ SET setup_complete = false
 WHERE setup_complete = true
   AND NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
   AND COALESCE(cardinality(photo_urls), 0) = 0;
+UPDATE profiles
+SET plan = 'free',
+    is_plus = false,
+    plus_expires_at = NULL
+WHERE setup_complete IS DISTINCT FROM true
+  AND NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
+  AND COALESCE(cardinality(photo_urls), 0) = 0
+  AND is_admin IS DISTINCT FROM true;
+DELETE FROM profiles
+WHERE NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
+  AND COALESCE(cardinality(photo_urls), 0) = 0
+  AND is_admin IS DISTINCT FROM true;
 ALTER TABLE profiles
   DROP CONSTRAINT IF EXISTS profiles_setup_complete_requires_photo;
 ALTER TABLE profiles
   ADD CONSTRAINT profiles_setup_complete_requires_photo
   CHECK (
     setup_complete IS DISTINCT FROM true
+    OR NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL
+    OR COALESCE(cardinality(photo_urls), 0) > 0
+  );
+ALTER TABLE profiles
+  DROP CONSTRAINT IF EXISTS profiles_requires_photo;
+ALTER TABLE profiles
+  ADD CONSTRAINT profiles_requires_photo
+  CHECK (
+    is_admin = true
     OR NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL
     OR COALESCE(cardinality(photo_urls), 0) > 0
   );

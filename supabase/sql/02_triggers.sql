@@ -7,19 +7,7 @@
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, name, email, plan, is_plus, plus_expires_at)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'name', ''),
-    COALESCE(NEW.email, ''),
-    'premium',
-    true,
-    NOW() + INTERVAL '1 day'
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-  RAISE LOG 'handle_new_user error (non-blocking): %', SQLERRM;
+  -- Do not create a profile until the user uploads a required profile photo.
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

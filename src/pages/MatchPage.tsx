@@ -177,6 +177,19 @@ const MatchPage = () => {
   const showMatchRef = useRef(false);
   // MatchPage-TIMER fix: fetchProfiles ??likeReset ??대㉧瑜?ref濡?愿由?(async ?⑥닔 ??return cleanup 遺덇?)
   const likeResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runAfterSwipe = useCallback((task: () => void) => {
+    window.setTimeout(() => {
+      const requestIdle = (window as any).requestIdleCallback;
+      if (typeof requestIdle === "function") {
+        requestIdle(task, { timeout: 800 });
+      } else {
+        task();
+      }
+    }, 0);
+  }, []);
+  const showInterstitialAfterSwipe = useCallback(() => {
+    window.setTimeout(() => showInterstitial(), 420);
+  }, [showInterstitial]);
 
   useEffect(() => {
     const timers = matchTimersRef.current;
@@ -378,7 +391,7 @@ const MatchPage = () => {
       if (likerIds.length > 0) {
         const {
           data: likerProfiles
-        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme,id_verified,trust_score,saju_completed,saju_profile,saju_day_master,saju_element').or('is_banned.is.null,is_banned.eq.false').or('banned.is.null,banned.eq.false').in('id', likerIds);
+        } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,travel_mission,visited_countries,user_type,profile_theme,id_verified,trust_score,saju_completed,saju_profile,saju_day_master,saju_element,setup_complete').eq('setup_complete', true).or('is_banned.is.null,is_banned.eq.false').or('banned.is.null,banned.eq.false').in('id', likerIds);
         if (likerProfiles) {
           const { data: likerReviews } = await supabase.from('meet_reviews').select('reviewed_id, rating').in('reviewed_id', likerIds);
           if (likerReviews) {
@@ -389,7 +402,7 @@ const MatchPage = () => {
             }
           }
 
-          const mappedLikers = likerProfiles.filter(hasProfilePhoto).map(p => ({
+          const mappedLikers = likerProfiles.filter((p: any) => p.setup_complete === true && hasProfilePhoto(p)).map(p => ({
             id: p.id,
             name: p.name || t("match.unknownUser", "Migo User"),
             age: p.age || 25,
@@ -591,12 +604,14 @@ const MatchPage = () => {
       // Just swipe away
     } else if (profile?.id) {
       // ?⑥뒪 ?⑦꽩 湲곕줉
-      recordSwipe({
-        id: profile.id,
-        nationality: profile.nationality,
-        travel_style: profile.travelStyle?.[0],
-        age: profile.age
-      }, false);
+      runAfterSwipe(() => {
+        recordSwipe({
+          id: profile.id,
+          nationality: profile.nationality,
+          travel_style: profile.travelStyle?.[0],
+          age: profile.age
+        }, false);
+      });
 
       // Pass ?앹뾽 ?쒖떆
       setPassPopupProfile(profile);
@@ -610,7 +625,7 @@ const MatchPage = () => {
     if (!profile?.isAd) {
       setSwipeCount(s => {
         const next = s + 1;
-        if (!isPlus && !isPremium && next % 3 === 0) showInterstitial();
+        if (!isPlus && !isPremium && next % 3 === 0) showInterstitialAfterSwipe();
         return next;
       });
     }
@@ -628,7 +643,7 @@ const MatchPage = () => {
         duration: 5000,
       });
     }
-  }, [currentIndex, withAds, isPlus, isPremium, showInterstitial, t]);
+  }, [currentIndex, withAds, isPlus, isPremium, showInterstitialAfterSwipe, runAfterSwipe, t]);
   const saveLikeAndCheckMatch = useCallback(async (toUserId: string, kind: 'like' | 'superlike' = 'like', message?: string) => {
     if (!user) return false;
     // BUG-5 fix: superlike + toUserId ?덉쓣 ?뚮뒗 consumeSuperLike?먯꽌 ?대? RPC濡?likes INSERT??
@@ -759,16 +774,18 @@ const MatchPage = () => {
     matchTimersRef.current.timeouts.push(tLike);
 
     // 醫뗭븘???⑦꽩 ?숈뒿
-    recordSwipe({
-      id: profile.id,
-      nationality: profile.nationality,
-      travel_style: profile.travelStyle?.[0],
-      age: profile.age
-    }, true);
+    runAfterSwipe(() => {
+      recordSwipe({
+        id: profile.id,
+        nationality: profile.nationality,
+        travel_style: profile.travelStyle?.[0],
+        age: profile.age
+      }, true);
+    });
     setCurrentIndex(i => i + 1);
     setSwipeCount(s => {
       const next = s + 1;
-      if (!isPlus && !isPremium && next % 3 === 0) showInterstitial();
+      if (!isPlus && !isPremium && next % 3 === 0) showInterstitialAfterSwipe();
       return next;
     });
     if (!isPlus && !profile.isLiker) setDailyLikesUsed(n => n + 1);
@@ -813,7 +830,7 @@ const MatchPage = () => {
         duration: 5000,
       });
     }
-  }, [currentIndex, withAds, addUnread, saveLikeAndCheckMatch, isPlus, isPremium, dailyLikesUsed, showInterstitial, t, DAILY_LIKE_LIMIT, isLoggedIn, requireLogin]);
+  }, [currentIndex, withAds, addUnread, saveLikeAndCheckMatch, isPlus, isPremium, dailyLikesUsed, showInterstitialAfterSwipe, runAfterSwipe, t, DAILY_LIKE_LIMIT, isLoggedIn, requireLogin]);
   const openSuperLikeModal = useCallback(() => {
     if (!isLoggedIn()) {
       requireLogin();
@@ -953,8 +970,18 @@ const MatchPage = () => {
   const toggleTag = (tag: string) => {
     setFilterTravelStyle(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
-  const remaining = withAds.slice(currentIndex, currentIndex + 2).reverse();
+  const remaining = withAds.slice(currentIndex, currentIndex + 3).reverse();
   const topProfile = withAds[currentIndex];
+
+  useEffect(() => {
+    withAds.slice(currentIndex, currentIndex + 5).forEach((profile: any) => {
+      const src = profile?.photoUrls?.[0] || profile?.photo || profile?.photo_url || profile?.photo_urls?.[0];
+      if (!src) return;
+      const img = new Image();
+      img.decoding = "async";
+      img.src = src;
+    });
+  }, [withAds, currentIndex]);
 
   // Ad impression tracking
   useEffect(() => {

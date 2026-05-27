@@ -92,12 +92,33 @@ SET setup_complete = false
 WHERE setup_complete = true
   AND NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
   AND COALESCE(cardinality(photo_urls), 0) = 0;
+UPDATE profiles
+SET plan = 'free',
+    is_plus = false,
+    plus_expires_at = NULL
+WHERE setup_complete IS DISTINCT FROM true
+  AND NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
+  AND COALESCE(cardinality(photo_urls), 0) = 0
+  AND is_admin IS DISTINCT FROM true;
+DELETE FROM profiles
+WHERE NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
+  AND COALESCE(cardinality(photo_urls), 0) = 0
+  AND is_admin IS DISTINCT FROM true;
 ALTER TABLE profiles
   DROP CONSTRAINT IF EXISTS profiles_setup_complete_requires_photo;
 ALTER TABLE profiles
   ADD CONSTRAINT profiles_setup_complete_requires_photo
   CHECK (
     setup_complete IS DISTINCT FROM true
+    OR NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL
+    OR COALESCE(cardinality(photo_urls), 0) > 0
+  );
+ALTER TABLE profiles
+  DROP CONSTRAINT IF EXISTS profiles_requires_photo;
+ALTER TABLE profiles
+  ADD CONSTRAINT profiles_requires_photo
+  CHECK (
+    is_admin = true
     OR NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL
     OR COALESCE(cardinality(photo_urls), 0) > 0
   );
@@ -1006,19 +1027,7 @@ CREATE POLICY "ublocks_own" ON user_blocks FOR ALL USING (auth.uid() = blocker_i
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, name, email, plan, is_plus, plus_expires_at)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'name', ''),
-    COALESCE(NEW.email, ''),
-    'premium',
-    true,
-    NOW() + INTERVAL '1 day'
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-  RAISE LOG 'handle_new_user error (non-blocking): %', SQLERRM;
+  -- Do not create a profile until the user uploads a required profile photo.
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -1802,8 +1811,8 @@ RETURNS TABLE (
   total_marketplace     BIGINT
 ) LANGUAGE sql SECURITY DEFINER AS $$
   SELECT
-    (SELECT COUNT(*) FROM profiles)                                                     AS total_users,
-    (SELECT COUNT(*) FROM profiles WHERE created_at >= CURRENT_DATE)                   AS new_users_today,
+    (SELECT COUNT(*) FROM profiles WHERE setup_complete = true AND (NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL OR COALESCE(cardinality(photo_urls), 0) > 0)) AS total_users,
+    (SELECT COUNT(*) FROM profiles WHERE created_at >= CURRENT_DATE AND setup_complete = true AND (NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL OR COALESCE(cardinality(photo_urls), 0) > 0)) AS new_users_today,
     (SELECT COUNT(*) FROM posts)                                                        AS total_posts,
     (SELECT COUNT(*) FROM trip_groups)                                                  AS total_groups,
     (SELECT COUNT(*) FROM trip_groups WHERE is_active = true)                           AS active_groups,
@@ -2006,7 +2015,12 @@ SELECT
 FROM profiles p
 LEFT JOIN LATERAL (
   SELECT COUNT(*) AS report_count FROM reports WHERE target_id = p.id
-) r ON true;
+) r ON true
+WHERE p.setup_complete = true
+  AND (
+    NULLIF(BTRIM(COALESCE(p.photo_url, '')), '') IS NOT NULL
+    OR COALESCE(cardinality(p.photo_urls), 0) > 0
+  );
 
 -- ─────────────────────────────────────────────
 -- 5. 관리자 계정 지정 (이메일 확인 후 실행)
@@ -3361,12 +3375,33 @@ SET setup_complete = false
 WHERE setup_complete = true
   AND NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
   AND COALESCE(cardinality(photo_urls), 0) = 0;
+UPDATE profiles
+SET plan = 'free',
+    is_plus = false,
+    plus_expires_at = NULL
+WHERE setup_complete IS DISTINCT FROM true
+  AND NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
+  AND COALESCE(cardinality(photo_urls), 0) = 0
+  AND is_admin IS DISTINCT FROM true;
+DELETE FROM profiles
+WHERE NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NULL
+  AND COALESCE(cardinality(photo_urls), 0) = 0
+  AND is_admin IS DISTINCT FROM true;
 ALTER TABLE profiles
   DROP CONSTRAINT IF EXISTS profiles_setup_complete_requires_photo;
 ALTER TABLE profiles
   ADD CONSTRAINT profiles_setup_complete_requires_photo
   CHECK (
     setup_complete IS DISTINCT FROM true
+    OR NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL
+    OR COALESCE(cardinality(photo_urls), 0) > 0
+  );
+ALTER TABLE profiles
+  DROP CONSTRAINT IF EXISTS profiles_requires_photo;
+ALTER TABLE profiles
+  ADD CONSTRAINT profiles_requires_photo
+  CHECK (
+    is_admin = true
     OR NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL
     OR COALESCE(cardinality(photo_urls), 0) > 0
   );

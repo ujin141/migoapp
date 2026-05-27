@@ -5,22 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "@/hooks/use-toast";
 import { Browser } from "@capacitor/browser";
-
-const hasProfilePhoto = (profile: any) =>
-  !!profile?.photo_url || (Array.isArray(profile?.photo_urls) && profile.photo_urls.length > 0);
-
-const getPostAuthRoute = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return "/login";
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("setup_complete, photo_url, photo_urls")
-    .eq("id", session.user.id)
-    .single();
-
-  return profile?.setup_complete === true && hasProfilePhoto(profile) ? "/" : "/profile-setup";
-};
+import { getPostAuthRoute } from "@/lib/authRedirect";
 
 /**
  * /auth/callback
@@ -82,10 +67,10 @@ const AuthCallbackPage = () => {
       try {
         // PKCE 코드 교환
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (!error) {
             Browser.close().catch(() => {});
-            navigate(await getPostAuthRoute(), { replace: true });
+            navigate(await getPostAuthRoute(data.session), { replace: true });
             return;
           }
           console.error("[AuthCallback] Code exchange failed:", error);
@@ -93,10 +78,10 @@ const AuthCallbackPage = () => {
 
         // 암시적 흐름: 토큰 직접 설정
         if (access_token && refresh_token) {
-          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
           if (!error) {
             Browser.close().catch(() => {});
-            navigate(await getPostAuthRoute(), { replace: true });
+            navigate(await getPostAuthRoute(data.session), { replace: true });
             return;
           }
           console.error("[AuthCallback] setSession failed:", error);
@@ -106,7 +91,7 @@ const AuthCallbackPage = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           Browser.close().catch(() => {});
-          navigate(await getPostAuthRoute(), { replace: true });
+          navigate(await getPostAuthRoute(session), { replace: true });
           return;
         }
 
@@ -116,7 +101,7 @@ const AuthCallbackPage = () => {
             clearTimeout(cleanupTimeoutId);
             subscription.unsubscribe();
             Browser.close().catch(() => {});
-            navigate(await getPostAuthRoute(), { replace: true });
+            navigate(await getPostAuthRoute(session), { replace: true });
           }
         });
         cleanupSubscription = subscription;

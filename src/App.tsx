@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getCurrentLocation } from "@/lib/locationService";
 import { checkInStreak } from "@/lib/streakService";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { getPostAuthRoute } from "@/lib/authRedirect";
 import { useLocalNotifications } from "@/hooks/useLocalNotifications";
 import DailyCheckinModal from "@/components/DailyCheckinModal";
 import SubscriptionExpiryBanner from "@/components/SubscriptionExpiryBanner";
@@ -365,7 +366,10 @@ const AppContent = () => {
           const urlObj = new URL(data.url);
           const code = urlObj.searchParams.get('code');
           if (code) {
-             await supabase.auth.exchangeCodeForSession(code);
+             const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
+             if (!error) {
+               navigate(await getPostAuthRoute(authData.session), { replace: true });
+             }
              return;
           }
           const urlParts = data.url.split('#');
@@ -374,7 +378,10 @@ const AppContent = () => {
             const access_token = searchParams.get('access_token');
             const refresh_token = searchParams.get('refresh_token');
             if (access_token && refresh_token) {
-              await supabase.auth.setSession({ access_token, refresh_token });
+              const { data: authData, error } = await supabase.auth.setSession({ access_token, refresh_token });
+              if (!error) {
+                navigate(await getPostAuthRoute(authData.session), { replace: true });
+              }
             }
           }
         }

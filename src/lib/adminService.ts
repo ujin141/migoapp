@@ -5,6 +5,15 @@ import { supabase, isSupabaseConfigured, invalidateCache } from "./supabaseClien
 // auth.uid(), which makes RLS/RPC treat admin actions like anonymous requests.
 export const adminSupabase = supabase;
 
+const completedProfileFilter = (query: any) =>
+  query
+    .eq("setup_complete", true)
+    .or("photo_url.not.is.null,photo_urls.not.is.null");
+
+const hasCompletedProfilePhoto = (profile: any) =>
+  typeof profile?.photo_url === "string" && profile.photo_url.trim().length > 0
+  || Array.isArray(profile?.photo_urls) && profile.photo_urls.length > 0;
+
 /** Admin Dashboard Stats */
 export async function fetchAdminStats() {
   if (!isSupabaseConfigured) return { users: 0, posts: 0, groups: 0, reports: 0 };
@@ -25,7 +34,7 @@ export async function fetchAdminStats() {
   }
   // Fallback: 개별 쿼리
   const [uRes, pRes, gRes, rRes] = await Promise.all([
-    adminSupabase.from("profiles").select("id", { count: "exact", head: true }),
+    completedProfileFilter(adminSupabase.from("profiles").select("id", { count: "exact", head: true })),
     adminSupabase.from("posts").select("id", { count: "exact", head: true }),
     adminSupabase.from("trip_groups").select("id", { count: "exact", head: true }),
     adminSupabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
@@ -75,12 +84,13 @@ export async function fetchAdminUsers() {
   const { data, error } = await adminSupabase
     .from("profiles")
     .select(`
-      id, name, email, bio, photo_url, photo_urls, plan, is_plus, plus_expires_at,
+      id, name, email, bio, photo_url, photo_urls, setup_complete, plan, is_plus, plus_expires_at,
       is_banned, banned, ban_reason, banned_until, verified, id_verified,
       created_at, nationality, location, role, is_admin, admin_note,
       age, gender, mbti, interests, languages, travel_style, budget_range,
       home_city, preferred_regions, travel_dates, travel_mission, visited_countries
     `)
+    .eq("setup_complete", true)
     .or("is_banned.is.null,is_banned.eq.false")
     .or("banned.is.null,banned.eq.false")
     .not("name", "eq", "[Deleted User]")
@@ -90,7 +100,7 @@ export async function fetchAdminUsers() {
     console.error("fetchAdminUsers error:", error);
     throw new Error(error.message);
   }
-  return (data || []).map((u: any) => ({
+  return (data || []).filter(hasCompletedProfilePhoto).map((u: any) => ({
     ...u,
     banned: u.is_banned || u.banned || false,  // 양쪽 컬럼 지원
   }));
@@ -638,7 +648,7 @@ export async function fetchMonthlySignups(): Promise<any[]> {
     } = await adminSupabase.from("profiles").select("id", {
       count: "exact",
       head: true
-    }).gte("created_at", start).lt("created_at", end);
+    }).eq("setup_complete", true).or("photo_url.not.is.null,photo_urls.not.is.null").gte("created_at", start).lt("created_at", end);
     months.push({
       month: d.toLocaleString("default", {
         month: "short"
@@ -669,9 +679,9 @@ export async function fetchGenderStats() {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data
-  } = await adminSupabase.from("profiles").select("gender");
+  } = await completedProfileFilter(adminSupabase.from("profiles").select("gender, photo_url, photo_urls, setup_complete"));
   const counts: Record<string, number> = {};
-  (data || []).forEach((u: any) => {
+  (data || []).filter(hasCompletedProfilePhoto).forEach((u: any) => {
     const g = u.gender || "unknown";
     counts[g] = (counts[g] || 0) + 1;
   });
@@ -687,9 +697,9 @@ export async function fetchNationalityStats() {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
   const {
     data
-  } = await adminSupabase.from("profiles").select("nationality");
+  } = await completedProfileFilter(adminSupabase.from("profiles").select("nationality, photo_url, photo_urls, setup_complete"));
   const counts: Record<string, number> = {};
-  (data || []).forEach((u: any) => {
+  (data || []).filter(hasCompletedProfilePhoto).forEach((u: any) => {
     const n = u.nationality || "Unknown";
     counts[n] = (counts[n] || 0) + 1;
   });
@@ -961,7 +971,7 @@ export async function fetchTodayStats() {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return { newUsers: 0, sosCheckins: 0, activeChats: 0, newReports: 0 };
   const today = new Date().toISOString().split("T")[0];
   const [usersRes, checkinsRes, chatsRes, reportsRes] = await Promise.all([
-    adminSupabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", today),
+    completedProfileFilter(adminSupabase.from("profiles").select("id", { count: "exact", head: true })).gte("created_at", today),
     adminSupabase.from("safety_checkins").select("id", { count: "exact", head: true }).eq("is_sos", true).eq("status", "active"),
     adminSupabase.from("trip_groups").select("id", { count: "exact", head: true }).eq("is_active", true),
     adminSupabase.from("reports").select("id", { count: "exact", head: true }).gte("created_at", today),

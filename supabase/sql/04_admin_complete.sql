@@ -131,8 +131,8 @@ RETURNS TABLE (
   total_marketplace     BIGINT
 ) LANGUAGE sql SECURITY DEFINER AS $$
   SELECT
-    (SELECT COUNT(*) FROM profiles)                                                     AS total_users,
-    (SELECT COUNT(*) FROM profiles WHERE created_at >= CURRENT_DATE)                   AS new_users_today,
+    (SELECT COUNT(*) FROM profiles WHERE setup_complete = true AND (NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL OR COALESCE(cardinality(photo_urls), 0) > 0)) AS total_users,
+    (SELECT COUNT(*) FROM profiles WHERE created_at >= CURRENT_DATE AND setup_complete = true AND (NULLIF(BTRIM(COALESCE(photo_url, '')), '') IS NOT NULL OR COALESCE(cardinality(photo_urls), 0) > 0)) AS new_users_today,
     (SELECT COUNT(*) FROM posts)                                                        AS total_posts,
     (SELECT COUNT(*) FROM trip_groups)                                                  AS total_groups,
     (SELECT COUNT(*) FROM trip_groups WHERE is_active = true)                           AS active_groups,
@@ -312,7 +312,12 @@ SELECT
 FROM profiles p
 LEFT JOIN LATERAL (
   SELECT COUNT(*) AS report_count FROM reports WHERE target_id = p.id
-) r ON true;
+) r ON true
+WHERE p.setup_complete = true
+  AND (
+    NULLIF(BTRIM(COALESCE(p.photo_url, '')), '') IS NOT NULL
+    OR COALESCE(cardinality(p.photo_urls), 0) > 0
+  );
 
 -- ─────────────────────────────────────────────
 -- 5. 관리자 계정 지정 (이메일 확인 후 실행)

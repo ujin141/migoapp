@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { useState, useEffect } from "react";
 import { toast } from "./use-toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { getAuthProfileHint } from "@/lib/authRedirect";
 import type { User, Session } from "@supabase/supabase-js";
 export interface AuthUser {
   id: string;
@@ -24,6 +25,18 @@ const profileHasPhoto = (profile: any) =>
 // profiles.photo_url 을 DB에서 가져와 user.photoUrl에 반영 (캐시 버스팅 포함)
 async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<AuthUser> {
   try {
+    const hint = getAuthProfileHint(user.id);
+    if (hint) {
+      const cleanHintUrl = hint.photoUrl?.replace(/[?&]t=\d+/, "") || "";
+      return {
+        ...user,
+        photoUrl: cleanHintUrl ? `${cleanHintUrl}?t=${Date.now()}` : user.photoUrl || "",
+        name: hint.name || user.name,
+        verified: hint.verified ?? user.verified,
+        setupComplete: hint.setupComplete,
+      };
+    }
+
     // QUAL-5 fix: 재시도 횟수에 비례해 타임아웃 단축 — 최악 4s×3회=12s 블로킹 방지
     // retries: 3→4000ms, 2→2700ms, 1→1800ms, 0→1200ms
     const timeoutMs = Math.round(4000 * Math.pow(0.67, 3 - retries));

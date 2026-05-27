@@ -64,6 +64,7 @@ export default function DailyPicksCard({ onProfileClick }: { onProfileClick?: (i
       .from("profiles")
       .select("id, name, age, photo_url, nationality, location, bio, interests, verified")
       .neq("id", user.id)
+      .eq("setup_complete", true)
       .or('is_banned.is.null,is_banned.eq.false')
       .or('banned.is.null,banned.eq.false')
       .not("photo_url", "is", null)

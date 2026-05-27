@@ -766,14 +766,17 @@ const ProfilePage = () => {
           const likerIds = likerData.map((r: any) => r.from_user);
           const { data: likerProfiles } = await supabase
             .from('profiles')
-            .select('id, name, photo_url, location, age, bio, languages, interests, mbti, nationality')
+            .select('id, name, photo_url, photo_urls, location, age, bio, languages, interests, mbti, nationality, setup_complete')
+            .eq('setup_complete', true)
             .in('id', likerIds);
           if (likerProfiles) {
-            const uniqueLikers = Array.from(new Map(likerProfiles.map((p: any) => [p.id, p])).values());
+            const uniqueLikers = Array.from(new Map(likerProfiles
+              .filter((p: any) => !!p.photo_url || (Array.isArray(p.photo_urls) && p.photo_urls.length > 0))
+              .map((p: any) => [p.id, p])).values());
             setLikers(uniqueLikers.map((p: any) => ({
               id: p.id,
               name: p.name || t("match.traveler", "Traveler"),
-              photo: p.photo_url || '',
+              photo: p.photo_url || p.photo_urls?.[0] || '',
               location: p.location || '',
               age: p.age || '',
               bio: p.bio || '',

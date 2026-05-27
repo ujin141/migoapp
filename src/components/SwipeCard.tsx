@@ -1,5 +1,5 @@
 import i18n from "@/i18n";
-import { useState, useRef } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from "framer-motion";
 import { MapPin, Calendar, Star, ChevronUp, Crown, Languages, Home, Zap, Shield, Info, User, ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -127,12 +127,24 @@ const SwipeCard = ({
   const [showDetail, setShowDetail] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
-  const photos = profile.photoUrls && profile.photoUrls.length > 0 ? profile.photoUrls : profile.photo ? [profile.photo] : [];
+  const photos = useMemo(
+    () => profile.photoUrls && profile.photoUrls.length > 0 ? profile.photoUrls : profile.photo ? [profile.photo] : [],
+    [profile.photo, profile.photoUrls]
+  );
   const currentPhoto = photos[currentPhotoIdx];
   const [bioT, setBioT] = useState('');
   const [loadingBio, setLoadingBio] = useState(false);
   const [showCompat, setShowCompat] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
+
+  useEffect(() => {
+    photos.slice(0, 3).forEach((src: string) => {
+      if (!src) return;
+      const img = new Image();
+      img.decoding = "async";
+      img.src = src;
+    });
+  }, [photos]);
   const handleBioTranslate = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (bioT) {
@@ -406,25 +418,14 @@ const SwipeCard = ({
 
   const isDragging = useRef(false);
   const dragDistance = useRef(0);
-  const hapticTriggered = useRef(false);
 
   const handleDragStart = () => {
     isDragging.current = false;
     dragDistance.current = 0;
-    hapticTriggered.current = false;
   };
   const handleDrag = (_: unknown, info: PanInfo) => {
     dragDistance.current = Math.abs(info.offset.x);
     if (dragDistance.current > 8) isDragging.current = true;
-    
-    // 네이티브 느낌: 스와이프 임계점(120)을 지날 때 살짝 틱- 하는 햅틱 피드백
-    if (dragDistance.current > 120 && !hapticTriggered.current) {
-      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
-      hapticTriggered.current = true;
-    } else if (dragDistance.current < 110 && hapticTriggered.current) {
-      // 임계점 밑으로 다시 돌아오면 초기화 (다시 넘을 때 또 반응)
-      hapticTriggered.current = false;
-    }
   };
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (info.offset.x > 120) {
@@ -497,7 +498,7 @@ const SwipeCard = ({
 
         {/* Full Screen Image */}
         {currentPhoto ? <>
-            <img src={currentPhoto} alt="Profile" className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${isBlurTarget ? 'blur-2xl scale-110 brightness-75' : ''}`} draggable="false" onError={(e) => {
+            <img src={currentPhoto} alt="Profile" className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${isBlurTarget ? 'blur-2xl scale-110 brightness-75' : ''}`} draggable="false" loading={isTop ? "eager" : "lazy"} decoding="async" onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
               e.currentTarget.parentElement?.classList.add('gradient-primary');
             }} />
@@ -954,4 +955,14 @@ const SwipeCard = ({
   </>;
 };
 
-export default SwipeCard;
+export default memo(SwipeCard, (prev, next) => {
+  return (
+    prev.profile?.id === next.profile?.id &&
+    prev.profile?.photo === next.profile?.photo &&
+    prev.profile?.photoUrls === next.profile?.photoUrls &&
+    prev.isTop === next.isTop &&
+    prev.isSuperLiked === next.isSuperLiked &&
+    prev.myProfile?.id === next.myProfile?.id &&
+    prev.myDailyMission === next.myDailyMission
+  );
+});
