@@ -1,4 +1,4 @@
-﻿import i18n from "@/i18n";
+import i18n from "@/i18n";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Browser } from "@capacitor/browser"; // w3 Guideline 3.2: ?몄빋 釉뚮씪?곗?濡??몃? URL 爾먮━
 import { useTranslation } from "react-i18next";
@@ -199,11 +199,13 @@ const MatchPage = () => {
   }, []);
   useEffect(() => {
     fetchActiveAdsForScreen("MatchPage").then(setAds);
+    let isMounted = true;
     const fetchProfiles = async () => {
       if (!user) return;
 
 
 
+      if (!isMounted) return;
       const ratingsMap: Record<string, { sum: number; count: number; }> = {};
 
       // ???꾨줈???뺣낫 (matchScore 怨꾩궛 湲곗?)
@@ -212,6 +214,7 @@ const MatchPage = () => {
       } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,saju_completed,saju_profile,saju_day_master,saju_element').eq('id', user.id).single();
 
       // ?대? ?ㅼ??댄봽???곷? ID ?섏쭛 (理쒓렐 24?쒓컙 ?대궡 ?곗씠?곕쭔 DB ?덈꺼?먯꽌 ?꾪꽣留?
+      if (!isMounted) return;
       const since24hStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const {
         data: swipedData
@@ -220,6 +223,7 @@ const MatchPage = () => {
         .eq('from_user', user.id)
         .gte('created_at', since24hStr);
       
+      if (!isMounted) return;
       const swipedIds = new Set();
       (swipedData || []).forEach((r: any) => {
         swipedIds.add(r.to_user);
@@ -230,6 +234,7 @@ const MatchPage = () => {
         .select('user1_id, user2_id')
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
         
+      if (!isMounted) return;
       (matchData || []).forEach((m: any) => {
         swipedIds.add(m.user1_id === user.id ? m.user2_id : m.user1_id);
       });
@@ -245,6 +250,7 @@ const MatchPage = () => {
         .eq('setup_complete', true)                  // ?꾨줈??誘몄셿???쒖쇅
         .limit(200);
         
+      if (!isMounted) return;
       const data = res.data;
       const error = res.error;
 
@@ -257,6 +263,7 @@ const MatchPage = () => {
             data: reviewsData
           } = await supabase.from('meet_reviews').select('reviewed_id, rating').in('reviewed_id', profileIds);
           
+          if (!isMounted) return;
           if (reviewsData) {
             for (const rv of reviewsData) {
               if (!ratingsMap[rv.reviewed_id]) ratingsMap[rv.reviewed_id] = { sum: 0, count: 0 };
@@ -270,12 +277,13 @@ const MatchPage = () => {
             .from('online_status')
             .select('user_id, is_online, last_seen')
             .in('user_id', profileIds);
+          if (!isMounted) return;
           if (onlineData) {
             const newMap: Record<string, { isOnline: boolean; lastSeen: string | null }> = {};
             for (const os of onlineData) {
               newMap[os.user_id] = { isOnline: !!os.is_online, lastSeen: os.last_seen ?? null };
             }
-            setOnlineMap(newMap);
+            if (isMounted) setOnlineMap(newMap);
           }
         }
 
@@ -441,7 +449,7 @@ const MatchPage = () => {
             avgRating: ratingsMap[p.id]?.count > 0 ? ratingsMap[p.id].sum / ratingsMap[p.id].count : null,
             reviewCount: ratingsMap[p.id]?.count || 0
           }));
-          setPendingLikers(mappedLikers);
+          if (isMounted) setPendingLikers(mappedLikers);
         }
       }
 
@@ -455,7 +463,7 @@ const MatchPage = () => {
       }).eq('from_user', user.id).gte('created_at', since24h.toISOString()).order('created_at', {
         ascending: true
       }); // ??limit(1) ?쒓굅: count媛 理쒕? 1濡?怨좎젙?섎뜕 踰꾧렇 ?섏젙
-      setDailyLikesUsed(likeCount ?? 0);
+      if (isMounted) setDailyLikesUsed(likeCount ?? 0);
 
       // MatchPage-TIMER fix: async ?대? return? useEffect cleanup 遺덇? ??ref ?ъ슜
       if (recentLikes && recentLikes.length > 0) {
@@ -464,15 +472,15 @@ const MatchPage = () => {
         const msUntilReset = resetAt - Date.now();
         if (msUntilReset > 0) {
           if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
-          likeResetTimerRef.current = setTimeout(() => setDailyLikesUsed(0), msUntilReset);
+          likeResetTimerRef.current = setTimeout(() => { if (isMounted) setDailyLikesUsed(0); }, msUntilReset);
         } else {
           setDailyLikesUsed(0);
         }
       }
     };
-    fetchProfiles();
+    fetchProfiles().catch(err => console.error('[MatchPage] fetchProfiles failed:', err));
     return () => {
-      if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
+      isMounted = false; if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
     };
   }, [t, user]);
 
@@ -630,14 +638,14 @@ const MatchPage = () => {
       });
     }
 
-    // ?? FOMO ?좊룄: 臾대즺 ?좎??먭쾶 10% ?뺣쪧濡??좎뒪???꾩슦湲???
+    // 실시간 FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기
     if (!isPlus && Math.random() < 0.1) {
       toast({
-        title: t("auto.t_0046", "?꾧뎔媛 ?뚯썝?섏쓣 留덉쓬???ㅼ뼱?⑸땲?? ??"),
-        description: t("auto.t_0047", "Migo Plus濡??낃렇?덉씠?쒗븯怨??꾧뎔吏 ?뺤씤?대낫?몄슂."),
+        title: t("retention.fomo.toast.title", "누군가 회원님을 마음에 들어합니다 💕"),
+        description: t("retention.fomo.toast.desc", "Migo Plus로 업그레이드하고 누구인지 확인해보세요."),
         action: (
           <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
-            {t("auto.t_0048", "?뺤씤?섍린")}
+            {t("retention.fomo.toast.action", "확인하기")}
           </button>
         ),
         duration: 5000,
@@ -646,8 +654,9 @@ const MatchPage = () => {
   }, [currentIndex, withAds, isPlus, isPremium, showInterstitialAfterSwipe, runAfterSwipe, t]);
   const saveLikeAndCheckMatch = useCallback(async (toUserId: string, kind: 'like' | 'superlike' = 'like', message?: string) => {
     if (!user) return false;
+    try {
     // BUG-5 fix: superlike + toUserId ?덉쓣 ?뚮뒗 consumeSuperLike?먯꽌 ?대? RPC濡?likes INSERT??
-    // ??以묐났 INSERT 諛⑹?瑜??꾪빐 superlike 耳?댁뒪??upsert瑜?嫄대꼫?
+    // ??以묐났 INSERT 諛⑹?瑜??꾪빐 superlike 耳€?댁뒪??upsert瑜?嫄대那我€
     const shouldSkipLikesInsert = kind === 'superlike';
     if (!shouldSkipLikesInsert) {
       await supabase.from('likes').upsert({
@@ -659,7 +668,7 @@ const MatchPage = () => {
         onConflict: 'from_user,to_user'
       });
     } else {
-      // superlike: in_app_notifications留?INSERT (RPC媛 ?대? likes 泥섎━??
+      // superlike: in_app_notifications留?INSERT (RPC媛€ ?대? likes 泥섎━??
       await supabase.from('in_app_notifications').insert({
         user_id: toUserId,
         type: kind,
@@ -667,12 +676,12 @@ const MatchPage = () => {
         content: t("auto.t_0044", `${user.name}님이 슈퍼라이크를 보냈습니다.`)
       });
     }
-    // 2. ?곷?諛⑸룄 ?섎? like ?덈뒗吏 ?뺤씤 ??match
+    // 2. ?곷?諛⑸룄 ?섎? like ?덈뒗吏€ ?뺤씤 ??match
     const {
       data: mutual
     } = await supabase.from('likes').select('from_user').eq('from_user', toUserId).eq('to_user', user.id).maybeSingle();
     if (mutual) {
-      // ?대? 梨꾪똿諛⑹씠 ?덈뒗吏 癒쇱? ?뺤씤 (以묐났 諛⑹?)
+      // ?대? 梨꾪똿諛⑹씠 ?덈뒗吏€ 癒쇱? ?뺤씤 (以묐났 諛⑹?)
       const [u1, u2] = [user.id, toUserId].sort();
       const { data: existingMatch } = await supabase
         .from('matches')
@@ -708,8 +717,8 @@ const MatchPage = () => {
         console.error('[Match] chat_members insert failed, thread rolled back');
         return false;
       }
-      // 4. matches ?뚯씠釉??????DB ?몃━嫄?trg_notify_on_match)媛 ?먮룞?쇰줈 ?묒そ notifications INSERT
-      // ?좑툘 upsert ???insert: ??寃쎈줈??existingMatch媛 ?놁쓣 ?뚮쭔 ?꾨떖 ??以묐났 ?몃━嫄?諛⑹?
+      // 4. matches ?뚯씠釉??€????DB ?몃━嫄?trg_notify_on_match)媛€ ?먮룞?쇰줈 ?묒そ notifications INSERT
+      // ?좑툘 upsert ?€??insert: ??寃쎈줈??existingMatch媛€ ?놁쓣 ?뚮쭔 ?꾨떖 ??以묐났 ?몃━嫄?諛⑹?
       const { error: matchInsertErr } = await supabase.from('matches').insert({
         user1_id: u1,
         user2_id: u2,
@@ -735,6 +744,15 @@ const MatchPage = () => {
       });
     }
     return false;
+    } catch (error) {
+      console.error('[MatchPage] saveLikeAndCheckMatch failed:', error);
+      toast({
+        title: t("match.swipeErrorTitle", "오류 발생"),
+        description: t("match.swipeErrorDesc", "좋아요를 처리하는 중 오류가 발생했습니다. 다시 시도해주세요."),
+        variant: "destructive"
+      });
+      return false;
+    }
   }, [t, user, withAds]); // ISSUE-1 fix: withAds??stale closure 諛⑹?
   const handleSwipeRight = useCallback(() => {
     if (!isLoggedIn()) {
@@ -746,7 +764,7 @@ const MatchPage = () => {
     if (!profile) return;
     if (profile.isAd) {
       recordAdClick(profile.originalAd.id, null);
-      // Apple Guideline 3.2: window.open ????몄빋 釉뚮씪?곗?(SFSafariViewController) ?ъ슜
+      // Apple Guideline 3.2: window.open ?€???몄빋 釉뚮씪?곗?(SFSafariViewController) ?ъ슜
       if (profile.adUrl) Browser.open({ url: profile.adUrl, presentationStyle: 'fullscreen' });
       setCurrentIndex(i => i + 1);
       return;
@@ -767,7 +785,7 @@ const MatchPage = () => {
     setLikePopupProfile(profile);
     setShowLikePopup(true);
     
-    // ?댁쟾 Like ??대㉧ 珥덇린??(?곗냽 ?ㅼ??댄봽 ??瑗ъ엫 諛⑹?)
+    // ?댁쟾 Like ?€?대㉧ 珥덇린??(?곗냽 ?ㅼ??댄봽 ??瑗ъ엫 諛⑹?)
     matchTimersRef.current.timeouts.forEach(clearTimeout);
     matchTimersRef.current.timeouts = [];
     const tLike = setTimeout(() => setShowLikePopup(false), 2200);
@@ -790,7 +808,7 @@ const MatchPage = () => {
     });
     if (!isPlus && !profile.isLiker) setDailyLikesUsed(n => n + 1);
 
-    // DB ???+ 留ㅼ묶 ?뺤씤
+    // DB ?€??+ 留ㅼ묶 ?뺤씤
     saveLikeAndCheckMatch(profile.id).then(isMatch => {
       if (isMatch) {
          triggerHaptic("success");
@@ -817,14 +835,14 @@ const MatchPage = () => {
         }
     });
 
-    // ?? FOMO ?좊룄: 臾대즺 ?좎??먭쾶 10% ?뺣쪧濡??좎뒪???꾩슦湲???
+    // 실시간 FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기
     if (!isPlus && Math.random() < 0.1) {
       toast({
-        title: t("auto.t_0046", "?꾧뎔媛 ?뚯썝?섏쓣 留덉쓬???ㅼ뼱?⑸땲?? ??"),
-        description: t("auto.t_0047", "Migo Plus濡??낃렇?덉씠?쒗븯怨??꾧뎔吏 ?뺤씤?대낫?몄슂."),
+        title: t("retention.fomo.toast.title", "누군가 회원님을 마음에 들어합니다 💕"),
+        description: t("retention.fomo.toast.desc", "Migo Plus로 업그레이드하고 누구인지 확인해보세요."),
         action: (
           <button onClick={() => setShowPlusModal(true)} className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">
-            {t("auto.t_0048", "?뺤씤?섍린")}
+            {t("retention.fomo.toast.action", "확인하기")}
           </button>
         ),
         duration: 5000,
@@ -858,7 +876,7 @@ const MatchPage = () => {
     // BUG-1 fix: toUserId ?꾨떖 ??DB RPC record_superlike ?먯옄??李④컧+insert
     consumeSuperLike(profile.id);
 
-    // DB ???+ 留ㅼ묶 ?뺤씤 ?꾩뿉 ?댁쟾 ??대㉧ 珥덇린??(?곗냽 ?≪뀡 瑗ъ엫 諛⑹?)
+    // DB ?€??+ 留ㅼ묶 ?뺤씤 ?꾩뿉 ?댁쟾 ?€?대㉧ 珥덇린??(?곗냽 ?≪뀡 瑗ъ엫 諛⑹?)
     matchTimersRef.current.timeouts.forEach(clearTimeout);
     matchTimersRef.current.timeouts = [];
 
@@ -917,7 +935,7 @@ const MatchPage = () => {
     if (!user || !targetProfile) return;
     try {
       const [u1, u2] = [user.id, targetProfile.id].sort();
-      // ?대? 梨꾪똿諛⑹씠 ?덈뒗吏 ?뺤씤
+      // ?대? 梨꾪똿諛⑹씠 ?덈뒗吏€ ?뺤씤
       const { data: existingMatch } = await supabase
         .from('matches')
         .select('thread_id')
@@ -1372,7 +1390,7 @@ const MatchPage = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
                 <Zap size={14} className="text-primary fill-primary" />
-                <span className="text-xs font-extrabold text-primary">{t("retention.fomo.peakTime.label", "??Peak Time!")}</span>
+                <span className="text-xs font-extrabold text-primary">{t("retention.fomo.peakTime.label", "⚡ Peak Time!")}</span>
               </div>
               <p className="text-sm font-bold text-foreground truncate">{t("retention.fomo.peakTime.desc", "Most users are online right now.")}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{t("retention.fomo.peakTime.boostCta", "Use a Boost with Migo Plus!")}</p>

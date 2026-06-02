@@ -76,6 +76,7 @@ const ChatPage = () => {
   } | null)?.chatId ?? null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
+  const isSendingRef = useRef(false); // 중복 전송 방지 lock
   const {
     user
   } = useAuth();
@@ -255,19 +256,25 @@ const ChatPage = () => {
       setShowPlusModal(true);
       return;
     }
+    // 중복 전송 방지: 이미 전송 중이면 무시
+    if (isSendingRef.current) return;
+    isSendingRef.current = true;
 
     const textToSend = finalMessage.trim();
     setMessage("");
 
-    const { error } = await insertMessageAndNotify(textToSend);
-
-    if (error) {
-      setMessage(textToSend);
-      toast({ title: t('chat.sendFail', '메시지 전송 실패. 다시 시도해주세요.'), variant: 'destructive' });
-      return; // CRIT-2 fix: 실패 시 DM 차감하지 않음
+    try {
+      const { error } = await insertMessageAndNotify(textToSend);
+      if (error) {
+        setMessage(textToSend); // 실패 시 입력창 복원
+        toast({ title: t('chat.sendFail', '메시지 전송 실패. 다시 시도해주세요.'), variant: 'destructive' });
+        return; // CRIT-2 fix: 실패 시 DM 차감하지 않음
+      }
+      // insert 성공 후 DM 차감 (실패 시 카운트 낭비 방지)
+      consumeDm();
+    } finally {
+      isSendingRef.current = false; // 항상 lock 해제
     }
-    // insert 성공 후 DM 차감 (실패 시 카운트 낭비 방지)
-    consumeDm();
   };
   const handleShareLocation = async () => {
     if (!selectedChat || !user) return;

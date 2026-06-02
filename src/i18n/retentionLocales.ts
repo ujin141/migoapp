@@ -21,6 +21,12 @@ export const RETENTION_LOCALES: Record<string, any> = {
       },
       fomo: {
         live_activity: "⚡ 실시간 활동",
+        tap_hint: "지금 확인",
+        toast: {
+          title: "누군가 회원님을 마음에 들어합니다 💕",
+          desc: "Migo Plus로 업그레이드하고 누구인지 확인해보세요.",
+          action: "확인하기",
+        },
         peakTime: {
           label: "⚡ 피크 타임 진행중!",
           desc: "지금 접속자가 가장 많아요.",
@@ -56,6 +62,12 @@ export const RETENTION_LOCALES: Record<string, any> = {
       },
       fomo: {
         live_activity: "⚡ Live Activity",
+        tap_hint: "Check now",
+        toast: {
+          title: "Someone liked your profile 💕",
+          desc: "Upgrade to Migo Plus and find out who!",
+          action: "Check now",
+        },
         peakTime: {
           label: "⚡ Peak Time!",
           desc: "Most users are online right now.",
@@ -91,6 +103,12 @@ export const RETENTION_LOCALES: Record<string, any> = {
       },
       fomo: {
         live_activity: "⚡ リアルタイム",
+        tap_hint: "今すぐ確認",
+        toast: {
+          title: "誰かがあなたを気に入っています 💕",
+          desc: "Migo Plusにアップグレードして誰か確認してみましょう。",
+          action: "確認する",
+        },
         peakTime: {
           label: "⚡ ピークタイム中！",
           desc: "今、最もユーザーがオンラインです。",
@@ -126,6 +144,12 @@ export const RETENTION_LOCALES: Record<string, any> = {
       },
       fomo: {
         live_activity: "⚡ 实时动态",
+        tap_hint: "立即查看",
+        toast: {
+          title: "有人喜欢了你的资料 💕",
+          desc: "升级到 Migo Plus 看看是谁吧！",
+          action: "去查看",
+        },
         peakTime: {
           label: "⚡ 高峰时段！",
           desc: "现在在线用户最多。",

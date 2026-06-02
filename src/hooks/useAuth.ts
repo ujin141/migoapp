@@ -65,8 +65,8 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
       const cleanUrl = bestPhoto?.replace(/[?&]t=\d+/, "") || "";
       const bustedUrl = cleanUrl ? `${cleanUrl}?t=${Date.now()}` : "";
 
-      // setup_complete가 true여도 실제 저장된 프로필 사진이 있어야 완료로 인정합니다.
-      const isActuallyComplete = data.setup_complete === true && profileHasPhoto(data);
+      // setup_complete가 true이면 DB를 신뢰 — 사진 조건 제거 (버그 수정)
+      const isActuallyComplete = data.setup_complete === true;
 
       return {
         ...user,
@@ -149,6 +149,10 @@ if (!isSupabaseConfigured) {
     
     // 로그아웃 시 즉각 정리
     if (event === 'SIGNED_OUT' || !session?.user) {
+      // 이전 유저의 setup_done 플래그 정리 — 다른 계정 로그인 시 오염 방지를 위해 유지 (삭제하지 않음)
+      // if (globalUser?.id) {
+      //   try { localStorage.removeItem(`migo_setup_done_${globalUser.id}`); } catch {}
+      // }
       globalUser = null;
       globalLoading = false;
       localStorage.removeItem('migo_my_lat');
@@ -226,7 +230,7 @@ if (!isSupabaseConfigured) {
           photoUrl: bustedUrl || globalUser.photoUrl || "",
           name: p.name || globalUser.name,
           verified: p.verified ?? globalUser.verified,
-          setupComplete: p.setup_complete === true && !!bestPhoto
+          setupComplete: p.setup_complete === true
         };
         notifyAuthListeners();
       })

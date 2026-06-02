@@ -8,7 +8,7 @@ const PROFILE_VIEW_TEMPLATE_IDX = 4;
 export const useFomoActivity = (enabled: boolean = true, userId?: string) => {
   const { toast } = useToast();
   const { i18n, t } = useTranslation();
-  const timerRef = useRef<NodeJS.Timeout>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const NAMES = useMemo(() => ["Sarah", "David", "Emma", "James", "Yuki", "Jin", "Clara", "Leo", "Mia", "Oliver", "Sophia", "Lucas"], []);
   const DISPLAY_FLAGS = useMemo(() => ["🇺🇸", "🇰🇷", "🇯🇵", "🇫🇷", "🇬🇧", "🇩🇪", "🇮🇹", "🇪🇸", "🇹🇭", "🇮🇩"], []);
@@ -311,11 +311,11 @@ export const useFomoActivity = (enabled: boolean = true, userId?: string) => {
       const meta = ACTIVITY_META[templateIdx] || ACTIVITY_META[0];
       const isKo = lang === "ko";
       const activityLabel = isKo ? meta.labelKo : meta.labelEn;
-      const ctaLabel = t("fomo.tap_hint", isKo ? "지금 확인" : "Check now");
+      const ctaLabel = t("retention.fomo.tap_hint", isKo ? "지금 확인" : "Check now");
 
       toast({
         className: "border-white/70 bg-white/95 text-slate-950 shadow-[0_18px_50px_-18px_rgba(15,23,42,0.45)] ring-1 ring-slate-900/5 backdrop-blur-2xl p-4 rounded-3xl",
-        title: t("fomo.live_activity", "⚡ Live Activity"),
+        title: t("retention.fomo.live_activity", "⚡ Live Activity"),
         description: createElement(
           "div",
           { className: "relative min-w-0 overflow-hidden rounded-3xl px-4 pb-4" },

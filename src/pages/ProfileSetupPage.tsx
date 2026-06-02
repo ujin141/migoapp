@@ -298,6 +298,10 @@ const ProfileSetupPage = () => {
 
       if (error) { toast({ title: t("setup.error.save", "Save failed"), description: error.message, variant: "destructive" }); setSaving(false); return; }
 
+      // ✅ 안전망: localStorage에 설정 완료 플래그 영구 저장
+      // DB 오류/enrichment 타임아웃 시에도 이 유저가 이미 설정을 완료했음을 보장함
+      try { localStorage.setItem(`migo_setup_done_${user.id}`, '1'); } catch {}
+
       // ✅ refreshPhotoUrl을 await로 완전 완료 후 navigate
       await refreshPhotoUrl?.();
 

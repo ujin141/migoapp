@@ -56,11 +56,11 @@ export const useLocationTracker = (userId: string | undefined, enabled: boolean 
             timestamp: Date.now()
           }
         });
+        lastSentRef.current = { lat, lng, time: Date.now() };
       }
-      lastSentRef.current = { lat, lng, time: Date.now() };
     };
 
-    let watchId: number;
+    let watchId: number | undefined = undefined;
 
     const startTracking = () => {
       if (!navigator.geolocation) return;

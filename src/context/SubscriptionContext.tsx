@@ -302,30 +302,36 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     setSuperLikesLeft(prev => prev + bonusSuperLikes);
 
     if (user) {
-      // 최신 boostsCount를 읽기 위해 DB에서 현재 값을 가져온 후 업데이트
-      const { data: itemData } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
-      const currentBoosts = itemData?.boosts ?? 0;
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      
-      const results = await Promise.allSettled([
-        // ✅ Bug2 fix: plus_expires_at 포함 (없으면 만료 판단 불가)
-        supabase.from("profiles").update({ is_plus: true, plan, plus_expires_at: expiresAt }).eq("id", user.id),
-        supabase.from("subscriptions").insert({
-          user_id: user.id, plan, status: 'active', expires_at: expiresAt,
-          price_krw: plan === 'premium' ? 99900 : 14900
-        }),
-        supabase.from("user_items").upsert({
-          user_id: user.id, boosts: currentBoosts + bonusBoosts
-        }, { onConflict: 'user_id' })
-      ]);
-      
-      // DB 업데이트 실패 시 롤백
-      if (results.some(r => r.status === 'fulfilled' && r.value.error)) {
+      const userId = user.id;
+      try {
+        // 최신 boostsCount를 읽기 위해 DB에서 현재 값을 가져온 후 업데이트
+        const { data: itemData, error: loadErr } = await supabase.from("user_items").select("boosts").eq("user_id", userId).maybeSingle();
+        if (loadErr) throw loadErr;
+        const currentBoosts = itemData?.boosts ?? 0;
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        
+        const results = await Promise.allSettled([
+          // ✅ Bug2 fix: plus_expires_at 포함 (없으면 만료 판단 불가)
+          supabase.from("profiles").update({ is_plus: true, plan, plus_expires_at: expiresAt }).eq("id", userId),
+          supabase.from("subscriptions").insert({
+            user_id: userId, plan, status: 'active', expires_at: expiresAt,
+            price_krw: plan === 'premium' ? 99900 : 14900
+          }),
+          supabase.from("user_items").upsert({
+            user_id: userId, boosts: currentBoosts + bonusBoosts
+          }, { onConflict: 'user_id' })
+        ]);
+        
+        // DB 업데이트 실패 시 롤백
+        if (results.some(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error))) {
+          throw new Error('Some DB updates failed');
+        }
+      } catch (err) {
         setIsPlus(false);
         setIsPremium(false);
         setBoostsCount(prev => prev - bonusBoosts);
         setSuperLikesLeft(prev => prev - bonusSuperLikes);
-        console.error('[Upgrade] DB update failed — rolling back UI');
+        console.error('[Upgrade] DB update failed — rolling back UI:', err);
       }
     }
   }, [user]);
@@ -339,158 +345,271 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
 
   // ── StoreKit IAP: 구독 구매 ──────────────────────────────────────────────
   const purchaseSubscriptionIAP = useCallback(async (productId: IAPProductId) => {
-    const result = await iapPurchaseSubscription(productId);
-    if (result.success) {
-      const plan = getSubscriptionPlanFromProductId(productId);
-      if (plan && user) {
-        const days = getSubscriptionDays(productId);
-        const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-        const bonusBoosts = plan === 'premium' ? 5 : 1;
-        const bonusSuperLikes = plan === 'premium' ? 9999 : 5;
-        // 낙관적 UI 업데이트
-        setIsPlus(true);
-        if (plan === 'premium') setIsPremium(true);
-        setBoostsCount(prev => prev + bonusBoosts);
-        setSuperLikesLeft(prev => prev + bonusSuperLikes);
-        const { data: itemData } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
-        const currentBoosts = itemData?.boosts ?? 0;
-        // price_krw: productId 기준 실제 가격 반영
-        const priceKrw = plan === 'premium' ? 99900 : (days >= 365 ? 99900 : days >= 90 ? 34900 : 14900);
-        await Promise.all([
-          supabase.from("profiles").update({ is_plus: true, plan, plus_expires_at: expiresAt }).eq("id", user.id),
-          supabase.from("subscriptions").insert({
-            user_id: user.id, plan, status: 'active', expires_at: expiresAt,
-            price_krw: priceKrw,
-            iap_product_id: productId,
-            iap_transaction_id: result.transactionId,
-          }),
-          supabase.from("user_items").upsert({
-            user_id: user.id, boosts: currentBoosts + bonusBoosts
-          }, { onConflict: 'user_id' }),
-        ]);
+    try {
+      const result = await iapPurchaseSubscription(productId);
+      if (result.success) {
+        const plan = getSubscriptionPlanFromProductId(productId);
+        if (plan && user) {
+          const userId = user.id;
+          const days = getSubscriptionDays(productId);
+          const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+          const bonusBoosts = plan === 'premium' ? 5 : 1;
+          const bonusSuperLikes = plan === 'premium' ? 9999 : 5;
+          // 낙관적 UI 업데이트
+          setIsPlus(true);
+          if (plan === 'premium') setIsPremium(true);
+          setBoostsCount(prev => prev + bonusBoosts);
+          setSuperLikesLeft(prev => prev + bonusSuperLikes);
+          try {
+            const { data: itemData, error: loadErr } = await supabase.from("user_items").select("boosts").eq("user_id", userId).maybeSingle();
+            if (loadErr) throw loadErr;
+            const currentBoosts = itemData?.boosts ?? 0;
+            // price_krw: productId 기준 실제 가격 반영
+            const priceKrw = plan === 'premium' ? 99900 : (days >= 365 ? 99900 : days >= 90 ? 34900 : 14900);
+            const results = await Promise.all([
+              supabase.from("profiles").update({ is_plus: true, plan, plus_expires_at: expiresAt }).eq("id", userId),
+              supabase.from("subscriptions").insert({
+                user_id: userId, plan, status: 'active', expires_at: expiresAt,
+                price_krw: priceKrw,
+                iap_product_id: productId,
+                iap_transaction_id: result.transactionId,
+              }),
+              supabase.from("user_items").upsert({
+                user_id: userId, boosts: currentBoosts + bonusBoosts
+              }, { onConflict: 'user_id' }),
+            ]);
+            
+            if (results.some(r => r.error)) {
+              const errs = results.map(r => r.error).filter(Boolean);
+              throw new Error(`DB updates failed: ${errs.map(e => e?.message).join(', ')}`);
+            }
+          } catch (dbErr) {
+            // DB 실패 시 UI 롤백
+            setIsPlus(false);
+            setIsPremium(false);
+            setBoostsCount(prev => prev - bonusBoosts);
+            setSuperLikesLeft(prev => prev - bonusSuperLikes);
+            console.error('[IAP Subscription] DB update failed, rolled back:', dbErr);
+            return { success: false, error: 'db_update_failed' };
+          }
+        }
       }
+      return result;
+    } catch (iapErr) {
+      console.error('[IAP Subscription] Purchase flow crash:', iapErr);
+      return { success: false, error: iapErr instanceof Error ? iapErr.message : 'unknown_error' };
     }
-    return result;
   }, [user]);
 
   // ── StoreKit IAP: 소비성 아이템 구매 ────────────────────────────────────
   const purchaseItemIAP = useCallback(async (shopItemId: string) => {
-    const productId = SHOP_ITEM_PRODUCT_MAP[shopItemId];
-    if (!productId) return { success: false, error: 'unknown_item' };
-    const result = await iapPurchaseConsumable(productId);
-    if (result.success && user) {
-      if (shopItemId.startsWith('superlike_')) {
-        let amount = 0;
-        if (shopItemId === 'superlike_3') amount = 3;
-        else if (shopItemId === 'superlike_10') amount = 10;
-        else if (shopItemId === 'superlike_30') amount = 30;
-        // ARCH-1 fix: 낙관적 UI, DB 실패 시 롤백
-        setSuperLikesLeft(prev => prev + amount);
-        const { data, error: dbError } = await supabase.from("user_items").select("super_likes").eq("user_id", user.id).maybeSingle();
-        const { error: upsertError } = await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + amount }, { onConflict: 'user_id' });
-        if (dbError || upsertError) {
-          setSuperLikesLeft(prev => prev - amount); // 롤백
-          return { success: false, error: 'db_error' };
+    try {
+      const productId = SHOP_ITEM_PRODUCT_MAP[shopItemId];
+      if (!productId) return { success: false, error: 'unknown_item' };
+      const result = await iapPurchaseConsumable(productId);
+      if (result.success && user) {
+        const userId = user.id;
+        if (shopItemId.startsWith('superlike_')) {
+          let amount = 0;
+          if (shopItemId === 'superlike_3') amount = 3;
+          else if (shopItemId === 'superlike_10') amount = 10;
+          else if (shopItemId === 'superlike_30') amount = 30;
+          // ARCH-1 fix: 낙관적 UI, DB 실패 시 롤백
+          setSuperLikesLeft(prev => prev + amount);
+          try {
+            const { data, error: dbError } = await supabase.from("user_items").select("super_likes").eq("user_id", userId).maybeSingle();
+            if (dbError) throw dbError;
+            const { error: upsertError } = await supabase.from("user_items").upsert({ user_id: userId, super_likes: (data?.super_likes ?? 0) + amount }, { onConflict: 'user_id' });
+            if (upsertError) throw upsertError;
+          } catch (dbErr) {
+            setSuperLikesLeft(prev => prev - amount); // 롤백
+            console.error('[IAP Item] Superlike DB error:', dbErr);
+            return { success: false, error: 'db_error' };
+          }
+        } else if (shopItemId.startsWith('boost_')) {
+          let amount = 0;
+          if (shopItemId === 'boost_1') amount = 1;
+          else if (shopItemId === 'boost_5') amount = 5;
+          else if (shopItemId === 'boost_15') amount = 15;
+          setBoostsCount(prev => prev + amount);
+          try {
+            const { data, error: dbError } = await supabase.from("user_items").select("boosts").eq("user_id", userId).maybeSingle();
+            if (dbError) throw dbError;
+            const { error: upsertError } = await supabase.from("user_items").upsert({ user_id: userId, boosts: (data?.boosts ?? 0) + amount }, { onConflict: 'user_id' });
+            if (upsertError) throw upsertError;
+          } catch (dbErr) {
+            setBoostsCount(prev => prev - amount); // 롤백
+            console.error('[IAP Item] Boost DB error:', dbErr);
+            return { success: false, error: 'db_error' };
+          }
+        } else if (shopItemId === 'travel_pack') {
+          setSuperLikesLeft(prev => prev + 10);
+          setBoostsCount(prev => prev + 1);
+          try {
+            const { data, error: dbError } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", userId).maybeSingle();
+            if (dbError) throw dbError;
+            const { error: upsertError } = await supabase.from("user_items").upsert({ user_id: userId, super_likes: (data?.super_likes ?? 0) + 10, boosts: (data?.boosts ?? 0) + 1 }, { onConflict: 'user_id' });
+            if (upsertError) throw upsertError;
+          } catch (dbErr) {
+            setSuperLikesLeft(prev => prev - 10); // 롤백
+            setBoostsCount(prev => prev - 1);
+            console.error('[IAP Item] Travel Pack DB error:', dbErr);
+            return { success: false, error: 'db_error' };
+          }
+        } else if (shopItemId === 'verified_badge') {
+          setHasVerifiedBadge(true);
+          try {
+            const { error: updateError } = await supabase.from("profiles").update({ has_badge: true }).eq("id", userId);
+            if (updateError) throw updateError;
+          } catch (dbErr) {
+            setHasVerifiedBadge(false);
+            console.error('[IAP Item] Verified badge DB error:', dbErr);
+            return { success: false, error: 'db_error' };
+          }
+        } else if (shopItemId === 'profile_theme') {
+          setHasProfileTheme(true);
+          try {
+            const { error: updateError } = await supabase.from("profiles").update({ profile_theme: 'aurora' }).eq("id", userId);
+            if (updateError) throw updateError;
+          } catch (dbErr) {
+            setHasProfileTheme(false);
+            console.error('[IAP Item] Profile theme DB error:', dbErr);
+            return { success: false, error: 'db_error' };
+          }
+        } else if (shopItemId === 'nearby_unlock') {
+          const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          setNearbyUnlockedUntil(expires);
+          try {
+            const { error: updateError } = await supabase.from("profiles").update({ nearby_expires_at: expires.toISOString() }).eq("id", userId);
+            if (updateError) throw updateError;
+          } catch (dbErr) {
+            setNearbyUnlockedUntil(null);
+            console.error('[IAP Item] Nearby unlock DB error:', dbErr);
+            return { success: false, error: 'db_error' };
+          }
         }
-      } else if (shopItemId.startsWith('boost_')) {
-        let amount = 0;
-        if (shopItemId === 'boost_1') amount = 1;
-        else if (shopItemId === 'boost_5') amount = 5;
-        else if (shopItemId === 'boost_15') amount = 15;
-        setBoostsCount(prev => prev + amount);
-        const { data, error: dbError } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
-        const { error: upsertError } = await supabase.from("user_items").upsert({ user_id: user.id, boosts: (data?.boosts ?? 0) + amount }, { onConflict: 'user_id' });
-        if (dbError || upsertError) {
-          setBoostsCount(prev => prev - amount); // 롤백
-          return { success: false, error: 'db_error' };
-        }
-      } else if (shopItemId === 'travel_pack') {
-        setSuperLikesLeft(prev => prev + 10);
-        setBoostsCount(prev => prev + 1);
-        const { data, error: dbError } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", user.id).maybeSingle();
-        const { error: upsertError } = await supabase.from("user_items").upsert({ user_id: user.id, super_likes: (data?.super_likes ?? 0) + 10, boosts: (data?.boosts ?? 0) + 1 }, { onConflict: 'user_id' });
-        if (dbError || upsertError) {
-          setSuperLikesLeft(prev => prev - 10); // 롤백
-          setBoostsCount(prev => prev - 1);
-          return { success: false, error: 'db_error' };
-        }
-      } else if (shopItemId === 'verified_badge') {
-        setHasVerifiedBadge(true);
-        const { error: updateError } = await supabase.from("profiles").update({ has_badge: true }).eq("id", user.id);
-        if (updateError) { setHasVerifiedBadge(false); return { success: false, error: 'db_error' }; }
-      } else if (shopItemId === 'profile_theme') {
-        setHasProfileTheme(true);
-        const { error: updateError } = await supabase.from("profiles").update({ profile_theme: 'aurora' }).eq("id", user.id);
-        if (updateError) { setHasProfileTheme(false); return { success: false, error: 'db_error' }; }
-      } else if (shopItemId === 'nearby_unlock') {
-        const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-        setNearbyUnlockedUntil(expires);
-        const { error: updateError } = await supabase.from("profiles").update({ nearby_expires_at: expires.toISOString() }).eq("id", user.id);
-        if (updateError) { setNearbyUnlockedUntil(null); return { success: false, error: 'db_error' }; }
       }
+      return result;
+    } catch (err) {
+      console.error('[IAP Item] Purchase flow crash:', err);
+      return { success: false, error: err instanceof Error ? err.message : 'unknown_error' };
     }
-    return result;
   }, [user]);
 
   // ── StoreKit IAP: 구매 복원 ──────────────────────────────────────────────
   const restorePurchasesIAP = useCallback(async () => {
-    const result = await restoreIAPPurchases();
-    let restoredPlan: 'plus' | 'premium' | undefined;
-    let restoredProductId: string | undefined;
-    if (result.restored && result.activeSubscriptions.length > 0) {
-      for (const sub of result.activeSubscriptions) {
-        const plan = getSubscriptionPlanFromProductId(sub);
-        if (plan === 'premium') { restoredPlan = 'premium'; restoredProductId = sub; break; }
-        if (plan === 'plus') { restoredPlan = 'plus'; restoredProductId = sub; }
+    try {
+      const result = await restoreIAPPurchases();
+      let restoredPlan: 'plus' | 'premium' | undefined;
+      let restoredProductId: string | undefined;
+      if (result.restored && result.activeSubscriptions.length > 0) {
+        for (const sub of result.activeSubscriptions) {
+          const plan = getSubscriptionPlanFromProductId(sub);
+          if (plan === 'premium') { restoredPlan = 'premium'; restoredProductId = sub; break; }
+          if (plan === 'plus') { restoredPlan = 'plus'; restoredProductId = sub; }
+        }
+        if (restoredPlan && user) {
+          const userId = user.id;
+          setIsPlus(true);
+          if (restoredPlan === 'premium') setIsPremium(true);
+          // 복원 시에도 productId 기반으로 만료일 계산
+          const days = restoredProductId ? getSubscriptionDays(restoredProductId) : 30;
+          const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+          const { error } = await supabase.from("profiles").update({ is_plus: true, plan: restoredPlan, plus_expires_at: expiresAt }).eq("id", userId);
+          if (error) {
+            setIsPlus(false);
+            setIsPremium(false);
+            console.error('[IAP Restore] DB sync failed, rolled back:', error);
+            return { restored: false };
+          }
+        }
       }
-      if (restoredPlan && user) {
-        setIsPlus(true);
-        if (restoredPlan === 'premium') setIsPremium(true);
-        // 복원 시에도 productId 기반으로 만료일 계산
-        const days = restoredProductId ? getSubscriptionDays(restoredProductId) : 30;
-        const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-        await supabase.from("profiles").update({ is_plus: true, plan: restoredPlan, plus_expires_at: expiresAt }).eq("id", user.id);
-      }
+      return { restored: result.restored, restoredPlan };
+    } catch (err) {
+      console.error('[IAP Restore] Restore flow crash:', err);
+      return { restored: false };
     }
-    return { restored: result.restored, restoredPlan };
   }, [user]);
 
   const addBoosts = useCallback(async (amount: number) => {
     setBoostsCount(prev => prev + amount);
     if (user) {
-      const { data: itemData } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
-      const currentBoosts = itemData?.boosts ?? 0;
-      await supabase.from("user_items").upsert({
-        user_id: user.id, boosts: currentBoosts + amount
-      }, { onConflict: 'user_id' });
+      const userId = user.id;
+      try {
+        const { data: itemData, error: loadErr } = await supabase.from("user_items").select("boosts").eq("user_id", userId).maybeSingle();
+        if (loadErr) throw loadErr;
+        const currentBoosts = itemData?.boosts ?? 0;
+        const { error: upsertErr } = await supabase.from("user_items").upsert({
+          user_id: userId, boosts: currentBoosts + amount
+        }, { onConflict: 'user_id' });
+        if (upsertErr) throw upsertErr;
+      } catch (err) {
+        setBoostsCount(prev => prev - amount); // 롤백
+        console.error('[Subscription] addBoosts DB sync failed:', err);
+      }
     }
   }, [user]);
 
   const addSuperLikes = useCallback(async (amount: number) => {
     setSuperLikesLeft(prev => prev + amount);
     if (user) {
-      const { data: itemData } = await supabase.from("user_items").select("super_likes").eq("user_id", user.id).maybeSingle();
-      const current = itemData?.super_likes ?? 0;
-      await supabase.from("user_items").upsert({
-        user_id: user.id, super_likes: current + amount
-      }, { onConflict: 'user_id' });
+      const userId = user.id;
+      try {
+        const { data: itemData, error: loadErr } = await supabase.from("user_items").select("super_likes").eq("user_id", userId).maybeSingle();
+        if (loadErr) throw loadErr;
+        const current = itemData?.super_likes ?? 0;
+        const { error: upsertErr } = await supabase.from("user_items").upsert({
+          user_id: userId, super_likes: current + amount
+        }, { onConflict: 'user_id' });
+        if (upsertErr) throw upsertErr;
+      } catch (err) {
+        setSuperLikesLeft(prev => prev - amount); // 롤백
+        console.error('[Subscription] addSuperLikes DB sync failed:', err);
+      }
     }
   }, [user]);
 
   const purchaseVerifiedBadge = useCallback(async () => {
     setHasVerifiedBadge(true);
-    if (user) await supabase.from("profiles").update({ has_badge: true }).eq("id", user.id);
+    if (user) {
+      const userId = user.id;
+      try {
+        const { error } = await supabase.from("profiles").update({ has_badge: true }).eq("id", userId);
+        if (error) throw error;
+      } catch (err) {
+        setHasVerifiedBadge(false); // 롤백
+        console.error('[Subscription] purchaseVerifiedBadge failed:', err);
+      }
+    }
   }, [user]);
 
   const purchaseProfileTheme = useCallback(async () => {
     setHasProfileTheme(true);
-    if (user) await supabase.from("profiles").update({ profile_theme: 'aurora' }).eq("id", user.id);
+    if (user) {
+      const userId = user.id;
+      try {
+        const { error } = await supabase.from("profiles").update({ profile_theme: 'aurora' }).eq("id", userId);
+        if (error) throw error;
+      } catch (err) {
+        setHasProfileTheme(false); // 롤백
+        console.error('[Subscription] purchaseProfileTheme failed:', err);
+      }
+    }
   }, [user]);
 
   const purchaseNearbyUnlock = useCallback(async () => {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     setNearbyUnlockedUntil(expires);
-    if (user) await supabase.from("profiles").update({ nearby_expires_at: expires.toISOString() }).eq("id", user.id);
+    if (user) {
+      const userId = user.id;
+      try {
+        const { error } = await supabase.from("profiles").update({ nearby_expires_at: expires.toISOString() }).eq("id", userId);
+        if (error) throw error;
+      } catch (err) {
+        setNearbyUnlockedUntil(null); // 롤백
+        console.error('[Subscription] purchaseNearbyUnlock failed:', err);
+      }
+    }
   }, [user]);
 
   const purchaseTravelPack = useCallback(async () => {
@@ -498,17 +617,21 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     setSuperLikesLeft(prev => prev + 10);
     setBoostsCount(prev => prev + 1);
     if (user) {
-      const { data, error: dbError } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", user.id).maybeSingle();
-      const { error: upsertError } = await supabase.from("user_items").upsert({
-        user_id: user.id,
-        super_likes: (data?.super_likes ?? 0) + 10,
-        boosts: (data?.boosts ?? 0) + 1,
-      }, { onConflict: 'user_id' });
-      if (dbError || upsertError) {
+      const userId = user.id;
+      try {
+        const { data, error: dbError } = await supabase.from("user_items").select("super_likes, boosts").eq("user_id", userId).maybeSingle();
+        if (dbError) throw dbError;
+        const { error: upsertError } = await supabase.from("user_items").upsert({
+          user_id: userId,
+          super_likes: (data?.super_likes ?? 0) + 10,
+          boosts: (data?.boosts ?? 0) + 1,
+        }, { onConflict: 'user_id' });
+        if (upsertError) throw upsertError;
+      } catch (err) {
         // DB 저장 실패 시 낙관적 업데이트 롤백
         setSuperLikesLeft(prev => prev - 10);
         setBoostsCount(prev => prev - 1);
-        console.error('[purchaseTravelPack] DB upsert failed:', dbError || upsertError);
+        console.error('[purchaseTravelPack] DB upsert failed:', err);
       }
     }
   }, [user]);

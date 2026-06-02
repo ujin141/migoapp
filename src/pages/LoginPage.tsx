@@ -459,12 +459,12 @@ const LoginPage = () => {
             .select("setup_complete, name, nationality, photo_url, photo_urls")
             .eq("id", session.user.id)
             .single();
-          // ✅ 완료 판정:
-          //   setup_complete === true + saved photo → 완료
-          //   no photo or setup_complete !== true    → profile-setup 필수
-          const hasProfilePhoto =
-            !!profile?.photo_url || (Array.isArray(profile?.photo_urls) && profile.photo_urls.length > 0);
-          const isComplete = !!profile && profile.setup_complete === true && hasProfilePhoto;
+          // ✅ 완료 판정 기준:
+          // - profile이 null (DB 오류/타임아웃) → 기존 유저로 가정 → 홈으로 (안전 fallback)
+          // - profile.setup_complete === true → 완료 → 홈으로
+          // - profile.setup_complete === false → 신규/미완료 → 프로필설정으로
+          // 핵심: DB 오류 시 이미 완료된 유저가 프로필셋업으로 튕기는 버그 방지
+          const isComplete = !profile || profile.setup_complete === true;
           if (!isComplete) {
             setDone(true);
             setTimeout(() => navigate("/profile-setup"), 800);

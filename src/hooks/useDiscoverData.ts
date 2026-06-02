@@ -1,10 +1,4 @@
-/**
- * useDiscoverData — QUAL-10 리팩토링
- * DiscoverPage의 데이터 fetch/state 로직을 분리한 커스텀 훅
- * - posts (커뮤니티 피드)
- * - tripGroups (여행 그룹)
- */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabaseClient";
 import { useGlobalFilter } from "@/context/GlobalFilterContext";
@@ -19,6 +13,9 @@ export function useDiscoverData(user: User) {
   const { distanceTo } = useGeoDistance();
   const { filters: globalFilters } = useGlobalFilter();
 
+  const fetchPostsCounter = useRef(0);
+  const fetchGroupsCounter = useRef(0);
+
   // ── Posts state ─────────────────────────────────
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -29,6 +26,7 @@ export function useDiscoverData(user: User) {
 
   // ── Fetch posts ─────────────────────────────────
   const fetchPosts = useCallback(async () => {
+    const reqId = ++fetchPostsCounter.current;
     setLoadingPosts(true);
     try {
       const postsQuery = supabase
@@ -46,8 +44,9 @@ export function useDiscoverData(user: User) {
         postsQuery,
         user
           ? supabase.from("post_likes").select("post_id").eq("user_id", user.id).limit(200)
-          : Promise.resolve({ data: [] }),
+          : Promise.resolve({ data: [], error: null }),
       ]);
+      if (reqId !== fetchPostsCounter.current) return;
       if (error) throw error;
 
       const likedSet = new Set<string>((myLikes || []).map((l: any) => l.post_id));
@@ -87,20 +86,26 @@ export function useDiscoverData(user: User) {
 
       // view_count 추적 — fire-and-forget
       if (data && data.length > 0) {
-        supabase.rpc("increment_post_views", { p_ids: data.map((d: any) => d.id) });
+        supabase.rpc("increment_post_views", { p_ids: data.map((d: any) => d.id) })
+          .then(({ error: rpcErr }) => { if (rpcErr) console.warn('[increment_post_views] error:', rpcErr.message); })
+          .catch(e => console.error('[increment_post_views] catch:', e));
       }
     } catch (err: any) {
+      if (reqId !== fetchPostsCounter.current) return;
       const msg = err?.message || "";
       if (!msg.includes("lock") && !msg.includes("stole")) {
         console.error("fetchPosts error:", err);
       }
     } finally {
-      setLoadingPosts(false);
+      if (reqId === fetchPostsCounter.current) {
+        setLoadingPosts(false);
+      }
     }
   }, [user, i18n.language, t]);
 
   // ── Fetch groups ─────────────────────────────────
   const fetchGroups = useCallback(async () => {
+    const reqId = ++fetchGroupsCounter.current;
     setLoadingGroups(true);
     try {
       let query = supabase
@@ -127,6 +132,7 @@ export function useDiscoverData(user: User) {
       }
 
       const { data, error } = await query;
+      if (reqId !== fetchGroupsCounter.current) return;
       if (error) throw error;
 
       const mapped: TripGroup[] = (data || []).map((g: any) => {
@@ -200,10 +206,10 @@ export function useDiscoverData(user: User) {
       let groupMessages: Record<string, any[]> = {};
 
       if (hostIds.length > 0 || groupIds.length > 0) {
-        const [revRes, msgRes] = await Promise.all([
+        const results = await Promise.allSettled([
           hostIds.length > 0
             ? supabase.from("meet_reviews").select("reviewed_id").in("reviewed_id", hostIds)
-            : Promise.resolve({ data: [] }),
+            : Promise.resolve({ data: [], error: null }),
           groupIds.length > 0
             ? supabase
                 .from("messages")
@@ -211,8 +217,12 @@ export function useDiscoverData(user: User) {
                 .in("thread_id", groupIds)
                 .order("created_at", { ascending: false })
                 .limit(groupIds.length * 2)
-            : Promise.resolve({ data: [] }),
+            : Promise.resolve({ data: [], error: null }),
         ]);
+        if (reqId !== fetchGroupsCounter.current) return;
+
+        const revRes = results[0].status === 'fulfilled' ? results[0].value : { data: [], error: null };
+        const msgRes = results[1].status === 'fulfilled' ? results[1].value : { data: [], error: null };
 
         if (revRes.data) {
           revRes.data.forEach((r: any) => {
@@ -255,13 +265,16 @@ export function useDiscoverData(user: User) {
       uniqueMapped.sort((a, b) => (a.distanceKm || 99999) - (b.distanceKm || 99999));
       setTripGroups(uniqueMapped);
     } catch (err: any) {
+      if (reqId !== fetchGroupsCounter.current) return;
       const msg = err?.message || "";
       if (!msg.includes("lock") && !msg.includes("stole")) {
         console.error("fetchGroups error:", err);
       }
       setTripGroups([]);
     } finally {
-      setLoadingGroups(false);
+      if (reqId === fetchGroupsCounter.current) {
+        setLoadingGroups(false);
+      }
     }
   }, [user, globalFilters, distanceTo, t]);
 

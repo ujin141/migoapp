@@ -183,27 +183,22 @@ export const ChatProvider = ({
     }).filter(Boolean) as GroupThread[];
 
     // ── 1:1 채팅 중복 제거: 같은 상대방과 여러 thread가 있으면 가장 최신 것만 표시 ──
+    // 최신 메시지(lastMessage) 시각 기준 내림차순 정렬 후 중복 제거
     const opponentSeen = new Set<string>();
+    const getThreadTime = (th: GroupThread) => {
+      const latestMsg = lastMsgByThread[th.id];
+      return latestMsg?.created_at ? new Date(latestMsg.created_at).getTime()
+        : th.createdAt ? new Date(th.createdAt).getTime() : 0;
+    };
     const deduped = mapped
-      .slice() // 원본 보존
-      .sort((a, b) => {
-        // 최신 메시지 기준 내림차순 정렬 (가장 최신 thread 우선)
-        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return tb - ta;
-      })
+      .slice()
+      .sort((a, b) => getThreadTime(b) - getThreadTime(a))
       .filter(th => {
-        if (th.isGroup) return true; // 그룹채팅은 중복 제거 안 함
+        if (th.isGroup) return true;
         if (!th.opponentId) return true;
         if (opponentSeen.has(th.opponentId)) return false;
         opponentSeen.add(th.opponentId);
         return true;
-      })
-      // 원래 순서(최신 메시지 순)로 재정렬
-      .sort((a, b) => {
-        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return tb - ta;
       });
 
     setThreads(deduped);
@@ -227,19 +222,37 @@ export const ChatProvider = ({
         table: 'messages'
       }, payload => {
         const newMsg = payload.new as any;
-        setThreads(prev => prev.map(th => {
-          if (th.id !== newMsg.thread_id) return th;
-          return {
-            ...th,
-            lastMessage: newMsg.text,
-            time: new Intl.DateTimeFormat(i18n.language || 'en', {
-              hour: 'numeric',
-              minute: 'numeric'
-            }).format(new Date(newMsg.created_at)),
-            unread: newMsg.sender_id !== user.id && newMsg.thread_id !== openThreadRef.current ? th.unread + 1 : th.unread
-          };
-        }));
-        if (newMsg.sender_id !== user.id && newMsg.thread_id !== openThreadRef.current) {
+        const isFromMe = newMsg.sender_id === user.id;
+        const isOpenThread = newMsg.thread_id === openThreadRef.current;
+        const timeStr = new Intl.DateTimeFormat(i18n.language || 'en', {
+          hour: 'numeric', minute: 'numeric'
+        }).format(new Date(newMsg.created_at));
+
+        setThreads(prev => {
+          const exists = prev.some(th => th.id === newMsg.thread_id);
+          if (!exists) {
+            // 스레드 목록에 없는 새 채팅방 메시지 → 목록 전체 갱신
+            fetchThreads();
+            return prev;
+          }
+          return prev
+            .map(th => {
+              if (th.id !== newMsg.thread_id) return th;
+              return {
+                ...th,
+                lastMessage: newMsg.text,
+                time: timeStr,
+                unread: !isFromMe && !isOpenThread ? th.unread + 1 : th.unread
+              };
+            })
+            // 최신 메시지 받은 스레드를 맨 위로
+            .sort((a, b) => {
+              if (a.id === newMsg.thread_id) return -1;
+              if (b.id === newMsg.thread_id) return 1;
+              return 0;
+            });
+        });
+        if (!isFromMe && !isOpenThread) {
           setUnreadMap(prev => {
             const next = {
               ...prev,

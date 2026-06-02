@@ -41,10 +41,23 @@ export const getAuthProfileHint = (userId: string): AuthProfileHint | null => {
   }
 };
 
+export const clearAuthProfileHint = () => {
+  try {
+    sessionStorage.removeItem(AUTH_PROFILE_HINT_KEY);
+  } catch {
+    // sessionStorage can be unavailable in rare webview states.
+  }
+};
+
 export const getPostAuthRoute = async (session?: Session | null) => {
   const activeSession = session ?? (await supabase.auth.getSession()).data.session;
   const userId = activeSession?.user?.id;
   if (!userId) return "/login";
+
+  let localDone = false;
+  try {
+    localDone = localStorage.getItem(`migo_setup_done_${userId}`) === '1';
+  } catch {}
 
   const profileQuery = supabase
     .from("profiles")
@@ -57,7 +70,9 @@ export const getPostAuthRoute = async (session?: Session | null) => {
     new Promise<{ data: null }>((resolve) => setTimeout(() => resolve({ data: null }), 2200)),
   ]);
 
-  const setupComplete = profile?.setup_complete === true && hasProfilePhoto(profile);
+  // DB에서 명확히 setup_complete가 false로 조회되지 않는 한(true이거나 조회 실패 시),
+  // 로컬 캐시가 있거나 또는 true로 간주해 기존 유저가 셋팅창으로 튕기는 버그를 막습니다.
+  const setupComplete = profile ? profile.setup_complete === true : (localDone || true);
   saveAuthProfileHint({
     userId,
     name: profile?.name || activeSession.user.user_metadata?.name,

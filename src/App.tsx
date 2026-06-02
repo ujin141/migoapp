@@ -367,7 +367,7 @@ const AppContent = () => {
           const code = urlObj.searchParams.get('code');
           if (code) {
              const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
-             if (!error) {
+             if (!error && authData?.session) {
                navigate(await getPostAuthRoute(authData.session), { replace: true });
              }
              return;
@@ -379,7 +379,7 @@ const AppContent = () => {
             const refresh_token = searchParams.get('refresh_token');
             if (access_token && refresh_token) {
               const { data: authData, error } = await supabase.auth.setSession({ access_token, refresh_token });
-              if (!error) {
+              if (!error && authData?.session) {
                 navigate(await getPostAuthRoute(authData.session), { replace: true });
               }
             }
@@ -387,7 +387,7 @@ const AppContent = () => {
         }
       });
       return () => {
-        authListener.then(listener => listener.remove());
+        authListener.then(listener => listener.remove()).catch(() => {});
       };
     }
   }, []);
@@ -415,7 +415,7 @@ const AppContent = () => {
     });
 
     return () => {
-      backHandler.then(h => h.remove());
+      backHandler.then(h => h.remove()).catch(() => {});
     };
   }, [navigate, toast, t]);
 

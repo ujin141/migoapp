@@ -14,6 +14,8 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const setupComplete = user?.setupComplete;
+  // localStorage 안전망: DB 오류 시에도 이미 설정 완료한 유저 보호
+  const localSetupDone = !!user?.id && localStorage.getItem(`migo_setup_done_${user.id}`) === '1';
 
   useEffect(() => {
     if (loading) return;
@@ -26,17 +28,19 @@ const Index = () => {
       }
       return;
     }
-    // ▶ 명시적으로 false일 때만 리다이렉트 (프로필 DB 쉽취 실패 시 undefined 유지 → 홈 화면 유지)
-    // !setupComplete가 아닌 setupComplete === false: undefined는 네트워크 오류 fallback, 기존 유저 보호
-    if (setupComplete !== true) {
+    // ▶ 명시적으로 false이고 localStorage 안전망도 없을 때만 리다이렉트
+    // setupComplete === false && !localSetupDone → 신규/미완료 유저만 해당
+    // setupComplete === undefined → DB 조회 실패 fallback → 홈 화면 유지
+    // localSetupDone === true → 이미 완료한 유저, DB 오류여도 홈 유지
+    if (setupComplete === false && !localSetupDone) {
       navigate('/profile-setup', { replace: true });
     }
-  }, [user, loading, setupComplete, navigate]);
+  }, [user, loading, setupComplete, localSetupDone, navigate]);
 
   if (loading) return null;
-  // setupComplete === false: profile-setup으로 각지 중 → null
-  // setupComplete === undefined: DB 조회 실패 fallback → MatchPage 허용
-  if (!user || setupComplete !== true) return null;
+  // setupComplete === false && !localSetupDone: profile-setup으로 가는 중 → null
+  // 그 외(true, undefined, localSetupDone=true): MatchPage 렌더
+  if (!user || (setupComplete === false && !localSetupDone)) return null;
 
   return <MatchPage />;
 };
