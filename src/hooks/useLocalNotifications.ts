@@ -17,9 +17,9 @@ export function useLocalNotifications(userId: string | undefined) {
 
     const scheduleOfflineNotifications = async () => {
       // 기존에 예약된 알림 취소 (앱에 돌아왔으므로 리셋)
-      await LocalNotifications.cancel({ notifications: [{ id: 1 }, { id: 2 }, { id: 3 }] });
+      await LocalNotifications.cancel({ notifications: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 10 }] });
 
-      // 알림 내용 설정 (다국어 지원 가능하지만 여기서는 기본 텍스트 사용)
+      // 알림 내용 설정
       const notifications = [
         {
           id: 1,
@@ -50,19 +50,35 @@ export function useLocalNotifications(userId: string | undefined) {
           largeIcon: 'migo_notification_large',
           actionTypeId: '',
           extra: null
+        },
+        {
+          id: 10,
+          title: i18n.t('retention.fomo.peakTime.label', '🔥 지금 피크타임이에요!'),
+          body: i18n.t('retention.fomo.peakTime.desc', '지금 접속하면 매칭 확률이 3배 높아요.'),
+          schedule: {
+            every: 'day' as const,
+            on: {
+              hour: 20,
+              minute: 0
+            }
+          },
+          smallIcon: 'ic_stat_notification',
+          largeIcon: 'migo_notification_large',
+          actionTypeId: '',
+          extra: null
         }
       ];
 
       try {
         await LocalNotifications.schedule({ notifications });
-        console.log('Local notifications scheduled for 24h, 48h, 72h');
+        console.log('Local notifications scheduled for 24h, 48h, 72h, and peak time');
       } catch (err) {
         console.error('Error scheduling local notifications:', err);
       }
     };
 
     const cancelOfflineNotifications = async () => {
-      await LocalNotifications.cancel({ notifications: [{ id: 1 }, { id: 2 }, { id: 3 }] });
+      await LocalNotifications.cancel({ notifications: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 10 }] });
     };
 
     // 앱 상태 변경 리스너 (백그라운드로 가면 예약, 포어그라운드로 오면 취소)

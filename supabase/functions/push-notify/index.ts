@@ -148,6 +148,12 @@ function buildMessage(
 
   // notifications 테이블
   switch (record.type) {
+    case "peak_time":
+      return {
+        title: "🔥 피크타임 시작!",
+        body: "지금 피크타임이에요! 지금 접속하면 매칭 확률이 3배 높아요",
+        data: { type: "peak_time" },
+      };
     case "like":
       return {
         title: "❤️ 좋아요",
@@ -234,6 +240,7 @@ function toPrefKey(notifType: string): string | null {
     case "comment":     return "comment";
     case "group_join":  return "group";
     case "system":      return "system";
+    case "peak_time":   return "system";
     // 채팅 메시지는 별도 pref 없음 → 항상 발송
     case "message":     return null;
     default:            return "system"; // 그 외는 system으로 처리

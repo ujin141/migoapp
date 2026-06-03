@@ -29,6 +29,7 @@ import { MoreHorizontal } from "lucide-react";
 import { MissionModal, LikePopupModal, PassPopupModal, SuperLikeModal, LoginGateModal, FilterModal } from "./match/MatchModals";
 import { useAdMob } from "@/hooks/useAdMob";
 import { triggerHaptic } from "@/lib/haptics";
+import { sendMatchPush, sendLikePush } from "@/lib/pushService";
 
 const hasProfilePhoto = (profile: any) =>
   !!profile?.photo_url || (Array.isArray(profile?.photo_urls) && profile.photo_urls.length > 0);
@@ -668,13 +669,14 @@ const MatchPage = () => {
         onConflict: 'from_user,to_user'
       });
     } else {
-      // superlike: in_app_notifications留?INSERT (RPC媛€ ?대? likes 泥섎━??
+      // superlike: in_app_notifications만 INSERT (RPC가 이미 likes 처리)
       await supabase.from('in_app_notifications').insert({
         user_id: toUserId,
         type: kind,
         title: t("auto.ko_0257", "새 슈퍼라이크"),
         content: t("auto.t_0044", `${user.name}님이 슈퍼라이크를 보냈습니다.`)
       });
+      sendLikePush(toUserId, user.id, 'superlike');
     }
     // 2. ?곷?諛⑸룄 ?섎? like ?덈뒗吏€ ?뺤씤 ??match
     const {
@@ -717,24 +719,24 @@ const MatchPage = () => {
         console.error('[Match] chat_members insert failed, thread rolled back');
         return false;
       }
-      // 4. matches ?뚯씠釉??€????DB ?몃━嫄?trg_notify_on_match)媛€ ?먮룞?쇰줈 ?묒そ notifications INSERT
-      // ?좑툘 upsert ?€??insert: ??寃쎈줈??existingMatch媛€ ?놁쓣 ?뚮쭔 ?꾨떖 ??以묐났 ?몃━嫄?諛⑹?
+      // 4. matches 테이블 저장 (이때 DB 트리거 trg_notify_on_match가 양쪽에 notifications 생성)
       const { error: matchInsertErr } = await supabase.from('matches').insert({
         user1_id: u1,
         user2_id: u2,
         thread_id: thread.id
       });
-      // 23505 = ?숈떆 ?붿껌???섑븳 race condition 以묐났 ??臾댁떆
+      // 23505 = 동시에 요청으로 인한 race condition 중복 시 무시
       if (matchInsertErr && matchInsertErr.code !== '23505') {
         console.warn('[Match] matches insert error:', matchInsertErr.message);
       }
+      // 매칭 푸시 알림 발송 (상대방에게)
+      sendMatchPush(toUserId, user.id, thread.id);
       // 5. 濡쒖뺄 Web Push ?뚮┝ (?ш렇?쇱슫????
       const matchedProfile = withAds.find((p: any) => p.id === toUserId);
       if (matchedProfile?.name) notifyMatch(matchedProfile.name);
       return thread.id; // matched!
     }
-    // 醫뗭븘?? DB ?몃━嫄곌? notifications 泥섎━?????대씪?댁뼵?몄뿉??in_app_notifications (Realtime 諛곕꼫??留?INSERT
-    // superlike: ??遺꾧린(589-596)?먯꽌 ?대? 泥섎━?????댁쨷 INSERT 諛⑹?
+    // 좋아요 DB 트리거가 notifications 처리하지만 클라이언트에서도 in_app_notifications 등록
     if (kind !== 'superlike') {
       await supabase.from('in_app_notifications').insert({
         user_id: toUserId,
@@ -742,6 +744,7 @@ const MatchPage = () => {
         title: t("auto.ko_0258", "새 좋아요"),
         content: t("auto.t_0045", `${user.name}님이 좋아요를 보냈습니다.`)
       });
+      sendLikePush(toUserId, user.id, 'like');
     }
     return false;
     } catch (error) {
