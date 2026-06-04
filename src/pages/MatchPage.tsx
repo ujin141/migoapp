@@ -393,7 +393,7 @@ const MatchPage = () => {
       });
       const {
         data: likersData
-      } = await supabase.from('likes').select('from_user').eq('to_user', user.id);
+      } = await supabase.from('likes').select('from_user').eq('to_user', user.id).in('kind', ['like', 'superlike']);
       const likerIds = (likersData || []).map((r: any) => r.from_user).filter((id: string) =>
         !swipedIds.has(id) && !matchedIds.has(id) && id !== user.id  // BUG-15: ?대? 留ㅼ묶???좎? ?쒖쇅
       );
@@ -612,14 +612,26 @@ const MatchPage = () => {
     if (profile?.isAd) {
       // Just swipe away
     } else if (profile?.id) {
-      // ?⑥뒪 ?⑦꽩 湲곕줉
-      runAfterSwipe(() => {
+      // 패스 패턴 기록
+      runAfterSwipe(async () => {
         recordSwipe({
           id: profile.id,
           nationality: profile.nationality,
           travel_style: profile.travelStyle?.[0],
           age: profile.age
         }, false);
+
+        // 서버 DB에 Pass 내역 저장 (24시간 동안 매칭 발견 노출 제외용)
+        if (user?.id) {
+          await supabase.from('likes').upsert({
+            from_user: user.id,
+            to_user: profile.id,
+            kind: 'pass',
+            created_at: new Date().toISOString()
+          }, {
+            onConflict: 'from_user,to_user'
+          });
+        }
       });
 
       // Pass ?앹뾽 ?쒖떆
@@ -664,7 +676,8 @@ const MatchPage = () => {
         from_user: user.id,
         to_user: toUserId,
         kind,
-        message
+        message,
+        created_at: new Date().toISOString()
       }, {
         onConflict: 'from_user,to_user'
       });
@@ -683,58 +696,24 @@ const MatchPage = () => {
       data: mutual
     } = await supabase.from('likes').select('from_user').eq('from_user', toUserId).eq('to_user', user.id).maybeSingle();
     if (mutual) {
-      // ?대? 梨꾪똿諛⑹씠 ?덈뒗吏€ 癒쇱? ?뺤씤 (以묐났 諛⑹?)
-      const [u1, u2] = [user.id, toUserId].sort();
-      const { data: existingMatch } = await supabase
-        .from('matches')
-        .select('thread_id')
-        .eq('user1_id', u1)
-        .eq('user2_id', u2)
-        .maybeSingle();
-
-      if (existingMatch?.thread_id) {
-        return existingMatch.thread_id; // ?대? 梨꾪똿諛?議댁옱 ???ъ궗??
-      }
-
-      // 3. chat_thread ?앹꽦
-      const {
-        data: thread, error: threadError
-      } = await supabase.from('chat_threads').insert({
-        is_group: false
-      }).select('id').single();
-      if (threadError || !thread) {
-        console.error('[Match] chat_threads insert failed:', threadError);
-        return false;
-      }
-      // MATCH-FIX: chat_members INSERT ?ㅽ뙣 ??orphan thread ?뺣━ ??以묐떒
-      const { error: membersError } = await supabase.from('chat_members').insert([{
-        thread_id: thread.id,
-        user_id: user.id
-      }, {
-        thread_id: thread.id,
-        user_id: toUserId
-      }]);
-      if (membersError) {
-        await supabase.from('chat_threads').delete().eq('id', thread.id);
-        console.error('[Match] chat_members insert failed, thread rolled back');
-        return false;
-      }
-      // 4. matches 테이블 저장 (이때 DB 트리거 trg_notify_on_match가 양쪽에 notifications 생성)
-      const { error: matchInsertErr } = await supabase.from('matches').insert({
-        user1_id: u1,
-        user2_id: u2,
-        thread_id: thread.id
+      // RPC 호출로 트랜잭션 안전하게 매치 대화방 가져오거나 생성
+      const { data: threadId, error: rpcError } = await supabase.rpc('get_or_create_match_thread', {
+        p_user_a: user.id,
+        p_user_b: toUserId
       });
-      // 23505 = 동시에 요청으로 인한 race condition 중복 시 무시
-      if (matchInsertErr && matchInsertErr.code !== '23505') {
-        console.warn('[Match] matches insert error:', matchInsertErr.message);
+
+      if (rpcError || !threadId) {
+        console.error('[Match] get_or_create_match_thread rpc failed:', rpcError);
+        return false;
       }
+
       // 매칭 푸시 알림 발송 (상대방에게)
-      sendMatchPush(toUserId, user.id, thread.id);
-      // 5. 濡쒖뺄 Web Push ?뚮┝ (?ш렇?쇱슫????
+      sendMatchPush(toUserId, user.id, threadId);
+
+      // 5. 로컬 Web Push 알림 (포그라운드인 경우)
       const matchedProfile = withAds.find((p: any) => p.id === toUserId);
       if (matchedProfile?.name) notifyMatch(matchedProfile.name);
-      return thread.id; // matched!
+      return threadId; // matched!
     }
     // 좋아요 DB 트리거가 notifications 처리하지만 클라이언트에서도 in_app_notifications 등록
     if (kind !== 'superlike') {
