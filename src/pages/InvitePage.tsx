@@ -342,6 +342,23 @@ const InvitePage = () => {
               <p className="text-xs font-bold text-muted-foreground">{i18n.t("invite.myLink", "초대 가입 링크")}</p>
               <div className="flex items-center gap-2 bg-muted rounded-2xl px-4 py-3 border border-border/40 min-w-0">
                 <span className="text-xs text-muted-foreground truncate flex-1 leading-normal">{referralLink}</span>
+                
+                {navigator.share && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      navigator.share({
+                        title: i18n.t("invite.shareTitle", "Migo 초대"),
+                        text: i18n.t("invite.shareText", "Migo에서 같이 여행할 친구를 만나보세요!"),
+                        url: referralLink,
+                      }).catch((err) => console.log("Error sharing:", err));
+                    }}
+                    className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center text-muted-foreground shrink-0"
+                  >
+                    <Share2 size={12} />
+                  </motion.button>
+                )}
+
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => copyToClipboard(referralLink, setCopiedLink)}

@@ -150,19 +150,58 @@ const AppContent = () => {
   const navigate = useNavigate();
   const { user, loading, sessionReady } = useAuth();
   
-  // 리퍼럴 URL 쿼리 파라미터(?ref=CODE) 파싱 후 저장
+  // ── UTM 및 트래픽 유입 트래킹 엔진 ──────────────────────────────
   useEffect(() => {
     try {
+      // 1. 고유 방문자 ID 생성/조회 (UUID)
+      let visitorId = localStorage.getItem("migo_visitor_id");
+      if (!visitorId) {
+        visitorId = 'vis_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem("migo_visitor_id", visitorId);
+      }
+
+      // 2. URL 파라미터 파싱
       const params = new URLSearchParams(window.location.search);
+      const utmSource = params.get("utm_source");
+      const utmMedium = params.get("utm_medium");
+      const utmCampaign = params.get("utm_campaign");
       const refCode = params.get("ref");
+
+      // 3. UTM 정보 로컬스토리지 임시 보존 (가입 기여 분석용)
+      if (utmSource) localStorage.setItem("migo_utm_source", utmSource);
+      if (utmMedium) localStorage.setItem("migo_utm_medium", utmMedium);
+      if (utmCampaign) localStorage.setItem("migo_utm_campaign", utmCampaign);
       if (refCode) {
         localStorage.setItem("migo_pending_referral", refCode.trim().toUpperCase());
         console.log("Saved pending referral code:", refCode);
       }
+
+      // 4. traffic_logs 테이블에 유입 기록 적재
+      const pagePath = location.pathname + location.hash;
+      const referrerUrl = document.referrer || "";
+      const userAgent = navigator.userAgent || "";
+
+      // 비블로킹 백그라운드로 로깅 수행
+      supabase.from("traffic_logs").insert({
+        visitor_id: visitorId,
+        page_path: pagePath,
+        utm_source: utmSource || localStorage.getItem("migo_utm_source"),
+        utm_medium: utmMedium || localStorage.getItem("migo_utm_medium"),
+        utm_campaign: utmCampaign || localStorage.getItem("migo_utm_campaign"),
+        referrer_url: referrerUrl,
+        user_agent: userAgent
+      }).then(({ error }) => {
+        if (error) {
+          console.warn("[Attribution] Traffic log insert failed:", error.message);
+        } else {
+          console.log("[Attribution] Logged page view:", pagePath);
+        }
+      });
+
     } catch (err) {
-      console.error("Failed to parse URL query parameters:", err);
+      console.error("Traffic tracking error:", err);
     }
-  }, []);
+  }, [location.pathname, location.hash]);
   
   // 실시간 활동 토스트 — 프로필 셋업 완료 유저에게만 표시
   // userId 전달: "👀 누군가 프로필 조회" 메시지 선택 시 실제 DB에 기록
