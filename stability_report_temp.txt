@@ -1,0 +1,103 @@
+﻿The following is a <SYSTEM_MESSAGE> not actually sent by the user. It is provided by the system as important information to pay attention to.
+
+<SYSTEM_MESSAGE>
+[Message] timestamp=2026-06-02T02:43:46Z sender=d648e7bd-3c00-4b16-b966-5f6b5e125202 priority=MESSAGE_PRIORITY_HIGH content=# Migo App Stability Analysis ??Complete Report
+
+I've read all 9 files. Here is the full audit with every issue found, file, line, and fix.
+
+---
+
+## ?뱚 1. `src/App.tsx`
+
+### Issue 1 ??Unhandled promise rejection in appUrlOpen listener (L375-391)
+**Type:** Unhandled promise rejection, Missing error handling  
+**Lines:** 375, 387-390
+```ts
+const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
+if (!error) {
+  navigate(await getPostAuthRoute(authData.session), { replace: true });
+  // ??authData.session could be null if no session despite no error
+}
+```
+`authData.session` is not null-checked before being passed to `getPostAuthRoute`. If `authData.session` is null/undefined, `getPostAuthRoute(null)` will throw, crashing the async listener entirely with an unhandled rejection.
+
+**Fix:**
+```ts
+if (!error && authData?.session) {
+  navigate(await getPostAuthRoute(authData.session), { replace: true });
+}
+```
+Same pattern at line 388.
+
+---
+
+### Issue 2 ??`useEffect` missing cleanup for `appUrlOpen` listener when Capacitor is not native (L365-399)
+**Type:** Potential listener leak  
+**Lines:** 395-398
+```ts
+return () => {
+  authListener.then(listener => listener.remove());
+};
+```
+The cleanup correctly calls `.then()` on the promise, but if `authListener` is rejected, the cleanup silently fails. A `.catch()` should be added.
+
+**Fix:**
+```ts
+return () => {
+  authListener.then(listener => listener.remove()).catch(() => {});
+};
+```
+
+---
+
+### Issue 3 ??`useEffect` missing cleanup for `backButton` listener (L423-425)
+**Type:** Same as above  
+**Lines:** 423-425
+```ts
+return () => {
+  backHandler.then(h => h.remove());
+};
+```
+Same as Issue 2 ??unhandled rejection possible on cleanup.
+
+**Fix:** Add `.catch(() =
+<truncated 19291 bytes>
+# Issue 39 ??`likeResetTimerRef` is not cleared on component unmount (L179, L474-476)
+**Lines:** 474-476
+```ts
+return () => {
+  if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
+};
+```
+This IS correctly cleaned up ??inside the `useEffect` cleanup. Good.
+
+---
+
+## ?뵶 Priority Summary
+
+| Severity | Issue | File | Lines |
+|---|---|---|---|
+| ?뵶 Critical | setState after unmount (async realtime handlers) | NotificationContext | 211-252, 295-331 |
+| ?뵶 Critical | fetchProfiles no unmount guard (9 DB calls) | MatchPage | 202-472 |
+| ?뵶 Critical | purchaseSubscriptionIAP no error handling post-IAP | SubscriptionContext | 359-370 |
+| ?뵶 Critical | messages table globally subscribed (all users' messages) | NotificationContext | 286-294 |
+| ?윝 High | fetchPosts/fetchGroups no stale guard | useDiscoverData | 31, 103 |
+| ?윝 High | addBoosts/addSuperLikes SELECT+UPDATE race condition | SubscriptionContext | 461, 472 |
+| ?윝 High | saveLikeAndCheckMatch no try/catch | MatchPage | 647-737 |
+| ?윝 High | authData.session null-check missing | App.tsx | 375 |
+| ?윞 Medium | broadcastLocation updates lastSentRef when not joined | useLocationTracker | 60 |
+| ?윞 Medium | markAllRead localStorage no size cap | NotificationContext | 409 |
+| ?윞 Medium | online toast no debounce | useNetworkStatus | 29-35 |
+| ?윞 Medium | sendProfileViewNotif not useCallback | MatchPage | 957 |
+| ?윞 Medium | fetchGroups Promise.all should be allSettled | useDiscoverData | 203 |
+| ?윟 Low | fetchProfiles called without .catch() | MatchPage | 473 |
+| ?윟 Low | increment_post_views fire-and-forget | useDiscoverData | 90 |
+| ?윟 Low | DOM error overlay never removed in DEV | main.tsx | 52, 78 |
+
+---
+
+## Artifact
+Full analysis saved at: `C:\Users\ujin1\.gemini\antigravity\brain\d648e7bd-3c00-4b16-b966-5f6b5e125202\stability_analysis.md`
+
+(Note: the artifact directory write is being reported inline here since all findings are in this message ??all issues above are complete and actionable.)
+</SYSTEM_MESSAGE>

@@ -39,7 +39,19 @@ export const useLocationTracker = (userId: string | undefined, enabled: boolean 
     // Initialize Broadcast Channel
     if (!channelRef.current) {
       channelRef.current = supabase.channel("public-map");
-      channelRef.current.subscribe();
+      channelRef.current.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude: lat, longitude: lng } = position.coords;
+              setCurrentLocation({ lat, lng });
+              broadcastLocation(lat, lng);
+            },
+            () => {},
+            { enableHighAccuracy: true }
+          );
+        }
+      });
     }
 
     const broadcastLocation = (lat: number, lng: number) => {

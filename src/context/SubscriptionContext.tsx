@@ -536,13 +536,12 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       const userId = user.id;
       try {
-        const { data: itemData, error: loadErr } = await supabase.from("user_items").select("boosts").eq("user_id", userId).maybeSingle();
-        if (loadErr) throw loadErr;
-        const currentBoosts = itemData?.boosts ?? 0;
-        const { error: upsertErr } = await supabase.from("user_items").upsert({
-          user_id: userId, boosts: currentBoosts + amount
-        }, { onConflict: 'user_id' });
-        if (upsertErr) throw upsertErr;
+        const { error: rpcErr } = await supabase.rpc('increment_user_items', {
+          p_user_id: userId,
+          p_boosts: amount,
+          p_super_likes: 0
+        });
+        if (rpcErr) throw rpcErr;
       } catch (err) {
         setBoostsCount(prev => prev - amount); // 롤백
         console.error('[Subscription] addBoosts DB sync failed:', err);
@@ -555,13 +554,12 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       const userId = user.id;
       try {
-        const { data: itemData, error: loadErr } = await supabase.from("user_items").select("super_likes").eq("user_id", userId).maybeSingle();
-        if (loadErr) throw loadErr;
-        const current = itemData?.super_likes ?? 0;
-        const { error: upsertErr } = await supabase.from("user_items").upsert({
-          user_id: userId, super_likes: current + amount
-        }, { onConflict: 'user_id' });
-        if (upsertErr) throw upsertErr;
+        const { error: rpcErr } = await supabase.rpc('increment_user_items', {
+          p_user_id: userId,
+          p_boosts: 0,
+          p_super_likes: amount
+        });
+        if (rpcErr) throw rpcErr;
       } catch (err) {
         setSuperLikesLeft(prev => prev - amount); // 롤백
         console.error('[Subscription] addSuperLikes DB sync failed:', err);
@@ -655,17 +653,22 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     // DB 업데이트
     if (user) {
       const expiresAt = new Date(Date.now() + BOOST_DURATION * 1000).toISOString();
-      // ✅ Bug4 fix: DB에서 최신 boosts 값 읽어서 차감 (stale closure 방지)
-      const { data: latestItem } = await supabase.from("user_items").select("boosts").eq("user_id", user.id).maybeSingle();
-      const latestBoosts = latestItem?.boosts ?? boostsCount;
-      await Promise.all([
-        supabase.from("profiles")
-          .update({ boost_expires_at: expiresAt })
-          .eq("id", user.id),
-        supabase.from("user_items")
-          .update({ boosts: Math.max(0, latestBoosts - 1) })
-          .eq("user_id", user.id)
-      ]);
+      try {
+        const results = await Promise.all([
+          supabase.from("profiles")
+            .update({ boost_expires_at: expiresAt })
+            .eq("id", user.id),
+          supabase.rpc('increment_user_items', {
+            p_user_id: user.id,
+            p_boosts: -1,
+            p_super_likes: 0
+          })
+        ]);
+        const err = results.find(r => r.error);
+        if (err?.error) throw err.error;
+      } catch (err) {
+        console.error('[Subscription] startBoost DB update failed:', err);
+      }
     }
 
     setBoostsCount(prev => Math.max(0, prev - 1));

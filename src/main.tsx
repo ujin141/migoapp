@@ -78,6 +78,12 @@ window.addEventListener('error', (event) => {
       const errorDiv = document.createElement('div');
       errorDiv.id = 'migo-critical-error';
       errorDiv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#ff0000;color:white;z-index:999999;padding:60px 20px;overflow:auto;word-wrap:break-word;font-family:monospace;font-size:14px;';
+      
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = '❌ Close [X]';
+      closeBtn.style.cssText = 'position:absolute;top:15px;right:15px;background:#ffffff;color:#ff0000;border:none;padding:8px 12px;font-weight:bold;border-radius:8px;cursor:pointer;font-family:sans-serif;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,0.2);';
+      closeBtn.onclick = () => errorDiv.remove();
+      
       const safeMsgText = document.createElement('span');
       safeMsgText.textContent = event.error?.message || event.message;
       const safePreText = document.createElement('pre');
@@ -85,7 +91,7 @@ window.addEventListener('error', (event) => {
       safePreText.textContent = event.error?.stack || '';
       const title = document.createElement('h2');
       title.textContent = 'CRITICAL JS ERROR [DEV ONLY]';
-      errorDiv.append(title, document.createElement('br'), safeMsgText, document.createElement('br'), safePreText);
+      errorDiv.append(closeBtn, title, document.createElement('br'), safeMsgText, document.createElement('br'), safePreText);
       document.body.appendChild(errorDiv);
     }
   }

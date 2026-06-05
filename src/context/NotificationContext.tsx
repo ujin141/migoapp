@@ -106,10 +106,16 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const { user, sessionReady } = useAuth();
   const userId = user?.id;
 
-  // CRIT-3 fix: 내 채팅방 ID 목록을 ref로 캐시 (매 메시지마다 DB 조회 방지)
   const myThreadIdsRef = useRef<Set<string>>(new Set());
-  // 발신자 프로필 캐시 (메시지 배너용, 중복 조회 방지)
   const senderProfileCache = useRef<Record<string, { name: string; photo_url: string }>>({});
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // ── 로컬 읽음 캐시 (DB 실패 시에도 UI 반영 유지) ──
   const [readIds, setReadIds] = useState<Set<string>>(() => {
@@ -120,20 +126,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       return new Set<string>();
     }
   });
-
-  // CRIT-3 fix: 내 채팅방 ID 목록을 ref로 캐시 (매 메시지마다 DB 조회 방지)
-
-  // 발신자 프로필 캐시 (메시지 배너용, 중복 조회 방지)
-
-
-  // ── 로컬 읽음 캐시 (DB 실패 시에도 UI 반영 유지) ──
-
-
-
-
-
-
-
 
   const readIdsRef = useRef(readIds);
   useEffect(() => { readIdsRef.current = readIds; }, [readIds]);
@@ -146,11 +138,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
   const unreadCount = notifs.filter((n) => !n.read && !readIds.has(n.id)).length;
 
-  // ── 알림 목록 fetch ──
   useEffect(() => {
     if (!userId || !sessionReady) return;
-
-    let isMounted = true;
 
     const fetchNotifs = async () => {
       try {
@@ -171,7 +160,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             .then(r => r.error ? { data: [], error: r.error } : r)
         ]);
 
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
 
         let combined: Notif[] = [];
 
@@ -210,6 +199,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           );
         }
 
+        if (!isMountedRef.current) return;
         combined.sort((a: any, b: any) => b._createdAt - a._createdAt);
         setNotifs(combined.slice(0, 50));
       } catch (err) {
@@ -233,7 +223,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-          if (!isMounted) return;
+          if (!isMountedRef.current) return;
           const n = payload.new as any;
           const { data: actorProfile } = await supabase
             .from("profiles")
@@ -241,7 +231,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             .eq("id", n.actor_id)
             .single();
 
-          if (!isMounted) return;
+          if (!isMountedRef.current) return;
 
           setNotifs((prev) => [
             {
@@ -289,7 +279,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          if (!isMounted) return;
+          if (!isMountedRef.current) return;
           const n = payload.new as any;
           setNotifs((prev) => [
             {
@@ -321,7 +311,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           // 대신 myThreadIdsRef로 클라이언트에서 필터링
         },
         async (payload) => {
-          if (!isMounted) return;
+          if (!isMountedRef.current) return;
           const msg = payload.new as any;
           if (!msg.sender_id || msg.sender_id === userId) return;
 
@@ -337,14 +327,14 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
               .eq("id", msg.sender_id)
               .single();
             
-            if (!isMounted) return;
+            if (!isMountedRef.current) return;
             if (sender) {
               senderProfileCache.current[msg.sender_id] = sender;
               senderProfile = sender;
             }
           }
 
-          if (!isMounted) return;
+          if (!isMountedRef.current) return;
 
           const rawText = msg.text || msg.content || "";
           const preview =
@@ -362,7 +352,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           // 4초 후 자동 닫기 (이전 타이머 취소 후 재설정)
           if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
           bannerTimerRef.current = setTimeout(() => {
-            if (isMounted) setMessageBanner(null);
+            if (isMountedRef.current) setMessageBanner(null);
           }, 4000);
         }
       )
@@ -375,7 +365,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       .select("thread_id")
       .eq("user_id", userId)
       .then(({ data }) => {
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
         if (data) {
           myThreadIdsRef.current = new Set(data.map((m: any) => m.thread_id));
         }
@@ -388,14 +378,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         event: 'INSERT', schema: 'public', table: 'chat_members',
         filter: `user_id=eq.${userId}`
       }, (payload) => {
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
         const newThreadId = (payload.new as any)?.thread_id;
         if (newThreadId) myThreadIdsRef.current.add(newThreadId);
       })
       .subscribe();
 
     return () => {
-      isMounted = false;
       supabase.removeChannel(channel);
       supabase.removeChannel(matchChannel);
       // 컨포넌트 언마운트 시 pending 배너 타이머 정리
@@ -412,9 +401,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       setReadIds((prev) => {
         const next = new Set(prev);
         next.add(id);
-        // ARCH-2 fix: readNotifs 최대 500개 제한 (localStorage 무제한 성장 방지)
+        // ARCH-2 fix: readNotifs 최대 100개 제한 (localStorage 무제한 성장 방지)
         const arr = [...next];
-        const trimmed = arr.length > 500 ? arr.slice(arr.length - 500) : arr;
+        const trimmed = arr.length > 100 ? arr.slice(arr.length - 100) : arr;
         localStorage.setItem("readNotifs", JSON.stringify(trimmed));
         return new Set(trimmed);
       });
@@ -443,9 +432,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setReadIds((prevIds) => {
           const next = new Set(prevIds);
           allIds.forEach((id) => next.add(id));
-          // readNotifs 최대 500개 제한 (localStorage 무제한 성장 방지)
+          // readNotifs 최대 100개 제한 (localStorage 무제한 성장 방지)
           const arr = [...next];
-          const trimmed = arr.length > 500 ? arr.slice(arr.length - 500) : arr;
+          const trimmed = arr.length > 100 ? arr.slice(arr.length - 100) : arr;
           localStorage.setItem("readNotifs", JSON.stringify(trimmed));
           return new Set(trimmed);
         });

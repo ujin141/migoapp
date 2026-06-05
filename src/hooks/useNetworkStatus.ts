@@ -12,27 +12,52 @@ export function useNetworkStatus() {
 
   useEffect(() => {
     let offlineToastShown = false;
+    let offlineTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let onlineTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const handleOffline = () => {
-      setIsOnline(false);
-      if (!offlineToastShown) {
-        offlineToastShown = true;
-        toast({
-          title: i18n.t("network.offline", "No Internet Connection"),
-          description: i18n.t("network.offlineDesc", "Connection will resume automatically when restored."),
-          variant: "destructive",
-          duration: 0, // 직접 닫기 전까지 유지
-        });
+      if (onlineTimeoutId) {
+        clearTimeout(onlineTimeoutId);
+        onlineTimeoutId = null;
+      }
+      
+      // 1.5초 디바운스: 일시적인 신호 흔들림 시 토스트 노출 차단
+      if (!offlineTimeoutId) {
+        offlineTimeoutId = setTimeout(() => {
+          setIsOnline(false);
+          if (!offlineToastShown) {
+            offlineToastShown = true;
+            toast({
+              title: i18n.t("network.offline", "No Internet Connection"),
+              description: i18n.t("network.offlineDesc", "Connection will resume automatically when restored."),
+              variant: "destructive",
+              duration: 0, // 직접 닫기 전까지 유지
+            });
+          }
+        }, 1500);
       }
     };
 
     const handleOnline = () => {
+      if (offlineTimeoutId) {
+        clearTimeout(offlineTimeoutId);
+        offlineTimeoutId = null;
+      }
+      
       setIsOnline(true);
-      offlineToastShown = false;
-      toast({
-        title: i18n.t("network.online", "Back Online ✅"),
-        duration: 3000,
-      });
+
+      // 이미 오프라인 토스트가 표시된 경우에만 온라인 복귀 알림을 500ms 디바운스 후 표시
+      if (offlineToastShown && !onlineTimeoutId) {
+        onlineTimeoutId = setTimeout(() => {
+          offlineToastShown = false;
+          toast({
+            title: i18n.t("network.online", "Back Online ✅"),
+            duration: 3000,
+          });
+        }, 500);
+      } else if (!offlineToastShown) {
+        offlineToastShown = false;
+      }
     };
 
     window.addEventListener("offline", handleOffline);
@@ -41,6 +66,8 @@ export function useNetworkStatus() {
     return () => {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
+      if (offlineTimeoutId) clearTimeout(offlineTimeoutId);
+      if (onlineTimeoutId) clearTimeout(onlineTimeoutId);
     };
   }, []);
 
