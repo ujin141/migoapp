@@ -143,7 +143,7 @@ const MOCK_TRAVELERS = {
 };
 
 export default function TravelDnaPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -309,7 +309,7 @@ export default function TravelDnaPage() {
 
       // 3. MIGO 로고
       ctx.fillStyle = "#ffffff";
-      ctx.font = "black 90px sans-serif";
+      ctx.font = "bold 90px sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("M I G O", canvas.width / 2, 220);
 
@@ -338,59 +338,90 @@ export default function TravelDnaPage() {
       ctx.closePath();
       ctx.fill();
 
+      // 텍스트 너비 맞춤 헬퍼
+      const drawTextFit = (text: string, y: number, maxFSize: number, color: string, isBold: boolean = true) => {
+        let fSize = maxFSize;
+        ctx.fillStyle = color;
+        ctx.textAlign = "center";
+        do {
+          ctx.font = `${isBold ? "bold" : "normal"} ${fSize}px sans-serif`;
+          fSize -= 2;
+        } while (ctx.measureText(text).width > (cardW - 80) && fSize > 16);
+        ctx.fillText(text, canvas.width / 2, y);
+      };
+
       // 5. 유저 이름
-      ctx.fillStyle = "#6366f1";
-      ctx.font = "bold 44px sans-serif";
-      ctx.fillText(`${defaultName}'s Travel DNA`, canvas.width / 2, cardY + 160);
+      drawTextFit(`${defaultName}'s Travel DNA`, cardY + 160, 44, "#6366f1");
 
       // 6. 이모지
       const saju = SAJU_DATA[resultElement];
       ctx.font = "160px sans-serif";
       ctx.fillText(saju.emoji, canvas.width / 2, cardY + 380);
 
-      // 7. 유형 이름
-      ctx.fillStyle = "#1e293b";
-      ctx.font = "black 60px sans-serif";
-      // 번역 적용
-      ctx.fillText(t(saju.nameKey), canvas.width / 2, cardY + 540);
+      // 7. 유형 이름 (자동 축소 폰트 적용)
+      drawTextFit(t(saju.nameKey), cardY + 540, 52, "#1e293b");
 
       // 8. 숏 키워드
       ctx.fillStyle = "#64748b";
       ctx.font = "bold 36px sans-serif";
       ctx.fillText(t(saju.shortNameKey), canvas.width / 2, cardY + 620);
 
-      // 9. 설명글 (멀티라인 줄바꿈 처리)
-      ctx.fillStyle = "#475569";
-      ctx.font = "normal 34px sans-serif";
-      const descText = t(saju.descKey);
-      const words = descText.split(' ');
-      let line = '';
-      let lineY = cardY + 740;
-      const maxWidth = cardW - 160;
+      // 9. 설명글 (다국어 호환 및 줄바꿈 처리)
+      const wrapText = (text: string, startY: number, lineH: number, maxW: number, maxLines: number = 4) => {
+        ctx.fillStyle = "#475569";
+        ctx.font = "normal 32px sans-serif";
+        ctx.textAlign = "center";
 
-      for (let n = 0; n < words.length; n++) {
-        const testLine = line + words[n] + ' ';
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
-        if (testWidth > maxWidth && n > 0) {
-          ctx.fillText(line, canvas.width / 2, lineY);
-          line = words[n] + ' ';
-          lineY += 50;
+        let lines: string[] = [];
+        let currentLine = "";
+        const isCJK = i18n.language === "ko" || i18n.language === "ja" || i18n.language === "zh";
+
+        if (isCJK) {
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const testLine = currentLine + char;
+            if (ctx.measureText(testLine).width > maxW) {
+              lines.push(currentLine);
+              currentLine = char;
+            } else {
+              currentLine = testLine;
+            }
+          }
+          if (currentLine) lines.push(currentLine);
         } else {
-          line = testLine;
+          const words = text.split(' ');
+          for (let i = 0; i < words.length; i++) {
+            const word = words[i];
+            const testLine = currentLine + (currentLine ? " " : "") + word;
+            if (ctx.measureText(testLine).width > maxW) {
+              lines.push(currentLine);
+              currentLine = word;
+            } else {
+              currentLine = testLine;
+            }
+          }
+          if (currentLine) lines.push(currentLine);
         }
-      }
-      ctx.fillText(line, canvas.width / 2, lineY);
+
+        let currentY = startY;
+        const totalLines = Math.min(lines.length, maxLines);
+        for (let i = 0; i < totalLines; i++) {
+          ctx.fillText(lines[i], canvas.width / 2, currentY);
+          currentY += lineH;
+        }
+      };
+
+      wrapText(t(saju.descKey), cardY + 720, 50, cardW - 140);
 
       // 10. 해시태그 목록
       ctx.fillStyle = "#8b5cf6";
       ctx.font = "bold 34px sans-serif";
-      ctx.fillText(saju.tags.join("  "), canvas.width / 2, cardY + 980);
+      ctx.fillText(saju.tags.join("  "), canvas.width / 2, cardY + 985);
 
       // 11. 하단 도메인 안내
       ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      ctx.font = "black 42px sans-serif";
-      ctx.fillText("나도 사주 궁합 보러 가기 👉 www.migo-go.com", canvas.width / 2, cardY + 1240);
+      ctx.font = "bold 42px sans-serif";
+      ctx.fillText("너도 사주 궁합 보러 가기 👉 www.migo-go.com", canvas.width / 2, cardY + 1240);
 
       setCardImage(canvas.toDataURL("image/png"));
     }, 150);
@@ -421,7 +452,7 @@ export default function TravelDnaPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-sky-500/10 blur-[90px] pointer-events-none" />
 
       {/* Header */}
-      <header className="w-full max-w-md px-6 pt-6 flex items-center justify-between z-10 shrink-0">
+      <header className="relative w-full max-w-md px-6 pt-6 flex items-center justify-between z-20 shrink-0">
         <div className="flex items-center gap-2">
           <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-600/20">
             <Compass className="w-5 h-5 text-white animate-spin-slow" />
@@ -757,7 +788,7 @@ export default function TravelDnaPage() {
       <AnimatePresence>
         {showNicknameModal && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0d0f14]/80 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -812,7 +843,7 @@ export default function TravelDnaPage() {
       <AnimatePresence>
         {showCardModal && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0d0f14]/80 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -830,7 +861,7 @@ export default function TravelDnaPage() {
               </h3>
 
               {/* 렌더링용 캔버스 (숨김) */}
-              <canvas ref={canvasRef} className="hidden" />
+              <canvas ref={canvasRef} className="hidden" style={{ display: "none" }} />
 
               {/* 미리보기 이미지 */}
               <div className="w-full aspect-[9/16] rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner relative flex items-center justify-center">

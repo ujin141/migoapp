@@ -1026,7 +1026,7 @@ export default function MySajuDetailModal({
 
       // 5. App Logo
       ctx.fillStyle = "#ffffff";
-      ctx.font = "black 90px sans-serif";
+      ctx.font = "bold 90px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("M I G O", canvas.width / 2, 220);
@@ -1110,7 +1110,7 @@ export default function MySajuDetailModal({
       function drawCardDetails() {
         // Name & Title
         ctx.fillStyle = "#0f172a"; // slate-900
-        ctx.font = "black 56px sans-serif";
+        ctx.font = "bold 56px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(profile?.name || "Traveler", canvas.width / 2, cardY + 330);
 
@@ -1248,7 +1248,7 @@ export default function MySajuDetailModal({
         ctx.stroke();
 
         ctx.fillStyle = "#ffffff";
-        ctx.font = "black 46px sans-serif";
+        ctx.font = "bold 46px sans-serif";
         ctx.fillText(
           `${{ ko: "초대코드", en: "Referral Code", ja: "招待コード", zh: "邀请码" }[lang] || "Referral Code"}: ${refCode}`,
           canvas.width / 2,
@@ -2600,7 +2600,7 @@ export default function MySajuDetailModal({
         </motion.div>
 
         {/* Hidden Canvas */}
-        <canvas ref={canvasRef} className="hidden" />
+        <canvas ref={canvasRef} className="hidden" style={{ display: "none" }} />
 
         {/* ── Instagram Story Card Preview Modal ── */}
         <AnimatePresence>

@@ -120,7 +120,7 @@ const InvitePage = () => {
 
       // MIGO 타이틀/로고
       ctx.fillStyle = "#ffffff";
-      ctx.font = "black 90px sans-serif";
+      ctx.font = "bold 90px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("M I G O", canvas.width / 2, 220);
@@ -214,7 +214,7 @@ const InvitePage = () => {
       function drawCardDetails() {
         // 이름
         ctx.fillStyle = "#1e293b"; // slate-800
-        ctx.font = "black 64px sans-serif";
+        ctx.font = "bold 64px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(profile?.name || "Traveler", canvas.width / 2, cardY + 440);
 
@@ -251,7 +251,7 @@ const InvitePage = () => {
         ctx.fill();
 
         ctx.fillStyle = "#6366f1"; // primary-indigo
-        ctx.font = "black 42px sans-serif";
+        ctx.font = "bold 42px sans-serif";
         ctx.fillText(`CODE: ${referralCode}`, canvas.width / 2, codeBoxY + 60);
 
         // 하단 안내
@@ -448,7 +448,7 @@ const InvitePage = () => {
               </h3>
 
               {/* 렌더링용 캔버스 (화면에 보이지 않고 이미지만 추출) */}
-              <canvas ref={canvasRef} className="hidden" />
+              <canvas ref={canvasRef} className="hidden" style={{ display: "none" }} />
 
               {/* 이미지 결과물 표시 */}
               <div className="w-full aspect-[9/16] rounded-2xl overflow-hidden border border-border/80 bg-muted shadow-inner relative flex items-center justify-center">
