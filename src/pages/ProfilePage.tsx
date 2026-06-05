@@ -37,6 +37,34 @@ const getDeterministicHash = (str: string): number => {
   return Math.abs(hash);
 };
 
+const REACTIONS_MAP: Record<string, string> = {
+  ko: "반응",
+  en: "Reactions",
+  ja: "反応",
+  zh: "反应",
+  es: "Reacciones",
+  fr: "Réactions",
+  de: "Reaktionen",
+  pt: "Reações",
+  id: "Reaksi",
+  vi: "Tương tác",
+  th: "การโต้ตอบ",
+};
+
+const ACTIVITY_MAP: Record<string, string> = {
+  ko: "활동",
+  en: "Activity",
+  ja: "活動",
+  zh: "活动",
+  es: "Actividad",
+  fr: "Activité",
+  de: "Aktivität",
+  pt: "Atividade",
+  id: "Aktivitas",
+  vi: "Hoạt động",
+  th: "กิจกรรม",
+};
+
 const SAJU_ELEMENTS: Record<
   string,
   {
@@ -190,9 +218,11 @@ const calculateSajuElement = (p: any): "wood" | "fire" | "earth" | "metal" | "wa
 
 const ProfilePage = () => {
   const {
-    t
+    t,
+    i18n
   } = useTranslation();
   const navigate = useNavigate();
+  const curLang = (i18n.language?.split('-')[0] || 'en').toLowerCase();
   const {
     isPlus,
     boostsCount,
@@ -1514,7 +1544,7 @@ const ProfilePage = () => {
       <div className="mx-4 mt-2 grid grid-cols-3 gap-2">
         {[
           {
-            label: t("profilePage.profileHub.reactions", "반응"),
+            label: t("profilePage.profileHub.reactions", REACTIONS_MAP[curLang] || REACTIONS_MAP.en),
             value: likers.length + visitors.length,
             icon: Heart,
             active: showSocialPanel,
@@ -1528,7 +1558,7 @@ const ProfilePage = () => {
             action: () => setShowBadgesPanel((v) => !v),
           },
           {
-            label: t("profilePage.profileHub.activity", "활동"),
+            label: t("profilePage.profileHub.activity", ACTIVITY_MAP[curLang] || ACTIVITY_MAP.en),
             value: myPosts.length + matchedUsers.length + myTrips.length,
             icon: Sparkles,
             active: showActivityPanel,
