@@ -9775,5 +9775,14 @@ const ko = {
   "travelDna.questions.3.title": "여행의 마지막 밤을 장식하는 완벽한 방법은?",
   "travelDna.questions.3.options.0": "조용한 해변이나 분위기 있는 루프탑에서 차분하게 혼자 사색하기",
   "travelDna.questions.3.options.1": "현지 파티, 소셜 모임 또는 시끌벅적한 야시장에서 활기차게 어울리기",
+
+  "download.appStore": "App Store에서 다운로드",
+  "download.playStore": "Google Play에서 다운로드",
+  "download.officialRelease": "정식 출시 버전",
+  "download.tagline": "여행자를 위한 안전한 로컬 동행 플랫폼 Migo",
+  "download.desktopScan": "모바일에서 바로 다운로드하여 시작해 보세요!",
+  "download.certifiedDesc": "공식 스토어 인증 · 보안 검사 완료",
+  "download.playStoreTitle": "Google Play",
+  "download.appStoreTitle": "App Store",
 };
 export default ko;

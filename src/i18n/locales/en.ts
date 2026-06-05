@@ -10091,5 +10091,14 @@ const en = {
   "travelDna.questions.3.title": "What is the perfect way to spend the final night of your trip?",
   "travelDna.questions.3.options.0": "Quietly reflecting alone on a peaceful beach or a cozy rooftop.",
   "travelDna.questions.3.options.1": "Lively mingling at a local party, social pub, or bustling night market.",
+
+  "download.appStore": "Download on the App Store",
+  "download.playStore": "Get it on Google Play",
+  "download.officialRelease": "Official Release",
+  "download.tagline": "Safely connect with local travelers on Migo",
+  "download.desktopScan": "Download on your mobile device to get started!",
+  "download.certifiedDesc": "Official Store Certified · Secure Verification",
+  "download.playStoreTitle": "Google Play",
+  "download.appStoreTitle": "App Store",
 };
 export default en;

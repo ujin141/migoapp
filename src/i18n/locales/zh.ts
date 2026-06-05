@@ -9891,5 +9891,14 @@ const zh = {
   "travelDna.questions.3.title": "度过旅行最后一晚的最佳方式是？",
   "travelDna.questions.3.options.0": "在安静的海滩或有情调的屋顶，独自安静地沉思与回味",
   "travelDna.questions.3.options.1": "在当地派对、社交聚会或热闹的夜市中，尽情融入与狂欢",
+
+  "download.appStore": "在 App Store 下载",
+  "download.playStore": "在 Google Play 下载",
+  "download.officialRelease": "官方正式版",
+  "download.tagline": "为旅行者打造的安全当地交友平台 Migo",
+  "download.desktopScan": "立即在您的手机上下载开启旅程！",
+  "download.certifiedDesc": "官方商店认证 · 安全合规检测",
+  "download.playStoreTitle": "Google Play",
+  "download.appStoreTitle": "App Store",
 };
 export default zh;

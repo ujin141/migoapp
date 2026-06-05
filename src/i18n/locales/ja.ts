@@ -9836,5 +9836,14 @@ const ja = {
   "travelDna.questions.3.title": "旅行の最後の夜を飾る完璧な方法は？",
   "travelDna.questions.3.options.0": "静かなビーチや雰囲気のあるルーフトップで、落ち着いて一人で思索にふける",
   "travelDna.questions.3.options.1": "現地のパーティー、ソーシャルな集まり、または賑やかな夜市で活発に楽しむ",
+
+  "download.appStore": "App Storeでダウンロード",
+  "download.playStore": "Google Playで手に入れよう",
+  "download.officialRelease": "公式リリース版",
+  "download.tagline": "旅行者のための安全なローカル同行プラットフォームMigo",
+  "download.desktopScan": "モバイル端末でダウンロードして始めましょう！",
+  "download.certifiedDesc": "公式ストア認証 · セキュリティ検証済み",
+  "download.playStoreTitle": "Google Play",
+  "download.appStoreTitle": "App Store",
 };
 export default ja;
