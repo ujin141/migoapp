@@ -84,6 +84,8 @@ const FindAccountPage   = lazyWithRetry(() => import("./pages/FindAccountPage"))
 const ResetPasswordPage = lazyWithRetry(() => import("./pages/ResetPasswordPage"));
 const CommunityGuidelinesPage = lazyWithRetry(() => import("./pages/CommunityGuidelinesPage"));
 const RefundPolicyPage  = lazyWithRetry(() => import("./pages/RefundPolicyPage"));
+const InvitePage        = lazyWithRetry(() => import("./pages/InvitePage"));
+const TravelDnaPage     = lazyWithRetry(() => import("./pages/TravelDnaPage"));
 const NotFound          = lazyWithRetry(() => import("./pages/NotFound"));
 
 // ── QueryClient ──────────────────────────────────────────────────
@@ -113,7 +115,7 @@ const PageLoader = () => (
   </div>
 );
 
-const hideNavRoutes = ["/create-trip", "/splash", "/onboarding", "/login", "/verification", "/profile-setup", "/trip-calendar", "/meet-review", "/marketplace", "/voice-call", "/admin", "/terms", "/privacy", "/auth/callback", "/download", "/safety", "/shop", "/nearby", "/trip-review", "/trip-match", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy"];
+const hideNavRoutes = ["/create-trip", "/splash", "/onboarding", "/login", "/verification", "/profile-setup", "/trip-calendar", "/meet-review", "/marketplace", "/voice-call", "/admin", "/terms", "/privacy", "/auth/callback", "/download", "/safety", "/shop", "/nearby", "/trip-review", "/trip-match", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy", "/invite", "/travel-dna"];
 
 // 방향별 페이지 전환 variants
 const makePageVariants = (direction: "push" | "pop" | "tab") => ({
@@ -136,7 +138,7 @@ const makePageVariants = (direction: "push" | "pop" | "tab") => ({
       : { opacity: 0, x: "60%", transition: { duration: 0.22, ease: "easeIn" } },
 });
 
-const PUBLIC_ROUTES = ["/splash", "/onboarding", "/login", "/auth/callback", "/terms", "/privacy", "/download", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy"];
+const PUBLIC_ROUTES = ["/splash", "/onboarding", "/login", "/auth/callback", "/terms", "/privacy", "/download", "/find-account", "/reset-password", "/community-guidelines", "/refund-policy", "/travel-dna"];
 
 import { useFomoActivity } from "@/hooks/useFomoActivity";
 import { useReturnReward } from "@/hooks/useReturnReward";
@@ -147,6 +149,20 @@ const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading, sessionReady } = useAuth();
+  
+  // 리퍼럴 URL 쿼리 파라미터(?ref=CODE) 파싱 후 저장
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get("ref");
+      if (refCode) {
+        localStorage.setItem("migo_pending_referral", refCode.trim().toUpperCase());
+        console.log("Saved pending referral code:", refCode);
+      }
+    } catch (err) {
+      console.error("Failed to parse URL query parameters:", err);
+    }
+  }, []);
   
   // 실시간 활동 토스트 — 프로필 셋업 완료 유저에게만 표시
   // userId 전달: "👀 누군가 프로필 조회" 메시지 선택 시 실제 DB에 기록
@@ -340,7 +356,7 @@ const AppContent = () => {
       // setupComplete === undefined → DB 조회 중 (enrichWithProfilePhoto 대기) → 리다이렉트 금지
       // setupComplete === false     → 명확히 미완료 → 앱 재시작 후에도 반드시 프로필 설정
       // setupComplete === true      → 완료 → 통과
-      if (user.setupComplete !== true && location.pathname !== '/profile-setup') {
+      if (user.setupComplete === false && location.pathname !== '/profile-setup') {
         navigate('/profile-setup', { replace: true });
         return;
       }
@@ -360,17 +376,21 @@ const AppContent = () => {
     if (Capacitor.isNativePlatform()) {
       const authListener = CapApp.addListener('appUrlOpen', async (data) => {
         // migoapp://login-callback#access_token=... 형식의 URL 수신 시
-        if (data.url && data.url.includes('login-callback')) {
+        if (data?.url && data.url.includes('login-callback')) {
           // 인앱 브라우저 닫기
           Browser.close().catch(() => {});
-          const urlObj = new URL(data.url);
-          const code = urlObj.searchParams.get('code');
-          if (code) {
-             const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
-             if (!error && authData?.session) {
-               navigate(await getPostAuthRoute(authData.session), { replace: true });
-             }
-             return;
+          try {
+            const urlObj = new URL(data.url);
+            const code = urlObj.searchParams.get('code');
+            if (code) {
+               const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
+               if (!error && authData?.session) {
+                 navigate(await getPostAuthRoute(authData.session), { replace: true });
+               }
+               return;
+            }
+          } catch (e) {
+            console.warn("Invalid URL format", e);
           }
           const urlParts = data.url.split('#');
           if (urlParts.length > 1) {
@@ -390,7 +410,7 @@ const AppContent = () => {
         authListener.then(listener => listener.remove()).catch(() => {});
       };
     }
-  }, []);
+  }, [navigate]);
 
   // ── Android 하드웨어 백버튼 처리 ──────────────────────────────
   const { toast } = useToast();
@@ -555,6 +575,8 @@ const AppContent = () => {
                   <Route path="/trip-match"     element={<TripMatchPage />} />
                   <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
                   <Route path="/refund-policy"  element={<RefundPolicyPage />} />
+                  <Route path="/invite"         element={<InvitePage />} />
+                  <Route path="/travel-dna"     element={<TravelDnaPage />} />
                   <Route path="*"              element={<NotFound />} />
                 </Routes>
               </Suspense>

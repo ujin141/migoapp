@@ -49,7 +49,7 @@ export const useRealtimeChat = ({ threadId, onMessage }: UseRealtimeChatOptions)
     channelRef.current = channel;
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(err => console.warn('Error removing channel:', err));
     };
   }, [threadId]);
 

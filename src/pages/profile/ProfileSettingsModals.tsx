@@ -59,7 +59,7 @@ export const NotificationModal = ({
     {
       key: "match",
       emoji: "🎉",
-      label: t("profilePage.settings.notif.label", "매칭 알림"),
+      label: t("profilePage.settings.notif.match", "매칭 알림"),
       desc: t("profilePage.settings.notif.desc", "새로운 매칭이 성사되면 알림"),
       value: prefMatch,
       setter: (v: boolean) => togglePref("match", v, setPrefMatch),
@@ -137,7 +137,7 @@ export const NotificationModal = ({
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <h3 className="text-lg font-extrabold text-foreground">
-                    🔔 {i18n.t("profilePage.settings.notif.label", "알림 설정")}
+                    🔔 {i18n.t("profilePage.settings.notif.title", "알림 설정")}
                   </h3>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {i18n.t("notif.settingsDesc", "받고 싶은 알림을 선택하세요")}

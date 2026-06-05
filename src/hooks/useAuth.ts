@@ -40,13 +40,22 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
     // QUAL-5 fix: 재시도 횟수에 비례해 타임아웃 단축 — 최악 4s×3회=12s 블로킹 방지
     // retries: 3→4000ms, 2→2700ms, 1→1800ms, 0→1200ms
     const timeoutMs = Math.round(4000 * Math.pow(0.67, 3 - retries));
-    const timeoutPromise = new Promise<{ data: null, error: any }>((_r, reject) =>
-      setTimeout(() => reject(new Error('timeout')), timeoutMs)
-    );
-    const { data, error } = await Promise.race([
-      supabase.from("profiles").select("photo_url, photo_urls, name, verified, setup_complete, is_banned, banned, nationality").eq("id", user.id).single(),
-      timeoutPromise
-    ]);
+    let timeoutId: NodeJS.Timeout;
+    const timeoutPromise = new Promise<{ data: null, error: any }>((_r, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('timeout')), timeoutMs);
+    });
+    
+    let data, error;
+    try {
+      const result = await Promise.race([
+        supabase.from("profiles").select("photo_url, photo_urls, name, verified, setup_complete, is_banned, banned, nationality").eq("id", user.id).single(),
+        timeoutPromise
+      ]);
+      data = result.data;
+      error = result.error;
+    } finally {
+      clearTimeout(timeoutId!);
+    }
     
     // DB 트리거(handle_new_user)가 아직 완료되지 않아 프로필이 없는 경우 재시도 (Race Condition 방지)
     if (error && error.code === 'PGRST116' && retries > 0) {
@@ -84,9 +93,30 @@ async function enrichWithProfilePhoto(user: AuthUser, retries = 3): Promise<Auth
   }
   // DB 조회 실패/타임아웃 시:
   // ✔️ 기존에 setupComplete가 이미 확정된 값이 있으면 보존 (실패로 undefined가 되지 않도록)
+  // ✔️ 로컬 스토리지에 프로필 완료 기록이 있다면 true로 우선 복구하여 튕김 방지
   // ✔️ 신규 유저(setupComplete 미설정) = undefined 유지 → App.tsx가 리다이렉트 금지
   const preservedComplete = globalUser?.id === user.id ? globalUser?.setupComplete : undefined;
-  return { ...user, setupComplete: preservedComplete ?? user.setupComplete };
+  const localDone = localStorage.getItem(`migo_setup_done_${user.id}`) === '1';
+  const fallbackComplete = localDone ? true : undefined;
+  return { ...user, setupComplete: preservedComplete ?? user.setupComplete ?? fallbackComplete };
+}
+
+let activeEnrichPromise: Promise<AuthUser> | null = null;
+let activeEnrichUserId: string | null = null;
+
+async function enrichWithProfilePhotoDeduplicated(user: AuthUser, retries = 3): Promise<AuthUser> {
+  if (activeEnrichPromise && activeEnrichUserId === user.id) {
+    return activeEnrichPromise;
+  }
+  const promise = enrichWithProfilePhoto(user, retries).finally(() => {
+    if (activeEnrichPromise === promise) {
+      activeEnrichPromise = null;
+      activeEnrichUserId = null;
+    }
+  });
+  activeEnrichPromise = promise;
+  activeEnrichUserId = user.id;
+  return promise;
 }
 let globalSession: Session | null = null;
 let globalUser: AuthUser | null = null;
@@ -123,7 +153,7 @@ if (!isSupabaseConfigured) {
           globalLoading = true;
           notifyAuthListeners();
           
-          const enriched = await enrichWithProfilePhoto(base);
+          const enriched = await enrichWithProfilePhotoDeduplicated(base);
           if (globalUser?.id === enriched.id) { // 세션이 유지된 상태일 때만
             globalUser = enriched;
             globalLoading = false;
@@ -171,7 +201,7 @@ if (!isSupabaseConfigured) {
         const preservedSetup = globalUser?.setupComplete;
         globalUser = globalUser ? { ...globalUser, ...base, setupComplete: preservedSetup ?? base.setupComplete } : base;
         notifyAuthListeners();
-        const enriched = await enrichWithProfilePhoto(globalUser);
+        const enriched = await enrichWithProfilePhotoDeduplicated(globalUser);
         globalUser = enriched;
         notifyAuthListeners();
       } else if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
@@ -181,7 +211,7 @@ if (!isSupabaseConfigured) {
         globalUser = globalUser ? { ...globalUser, ...base, setupComplete: preservedSetup ?? base.setupComplete } : base;
         notifyAuthListeners();
         
-        const enriched = await enrichWithProfilePhoto(base);
+        const enriched = await enrichWithProfilePhotoDeduplicated(base);
         globalUser = {
           ...enriched,
           // ✅ enrichment이 undefined 를 반환했어도 이전에 로드된 유효한 setupComplete를 보존
@@ -363,7 +393,7 @@ export const useAuth = () => {
   // 프로필 사진 업데이트 후 전역 user.photoUrl 동기화
   const refreshPhotoUrl = async () => {
     if (!globalUser) return;
-    const enriched = await enrichWithProfilePhoto(globalUser);
+    const enriched = await enrichWithProfilePhotoDeduplicated(globalUser);
     globalUser = enriched;
     notifyAuthListeners();
   };

@@ -342,7 +342,7 @@ export const ChatProvider = ({
         );
         fetchThreads();
       }
-    })();
+    })().catch(err => console.error("createGroupThread error:", err));
     return group.id;
   }, [fetchThreads, user]);
   return <ChatContext.Provider value={{

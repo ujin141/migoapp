@@ -240,7 +240,8 @@ const DiscoverPage = () => {
     setShowVipLightningFilter(false);
     setShowLightningLoading(true);
 
-    setTimeout(() => {
+    if (lightningTimeoutRef.current) clearTimeout(lightningTimeoutRef.current);
+    lightningTimeoutRef.current = setTimeout(() => {
       setShowLightningLoading(false);
       const me = { name: user?.name || user?.email?.split('@')[0] || t("auto.ko_0018", "나"), photo: user?.photoUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150" };
       
@@ -626,6 +627,14 @@ const DiscoverPage = () => {
 
   // ── Address Autocomplete & GPS ─────────────────
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lightningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (lightningTimeoutRef.current) clearTimeout(lightningTimeoutRef.current);
+    };
+  }, []);
 
   const handleLocationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;

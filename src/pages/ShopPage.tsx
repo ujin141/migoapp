@@ -301,16 +301,18 @@ const ShopPage = () => {
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
           <ShieldCheck size={12} className="text-emerald-500 shrink-0" />
           <span className="text-[10px] font-bold text-emerald-600">
-            {Capacitor.getPlatform() === 'android' ? 'Google Play 보안결제' : 'Apple IAP 보안결제'}
+            {Capacitor.getPlatform() === 'android' 
+              ? t("shop.trust.securePaymentAndroid", "Google Play 보안결제") 
+              : t("shop.trust.securePaymentIos", "Apple IAP 보안결제")}
           </span>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
           <Lock size={12} className="text-blue-500 shrink-0" />
-          <span className="text-[10px] font-bold text-blue-600">256-bit 암호화</span>
+          <span className="text-[10px] font-bold text-blue-600">{t("shop.trust.encryption", "256-bit 암호화")}</span>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
           <RefreshCw size={12} className="text-amber-500 shrink-0" />
-          <span className="text-[10px] font-bold text-amber-600">언제든 취소</span>
+          <span className="text-[10px] font-bold text-amber-600">{t("shop.trust.cancelAnytime", "언제든 취소")}</span>
         </div>
       </div>
 
@@ -328,7 +330,17 @@ const ShopPage = () => {
               <div key={i} className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px]">{e}</div>
             ))}
           </div>
-          <span className="text-white/80 text-[11px] font-semibold">전 세계 <span className="text-white font-black">50,000+</span> 여행자가 함께합니다</span>
+          {(() => {
+            const socialProofText = t("shop.trust.socialProof", { count: "50,000+" });
+            const parts = socialProofText.split("50,000+");
+            return (
+              <span className="text-white/80 text-[11px] font-semibold">
+                {parts[0]}
+                <span className="text-white font-black">50,000+</span>
+                {parts[1]}
+              </span>
+            );
+          })()}
         </div>
       </div>
 
@@ -417,9 +429,9 @@ const ShopPage = () => {
                 {plan.id === 'plus' && !currentStatus && (
                   <div className="mt-4 p-1 bg-background/50 rounded-2xl flex gap-1">
                     {([
-                      { key: 'monthly',   label: '월간',   price: subPricing.month1,  badge: null },
-                      { key: 'quarterly', label: '3개월',  price: subPricing.month3,  badge: '15%↓' },
-                      { key: 'yearly',    label: '연간',   price: subPricing.month12, badge: '최저가' },
+                      { key: 'monthly',   label: t("shop.plans.monthly", "월간"),   price: subPricing.month1,  badge: null },
+                      { key: 'quarterly', label: t("shop.plans.quarterly", "3개월"),  price: subPricing.month3,  badge: '15%↓' },
+                      { key: 'yearly',    label: t("shop.plans.yearly", "연간"),   price: subPricing.month12, badge: t("shop.plans.bestPrice", "최저가") },
                     ] as const).map(opt => (
                       <button
                         key={opt.key}
@@ -557,14 +569,14 @@ const ShopPage = () => {
       <div className="mx-4 mt-6 mb-2 bg-muted/40 rounded-2xl p-4 border border-border/50">
         <div className="flex items-center gap-2 mb-3">
           <ShieldCheck size={14} className="text-emerald-500 shrink-0" />
-          <span className="text-xs font-extrabold text-foreground">안전한 결제 보장</span>
+          <span className="text-xs font-extrabold text-foreground">{t("shop.footer.secureCheckout", "안전한 결제 보장")}</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { icon: Lock, text: "Apple IAP 공식 결제", color: "text-blue-500" },
-            { icon: RefreshCw, text: "언제든 구독 취소", color: "text-emerald-500" },
-            { icon: ShieldCheck, text: "개인정보 완전 보호", color: "text-violet-500" },
-            { icon: BadgeCheck, text: "앱스토어 심사 인증", color: "text-amber-500" },
+            { icon: Lock, text: t("shop.footer.appleIap", "Apple IAP 공식 결제"), color: "text-blue-500" },
+            { icon: RefreshCw, text: t("shop.footer.cancelAnytime", "언제든 구독 취소"), color: "text-emerald-500" },
+            { icon: ShieldCheck, text: t("shop.footer.privacyProtected", "개인정보 완전 보호"), color: "text-violet-500" },
+            { icon: BadgeCheck, text: t("shop.footer.appStoreCertified", "앱스토어 심사 인증"), color: "text-amber-500" },
           ].map(({ icon: Icon, text, color }) => (
             <div key={text} className="flex items-center gap-1.5">
               <Icon size={12} className={`${color} shrink-0`} />

@@ -100,7 +100,7 @@ const filterLangs = [];
 const filterMissing = [];
 
 for (const lang of ALL_LANGS) {
-  const re = new RegExp(`^  ${lang}:`, 'm');
+  const re = new RegExp(`^  "?${lang}"?:`, 'm');
   if (re.test(filterContent)) {
     filterLangs.push(lang);
   } else {
@@ -121,7 +121,7 @@ const checkinLangs = [];
 const checkinMissing = [];
 
 for (const lang of ALL_LANGS) {
-  const re = new RegExp(`^  ${lang}:`, 'm');
+  const re = new RegExp(`^  "?${lang}"?:`, 'm');
   if (re.test(checkinContent)) {
     checkinLangs.push(lang);
   } else {

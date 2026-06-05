@@ -347,7 +347,7 @@ const IdUploadModal = ({
 
     } catch (err: any) {
       toast({
-        title: "인증 배지 발급 실패",
+        title: t("verif.badgeIssueFail", "인증 배지 발급 실패"),
         description: err.message,
         variant: "destructive"
       });
@@ -440,8 +440,8 @@ const IdUploadModal = ({
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-2 mx-auto">
               <Scan size={32} className="text-emerald-400 animate-pulse" />
             </div>
-            <h3 className="text-xl font-extrabold text-foreground truncate">MIGO 신뢰 인증 센터</h3>
-            <p className="text-sm text-muted-foreground mb-6">MIGO는 실제 여행 일정이나 안전한 신원 인증이 완료된 분들에게 골드마크 배지를 수여합니다.</p>
+            <h3 className="text-xl font-extrabold text-foreground truncate">{t("verif.trustCenter.title", "MIGO 신뢰 인증 센터")}</h3>
+            <p className="text-sm text-muted-foreground mb-6">{t("verif.trustCenter.desc", "MIGO는 실제 여행 일정이나 안전한 신원 인증이 완료된 분들에게 골드마크 배지를 수여합니다.")}</p>
 
             <div className="space-y-3 mb-6">
               {/* Option A: Boarding Pass OCR Scanner */}
@@ -454,10 +454,12 @@ const IdUploadModal = ({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-black text-foreground">실시간 항공권/티켓 스캔</span>
-                    <span className="text-[9px] font-bold text-white bg-amber-500 rounded px-1.5 py-0.5 animate-bounce">추천</span>
+                    <span className="text-sm font-black text-foreground">{t("verif.ticketScan.title", "실시간 항공권/티켓 스캔")}</span>
+                    <span className="text-[9px] font-bold text-white bg-amber-500 rounded px-1.5 py-0.5 animate-bounce">{t("verif.recommended", "추천")}</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">항공권 바우처를 OCR로 자동 분석해 <b className="text-primary">`✈️ Real Traveler`</b> 배지를 즉시 부여합니다.</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug" dangerouslySetInnerHTML={{
+                    __html: t("verif.ticketScan.desc", { defaultValue: `항공권 바우처를 OCR로 자동 분석해 <b class="text-primary">\`✈️ Real Traveler\`</b> 배지를 즉시 부여합니다.` })
+                  }} />
                 </div>
                 <span className="text-primary group-hover:translate-x-1 transition-transform">➔</span>
               </button>
@@ -471,15 +473,15 @@ const IdUploadModal = ({
                   <span className="text-2xl">🪪</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-black text-foreground">주민등록증 / 운전면허증</span>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">수동 검토를 통해 신뢰도를 인증합니다. (검수 소요시간 최대 24시간)</p>
+                  <span className="text-sm font-black text-foreground">{t("verif.idCard.title", "주민등록증 / 운전면허증")}</span>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{t("verif.idCard.desc", "수동 검토를 통해 신뢰도를 인증합니다. (검수 소요시간 최대 24시간)")}</p>
                 </div>
                 <span className="text-muted-foreground group-hover:translate-x-1 transition-transform">➔</span>
               </button>
             </div>
 
             <button onClick={onClose} className="w-full py-4 rounded-2xl bg-muted text-muted-foreground font-extrabold text-sm btn-bounce">
-              창 닫기
+              {t("verif.closeWindow", "창 닫기")}
             </button>
           </div>
         )}
@@ -509,7 +511,7 @@ const IdUploadModal = ({
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setStep("mode_select")} className="flex-1 py-4 rounded-2xl border border-border text-foreground font-semibold text-sm btn-bounce">이전으로</button>
+              <button onClick={() => setStep("mode_select")} className="flex-1 py-4 rounded-2xl border border-border text-foreground font-semibold text-sm btn-bounce">{t("verif.prevStep", "이전으로")}</button>
               <button onClick={() => idType ? setStep("upload") : toast({
                 title: i18n.t('verif.id.selectType'),
                 variant: "destructive"
@@ -556,8 +558,8 @@ const IdUploadModal = ({
         {/* 4. Ticket Scanner: Initial Capture Screen */}
         {step === "ticket_init" && (
           <div className="flex flex-col gap-1.5">
-            <h3 className="text-lg font-black text-foreground text-center mb-1">항공권 AI OCR 실시간 스캐너</h3>
-            <p className="text-xs text-muted-foreground text-center mb-4">카메라 렌즈에 항공권의 바코드가 나오도록 정렬해주세요.</p>
+            <h3 className="text-lg font-black text-foreground text-center mb-1">{t("verif.scanner.title", "항공권 AI OCR 실시간 스캐너")}</h3>
+            <p className="text-xs text-muted-foreground text-center mb-4">{t("verif.scanner.desc", "카메라 렌즈에 항공권의 바코드가 나오도록 정렬해주세요.")}</p>
 
             {/* Cyber Camera Viewport */}
             <div className="relative aspect-[4/3] rounded-3xl bg-black border-2 border-cyan-500/30 overflow-hidden mb-5 grid-scanner shadow-[0_0_30px_rgba(6,182,212,0.15)] flex flex-col justify-center items-center">
@@ -589,21 +591,21 @@ const IdUploadModal = ({
                 onClick={handleScannerFileSelect}
                 className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-black text-sm flex items-center justify-center gap-2 btn-bounce shadow-md"
               >
-                <span>🎫</span> 앨범에서 항공권 이미지 선택하기
+                <span>🎫</span> {t("verif.scanner.selectAlbum", "앨범에서 항공권 이미지 선택하기")}
               </button>
               
               <button 
                 onClick={handleDemoScan}
                 className="w-full py-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 font-extrabold text-xs flex items-center justify-center gap-2 hover:bg-cyan-950/60 transition-all btn-bounce"
               >
-                <span>🚀</span> 초고속 AI 데모 스캔 체험하기
+                <span>🚀</span> {t("verif.scanner.demoScan", "초고속 AI 데모 스캔 체험하기")}
               </button>
               
               <button 
                 onClick={() => setStep("mode_select")}
                 className="w-full py-3 rounded-2xl border border-border text-foreground font-semibold text-xs text-center btn-bounce"
               >
-                이전으로
+                {t("verif.prevStep", "이전으로")}
               </button>
             </div>
           </div>
@@ -612,8 +614,8 @@ const IdUploadModal = ({
         {/* 5. Ticket Scanner: Live Scanning Simulation */}
         {step === "ticket_scanning" && (
           <div className="flex flex-col">
-            <h3 className="text-lg font-black text-foreground text-center mb-1">MIGO AI OCR 판독 중...</h3>
-            <p className="text-xs text-muted-foreground text-center mb-4">티켓 바코드 및 탑승객 정보를 실시간 대조하고 있습니다.</p>
+            <h3 className="text-lg font-black text-foreground text-center mb-1">{t("verif.scanner.loadingTitle", "MIGO AI OCR 판독 중...")}</h3>
+            <p className="text-xs text-muted-foreground text-center mb-4">{t("verif.scanner.loadingDesc", "티켓 바코드 및 탑승객 정보를 실시간 대조하고 있습니다.")}</p>
 
             {/* Active grid screen */}
             <div className="relative aspect-[16/10] rounded-3xl bg-slate-950 border border-cyan-500/40 overflow-hidden mb-5 grid-scanner flex flex-col justify-center items-center">
@@ -645,8 +647,8 @@ const IdUploadModal = ({
         {/* 6. Ticket Scanner: 3D Golden Boarding Pass Reveal */}
         {step === "ticket_reveal" && (
           <div className="flex flex-col items-center text-center">
-            <h3 className="text-xl font-black text-foreground mb-1">🎉 여행자 인증 성공!</h3>
-            <p className="text-xs text-muted-foreground mb-6">항공권 판독 완료! 3D 보딩패스가 발급되었습니다.</p>
+            <h3 className="text-xl font-black text-foreground mb-1">{t("verif.success.title", "🎉 여행자 인증 성공!")}</h3>
+            <p className="text-xs text-muted-foreground mb-6">{t("verif.success.desc", "항공권 판독 완료! 3D 보딩패스가 발급되었습니다.")}</p>
 
             {/* 3D Ticket Container */}
             <div className="perspective-1000 w-full max-w-[340px] aspect-[1.8/1] mb-8 cursor-pointer select-none">
@@ -730,18 +732,18 @@ const IdUploadModal = ({
                   
                   <div className="flex-1 space-y-2 text-left">
                     <p className="text-[10px] text-white/80 leading-relaxed">
-                      본 보딩패스는 MIGO AI OCR 연동을 통해 항공편 예약 내역 및 실명 조회가 정상적으로 수행되었음을 보증합니다.
+                      {t("verif.boardingPass.guarantee", "본 보딩패스는 MIGO AI OCR 연동을 통해 항공편 예약 내역 및 실명 조회가 정상적으로 수행되었음을 보증합니다.")}
                     </p>
                     <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2">
                       <span className="text-base shrink-0">🌟</span>
                       <div>
-                        <p className="text-[9px] font-extrabold text-amber-300">신뢰 점수 즉시 보너스 반영</p>
-                        <p className="text-[8px] text-white/60">본인 인증 점수 +40점이 프로필 점수에 즉시 가산됩니다.</p>
+                        <p className="text-[9px] font-extrabold text-amber-300">{t("verif.boardingPass.bonusTitle", "신뢰 점수 즉시 보너스 반영")}</p>
+                        <p className="text-[8px] text-white/60">{t("verif.boardingPass.bonusDesc", "본인 인증 점수 +40점이 프로필 점수에 즉시 가산됩니다.")}</p>
                       </div>
                     </div>
                   </div>
 
-                  <p className="text-[8px] text-center text-white/40 mt-3">탭하여 카드를 다시 뒤집으세요 🔄</p>
+                  <p className="text-[8px] text-center text-white/40 mt-3">{t("verif.boardingPass.flipCard", "탭하여 카드를 다시 뒤집으세요 🔄")}</p>
                 </div>
               </motion.div>
             </div>
@@ -758,14 +760,14 @@ const IdUploadModal = ({
                 ) : (
                   <span>🏆</span>
                 )}
-                인증 배지 발급 및 저장하기
+                {t("verif.success.claimBadge", "인증 배지 발급 및 저장하기")}
               </button>
 
               <button 
                 onClick={() => setStep("ticket_init")}
                 className="w-full py-3 rounded-2xl border border-border text-foreground font-semibold text-xs btn-bounce"
               >
-                다시 스캔하기
+                {t("verif.success.scanAgain", "다시 스캔하기")}
               </button>
             </div>
           </div>
@@ -777,8 +779,8 @@ const IdUploadModal = ({
             <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
               <Shield size={32} className="text-emerald-400 animate-bounce" />
             </div>
-            <p className="text-base font-bold text-foreground truncate">인증 정보 등록 완료!</p>
-            <p className="text-sm text-muted-foreground max-w-[280px]">보딩패스 신뢰 인증 마크가 발급되었습니다. 잠시 후 센터로 돌아갑니다.</p>
+            <p className="text-base font-bold text-foreground truncate">{t("verif.pending.title", "인증 정보 등록 완료!")}</p>
+            <p className="text-sm text-muted-foreground max-w-[280px]">{t("verif.pending.desc", "보딩패스 신뢰 인증 마크가 발급되었습니다. 잠시 후 센터로 돌아갑니다.")}</p>
             <span className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mt-2" />
           </div>
         )}

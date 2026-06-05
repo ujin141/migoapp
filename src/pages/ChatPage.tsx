@@ -124,7 +124,7 @@ const ChatPage = () => {
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
   const [ads, setAds] = useState<any[]>([]);
   useEffect(() => {
-    fetchActiveAdsForScreen("ChatPage").then(setAds);
+    fetchActiveAdsForScreen("ChatPage").then(setAds).catch(err => console.warn("fetch ads:", err));
   }, []);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({

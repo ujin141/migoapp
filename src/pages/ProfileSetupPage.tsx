@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { compressImage } from "@/lib/imageCompression";
 import { useTranslation } from "react-i18next";
+import { Capacitor } from "@capacitor/core";
 
 // 국가 코드(ISO 3166-1 alpha-2) 기반 국적 목록 — Intl.DisplayNames로 현재 언어에 맞게 자동 변환
 const NATIONALITY_CODES: Array<{ code: string; flag: string; fallback: string }> = [
@@ -209,6 +210,83 @@ const ProfileSetupPage = () => {
   const [natSearch, setNatSearch] = useState("");
   const [bio, setBio] = useState("");
 
+  /* Step 0 - Referral states */
+  const [referralCodeInput, setReferralCodeInput] = useState("");
+  const [referralMessage, setReferralMessage] = useState<string | null>(null);
+  const [referralError, setReferralError] = useState<string | null>(null);
+
+  // Validate referral code
+  const validateReferralCode = async (code: string) => {
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) {
+      setReferralMessage(null);
+      setReferralError(null);
+      return;
+    }
+    
+    try {
+      const { data: hostProfile, error } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .eq("referral_code", trimmed)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!hostProfile) {
+        setReferralError(t("setup.referral.invalid", "유효하지 않은 초대 코드입니다."));
+        setReferralMessage(null);
+      } else if (user && hostProfile.id === user.id) {
+        setReferralError(t("setup.referral.self", "본인의 초대 코드는 입력할 수 없습니다."));
+        setReferralMessage(null);
+      } else {
+        setReferralMessage(t("setup.referral.valid", { name: hostProfile.name, defaultValue: `${hostProfile.name}님의 초대 코드 확인! 가입 완료 시 3개의 슈퍼라이크가 자동 지급됩니다.` }));
+        setReferralError(null);
+      }
+    } catch (err) {
+      console.error("Referral validation error:", err);
+    }
+  };
+
+  // Auto-fill and watch referral code input
+  useEffect(() => {
+    try {
+      const savedCode = localStorage.getItem("migo_pending_referral");
+      if (savedCode) {
+        setReferralCodeInput(savedCode);
+        validateReferralCode(savedCode);
+      }
+    } catch (err) {
+      console.error("Failed to read pending referral code:", err);
+    }
+  }, []);
+
+  // ── 광고 배너 억제: 프로필 설정 화면에서 네이티브 AdMob 배너 숨기기 ──
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    // App.tsx의 ad-overlay 이벤트로 배너 표시 억제
+    window.dispatchEvent(new CustomEvent('migo:ad-overlay', { detail: { active: true } }));
+    // 네이티브 배너가 이전 화면에서 남아있을 수 있으므로 직접 제거 시도
+    import('@capacitor-community/admob').then(({ AdMob }) => {
+      AdMob.removeBanner().catch(() => {});
+    }).catch(() => {});
+    return () => {
+      window.dispatchEvent(new CustomEvent('migo:ad-overlay', { detail: { active: false } }));
+    };
+  }, []);
+
+  useEffect(() => {
+    if (referralCodeInput) {
+      const timer = setTimeout(() => {
+        validateReferralCode(referralCodeInput);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setReferralMessage(null);
+      setReferralError(null);
+    }
+  }, [referralCodeInput]);
+
   /* Step 1 */
   const [styles, setStyles] = useState<string[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
@@ -297,6 +375,28 @@ const ProfileSetupPage = () => {
       }, { onConflict: "id" });
 
       if (error) { toast({ title: t("setup.error.save", "Save failed"), description: error.message, variant: "destructive" }); setSaving(false); return; }
+
+      // 리퍼럴 코드 처리 (Supabase process_referral RPC 호출)
+      if (referralCodeInput && !referralError) {
+        try {
+          const { data: referrerName, error: rpcError } = await supabase.rpc(
+            "process_referral",
+            {
+              p_referred_id: user.id,
+              p_referral_code: referralCodeInput.trim().toUpperCase()
+            }
+          );
+          
+          if (!rpcError) {
+            console.log(`Referral processed successfully. Referrer: ${referrerName}`);
+            localStorage.removeItem("migo_pending_referral");
+          } else {
+            console.warn("Referral RPC failed:", rpcError);
+          }
+        } catch (referralErr) {
+          console.error("Referral process error:", referralErr);
+        }
+      }
 
       // ✅ 안전망: localStorage에 설정 완료 플래그 영구 저장
       // DB 오류/enrichment 타임아웃 시에도 이 유저가 이미 설정을 완료했음을 보장함
@@ -506,6 +606,33 @@ const ProfileSetupPage = () => {
                   <p className="text-[10px] text-muted-foreground text-right mt-1">{bio.length}/100</p>
                 </div>
               </div>
+
+              {/* 친구 초대 코드 (선택) */}
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-bold text-foreground flex items-center gap-1.5">
+                  {t("setup.label.referralCode", "추천인 초대 코드")}
+                  <span className="text-[10px] font-normal text-muted-foreground">({t("setup.optional", "Optional")})</span>
+                </label>
+                <div className="bg-muted rounded-2xl px-4 h-12 flex items-center gap-2 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+                  <span className="text-muted-foreground text-sm shrink-0">🎁</span>
+                  <input
+                    type="text"
+                    value={referralCodeInput}
+                    onChange={e => setReferralCodeInput(e.target.value.toUpperCase())}
+                    placeholder="e.g. MIGO-ABC123"
+                    autoComplete="off"
+                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                  />
+                  {referralCodeInput && (
+                    <button onClick={() => setReferralCodeInput("")} className="text-muted-foreground shrink-0">
+                      <X size={14} className="text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+                {referralMessage && <p className="text-[11px] text-emerald-500 font-medium px-1">{referralMessage}</p>}
+                {referralError && <p className="text-[11px] text-rose-500 font-medium px-1">{referralError}</p>}
+              </div>
+
             </motion.div>
           )}
 
@@ -635,10 +762,10 @@ const ProfileSetupPage = () => {
       </div>
 
       {/* 하단 CTA */}
-      <div className="relative z-10 px-5 pt-3 pb-10 shrink-0 border-t border-border/50 bg-background/80 backdrop-blur-sm">
+      <div className="relative z-10 px-5 pt-3 pb-14 shrink-0 border-t border-border/50 bg-background/80 backdrop-blur-sm">
         {isLast && (
           <p className="text-center text-[11px] text-muted-foreground mb-3">
-            성격/MBTI는 나중에 언제든지 변경 가능해요 👌
+            {t("setup.btn.mbtiNote", "Personality/MBTI can be changed anytime later 👌")}
           </p>
         )}
         <motion.button whileTap={{ scale:0.97 }} onClick={handleNext} disabled={saving}

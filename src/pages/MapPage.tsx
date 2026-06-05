@@ -198,6 +198,13 @@ const MapPage = () => {
     }
   }, [realTimePos, user?.id]);
 
+  const lightningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    return () => {
+      if (lightningTimeoutRef.current) clearTimeout(lightningTimeoutRef.current);
+    };
+  }, []);
+
   const handleLightningMatch = async (hotplace: Hotplace) => {
     setShowRightNowModal(false);
     setIsMatchingLoading(true);
@@ -208,7 +215,8 @@ const MapPage = () => {
     }
     setDisplayMode("groups");
 
-    setTimeout(async () => {
+    if (lightningTimeoutRef.current) clearTimeout(lightningTimeoutRef.current);
+    lightningTimeoutRef.current = setTimeout(async () => {
       try {
         const groupSize = Math.floor(Math.random() * 3) + 3; 
         const allTravelers = [...travelers].sort(() => 0.5 - Math.random());
@@ -288,10 +296,14 @@ const MapPage = () => {
     try {
       const res = await translateText({ text: profileDetail.bio, targetLang });
       setTranslatedBio(res);
+    } catch (err) {
+      console.warn("Translation error:", err);
+      toast({ title: t("auto.g_0023", "오류가 발생했습니다."), variant: "destructive" });
     } finally {
       setIsTranslating(false);
     }
   };
+  // 1. 초기 데이터 페칭 (travelers, communityPosts, tripGroups)
   useEffect(() => {
     const fetchTravelers = async () => {
       if (!user) return;
@@ -339,8 +351,6 @@ const MapPage = () => {
         });
         setCache(CACHE_KEY, parsedData, 2 * 60 * 1000); // 2분 캐시
         setTravelers(parsedData);
-        
-        // (내 사진은 위 realtime 구독에서 처리)
       }
     };
     fetchTravelers();
@@ -357,7 +367,6 @@ const MapPage = () => {
         comments(id)
       `).eq('hidden', false).order('created_at', { ascending: false }).limit(50);
       
-      // 내가 좋아요한 게시물 ID
       let likedSet = new Set<string>();
       if (user) {
         const { data: myLikes } = await supabase
@@ -371,9 +380,9 @@ const MapPage = () => {
         const postsWithLocation = data.filter((p: any) => {
           if (!p.tags || !Array.isArray(p.tags)) return false;
           if (!p.image_url && (!p.image_urls || p.image_urls.length === 0)) return false;
-          return p.tags.some((t: string) => t.startsWith("_loc_:"));
+          return p.tags.some((tagStr: string) => tagStr.startsWith("_loc_:"));
         }).map((p: any) => {
-          const locStr = p.tags.find((t: string) => t.startsWith("_loc_:"));
+          const locStr = p.tags.find((tagStr: string) => tagStr.startsWith("_loc_:"));
           const parts = locStr.split(":");
           return {
             id: p.id,
@@ -396,7 +405,6 @@ const MapPage = () => {
         setCache(CACHE_KEY, postsWithLocation, 5 * 60 * 1000); // 5분 캐시
         setCommunityPosts(postsWithLocation);
         
-        // 50명 노출 한도(view_count) 추적을 위해 RPC 호출
         if (data && data.length > 0) {
           supabase.rpc('increment_post_views', { p_ids: data.map((d: any) => d.id) }).then(({ error: rpcErr }) => {
             if (rpcErr) console.error("increment_post_views error:", rpcErr);
@@ -424,7 +432,7 @@ const MapPage = () => {
           let lng: number | null = null;
           
           if (g.tags && Array.isArray(g.tags)) {
-            const locTag = g.tags.find((t: string) => t.startsWith("_loc_:"));
+            const locTag = g.tags.find((tagStr: string) => tagStr.startsWith("_loc_:"));
             if (locTag) {
               const parts = locTag.split(":");
               lat = parseFloat(parts[1]);
@@ -459,20 +467,21 @@ const MapPage = () => {
       }
     };
     fetchTripGroups();
+  }, [user, i18n.language, t]);
 
-    // BUG-05 fix: 채널명을 고유하게 하여 useLocationTracker("public-map")과 충돌 방지
+  // 2. 실시간 위치 브로드캐스트 리스너
+  useEffect(() => {
     const channel = supabase.channel(`map-listener:${user?.id ?? 'anon'}`);
     channel.on("broadcast", { event: "location_update" }, (payload) => {
       const { user_id, lat, lng, rightNowMessage } = payload.payload;
-      if (user_id === user?.id) return; // 내 위치는 무시 (이미 프론트엔드에서 처리)
+      if (user_id === user?.id) return; 
       
-      setTravelers(prev => prev.map(t => {
-        if (t.id === user_id) {
-          // Haversine 거리 실시간 재계산 (비용절감 핵심 부분: DB를 치지 않고 계산만 수정)
+      setTravelers(prev => prev.map(tr => {
+        if (tr.id === user_id) {
           const R = 6371;
           const me = myLatLngRef.current;
-          let distStr = t.distance;
-          let distKm = t.distanceKm;
+          let distStr = tr.distance;
+          let distKm = tr.distanceKm;
           
           if (me) {
             const dLat = (lat - me.lat) * Math.PI / 180;
@@ -482,21 +491,26 @@ const MapPage = () => {
             distStr = `${distKm.toFixed(1)}km`;
           }
           
-          return { ...t, lat, lng, distanceKm: distKm, distance: distStr, rightNowMessage };
+          return { ...tr, lat, lng, distanceKm: distKm, distance: distStr, rightNowMessage };
         }
-        return t;
+        return tr;
       }));
     }).subscribe();
 
-    // 핫플레이스 동반자 구하기 "푸쉬 알람" (실시간 Toast)
-    const seekerChannel = supabase.channel("hotplace-seekers-alert");
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  // 3. 핫플레이스 동반자 구하기 푸쉬 알람 리스너
+  useEffect(() => {
+    const seekerChannel = supabase.channel(`hotplace-seekers-alert:${user?.id ?? 'anon'}`);
     seekerChannel.on("postgres_changes", { event: "INSERT", schema: "public", table: "hotplace_seekers" }, async (payload) => {
       const newSeeker = payload.new as any;
-      if (newSeeker.user_id === user?.id) return; // 자기가 올린 건 알림 무시
+      if (newSeeker.user_id === user?.id) return;
 
       const hp = HOTPLACES.find(h => h.id === newSeeker.hotplace_id);
       if (hp) {
-        // 브라우저/기기 진동을 통한 푸시 체감 효과
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
            navigator.vibrate([200, 100, 200]);
         }
@@ -510,11 +524,16 @@ const MapPage = () => {
       }
     }).subscribe();
 
+    return () => {
+      supabase.removeChannel(seekerChannel);
+    };
+  }, [user?.id, t, toast]);
+
+  // 4. 위치 자동 업데이트 및 DB 저장
+  useEffect(() => {
     let isMounted = true;
-    // ── Apple Guideline 5.1.2: 위치 자동 업데이트는 locationSharing=true일 때만 허용 ──
-    // 사용자가 명시적으로 위치 공유를 동의한 경우에만 DB에 저장
     const saveLocationToDB = async () => {
-      if (!isMounted || !user || !locationSharing) return; // locationSharing이 false면 완전 차단
+      if (!isMounted || !user || !locationSharing) return; 
       
       let pos = await getCurrentLocation(false);
       if (!isMounted) return;
@@ -539,7 +558,6 @@ const MapPage = () => {
         const country = data.countryName || "";
         const locationName = city ? `${city}, ${country}` : country || t("map.locationUnknown");
         setCurrentLocationName(locationName);
-        // Guideline 5.1.2: locationSharing=true일 때만 DB 저장 (수동 체크인 원칙 준수)
         if (locationSharing) {
           await supabase.from("profiles").update({ lat, lng, location: locationName }).eq("id", user.id);
         }
@@ -549,7 +567,6 @@ const MapPage = () => {
       }
     };
 
-    // locationSharing이 true일 때만 초기 호출 + 1분 인터벌 실행
     if (locationSharing) {
       saveLocationToDB();
     }
@@ -557,10 +574,8 @@ const MapPage = () => {
     return () => {
       isMounted = false;
       if (interval) clearInterval(interval);
-      supabase.removeChannel(channel);
-      supabase.removeChannel(seekerChannel);
     };
-  }, [user, locationSharing, t]);
+  }, [user, locationSharing, t, i18n.language]);
 
   // ─── 구글 Places Nearby Search ───
   const searchNearbyRestaurants = useCallback((type: 'all' | 'restaurant' | 'bar' | 'cafe' | 'bank' | 'currency_exchange' | 'pharmacy' | 'convenience_store' | 'hospital' | 'subway_station' | 'supermarket' | 'lodging' = 'all', useMapCenter: boolean = false) => {

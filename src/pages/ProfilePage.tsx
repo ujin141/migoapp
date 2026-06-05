@@ -2,7 +2,7 @@ import i18n from "@/i18n";
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Settings, ChevronLeft, ChevronRight, MapPin, Calendar, Globe, Camera, LogOut, Shield, Bell, HelpCircle, X, Check, Edit2, Plus, Heart, MessageCircle, Star, Sparkles, Users, Plane, Handshake, Crown, AlertTriangle, ShoppingBag, FileText, Eye, Zap, Navigation, Lock, Send } from "lucide-react";
+import { Settings, ChevronLeft, ChevronRight, MapPin, Calendar, Globe, Camera, LogOut, Shield, Bell, HelpCircle, X, Check, Edit2, Plus, Heart, MessageCircle, Star, Sparkles, Users, Plane, Handshake, Crown, AlertTriangle, ShoppingBag, FileText, Eye, Zap, Navigation, Lock, Send, Gift } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import SOSModal from "@/components/SOSModal";
@@ -55,13 +55,13 @@ const SAJU_ELEMENTS: Record<
     textBg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
     glowColor: "shadow-emerald-500/20",
     name: {
-      ko: "산들바람 즉흥 방랑자 (木 - Wood Nomad)",
-      en: "Gentle Breeze Nomad (Wood Element)",
-      ja: "そよ風の即興放浪者 (木)",
-      zh: "微风即兴流浪者 (木)"
+      ko: "위풍당당 거대 소나무 (甲木 - Giant Pine)",
+      en: "Giant Pine Tree (Wood Element)",
+      ja: "威風堂々たる巨大な松 (木)",
+      zh: "威风凛凛的巨松 (木)"
     },
     shortName: {
-      ko: "산들바람 (木)",
+      ko: "거대소나무 (木)",
       en: "Breeze (Wood)",
       ja: "そよ風 (木)",
       zh: "微风 (木)"
@@ -69,7 +69,7 @@ const SAJU_ELEMENTS: Record<
     desc: {
       ko: "푸르른 나무처럼 자유롭고 생기발랄하며, 계획보다 발길이 닿는 대로 즉흥 탐험을 즐기는 활기찬 성향입니다.",
       en: "Free-spirited and vibrant like a green tree. You love spontaneous wanders where your feet lead, rather than strict plans.",
-      ja: "青々とした木のように自由で活気に満ち、計画よりも足의 향하는 대로 즉흥적인 모험을 즐깁니다.",
+      ja: "青々とした木のように自由で活気に満ち、計画よりも足の向くままに即興的な冒険を楽しむ活発な傾向です。",
       zh: "像青翠的树木一样自由而充满活力，相比死板的计划，更喜欢随心所欲的即兴探索。"
     }
   },
@@ -129,7 +129,7 @@ const SAJU_ELEMENTS: Record<
     name: {
       ko: "화려한 보석 감성 Voyager (金 - Glimmering Jewel)",
       en: "Glimmering Jewel Voyager (Metal Element)",
-      ja: "華やかな宝石의 惑性旅行者 (金)",
+      ja: "華やかな宝石の感性旅行者 (金)",
       zh: "华丽宝石感性旅行者 (金)"
     },
     shortName: {
@@ -165,7 +165,7 @@ const SAJU_ELEMENTS: Record<
     desc: {
       ko: "끝없이 흐르는 강물처럼 유연하며, 유명한 숨겨진 미식 골목 투어를 좋아하고 어떤 낯선 여행 환경에도 막힘없이 녹아듭니다.",
       en: "Fluid and flexible like a flowing river. You adore hunting for hidden local restaurants and seamlessly adapt to any environment.",
-      ja: "絶え間なく流れる川のように柔軟で、隠れたグルメ通りの探訪를 사랑하며 낯선 여행지 환경에도 기분 좋게 녹아듭니다.",
+      ja: "絶え間なく流れる川のように柔軟で、隠れたグルメ通りの探訪を愛し、見知らぬ旅行環境にも心地よく馴染みます。",
       zh: "像奔流不息的江河一样温柔且包容，热爱打卡隐藏的街头美食，并能毫无阻碍地融入任何陌生的旅行环境。"
     }
   }
@@ -984,6 +984,11 @@ const ProfilePage = () => {
     desc: t("profilePage.features.market.desc"),
     action: () => navigate("/marketplace")
   }, {
+    icon: Gift,
+    label: t("profilePage.features.invite.label", "친구 초대하고 혜택 받기"),
+    desc: t("profilePage.features.invite.desc", "슈퍼라이크 3개 적립하기"),
+    action: () => navigate("/invite")
+  }, {
     icon: Shield,
     label: t("profilePage.features.trust.label"),
     desc: t("profilePage.features.trust.desc"),
@@ -1406,7 +1411,7 @@ const ProfilePage = () => {
                     description: t("boost.noBoostsDesc", "Shop에서 부스트를 구매하세요!"),
                     action: (
                       <button onClick={() => navigate('/shop')} className="px-3 py-1 bg-purple-500 text-white text-xs font-bold rounded-lg shrink-0">
-                        구매하기
+                        {t("auto.z_구매하기_80", "구매하기")}
                       </button>
                     ),
                   });
@@ -2256,10 +2261,10 @@ const ProfilePage = () => {
         <div>
           <h4 className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2 pl-1">{t("profilePage.menu.exploreTitle", "Explore")}</h4>
           <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
-            {menuItems.slice(0, 4).map((item, i) => {
+            {menuItems.slice(0, 5).map((item, i) => {
               const Icon = item.icon;
               return (
-                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-3 px-4 py-3 bg-card active:bg-muted/50 transition-colors ${i !== 3 ? 'border-b border-border/30' : ''}`}>
+                <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-3 px-4 py-3 bg-card active:bg-muted/50 transition-colors ${i !== 4 ? 'border-b border-border/30' : ''}`}>
                   <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center shrink-0">
                     <Icon size={14} className="text-muted-foreground" />
                   </div>
@@ -2278,7 +2283,7 @@ const ProfilePage = () => {
         <div>
           <h4 className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2 pl-1">{t("profilePage.menu.accountTitle", "Account")}</h4>
           <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
-            {menuItems.slice(4).map((item, i, arr) => {
+            {menuItems.slice(5).map((item, i, arr) => {
               const Icon = item.icon;
               return (
                 <button key={item.label} onClick={item.action} className={`w-full flex items-center gap-3 px-4 py-3 bg-card active:bg-muted/50 transition-colors ${i !== arr.length - 1 ? 'border-b border-border/30' : ''}`}>

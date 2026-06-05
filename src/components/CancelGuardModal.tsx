@@ -111,12 +111,12 @@ export default function CancelGuardModal({
                   <div className="flex justify-center gap-4 mt-1.5">
                     {superLikesLeft > 0 && (
                       <span className="text-xs text-amber-700 font-bold">
-                        ⭐ 슈퍼라이크 {superLikesLeft}개
+                        {t("cancelGuard.superLikesLeft", { count: superLikesLeft, defaultValue: `⭐ 슈퍼라이크 ${superLikesLeft}개` })}
                       </span>
                     )}
                     {boostsCount > 0 && (
                       <span className="text-xs text-amber-700 font-bold">
-                        ⚡ 부스트 {boostsCount}개
+                        {t("cancelGuard.boostsCount", { count: boostsCount, defaultValue: `⚡ 부스트 ${boostsCount}개` })}
                       </span>
                     )}
                   </div>

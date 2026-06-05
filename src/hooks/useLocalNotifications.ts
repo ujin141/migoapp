@@ -23,8 +23,8 @@ export function useLocalNotifications(userId: string | undefined) {
       const notifications = [
         {
           id: 1,
-          title: '새로운 동행을 찾아보세요! ✈️',
-          body: '내 근처에 새로운 여행자가 등록되었을지도 몰라요. 지금 확인해보세요!',
+          title: i18n.t('retention.fomo.offline.newCompanion.title', '새로운 동행을 찾아보세요! ✈️'),
+          body: i18n.t('retention.fomo.offline.newCompanion.body', '내 근처에 새로운 여행자가 등록되었을지도 몰라요. 지금 확인해보세요!'),
           schedule: { at: new Date(Date.now() + 1000 * 60 * 60 * 24) }, // 24시간 뒤
           smallIcon: 'ic_stat_notification',
           largeIcon: 'migo_notification_large',
@@ -33,8 +33,8 @@ export function useLocalNotifications(userId: string | undefined) {
         },
         {
           id: 2,
-          title: '누군가 회원님에게 관심이 있어요 💕',
-          body: '회원님의 프로필을 조회한 사람이 있습니다. 매칭 기회를 놓치지 마세요!',
+          title: i18n.t('retention.fomo.offline.interest.title', '누군가 회원님에게 관심이 있어요 💕'),
+          body: i18n.t('retention.fomo.offline.interest.body', '회원님의 프로필을 조회한 사람이 있습니다. 매칭 기회를 놓치지 마세요!'),
           schedule: { at: new Date(Date.now() + 1000 * 60 * 60 * 48) }, // 48시간 뒤
           smallIcon: 'ic_stat_notification',
           largeIcon: 'migo_notification_large',
@@ -43,8 +43,8 @@ export function useLocalNotifications(userId: string | undefined) {
         },
         {
           id: 3,
-          title: '여행 피드가 업데이트 되었습니다! 🌍',
-          body: '여행자들이 남긴 새로운 사진과 팁을 구경해보세요. 이번 주말엔 어디로 떠날까요?',
+          title: i18n.t('retention.fomo.offline.feed.title', '여행 피드가 업데이트 되었습니다! 🌍'),
+          body: i18n.t('retention.fomo.offline.feed.body', '여행자들이 남긴 새로운 사진과 팁을 구경해보세요. 이번 주말엔 어디로 떠날까요?'),
           schedule: { at: new Date(Date.now() + 1000 * 60 * 60 * 72) }, // 72시간 뒤
           smallIcon: 'ic_stat_notification',
           largeIcon: 'migo_notification_large',
@@ -94,7 +94,7 @@ export function useLocalNotifications(userId: string | undefined) {
     cancelOfflineNotifications();
 
     return () => {
-      listener.then(l => l.remove());
+      listener.then(l => l.remove()).catch(err => console.warn('Error removing listener:', err));
     };
   }, [userId]);
 }

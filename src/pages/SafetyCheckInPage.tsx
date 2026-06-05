@@ -317,7 +317,7 @@ const SafetyCheckInPage = () => {
                 variant: "destructive"
               });
             } catch {
-              toast({ title: "SOS 전송 실패", variant: "destructive" });
+              toast({ title: i18n.t("safety.sosSendFail", "SOS 전송 실패"), variant: "destructive" });
             }
           }} className="w-full py-3.5 rounded-2xl font-bold text-red-400 border border-red-400/30 bg-red-500/10 flex items-center justify-center gap-2">
                 <AlertTriangle size={16} />{t("auto.z_SOS\uAE34\uAE09\uC54C\uB9BC\uBC1C\uC1A1_75", "SOS\uAE34\uAE09\uC54C\uB9BC\uBC1C\uC1A1")}</button>
