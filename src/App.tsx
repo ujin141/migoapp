@@ -31,7 +31,7 @@ import DailyCheckinModal from "@/components/DailyCheckinModal";
 import SubscriptionExpiryBanner from "@/components/SubscriptionExpiryBanner";
 import MigoPlusModal from "@/components/MigoPlusModal";
 import AdBanner from "@/components/AdBanner";
-import { BannerAdPosition, BannerAdSize } from "@capacitor-community/admob";
+import { AdMob, BannerAdPosition, BannerAdSize } from "@capacitor-community/admob";
 import { useSubscription } from "@/context/SubscriptionContext";
 
 import i18n from "./i18n";
@@ -284,7 +284,10 @@ const AppContent = () => {
   useEffect(() => {
     if (showAdBanner) return;
     document.documentElement.style.removeProperty('--admob-banner-height');
-  }, [showAdBanner, isAdOverlaySuppressed, location.pathname]);
+    if (isNative) {
+      AdMob.removeBanner().catch(() => {});
+    }
+  }, [showAdBanner, isAdOverlaySuppressed, location.pathname, isNative]);
 
   useEffect(() => {
     const root = document.documentElement;

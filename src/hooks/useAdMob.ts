@@ -214,6 +214,7 @@ export function useAdMobBanner(
         console.log(`[AdMob] show banner: ${options.adId}`);
         await AdMob.showBanner(options);
         if (!mounted) {
+          AdMob.removeBanner().catch(() => {});
           return;
         }
         shownRef.current = true;
@@ -233,10 +234,8 @@ export function useAdMobBanner(
         listenerRef.current.remove?.();
         listenerRef.current = null;
       }
-      if (shownRef.current) {
-        AdMob.removeBanner().catch(() => {});
-        shownRef.current = false;
-      }
+      AdMob.removeBanner().catch(() => {});
+      shownRef.current = false;
     };
   }, [position, size, marginDp]);
 }
