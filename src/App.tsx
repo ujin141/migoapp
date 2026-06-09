@@ -633,10 +633,10 @@ const AppContent = () => {
       {showAdBanner && (
         <div
           data-ad-banner-root="true"
-          className="fixed left-0 right-0 z-[99] flex items-center justify-center bg-background"
+          className="fixed left-0 right-0 z-[99] flex items-start justify-center bg-background"
           style={{
-            bottom: `calc(${BANNER_MARGIN}px + env(safe-area-inset-bottom, 0px))`,
-            height: 'var(--admob-banner-height, var(--app-ad-reserved-height))',
+            bottom: 'var(--app-nav-height)',
+            height: 'calc(var(--admob-banner-height, var(--app-ad-reserved-height)) + env(safe-area-inset-bottom, 0px))',
           }}
         >
           <AdBanner

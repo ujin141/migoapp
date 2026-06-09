@@ -22,6 +22,6 @@ export default function AdBanner({
   if (!Capacitor.isNativePlatform()) return null;
 
   return (
-    <div style={{ height: `${reservedHeight}px`, flexShrink: 0 }} aria-hidden="true" />
+    <div style={{ height: `var(--admob-banner-height, ${reservedHeight}px)`, flexShrink: 0 }} aria-hidden="true" />
   );
 }
