@@ -210,6 +210,8 @@ const AppContent = () => {
   useFomoActivity(!!user && user.setupComplete === true, user?.id);
   // 복귀 보상: 7일 이상 미접속 후 복귀 시 슈퍼라이크 3개 자동 지급
   useReturnReward(user?.setupComplete === true ? user?.id : undefined);
+  // 로컬 알림 스케줄링 등록 (기기 오프라인 푸시 알림)
+  useLocalNotifications(user?.id);
 
   // 강제 스플래시: 세션 중 최초 접속 시 무조건 2초 노출
   const [showInitialSplash, setShowInitialSplash] = useState(() => {
