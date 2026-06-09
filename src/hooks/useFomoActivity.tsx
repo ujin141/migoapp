@@ -1,4 +1,4 @@
-import { createElement, useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useToast } from "./use-toast";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabaseClient";
@@ -314,38 +314,43 @@ export const useFomoActivity = (enabled: boolean = true, userId?: string) => {
       const ctaLabel = t("retention.fomo.tap_hint", isKo ? "지금 확인" : "Check now");
 
       toast({
-        className: "border-white/70 bg-white/95 text-slate-950 shadow-[0_18px_50px_-18px_rgba(15,23,42,0.45)] ring-1 ring-slate-900/5 backdrop-blur-2xl p-4 rounded-3xl",
-        title: t("retention.fomo.live_activity", "⚡ Live Activity"),
-        description: createElement(
-          "div",
-          { className: "relative min-w-0 overflow-hidden rounded-3xl px-4 pb-4" },
-          createElement("div", { className: `absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b ${meta.tone}` }),
-          createElement("div", { className: "absolute -right-10 -top-16 h-28 w-28 rounded-full bg-emerald-300/20 blur-2xl" }),
-          createElement("div", { className: "relative mt-2 flex min-w-0 items-center gap-3" },
-            createElement("div", { className: `grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${meta.tone} text-lg text-white shadow-lg shadow-slate-900/10` }, meta.icon),
-            createElement("div", { className: "min-w-0 flex-1" },
-              createElement("div", { className: "flex min-w-0 items-center gap-2" },
-                createElement("span", { className: "relative flex h-2.5 w-2.5 shrink-0" },
-                  createElement("span", { className: "absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" }),
-                  createElement("span", { className: "relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" }),
-                ),
-                createElement("span", { className: "truncate text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600" }, "LIVE"),
-              ),
-              createElement("div", { className: "mt-1 flex items-center gap-2" },
-                createElement("span", { className: "truncate text-[15px] font-black text-slate-950" }, activityLabel),
-                createElement("span", { className: "rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-extrabold text-slate-500" }, "NOW"),
-              ),
-            ),
-          ),
-          createElement("div", { className: "relative mt-3 rounded-2xl bg-slate-50 px-3.5 py-3 text-[13px] font-bold leading-relaxed text-slate-700 ring-1 ring-slate-900/5" }, message),
-          createElement("div", { className: "relative mt-3 flex items-center justify-between" },
-            createElement("div", { className: "flex items-center gap-1.5 text-[11px] font-bold text-slate-400" },
-              createElement("span", null, "Migo"),
-              createElement("span", { className: "h-1 w-1 rounded-full bg-slate-300" }),
-              createElement("span", null, isKo ? "방금 전" : "just now"),
-            ),
-            createElement("span", { className: "rounded-full bg-slate-950 px-3 py-1.5 text-[11px] font-black text-white shadow-sm" }, ctaLabel),
-          ),
+        className: "p-0 overflow-hidden bg-white/95 dark:bg-zinc-950/95 text-slate-950 dark:text-zinc-50 border border-slate-200/50 dark:border-zinc-800/80 shadow-[0_20px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl rounded-2xl w-[92vw] mx-auto md:w-[380px] hover:scale-[1.01] transition-transform duration-200",
+        title: "",
+        description: (
+          <div className="relative flex items-center gap-3 p-3.5 select-none">
+            {/* Left Edge Accent Bar */}
+            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${meta.tone} rounded-l-2xl`} />
+
+            {/* Glowing Icon Badge */}
+            <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${meta.tone} text-xl text-white shadow-md shadow-slate-900/10`}>
+              {meta.icon}
+              {/* Pulsing indicator */}
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 border-2 border-white dark:border-zinc-950"></span>
+              </span>
+            </div>
+
+            {/* Notification content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-zinc-500 tracking-wider uppercase">MIGO</span>
+                  <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-zinc-700" />
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded bg-gradient-to-r ${meta.tone} text-white`}>
+                    {activityLabel}
+                  </span>
+                </div>
+                <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500">
+                  {isKo ? "방금 전" : "just now"}
+                </span>
+              </div>
+
+              <p className="mt-1.5 text-[13px] font-bold text-slate-800 dark:text-zinc-100 leading-normal pr-2">
+                {message}
+              </p>
+            </div>
+          </div>
         ),
         duration: 5200,
       });

@@ -1741,6 +1741,10 @@ const zh = {
   },
   "ko-KR": "韩语",
   "auto": {
+    "g_main": "代表",
+    "g_addphoto": "添加照片",
+    "g_travelstyle_tags": "旅行风格标签",
+    "z_프로필테마_123": "个人资料主题",
     "v2_tonight_vip": "🔥 自动匹配今晚的酒会",
     "v2_tonight_desc": "一键为附近 3-4 个人提供随机酒吧闪电",
     "v2_scan_msg": "寻找我附近的饮酒朋友...",
@@ -9922,5 +9926,9 @@ const zh = {
   "travelDna.compatibility.metal_metal": "两颗华丽宝石相遇、让彼此光芒更加璀璨的时尚旅伴 ✨",
   "travelDna.compatibility.metal_water": "如金生水般理性且聪慧的完美协作，相处极为舒适默契",
   "travelDna.compatibility.water_water": "如水流交融般心照不宣、沟通无阻的灵魂旅伴 🌊",
+  "여행미션": "旅游任务",
+  "미션플레이": "例：今天不想一个人吃晚饭，有没有一起去吃美食的人 🍜",
+  "여권": "MIGO印章护照（访问过的国家）",
+  "국가선택": "选择国家",
 };
 export default zh;

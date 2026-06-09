@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS referrals (
 
 -- RLS 정책 설정 (일반 조회 가능하도록 최소한의 설정)
 ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "referrals_read_policy" ON referrals;
 CREATE POLICY "referrals_read_policy" ON referrals FOR SELECT TO authenticated USING (true);
 
 -- ── 3. 자동 추천 코드 생성 트리거 함수 정의 ───────────────────────

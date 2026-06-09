@@ -15,6 +15,7 @@ const REWARD_INFO: Record<string, { icon: string; label: string; color: string }
   badge_only:    { icon: "✅", label: "출석 도장 완료!", color: "from-slate-400 to-slate-500" },
   super_like_1:  { icon: "⭐", label: "슈퍼라이크 1개", color: "from-yellow-400 to-amber-500" },
   boost_30m:     { icon: "⚡", label: "프로필 부스트 30분", color: "from-purple-500 to-pink-500" },
+  crown_badge:   { icon: "👑", label: "슈퍼라이크 3개 + 왕관 배지", color: "from-yellow-400 to-amber-600" },
 };
 
 export default function DailyCheckinModal() {
@@ -49,6 +50,9 @@ export default function DailyCheckinModal() {
           setShow(true);
           setAnimPhase("enter");
           setTimeout(() => setAnimPhase("reward"), 800);
+          
+          // 출석 보상 반영을 위해 구독 및 아이템 데이터 강제 새로고침
+          window.dispatchEvent(new CustomEvent("migo:refresh-subscription"));
         }
       } catch {
         // 출석체크 실패 무시

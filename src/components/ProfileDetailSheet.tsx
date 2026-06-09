@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, Heart, MessageCircle, Zap, ChevronLeft, ChevronRight, User, Globe, Sparkles, Crown, Star, Languages, Loader2 } from "lucide-react";
-import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { triggerHaptic } from "@/lib/haptics";
 import VerifyBadge from "./VerifyBadge";
 import TravelDNA from "./TravelDNA";
 import { useAuth } from "@/hooks/useAuth";
@@ -155,19 +155,23 @@ const SAJU_ELEMENTS: Record<
 
 const calculateSajuElement = (p: any): "wood" | "fire" | "earth" | "metal" | "water" => {
   if (!p) return "wood";
-  const seedStr = p.id || p.name || "migo";
+  const seedStr = String(p.id || p.name || "migo");
   const hash = getDeterministicHash(seedStr);
   
-  const mbti = p.mbti || "";
+  const mbti = typeof p.mbti === "string" ? p.mbti : "";
   let mbtiModifier = 0;
   if (mbti.includes("E")) mbtiModifier += 1;
   if (mbti.includes("N")) mbtiModifier += 2;
   if (mbti.includes("F")) mbtiModifier += 3;
   if (mbti.includes("P")) mbtiModifier += 4;
   
-  const idx = (hash + mbtiModifier + (p.age || 0)) % 5;
+  const ageVal = typeof p.age === "number" ? p.age : parseInt(p.age, 10);
+  const ageNum = isNaN(ageVal) ? 0 : ageVal;
+  
+  const combined = hash + mbtiModifier + ageNum;
+  const idx = isNaN(combined) ? 0 : Math.abs(Math.floor(combined) % 5);
   const elements = ["wood", "fire", "earth", "metal", "water"] as const;
-  return elements[idx];
+  return elements[idx] || "wood";
 };
 
 const getSajuCompatibility = (el1: string, el2: string, lang: string) => {
@@ -408,12 +412,12 @@ const ProfileDetailSheet = ({
       ja: "Migo Plusに加入、またはログインすると、二人だけの詳しい相性ガイドを確認できます。✨",
       zh: "加入 Migo Plus 或登录后，可以查看你们两人的详细旅行契合指南。✨",
     });
-    const mbti = p.mbti || "";
-    const myMbti = my.mbti || "";
-    const isSpontaneous = mbti.includes("P") || p.travelMission === "즉흥 번개" || (p.interests && p.interests.includes("즉흥"));
-    const mySpontaneous = myMbti.includes("P") || my.travel_mission === "즉흥 번개" || (my.interests && my.interests.includes("즉흥"));
-    const isFoodie = p.travelMission?.includes("맛집") || p.interests?.some((i: string) => i.includes("맛집") || i.includes("미식"));
-    const myFoodie = my.travel_mission?.includes("맛집") || my.interests?.some((i: string) => i.includes("맛집") || i.includes("미식"));
+    const mbti = typeof p?.mbti === "string" ? p.mbti : "";
+    const myMbti = typeof my?.mbti === "string" ? my.mbti : "";
+    const isSpontaneous = mbti.includes("P") || p?.travelMission === "즉흥 번개" || (Array.isArray(p?.interests) && p.interests.includes("즉흥"));
+    const mySpontaneous = myMbti.includes("P") || my?.travel_mission === "즉흥 번개" || (Array.isArray(my?.interests) && my.interests.includes("즉흥"));
+    const isFoodie = (typeof p?.travelMission === "string" && p.travelMission.includes("맛집")) || (Array.isArray(p?.interests) && p.interests.some((i: any) => typeof i === "string" && (i.includes("맛집") || i.includes("미식"))));
+    const myFoodie = (typeof my?.travel_mission === "string" && my.travel_mission.includes("맛집")) || (Array.isArray(my?.interests) && my.interests.some((i: any) => typeof i === "string" && (i.includes("맛집") || i.includes("미식"))));
     
     if (isSpontaneous && mySpontaneous) {
       return pick({
@@ -459,7 +463,7 @@ const ProfileDetailSheet = ({
   const getIcebreakerQuestions = (p: any, my: any) => {
     const lang = (i18n.language?.split("-")[0] || "ko").toLowerCase();
     const pick = (text: Record<string, string>) => text[lang] || text.en || text.ko;
-    const mission = p.travelMission || pick({ ko: "로컬 번개", en: "local meetup", ja: "ローカル即席旅", zh: "本地即兴同行" });
+    const mission = typeof p.travelMission === 'string' ? p.travelMission : pick({ ko: "로컬 번개", en: "local meetup", ja: "ローカル即席旅", zh: "本地即兴同行" });
     return [
       {
         id: "photo",
@@ -503,7 +507,7 @@ const ProfileDetailSheet = ({
   if (!profile) return null;
 
   // 여러 사진 지원 — photo_urls 또는 단일 photo
-  const photos: string[] = profile.photoUrls && profile.photoUrls.length > 0 ? profile.photoUrls.filter((u: string) => !!u) : [profile.photo].filter((u: string | undefined): u is string => !!u);
+  const photos: string[] = Array.isArray(profile.photoUrls) && profile.photoUrls.length > 0 ? profile.photoUrls.filter((u: any) => typeof u === 'string' && !!u) : [profile.photo].filter((u: any): u is string => typeof u === 'string' && !!u);
   const travelStyles: string[] = Array.isArray(profile.travelStyle) ? profile.travelStyle : Array.isArray(profile.tags) ? profile.tags : [];
   const languages: string[] = Array.isArray(profile.languages) ? profile.languages : [];
   const scoreColor = (profile.matchScore ?? 0) >= 80 ? "text-emerald-400" : (profile.matchScore ?? 0) >= 60 ? "text-yellow-400" : "text-muted-foreground";
@@ -699,7 +703,7 @@ const ProfileDetailSheet = ({
                     <h2 className="text-2xl font-extrabold text-foreground flex items-center gap-1.5 flex-1 min-w-0">
                       <span className="truncate">{profile.name}</span>
                       <span className="text-xl font-medium text-foreground/80 shrink-0">{profile.age && `, ${profile.age}`}</span>
-                      {profile.nationality && <span className="text-xl ml-1 drop-shadow-sm shrink-0">{profile.nationality.match(/[^\x00-\x7F가-힣a-zA-Z]+/g)?.[0]?.trim() || profile.nationality}</span>}
+                      {typeof profile.nationality === 'string' && <span className="text-xl ml-1 drop-shadow-sm shrink-0">{profile.nationality.match(/[^\x00-\x7F가-힣a-zA-Z]+/g)?.[0]?.trim() || profile.nationality}</span>}
                       {profile.isPlus && <span className="shrink-0"><Crown size={18} className="text-amber-500 fill-amber-500 ml-0.5" /></span>}
                       {profile.verified && <span className="shrink-0"><VerifyBadge level={profile.verifyLevel} /></span>}
                       {(profile.id_verified || profile.ticketVerified) && (
@@ -714,10 +718,10 @@ const ProfileDetailSheet = ({
                     <span className="text-sm text-muted-foreground border-r border-border pr-2 truncate">
                       {profile.location || i18n.t('profileDetail.noLocation')}{profile.distance ? ` · ${profile.distance}` : ""}
                     </span>
-                    {profile.avgRating && <div className="flex items-center gap-1 bg-amber-400/15 px-2 py-0.5 rounded-full ml-1">
+                    {profile.avgRating && !isNaN(Number(profile.avgRating)) && <div className="flex items-center gap-1 bg-amber-400/15 px-2 py-0.5 rounded-full ml-1">
                         <Star size={11} className="text-amber-500 fill-amber-500" />
-                        <span className="text-amber-600 dark:text-amber-400 text-xs font-extrabold">{profile.avgRating.toFixed(1)}</span>
-                        {profile.reviewCount > 0 && <span className="text-amber-600/70 dark:text-amber-400/70 text-[10px]">({profile.reviewCount})</span>}
+                        <span className="text-amber-600 dark:text-amber-400 text-xs font-extrabold">{Number(profile.avgRating).toFixed(1)}</span>
+                        {Number(profile.reviewCount) > 0 && <span className="text-amber-600/70 dark:text-amber-400/70 text-[10px]">({profile.reviewCount})</span>}
                       </div>}
                   </div>
                 </div>
@@ -817,9 +821,12 @@ const ProfileDetailSheet = ({
                 {travelStyles.length > 0 && <div>
                     <p className="text-xs font-bold text-muted-foreground mb-2 truncate">{i18n.t('profileDetail.travelStyle')}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {travelStyles.map(s => <span key={s} className="px-3 py-1.5 rounded-xl text-xs font-semibold gradient-primary text-primary-foreground">
-                          {s}
-                        </span>)}
+                      {travelStyles.map(s => {
+                        const styleStr = typeof s === 'string' ? s : (s && typeof s === 'object' && 'name' in s ? (s as any).name : String(s));
+                        return <span key={styleStr} className="px-3 py-1.5 rounded-xl text-xs font-semibold gradient-primary text-primary-foreground">
+                            {styleStr}
+                          </span>;
+                      })}
                     </div>
                   </div>}
 
@@ -828,7 +835,10 @@ const ProfileDetailSheet = ({
                     <p className="text-xs font-bold text-muted-foreground mb-2 truncate">{i18n.t('profileDetail.languages')}</p>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Globe size={13} className="text-muted-foreground" />
-                      {languages.map(l => <span key={l} className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted text-foreground">{l}</span>)}
+                      {languages.map(l => {
+                        const langStr = typeof l === 'string' ? l : (l && typeof l === 'object' && 'name' in l ? (l as any).name : String(l));
+                        return <span key={langStr} className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted text-foreground">{langStr}</span>;
+                      })}
                     </div>
                   </div>}
 
@@ -873,8 +883,8 @@ const ProfileDetailSheet = ({
                   const myElementKey = myProfileData ? calculateSajuElement(myProfileData) : null;
                   const lang = (i18n.language?.split('-')[0] || 'ko').toLowerCase();
 
-                  const targetEl = SAJU_ELEMENTS[targetElementKey];
-                  const myEl = myElementKey ? SAJU_ELEMENTS[myElementKey] : null;
+                  const targetEl = SAJU_ELEMENTS[targetElementKey] || SAJU_ELEMENTS.wood;
+                  const myEl = myElementKey ? (SAJU_ELEMENTS[myElementKey] || SAJU_ELEMENTS.wood) : null;
 
                   const titleLabel = {
                     ko: "☯️ 한국 전통 음양오행 사주 나침반",
@@ -1064,7 +1074,7 @@ const ProfileDetailSheet = ({
                         whileTap={{ scale: 0.95, y: 2 }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                          triggerHaptic("light");
                           setSelectedIcebreaker(selectedIcebreaker === c.id ? null : c.id);
                         }}
                         className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-between gap-1.5 transition-all ${
@@ -1118,7 +1128,9 @@ const ProfileDetailSheet = ({
                               whileTap={{ scale: 0.97 }}
                               onClick={() => {
                                 // Copy to clipboard & trigger chat action
-                                navigator.clipboard.writeText(activeCard.question).catch(() => {});
+                                if (navigator.clipboard) {
+                                  navigator.clipboard.writeText(activeCard.question).catch(() => {});
+                                }
                                 if (onChat) {
                                   onChat();
                                   onClose();

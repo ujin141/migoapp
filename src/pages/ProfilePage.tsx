@@ -25,7 +25,8 @@ import { getCurrentLocation } from "@/lib/locationService";
 import StoryViewer from "@/components/StoryViewer";
 import ProfileCompletionBar from "@/components/ProfileCompletionBar";
 import MySajuDetailModal from "@/components/profile/MySajuDetailModal";
-import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { triggerHaptic } from "@/lib/haptics";
+import { useAdMob } from "@/hooks/useAdMob";
 import { Solar, Lunar } from "lunar-javascript";
 
 const getDeterministicHash = (str: string): number => {
@@ -225,6 +226,7 @@ const ProfilePage = () => {
   const curLang = (i18n.language?.split('-')[0] || 'en').toLowerCase();
   const {
     isPlus,
+    isPremium,
     boostsCount,
     startBoost,
     boostActive,
@@ -232,8 +234,15 @@ const ProfilePage = () => {
     canDedicatedSupport,
     canViewLikers,
   } = useSubscription();
+  const { showInterstitial, preloadInterstitial } = useAdMob();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  useEffect(() => {
+    if (!isPlus && !isPremium) {
+      preloadInterstitial();
+    }
+  }, [preloadInterstitial, isPlus, isPremium]);
 
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -1691,8 +1700,11 @@ const ProfilePage = () => {
             {/* Action Button for Detailed Saju Analysis */}
             <motion.button
               whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+              onClick={async () => {
+                triggerHaptic("light");
+                if (!isPlus && !isPremium) {
+                  await showInterstitial();
+                }
                 setShowSajuModal(true);
               }}
               className="w-full py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-[11px] font-black text-amber-500 active:opacity-95 transition-all flex items-center justify-center gap-1.5"

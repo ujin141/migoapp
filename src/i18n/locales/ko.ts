@@ -404,6 +404,10 @@ const ko = {
     "matched": "님과 매칭됐어요! 🎉"
   },
   "profile": {
+    "recentVisitors": "최근 방문자",
+    "whoViewedMe": "누가 나를 봤을까요?",
+    "visitorCount": "{{count}}명이 내 프로필을 확인했어요.",
+    "viewAll": "확인하기",
     "title": "프로필",
     "edit": "편집",
     "logout": "로그아웃",
@@ -936,6 +940,7 @@ const ko = {
     "superlikedDesc": "상대방이 당신에게 특별한 주목을 하고 있어요 ⭐"
   },
   "notif": {
+    "defaultMsg": "새로운 알림이 도착했습니다.",
     "viewedProfile": "님이 내 프로필을 조회했어요",
     "likedMsg": "님이 내 여행에 좋아요를 보냈어요",
     "liked": "님이 나를 좋아해요",
@@ -1005,6 +1010,13 @@ const ko = {
     "uploadFail": "업로드 실패",
     "saved": "프로필이 저장되었어요 ✨",
     "profileEdit": "프로필 설정",
+    "theme": {
+      "default": "기본",
+      "aurora": "오로라",
+      "sunset": "선셋",
+      "neon": "네온 사이버",
+      "midnight": "미드나잇"
+    },
     "upgradeTitle": "Migo Plus로 업그레이드",
     "upgradeDesc": "슈퍼라이크 무제한 · 부스트 · 프로필 숨김",
     "boostFree": "무료 부스트 ({{n}}개)",
@@ -1808,6 +1820,10 @@ const ko = {
     "emailLabel": "이메일:"
   },
   "auto": {
+    "g_main": "대표",
+    "g_addphoto": "사진 추가",
+    "g_travelstyle_tags": "여행 스타일 태그",
+    "z_프로필테마_123": "프로필 테마",
     "v2_tonight_vip": "🔥 오늘 저녁 술 모임 자동 매칭",
     "v2_tonight_desc": "버튼 한 번으로 근처 3~4명 랜덤 펍 번개",
     "v2_scan_msg": "내 주변 술 친구 탐색 중...",

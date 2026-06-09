@@ -170,8 +170,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   }, []); // BUG-13 fix: deps 없음 (내부에서 ref 사용하므로 stale closure 없음)
 
   // ── DB에서 구독상태 + 아이템 잔량 로드 ──────────────────────────────────
-  useEffect(() => {
-    if (!user || !sessionReady) return; // sessionReady: auth lockAcquired 완료 후 실행
+  const refreshSubscriptionData = useCallback(() => {
+    if (!user || !sessionReady) return;
 
     // profiles에서 구독 플랜 + 아이템 구매 상태 로드
     supabase
@@ -207,6 +207,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
             setIsPlus(true);
           } else {
             setIsPlus(true);
+            setIsPremium(false);
           }
         } else {
           // 만료되었거나 DB에 구독 상태 아님 → free로 초기화
@@ -240,6 +241,16 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
           supabase.from("user_items").upsert({ user_id: user.id }, { onConflict: 'user_id' }).then(() => {});
         }
       });
+  }, [user, sessionReady]);
+
+  // ── DB에서 구독상태 + 아이템 잔량 로드 ──────────────────────────────────
+  useEffect(() => {
+    if (!user || !sessionReady) return; // sessionReady: auth lockAcquired 완료 후 실행
+
+    refreshSubscriptionData();
+
+    // Custom Event 수신 시 강제 리프레시 실행
+    window.addEventListener("migo:refresh-subscription", refreshSubscriptionData);
 
     // 실시간 데이터 업데이트 구독 (아이템 + 구독 상태)
     // 채널 이름에 user.id 포함: 유저 변경 시 채널 충돌 방지
@@ -286,9 +297,10 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       .subscribe();
 
     return () => {
+      window.removeEventListener("migo:refresh-subscription", refreshSubscriptionData);
       supabase.removeChannel(channel);
     };
-  }, [user, sessionReady]);
+  }, [user, sessionReady, refreshSubscriptionData]);
 
   // ── Migo Plus/Premium 업그레이드 (ex: 테스트 결제) ─────────────────────────────────
   const upgradePlus = useCallback(async (plan: 'plus' | 'premium' = 'plus') => {

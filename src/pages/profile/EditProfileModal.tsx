@@ -5,7 +5,7 @@ import { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { Sparkles, Lock } from "lucide-react";
-import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { triggerHaptic } from "@/lib/haptics";
 
 interface EditProfileModalProps {
   showEditModal: boolean;
@@ -221,10 +221,10 @@ export const EditProfileModal = ({
                         key={th.id}
                         onClick={() => {
                           if (!isLocked) {
-                            Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                            triggerHaptic("light");
                             setProfileTheme(th.id);
                           } else {
-                            Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {}); // Lock feeling
+                            triggerHaptic("heavy"); // Lock feeling
                           }
                         }}
                         className="relative flex flex-col items-center gap-1.5 min-w-0 transition-transform active:scale-90"
@@ -239,7 +239,7 @@ export const EditProfileModal = ({
                             <Check size={14} className="text-primary drop-shadow-sm" />
                           )}
                         </div>
-                        <span className={`text-[9px] font-bold text-center leading-tight truncate w-full px-0.5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>{th.name}</span>
+                        <span className={`text-[9px] font-bold text-center leading-tight truncate w-full px-0.5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>{i18n.t(`profilePage.theme.${th.id}`, th.name)}</span>
                       </button>
                     );
                   })}

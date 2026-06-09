@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, Globe, Sparkles, MapPin, Compass, Info, Check, User, Heart as HeartIcon, Crown, Share2, Download, Copy } from "lucide-react";
-import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { triggerHaptic } from "@/lib/haptics";
 import { Capacitor } from "@capacitor/core";
 import { Solar, Lunar } from "lunar-javascript";
 import { useToast } from "@/hooks/use-toast";
@@ -783,7 +783,7 @@ export default function MySajuDetailModal({
 
   const selectResultTab = (tab: "pillars" | "personality" | "love" | "wealth" | "travel") => {
     if (!isCalculated) return;
-    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+    triggerHaptic("light");
     setActiveTab(tab);
   };
 
@@ -884,7 +884,7 @@ export default function MySajuDetailModal({
   };
 
   const handleCalculate = () => {
-    Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
+    triggerHaptic("medium");
     try {
       const result = runSajuCalculation();
       const master = result.dayPillar.stem;

@@ -252,6 +252,10 @@ const en = {
     "pwStrength4": "Strong ✅"
   },
   "profile": {
+    "recentVisitors": "Recent Visitors",
+    "whoViewedMe": "Who viewed me?",
+    "visitorCount": "{{count}} people viewed my profile.",
+    "viewAll": "View All",
     "edit": "Edit Profile",
     "save": "Save",
     "cancel": "Cancel",
@@ -926,6 +930,10 @@ const en = {
     "confirmBanUser": "Are you sure you want to {{action}} this user?"
   },
   "auto": {
+    "g_main": "Main",
+    "g_addphoto": "Add Photo",
+    "g_travelstyle_tags": "Travel Style Tags",
+    "z_프로필테마_123": "Profile Theme",
     "v2_tonight_vip": "🔥 Automatic matching for tonight’s drinking party",
     "v2_tonight_desc": "Random pub lightning for 3-4 nearby people with one button",
     "v2_scan_msg": "Searching for drinking friends near me...",
@@ -5760,6 +5768,13 @@ const en = {
     "refundPolicy": "Refund Policy",
     "licenseTitle": "Open Source Licenses",
     "profileEdit": "Edit Profile",
+    "theme": {
+      "default": "Default",
+      "aurora": "Aurora",
+      "sunset": "Sunset",
+      "neon": "Neon Cyber",
+      "midnight": "Midnight"
+    },
     "profilePhoto": "Profile Photo",
     "photoHint": "Use a clear front-facing photo",
     "labelName": "Name",
@@ -6198,6 +6213,7 @@ const en = {
     "superlikedDesc": "The other person is paying special attention to you ⭐"
   },
   "notif": {
+    "defaultMsg": "A new notification has arrived.",
     "viewedProfile": "viewed your profile",
     "likedMsg": "liked your trip",
     "liked": "likes you",
@@ -10122,5 +10138,9 @@ const en = {
   "travelDna.compatibility.metal_metal": "A stylish companion where two gorgeous jewels meet to make each other shine. ✨",
   "travelDna.compatibility.metal_water": "A wise and sophisticated synergy, like cold metal purifying clean water.",
   "travelDna.compatibility.water_water": "A perfect communication companion where hearts connect effortlessly. 🌊",
+  "여행미션": "Travel Mission",
+  "미션플레이": "e.g. Someone to go to a popular restaurant with because I don't want to eat alone 🍜",
+  "여권": "MIGO Stamp Passport (Visited Countries)",
+  "국가선택": "Select Country",
 };
 export default en;

@@ -17,7 +17,7 @@ interface TabDef {
 }
 
 export const NAV_H = 52;     // BottomNav 높이 (px)
-export const BANNER_H = 75;  // AdMob 배너용 예약 높이 (px) - 가변 높이 및 버튼 터치 영역 침범 방지용 넉넉한 여백
+export const BANNER_H = 50;  // AdMob 배너용 예약 높이 (px) - 표준 모바일 배너 높이에 최적화
 export const BANNER_MARGIN = NAV_H; // 네이티브 플러그인(Android/iOS 공통)이 Safe Area 위로 BottomNav 높이(52)만큼 배너를 띄움
 
 const BottomNav = () => {

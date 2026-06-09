@@ -14,7 +14,7 @@ interface AdBannerProps {
 export default function AdBanner({
   position = BannerAdPosition.BOTTOM_CENTER,
   size = BannerAdSize.ADAPTIVE_BANNER,
-  reservedHeight = 60,
+  reservedHeight = 50,
 }: AdBannerProps) {
   // margin=BANNER_MARGIN(86): 네이티브 플러그인이 배너를 화면 맨 아래에서 안전하게 띄워 렌더링
   useAdMobBanner(position, size, BANNER_MARGIN);

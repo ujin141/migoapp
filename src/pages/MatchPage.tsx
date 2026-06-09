@@ -63,7 +63,8 @@ const MatchPage = () => {
     dailyLikeLimit,
   } = useSubscription();
   const {
-    user
+    user,
+    sessionReady
   } = useAuth();
   const [showPlusModal, setShowPlusModal] = useState(false);
   const [showLoginGate, setShowLoginGate] = useState(false);
@@ -106,10 +107,10 @@ const MatchPage = () => {
   }, [swipeCount]);
 
   useEffect(() => {
-    if (user) {
-      getMyCheckIn(user.id).then(ci => {
-        if (ci) setActiveCheckIn(ci);
-      });
+    if (!sessionReady || !user) return;
+    getMyCheckIn(user.id).then(ci => {
+      if (ci) setActiveCheckIn(ci);
+    });
       // ?뚮┝ 沅뚰븳 ?붿껌 (泥섏쓬 諛⑸Ц ??
       requestNotificationPermission();
 
@@ -122,8 +123,7 @@ const MatchPage = () => {
       } else {
         setMyDailyMission(localStorage.getItem('migo_today_mission') || "");
       }
-    }
-  }, [user]);
+  }, [user, sessionReady]);
 
   const selectDailyMission = async (mission: string) => {
     const today = new Date().toISOString().split('T')[0];
@@ -167,16 +167,18 @@ const MatchPage = () => {
   const [inAppNotif, setInAppNotif] = useState<InAppNotifData | null>(null);
   const [ads, setAds] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
-  // ?ㅼ떆媛??⑤씪???곹깭 留?{ userId -> { isOnline, lastSeen } }
+  const [myProfileData, setMyProfileData] = useState<any>(null);
+  // ?녴몥?뙴?꺿몥?뗫뙼?뚢뫊???뺢퉳 留?{ userId -> { isOnline, lastSeen } }
   const [onlineMap, setOnlineMap] = useState<Record<string, { isOnline: boolean; lastSeen: string | null }>>({});
   const [pendingLikers, setPendingLikers] = useState<any[]>([]); // ?섎? ?쇱씠?ы븳 ?щ엺
   const [dailyLikesUsed, setDailyLikesUsed] = useState(0); // ?ㅻ뒛 蹂대궦 ?쇱씠????
-  const [hasMyGps, setHasMyGps] = useState(true); // ???꾩튂 ?뺣낫媛 ?덈뒗吏 ?щ?
+  const [hasMyGps, setHasMyGps] = useState(true); // ???꾩튂 ?뺣낫媛€ ?덈뒗吏€ ?щ?
   const DAILY_LIKE_LIMIT = dailyLikeLimit; // SubscriptionContext 湲곗?: free=10, plus=?? premium=??
   
+  const preloadedUrlsRef = useRef<Set<string>>(new Set());
   const matchTimersRef = useRef<{ timeouts: any[] }>({ timeouts: [] });
   const showMatchRef = useRef(false);
-  // MatchPage-TIMER fix: fetchProfiles ??likeReset ??대㉧瑜?ref濡?愿由?(async ?⑥닔 ??return cleanup 遺덇?)
+  // MatchPage-TIMER fix: fetchProfiles ??likeReset ?€?대㉧瑜?ref濡?愿€由?(async ?⑥닔 ??return cleanup 遺덇?)
   const likeResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runAfterSwipe = useCallback((task: () => void) => {
     window.setTimeout(() => {
@@ -199,6 +201,7 @@ const MatchPage = () => {
     };
   }, []);
   useEffect(() => {
+    if (!sessionReady || !user) return;
     fetchActiveAdsForScreen("MatchPage").then(setAds);
     let isMounted = true;
     const fetchProfiles = async () => {
@@ -213,6 +216,9 @@ const MatchPage = () => {
       const {
         data: me
       } = await supabase.from('profiles').select('id,name,photo_url,photo_urls,age,bio,gender,nationality,location,lat,lng,languages,interests,mbti,verified,plan,is_plus,travel_dates,saju_completed,saju_profile,saju_day_master,saju_element').eq('id', user.id).single();
+      if (me && isMounted) {
+        setMyProfileData(me);
+      }
 
       // ?대? ?ㅼ??댄봽???곷? ID ?섏쭛 (理쒓렐 24?쒓컙 ?대궡 ?곗씠?곕쭔 DB ?덈꺼?먯꽌 ?꾪꽣留?
       if (!isMounted) return;
@@ -455,35 +461,38 @@ const MatchPage = () => {
       }
 
       // 24?쒓컙 濡ㅻ쭅 ?덈룄?곕줈 蹂대궦 ?쇱씠????議고쉶
-      const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
       const {
-        count: likeCount,
-        data: recentLikes
+        count: likeCount
       } = await supabase.from('likes').select('created_at', {
         count: 'exact'
-      }).eq('from_user', user.id).gte('created_at', since24h.toISOString()).order('created_at', {
-        ascending: true
-      }); // ??limit(1) ?쒓굅: count媛 理쒕? 1濡?怨좎젙?섎뜕 踰꾧렇 ?섏젙
+      })
+      .eq('from_user', user.id)
+      .in('kind', ['like', 'superlike'])
+      .gte('created_at', startOfToday.toISOString());
+      
       if (isMounted) setDailyLikesUsed(likeCount ?? 0);
 
-      // MatchPage-TIMER fix: async ?대? return? useEffect cleanup 遺덇? ??ref ?ъ슜
-      if (recentLikes && recentLikes.length > 0) {
-        const firstLikeAt = new Date(recentLikes[0].created_at).getTime();
-        const resetAt = firstLikeAt + 24 * 60 * 60 * 1000;
-        const msUntilReset = resetAt - Date.now();
-        if (msUntilReset > 0) {
-          if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
-          likeResetTimerRef.current = setTimeout(() => { if (isMounted) setDailyLikesUsed(0); }, msUntilReset);
-        } else {
-          setDailyLikesUsed(0);
-        }
+      // 다음날 00:00:00 로컬시간 리셋 타이머
+      const startOfTomorrow = new Date();
+      startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+      startOfTomorrow.setHours(0, 0, 0, 0);
+      const msUntilReset = startOfTomorrow.getTime() - Date.now();
+      if (msUntilReset > 0) {
+        if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
+        likeResetTimerRef.current = setTimeout(() => {
+          if (isMounted) setDailyLikesUsed(0);
+        }, msUntilReset);
+      } else {
+        if (isMounted) setDailyLikesUsed(0);
       }
-    };
+      };
     fetchProfiles().catch(err => console.error('[MatchPage] fetchProfiles failed:', err));
     return () => {
       isMounted = false; if (likeResetTimerRef.current) clearTimeout(likeResetTimerRef.current);
     };
-  }, [t, user]);
+  }, [t, user, sessionReady]);
 
   // ?? Supabase Realtime: online_status ?ㅼ떆媛?援щ룆 ??
   useEffect(() => {
@@ -790,31 +799,33 @@ const MatchPage = () => {
     });
     if (!isPlus && !profile.isLiker) setDailyLikesUsed(n => n + 1);
 
-    // DB ?€??+ 留ㅼ묶 ?뺤씤
-    saveLikeAndCheckMatch(profile.id).then(isMatch => {
-      if (isMatch) {
-         triggerHaptic("success");
-         if (showMatchRef.current) {
-           // ?대? 留ㅼ묶李쎌씠 ?좎엳?쇰㈃ 議곗슜??諛깃렇?쇱슫??留ㅼ묶 (?몄빋 ?뚮━誘몃쭔)
-           addUnread(profile.id);
-           setInAppNotif({ type: "like", actorName: profile.name, actorPhoto: profile.photo });
-         } else {
-           showMatchRef.current = true;
-           const tMatch = setTimeout(() => {
-             setMatchProfile(profile);
-             setIsSuperLikeMatch(false);
-             setShowMatch(true);
-             if (typeof isMatch === 'string') setMatchedThreadId(isMatch);
+    // DB 저장 + 매칭 확인 (지연 처리로 프레임 드랍 방지)
+    runAfterSwipe(() => {
+      saveLikeAndCheckMatch(profile.id).then(isMatch => {
+        if (isMatch) {
+           triggerHaptic("success");
+           if (showMatchRef.current) {
+             // ?대? 留ㅼ묶李쎌씠 ?좎엳?쇰㈃ 議곗슜??諛깃렇?쇱슫??留ㅼ묶 (?몄빋 ?뚮━誘몃쭔)
              addUnread(profile.id);
-             setInAppNotif({
-               type: "like",
-               actorName: profile.name,
-               actorPhoto: profile.photo
-             });
-           }, 300);
-           matchTimersRef.current.timeouts.push(tMatch);
+             setInAppNotif({ type: "like", actorName: profile.name, actorPhoto: profile.photo });
+           } else {
+             showMatchRef.current = true;
+             const tMatch = setTimeout(() => {
+               setMatchProfile(profile);
+               setIsSuperLikeMatch(false);
+               setShowMatch(true);
+               if (typeof isMatch === 'string') setMatchedThreadId(isMatch);
+               addUnread(profile.id);
+               setInAppNotif({
+                 type: "like",
+                 actorName: profile.name,
+                 actorPhoto: profile.photo
+               });
+             }, 300);
+             matchTimersRef.current.timeouts.push(tMatch);
+            }
           }
-        }
+      });
     });
 
     // 실시간 FOMO 유도: 무료 유저에게 10% 확률로 토스트 띄우기
@@ -955,16 +966,23 @@ const MatchPage = () => {
 
   // ?꾨줈??議고쉶 ?뚮┝ (移대뱶 ?????대떦 ?좎??먭쾶 ?꾩넚)
   const sendProfileViewNotif = async (targetUserId: string) => {
-    if (!user || targetUserId === user.id) return; // ?먭린 ?먯떊 ?쒖쇅
-    // profile_view ?뚮┝: INSERT, 以묐났(23505) 議곗슜??臾댁떆
-    const { error: notifErr } = await supabase.from('notifications').insert({
-      user_id: targetUserId,
-      type: 'profile_view',
-      actor_id: user.id
-    });
-    if (notifErr && notifErr.code !== '23505') {
-      // 23505 = unique_violation (以묐났 酉? ???뺤긽, 洹????먮윭留?濡쒓렇
-      console.warn('[sendProfileViewNotif]', notifErr.message);
+    try {
+      if (!user || targetUserId === user.id) return; // ?먭린 ?먯떊 ?쒖쇅
+      const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetUserId);
+      if (!isValidUUID) return;
+      
+      // profile_view ?뚮┝: INSERT, 以묐났(23505) 議곗슜??臾댁떆
+      const { error: notifErr } = await supabase.from('notifications').insert({
+        user_id: targetUserId,
+        type: 'profile_view',
+        actor_id: user.id
+      });
+      if (notifErr && notifErr.code !== '23505') {
+        // 23505 = unique_violation (以묐났 酉? ???뺤긽, 洹????먮윭留?濡쒓렇
+        console.warn('[sendProfileViewNotif]', notifErr.message);
+      }
+    } catch (err) {
+      console.error('[sendProfileViewNotif] error:', err);
     }
   };
   const toggleTag = (tag: string) => {
@@ -977,6 +995,9 @@ const MatchPage = () => {
     withAds.slice(currentIndex, currentIndex + 5).forEach((profile: any) => {
       const src = profile?.photoUrls?.[0] || profile?.photo || profile?.photo_url || profile?.photo_urls?.[0];
       if (!src) return;
+      if (preloadedUrlsRef.current.has(src)) return; // 이미 프리로드됨
+      
+      preloadedUrlsRef.current.add(src);
       const img = new Image();
       img.decoding = "async";
       img.src = src;
@@ -1179,7 +1200,7 @@ const MatchPage = () => {
         )}
         {remaining.length > 0 ? (
           <AnimatePresence>
-            {remaining.map((profile, i) => <SwipeCard key={profile.id} profile={profile} onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} onChat={() => handleDirectChat(profile)} isTop={i === remaining.length - 1} isSuperLiked={superLikedId === profile.id} onProfileView={sendProfileViewNotif} myProfile={user} myDailyMission={myDailyMission} onPremiumClick={() => setShowPlusModal(true)} />)}
+            {remaining.map((profile, i) => <SwipeCard key={profile.id} profile={profile} onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} onChat={() => handleDirectChat(profile)} isTop={i === remaining.length - 1} isSuperLiked={superLikedId === profile.id} onProfileView={sendProfileViewNotif} myProfile={myProfileData} myDailyMission={myDailyMission} onPremiumClick={() => setShowPlusModal(true)} />)}
           </AnimatePresence>
         ) : (
           <motion.div 
@@ -1318,7 +1339,7 @@ const MatchPage = () => {
       <MatchModal isOpen={showMatch} profile={matchProfile} onClose={() => { setShowMatch(false); showMatchRef.current = false; }} onChat={handleChatFromMatch} isSuperLike={isSuperLikeMatch} superLikeMessage={isSuperLikeMatch ? superLikeMessage : ""} />
 
       {/* Migo Plus Modal */}
-      <MigoPlusModal isOpen={showPlusModal} onClose={() => setShowPlusModal(false)} />
+      <MigoPlusModal isOpen={showPlusModal} onClose={() => setShowPlusModal(false)} defaultPlan="premium" />
 
       {/* ??? Login Gate Modal ??? */}
       <LoginGateModal

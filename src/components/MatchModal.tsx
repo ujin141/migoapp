@@ -17,10 +17,18 @@ interface MatchModalProps {
 
 // ── AI 아이스브레이커 생성 (공통 관심사 기반, API 불필요) ──
 const generateIcebreakers = (profile: any, myProfile?: any): string[] => {
-  const theirTags = [...(profile.travelStyle || []), ...(profile.tags || [])];
-  const myTags = myProfile ? [...(myProfile.travel_style || []), ...(myProfile.interests || [])] : [];
-  const destination = profile.destination || profile.location || "";
-  const mission = profile.travelMission;
+  const theirTags = [
+    ...(Array.isArray(profile?.travelStyle) ? profile.travelStyle : []),
+    ...(Array.isArray(profile?.tags) ? profile.tags : [])
+  ];
+  const myTags = myProfile 
+    ? [
+        ...(Array.isArray(myProfile.travel_style) ? myProfile.travel_style : []),
+        ...(Array.isArray(myProfile.interests) ? myProfile.interests : [])
+      ] 
+    : [];
+  const destination = typeof profile?.destination === 'string' ? profile.destination : (typeof profile?.location === 'string' ? profile.location : "");
+  const mission = typeof profile?.travelMission === 'string' ? profile.travelMission : undefined;
   const TEMPLATE_MAP: Record<string, string[]> = {
     "photo": [`Know any great photo spots in ${destination}? Let's go! 📸`, i18n.t("auto.g_0060", "어떤카메라")],
     "food": [`Can you recommend food spots in ${destination}? I love local food 🍜`, i18n.t("auto.g_0061", "오늘저녁혼")],
@@ -70,8 +78,10 @@ const suggestMeetingPlace = (destination: string): string => {
     [i18n.t("dest.paris", "파리")]: i18n.t("auto.g_0073", "에펠탑근처"),
     [i18n.t("dest.danang", "다낭")]: i18n.t("auto.g_0074", "미케비치근")
   };
-  for (const [city, spot] of Object.entries(SPOTS)) {
-    if (destination?.includes(city)) return spot;
+  if (typeof destination === 'string') {
+    for (const [city, spot] of Object.entries(SPOTS)) {
+      if (destination.includes(city)) return spot;
+    }
   }
   return i18n.t("auto.g_0075", "근처카페에");
 };

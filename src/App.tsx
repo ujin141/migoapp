@@ -181,22 +181,24 @@ const AppContent = () => {
       const referrerUrl = document.referrer || "";
       const userAgent = navigator.userAgent || "";
 
-      // 비블로킹 백그라운드로 로깅 수행
-      supabase.from("traffic_logs").insert({
-        visitor_id: visitorId,
-        page_path: pagePath,
-        utm_source: utmSource || localStorage.getItem("migo_utm_source"),
-        utm_medium: utmMedium || localStorage.getItem("migo_utm_medium"),
-        utm_campaign: utmCampaign || localStorage.getItem("migo_utm_campaign"),
-        referrer_url: referrerUrl,
-        user_agent: userAgent
-      }).then(({ error }) => {
-        if (error) {
-          console.warn("[Attribution] Traffic log insert failed:", error.message);
-        } else {
-          console.log("[Attribution] Logged page view:", pagePath);
-        }
-      });
+      // 비블로킹 백그라운드로 로깅 수행 (페이지 전환 애니메이션 버벅임 방지를 위해 350ms 지연 실행)
+      setTimeout(() => {
+        supabase.from("traffic_logs").insert({
+          visitor_id: visitorId,
+          page_path: pagePath,
+          utm_source: utmSource || localStorage.getItem("migo_utm_source"),
+          utm_medium: utmMedium || localStorage.getItem("migo_utm_medium"),
+          utm_campaign: utmCampaign || localStorage.getItem("migo_utm_campaign"),
+          referrer_url: referrerUrl,
+          user_agent: userAgent
+        }).then(({ error }) => {
+          if (error) {
+            console.warn("[Attribution] Traffic log insert failed:", error.message);
+          } else {
+            console.log("[Attribution] Logged page view:", pagePath);
+          }
+        });
+      }, 350);
 
     } catch (err) {
       console.error("Traffic tracking error:", err);

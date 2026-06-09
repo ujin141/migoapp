@@ -390,6 +390,10 @@ const ja = {
     "matched": "さんとマッチングしました！🎉"
   },
   "profile": {
+    "recentVisitors": "最近の訪問者",
+    "whoViewedMe": "誰が私を見たのでしょうか？",
+    "visitorCount": "{{count}}人がプロフィールを確認しました。",
+    "viewAll": "確認する",
     "title": "プロフィール",
     "edit": "編集",
     "logout": "ログアウト",
@@ -1753,6 +1757,7 @@ const ja = {
     "ended": "音声会話が完全に終了しました。"
   },
   "notif": {
+    "defaultMsg": "新しいお知らせが届きました。",
     "viewedProfile": "あなたのプロフィールを閲覧しました。",
     "likedMsg": "あなたにいいねとメッセージを送りました！",
     "liked": "あなたが好きです！",
@@ -1872,6 +1877,10 @@ const ja = {
   },
   "ko-KR": "韓国語",
   "auto": {
+    "g_main": "代表",
+    "g_addphoto": "写真追加",
+    "g_travelstyle_tags": "旅行スタイルタグ",
+    "z_프로필테마_123": "プロフィールテーマ",
     "v2_tonight_vip": "🔥今日の夕方の飲み会の自動マッチング",
     "v2_tonight_desc": "ボタン1回で近く3～4人ランダムパブ雷",
     "v2_scan_msg": "私の周りのお酒の友達を探しています...",

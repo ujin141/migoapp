@@ -16,6 +16,7 @@ ALTER TABLE public.traffic_logs ENABLE ROW LEVEL SECURITY;
 
 -- ── 2. RLS 보안 정책 설정 ───────────────────────────────────────
 -- 웹 브라우저의 익명 방문자(anon) 및 가입 유저(authenticated) 모두 인서트 가능하도록 정책 설정
+DROP POLICY IF EXISTS "Allow anonymous and authenticated inserts for traffic_logs" ON public.traffic_logs;
 CREATE POLICY "Allow anonymous and authenticated inserts for traffic_logs" 
 ON public.traffic_logs 
 FOR INSERT 
@@ -23,6 +24,7 @@ TO anon, authenticated
 WITH CHECK (true);
 
 -- 어드민 대시보드 조회를 위해 인증된 유저(authenticated)만 조회 가능
+DROP POLICY IF EXISTS "Allow authenticated read for traffic_logs" ON public.traffic_logs;
 CREATE POLICY "Allow authenticated read for traffic_logs" 
 ON public.traffic_logs 
 FOR SELECT 

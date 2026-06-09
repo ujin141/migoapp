@@ -25,21 +25,27 @@ interface TravelDNAProps {
 
 // 프로필 데이터로 DNA 추론 (mbti, interests, travel_style 기반)
 const inferDNA = (profile: any): Record<string, number> => {
-  const interests = [...(profile?.interests || []), ...(profile?.tags || [])];
-  const travelStyle = profile?.travelStyle || profile?.travel_style || [];
-  const mbti = profile?.mbti || "";
+  const rawInterests = Array.isArray(profile?.interests) ? profile.interests : [];
+  const rawTags = Array.isArray(profile?.tags) ? profile.tags : [];
+  const interests = [...rawInterests, ...rawTags];
+  const travelStyle = Array.isArray(profile?.travelStyle) 
+    ? profile.travelStyle 
+    : Array.isArray(profile?.travel_style) 
+      ? profile.travel_style 
+      : [];
+  const mbti = typeof profile?.mbti === "string" ? profile.mbti : "";
 
   // 즉흥vs계획 (E=즉흥, J=계획)
-  const spontaneous = mbti.includes("P") ? 75 : mbti.includes("J") ? 30 : travelStyle.some((s: string) => s.includes(i18n.t("auto.g_0240", "즉흥"))) ? 80 : travelStyle.some((s: string) => s.includes(i18n.t("auto.g_0241", "계획"))) ? 25 : 55;
+  const spontaneous = mbti.includes("P") ? 75 : mbti.includes("J") ? 30 : travelStyle.some((s: any) => typeof s === 'string' && s.includes(i18n.t("auto.g_0240", "즉흥"))) ? 80 : travelStyle.some((s: any) => typeof s === 'string' && s.includes(i18n.t("auto.g_0241", "계획"))) ? 25 : 55;
 
   // 활동vs여유 (활동적 관심사 기반)
-  const active = interests.some(i => [i18n.t("auto.g_0242", "하이킹"), i18n.t("auto.g_0243", "서핑"), i18n.t("auto.g_0244", "액티비티"), i18n.t("auto.g_0245", "스포츠"), i18n.t("auto.g_0246", "트레킹")].some(k => i.includes(k))) ? 80 : interests.some(i => [i18n.t("auto.g_0247", "카페"), i18n.t("auto.g_0248", "여유"), i18n.t("auto.g_0249", "힐링"), "spa", i18n.t("auto.g_0250", "휴양")].some(k => i.includes(k))) ? 25 : 55;
+  const active = interests.some((i: any) => typeof i === 'string' && [i18n.t("auto.g_0242", "하이킹"), i18n.t("auto.g_0243", "서핑"), i18n.t("auto.g_0244", "액티비티"), i18n.t("auto.g_0245", "스포츠"), i18n.t("auto.g_0246", "트레킹")].some(k => i.includes(k))) ? 80 : interests.some((i: any) => typeof i === 'string' && [i18n.t("auto.g_0247", "카페"), i18n.t("auto.g_0248", "여유"), i18n.t("auto.g_0249", "힐링"), "spa", i18n.t("auto.g_0250", "휴양")].some(k => i.includes(k))) ? 25 : 55;
 
   // 아침vs밤 (MBTI E=조금 더 아침, I=밤)
   const earlyBird = mbti.includes("E") ? 60 : mbti.includes("I") ? 40 : 52;
 
   // 절약vs경험 (budget_range 기반)
-  const budget = profile?.budgetRange === "low" ? 25 : profile?.budgetRange === "high" ? 85 : interests.some(i => [i18n.t("auto.g_0251", "럭셔리"), i18n.t("auto.g_0252", "파인다이닝"), i18n.t("auto.g_0253", "비즈니스")].some(k => i.includes(k))) ? 80 : interests.some(i => [i18n.t("auto.g_0254", "가성비"), i18n.t("auto.g_0255", "저예산"), i18n.t("auto.g_0256", "게스트하우")].some(k => i.includes(k))) ? 20 : 55;
+  const budget = profile?.budgetRange === "low" ? 25 : profile?.budgetRange === "high" ? 85 : interests.some((i: any) => typeof i === 'string' && [i18n.t("auto.g_0251", "럭셔리"), i18n.t("auto.g_0252", "파인다이닝"), i18n.t("auto.g_0253", "비즈니스")].some(k => i.includes(k))) ? 80 : interests.some((i: any) => typeof i === 'string' && [i18n.t("auto.g_0254", "가성비"), i18n.t("auto.g_0255", "저예산"), i18n.t("auto.g_0256", "게스트하우")].some(k => i.includes(k))) ? 20 : 55;
 
   // 혼자시간vs함께 (I=혼자, E=함께)
   const social = mbti.includes("E") ? 75 : mbti.includes("I") ? 35 : 55;
