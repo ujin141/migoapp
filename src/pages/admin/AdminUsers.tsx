@@ -130,8 +130,8 @@ export const AdminUsers = () => {
       : await updateUserBan(id, !currentBanned);
     if (finalSuccess) {
       if (!currentBanned) {
-        setUsers(prev => prev.filter(u => u.id !== id));
-        if (selectedUser?.id === id) setSelectedUser(null);
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, banned: true, is_banned: true } : u));
+        if (selectedUser?.id === id) setSelectedUser((p: any) => ({ ...p, banned: true, is_banned: true }));
       } else {
         setUsers(prev => prev.map(u => u.id === id ? { ...u, banned: false, is_banned: false } : u));
         if (selectedUser?.id === id) setSelectedUser((p: any) => ({ ...p, banned: false, is_banned: false }));

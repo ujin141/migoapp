@@ -91,8 +91,6 @@ export async function fetchAdminUsers() {
       home_city, preferred_regions, travel_dates, travel_mission, visited_countries
     `)
     .eq("setup_complete", true)
-    .or("is_banned.is.null,is_banned.eq.false")
-    .or("banned.is.null,banned.eq.false")
     .not("name", "eq", "[Deleted User]")
     .order("created_at", { ascending: false })
     .limit(300);
@@ -876,14 +874,14 @@ export async function fetchAdminChatRooms(limit = 50) {
   // ① 여행 그룹 채팅방
   const { data: groups } = await adminSupabase
     .from("trip_groups")
-    .select("id, title, description, created_at, member_count, max_members, host_id, created_by, is_active")
+    .select("id, title, description, created_at, member_count, max_members, host_id, created_by, is_active, host_profile:profiles!trip_groups_host_id_fkey(name)")
     .order("created_at", { ascending: false })
     .limit(limit);
 
   // ② 1:1 채팅 스레드 (is_group = false)
   const { data: threads } = await adminSupabase
     .from("chat_threads")
-    .select("id, name, created_at, is_group, last_message, created_by")
+    .select("id, name, created_at, is_group, last_message, created_by, creator_profile:profiles!chat_threads_created_by_fkey(name)")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -897,6 +895,7 @@ export async function fetchAdminChatRooms(limit = 50) {
     is_active: g.is_active !== false,
     room_type: 'group',
     created_by: g.created_by || g.host_id,
+    profiles: (g as any).host_profile,
   }));
 
   const threadRooms = (threads || []).map((t: any) => ({
@@ -909,6 +908,7 @@ export async function fetchAdminChatRooms(limit = 50) {
     is_active: true,
     room_type: t.is_group ? 'group' : 'direct',
     created_by: t.created_by,
+    profiles: (t as any).creator_profile,
   }));
 
   return [...groupRooms, ...threadRooms].sort(
@@ -947,7 +947,7 @@ export async function fetchAdminMessages(roomId: string, limit = 30) {
   // 두 번째 fallback: thread_id로 메시지 조회
   const { data: fallbackMsgs } = await adminSupabase
     .from("messages")
-    .select("id, content, created_at, user_id")
+    .select("id, content, created_at, user_id, profiles!messages_user_id_fkey(name, photo_url)")
     .eq("thread_id", roomId)
     .order("created_at", { ascending: false })
     .limit(limit);
