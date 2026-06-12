@@ -1,0 +1,76 @@
+{
+	"appId": "com.lunaticsgroup.migo",
+	"appName": "Migo",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https",
+		"iosScheme": "capacitor",
+		"allowNavigation": [
+			"supabase.co",
+			"*.supabase.co",
+			"maps.googleapis.com",
+			"*.googleapis.com"
+		]
+	},
+	"android": {
+		"backgroundColor": "#09090b"
+	},
+	"ios": {
+		"backgroundColor": "#09090b",
+		"contentInset": "automatic",
+		"scrollEnabled": false
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 2000,
+			"launchAutoHide": true,
+			"backgroundColor": "#09090b",
+			"androidSplashResourceName": "splash",
+			"androidScaleType": "CENTER_CROP",
+			"showSpinner": false,
+			"splashFullScreen": true,
+			"splashImmersive": true
+		},
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		},
+		"LocalNotifications": {
+			"smallIcon": "ic_stat_notification",
+			"iconColor": "#10B981"
+		},
+		"AdMob": {
+			"appId": {
+				"ios": "ca-app-pub-2237857753220220~5402641159",
+				"android": "ca-app-pub-2237857753220220~5402641159"
+			}
+		},
+		"Geolocation": {},
+		"CapacitorHttp": {
+			"enabled": false
+		},
+		"Keyboard": {
+			"resize": "none",
+			"resizeOnFullScreen": true,
+			"style": "default"
+		}
+	},
+	"packageClassList": [
+		"AdMobPlugin",
+		"SignInWithApple",
+		"FCMPlugin",
+		"AppPlugin",
+		"CAPBrowserPlugin",
+		"DevicePlugin",
+		"GeolocationPlugin",
+		"HapticsPlugin",
+		"KeyboardPlugin",
+		"LocalNotificationsPlugin",
+		"PreferencesPlugin",
+		"PushNotificationsPlugin",
+		"NativePurchasesPlugin"
+	]
+}
