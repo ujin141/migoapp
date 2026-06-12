@@ -270,7 +270,14 @@ const AppContent = () => {
   const { isPlus, isPremium } = useSubscription();
   const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.() === true;
   const isAdOverlaySuppressed = adOverlaySuppressions > 0;
-  const showAdBanner = showNav && !isPlus && !isPremium && isNative && !isAdOverlaySuppressed;
+  const showAdBanner =
+    location.pathname === "/" &&
+    !!user &&
+    user.setupComplete === true &&
+    !isPlus &&
+    !isPremium &&
+    isNative &&
+    !isAdOverlaySuppressed;
   const pageBottomInset = isAdOverlaySuppressed ? "0px" : "var(--app-bottom-reserved)";
 
   useEffect(() => {
@@ -637,8 +644,8 @@ const AppContent = () => {
           data-ad-banner-root="true"
           className="fixed left-0 right-0 z-[99] flex items-start justify-center bg-background"
           style={{
-            bottom: 'var(--app-nav-height)',
-            height: 'calc(var(--admob-banner-height, var(--app-ad-reserved-height)) + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(var(--app-nav-height) + env(safe-area-inset-bottom, 0px))',
+            height: 'var(--admob-banner-height, var(--app-ad-reserved-height))',
           }}
         >
           <AdBanner

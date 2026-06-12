@@ -15,7 +15,7 @@ PODS:
     - Capacitor
     - Firebase/Messaging
   - CapacitorCordova (6.2.1)
-  - CapacitorDevice (6.0.0):
+  - CapacitorDevice (6.0.3):
     - Capacitor
   - CapacitorGeolocation (6.1.1):
     - Capacitor
@@ -166,7 +166,7 @@ SPEC CHECKSUMS:
   CapacitorCommunityAppleSignIn: c9c2541ee7580618055a91b3516c3f0313fe2544
   CapacitorCommunityFcm: cbb6d5cf251988ae4cff3e58ce574fba8cd4389f
   CapacitorCordova: 8d93e14982f440181be7304aa9559ca631d77fff
-  CapacitorDevice: 38ad323d74e3a86b56253680538ac23a2c9b4a68
+  CapacitorDevice: 3ec44d26b51986119a1987fad1253609d5aacb68
   CapacitorGeolocation: ef657a46a125be74010f4ce57caae173c23204d2
   CapacitorHaptics: 40f83026feeee9cfe36e89e9c98a3baaaf20c450
   CapacitorKeyboard: e8cd50fd5cbdd023a5947a5c0f5cca6e5aa5a253

@@ -38,10 +38,11 @@ const currentBundleVersion = Number(
 
 const projectPath = "ios/App/App.xcodeproj/project.pbxproj";
 let project = read(projectPath);
+const requestedBuildNumber = process.argv[3];
 const projectBuildNumbers = [...project.matchAll(/CURRENT_PROJECT_VERSION = (\d+);/g)].map((match) =>
   Number(match[1]),
 );
-const nextBuildNumber = Math.max(currentBundleVersion, ...projectBuildNumbers, 0) + 1;
+const nextBuildNumber = requestedBuildNumber ? Number(requestedBuildNumber) : (Math.max(currentBundleVersion, ...projectBuildNumbers, 0) + 1);
 
 infoPlist = infoPlist
   .replace(

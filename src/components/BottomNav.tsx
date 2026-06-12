@@ -46,7 +46,7 @@ const BottomNav = () => {
   return (
     <nav
       id="migo-bottom-nav"
-      className="fixed left-0 right-0 z-[100] bg-card border-t border-border/60"
+      className="fixed left-0 right-0 z-[100] bg-card border-t border-border/60 pb-[env(safe-area-inset-bottom,0px)]"
       style={{ bottom: navBottom }}
     >
       <div className="flex items-center justify-around px-2" style={{ height: `${NAV_H}px` }}>
