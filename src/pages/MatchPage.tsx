@@ -1401,8 +1401,6 @@ const MatchPage = () => {
               }
             }
           }}
-          profiles={profiles}
-          onChat={handleDirectChat}
         />
       )}
 
