@@ -90,7 +90,6 @@ export async function fetchAdminUsers() {
       age, gender, mbti, interests, languages, travel_style, budget_range,
       home_city, preferred_regions, travel_dates, travel_mission, visited_countries
     `)
-    .eq("setup_complete", true)
     .not("name", "eq", "[Deleted User]")
     .order("created_at", { ascending: false })
     .limit(300);
@@ -98,7 +97,7 @@ export async function fetchAdminUsers() {
     console.error("fetchAdminUsers error:", error);
     throw new Error(error.message);
   }
-  return (data || []).filter(hasCompletedProfilePhoto).map((u: any) => ({
+  return (data || []).map((u: any) => ({
     ...u,
     banned: u.is_banned || u.banned || false,  // 양쪽 컬럼 지원
   }));
@@ -124,6 +123,9 @@ export async function updateUserValidation(userId: string, verified: boolean) {
     });
     await sendPushViaEdgeFunction(userId, title, content, "system");
   }
+  if (!error) {
+    await logAdminAction(verified ? "verify_user" : "unverify_user", "user", userId, { verified });
+  }
   return !error;
 }
 export async function updateUserPlan(userId: string, plan: 'free' | 'plus' | 'premium') {
@@ -138,6 +140,9 @@ export async function updateUserPlan(userId: string, plan: 'free' | 'plus' | 'pr
     is_plus,
     plus_expires_at,
   }).eq("id", userId);
+  if (!error) {
+    await logAdminAction("update_plan", "user", userId, { plan });
+  }
   return !error;
 }
 export async function updateUserPlus(userId: string, is_plus: boolean) {
@@ -150,6 +155,9 @@ export async function updateUserPlus(userId: string, is_plus: boolean) {
     plan: is_plus ? 'plus' : 'free',
     plus_expires_at,
   }).eq("id", userId);
+  if (!error) {
+    await logAdminAction("update_plus", "user", userId, { is_plus });
+  }
   return !error;
 }
 export async function updateUserBan(userId: string, banned: boolean) {
@@ -178,6 +186,9 @@ export async function updateUserBan(userId: string, banned: boolean) {
       read: false,
     });
     await sendPushViaEdgeFunction(userId, title, content, "system");
+  }
+  if (!error) {
+    await logAdminAction(banned ? "ban_user" : "unban_user", "user", userId);
   }
   return !error;
 }
@@ -208,9 +219,11 @@ export async function deleteUserAccount(userId: string) {
       bio: null,
     }).eq('id', userId);
     // auth.admin.deleteUser 실패는 에러 아님 (알려진 한계) — DB 정리는 완료됨
+    await logAdminAction("delete_user", "user", userId, { soft_ban: true });
     return true; // 소프트 밴으로 성공 처리
   }
   
+  await logAdminAction("delete_user", "user", userId);
   return true;
 }
 export async function updateUserNote(userId: string, admin_note: string) {
@@ -220,6 +233,7 @@ export async function updateUserNote(userId: string, admin_note: string) {
     console.error("updateUserNote error:", error);
     return false;
   }
+  await logAdminAction("update_user_note", "user", userId, { admin_note });
   return true;
 }
 
@@ -267,6 +281,7 @@ export async function deletePost(postId: string) {
     console.error("deletePost error:", error);
     return false;
   }
+  await logAdminAction("delete_post", "post", postId);
   return true;
 }
 export async function updatePostHidden(postId: string, hidden: boolean) {
@@ -276,6 +291,7 @@ export async function updatePostHidden(postId: string, hidden: boolean) {
     console.error("updatePostHidden error:", error);
     return false;
   }
+  await logAdminAction(hidden ? "hide_post" : "show_post", "post", postId, { hidden });
   return true;
 }
 export async function updatePostPinned(postId: string, pinned: boolean) {
@@ -285,6 +301,7 @@ export async function updatePostPinned(postId: string, pinned: boolean) {
     console.error("updatePostPinned error:", error);
     return false;
   }
+  await logAdminAction(pinned ? "pin_post" : "unpin_post", "post", postId, { pinned });
   return true;
 }
 
@@ -334,6 +351,7 @@ export async function deleteGroup(groupId: string) {
     console.error("deleteGroup error:", error);
     return false;
   }
+  await logAdminAction("delete_group", "group", groupId);
   return true;
 }
 
@@ -378,6 +396,9 @@ export async function updateReportStatus(reportId: string, status: "pending" | "
   } = await supabase.from("reports").update({
     status
   }).eq("id", reportId);
+  if (!error) {
+    await logAdminAction(`resolve_report_${status}`, "report", reportId, { status });
+  }
   return !error;
 }
 
@@ -412,6 +433,7 @@ export async function createAnnouncement(title: string, content: string, type: s
     console.error("createAnnouncement error:", error);
     return null;
   }
+  await logAdminAction("create_announcement", "announcement", data.id, { title, type });
   return data;
 }
 export async function deleteAnnouncement(id: string) {
@@ -419,6 +441,9 @@ export async function deleteAnnouncement(id: string) {
   const {
     error
   } = await adminSupabase.from("announcements").delete().eq("id", id);
+  if (!error) {
+    await logAdminAction("delete_announcement", "announcement", id);
+  }
   return !error;
 }
 
@@ -454,6 +479,7 @@ export async function createPromoCode(code: string, discount: string, max_limit:
     console.error("createPromoCode error:", error);
     return null;
   }
+  await logAdminAction("create_promo", "promo", data.id, { code, discount });
   return data;
 }
 export async function updatePromoCodeStatus(id: string, is_active: boolean) {
@@ -463,6 +489,9 @@ export async function updatePromoCodeStatus(id: string, is_active: boolean) {
   } = await adminSupabase.from("promo_codes").update({
     is_active
   }).eq("id", id);
+  if (!error) {
+    await logAdminAction(is_active ? "activate_promo" : "deactivate_promo", "promo", id);
+  }
   return !error;
 }
 export async function deletePromoCode(id: string) {
@@ -470,6 +499,9 @@ export async function deletePromoCode(id: string) {
   const {
     error
   } = await adminSupabase.from("promo_codes").delete().eq("id", id);
+  if (!error) {
+    await logAdminAction("delete_promo", "promo", id);
+  }
   return !error;
 }
 
@@ -740,6 +772,7 @@ export async function updateAppSetting(key: string, value: any): Promise<boolean
     console.error("updateAppSetting error:", error);
     return false;
   }
+  await logAdminAction("update_setting", "setting", key, { value });
   return true;
 }
 
@@ -838,18 +871,37 @@ export async function broadcastNotification(
 
 export async function logAdminAction(action: string, targetType: string, targetId: string, details?: any) {
   if (!isSupabaseConfigured) return;
-  const {
-    data: {
-      user
+  try {
+    const {
+      data: {
+        user
+      }
+    } = await supabase.auth.getUser();
+    
+    console.log("[logAdminAction] Attempting to log:", {
+      admin_id: user?.id || null,
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      details: details || null
+    });
+
+    const { error } = await adminSupabase.from("admin_activity_log").insert({
+      admin_id: user?.id || null,
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      details: details || null
+    });
+
+    if (error) {
+      console.error("[logAdminAction] Error inserting activity log:", error);
+    } else {
+      console.log("[logAdminAction] Activity log inserted successfully");
     }
-  } = await adminSupabase.auth.getUser();
-  await adminSupabase.from("admin_activity_log").insert({
-    admin_id: user?.id || null,
-    action,
-    target_type: targetType,
-    target_id: targetId,
-    details: details || null
-  });
+  } catch (err) {
+    console.error("[logAdminAction] Exception in logAdminAction:", err);
+  }
 }
 
 // ─────────────────────────────────────────────────
@@ -861,6 +913,9 @@ export async function resolveSafetyCheckin(id: string) {
     .from("safety_checkins")
     .update({ status: "resolved", updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (!error) {
+    await logAdminAction("resolve_safety", "safety", id);
+  }
   return !error;
 }
 
@@ -919,11 +974,20 @@ export async function fetchAdminChatRooms(limit = 50) {
 export async function fetchAdminMessages(roomId: string, limit = 30) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return [];
 
-  // 1:1 채팅 메시지 (chat_messages 테이블)
+  // ① trip_groups에서 thread_id가 존재하는지 확인
+  const { data: groupData } = await adminSupabase
+    .from("trip_groups")
+    .select("thread_id")
+    .eq("id", roomId)
+    .maybeSingle();
+
+  const actualThreadId = groupData?.thread_id || roomId;
+
+  // ② 1:1 또는 그룹 채팅 메시지 (chat_messages 테이블) 조회
   const { data: chatMsgs, error: chatErr } = await adminSupabase
     .from("chat_messages")
     .select("id, content, created_at, sender_id, profiles!chat_messages_sender_id_fkey(name, photo_url)")
-    .eq("thread_id", roomId)
+    .eq("thread_id", actualThreadId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -934,7 +998,7 @@ export async function fetchAdminMessages(roomId: string, limit = 30) {
     }));
   }
 
-  // 그룹 채팅 메시지 (messages 테이블 fallback)
+  // ③ 그룹 채팅 메시지 (messages 테이블 fallback)
   const { data: groupMsgs, error: groupErr } = await adminSupabase
     .from("messages")
     .select("id, content, created_at, user_id, profiles!messages_user_id_fkey(name, photo_url)")
@@ -942,13 +1006,13 @@ export async function fetchAdminMessages(roomId: string, limit = 30) {
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (!groupErr && groupMsgs) return groupMsgs;
+  if (!groupErr && groupMsgs && groupMsgs.length > 0) return groupMsgs;
 
-  // 두 번째 fallback: thread_id로 메시지 조회
+  // ④ 두 번째 fallback: thread_id로 messages 조회
   const { data: fallbackMsgs } = await adminSupabase
     .from("messages")
     .select("id, content, created_at, user_id, profiles!messages_user_id_fkey(name, photo_url)")
-    .eq("thread_id", roomId)
+    .eq("thread_id", actualThreadId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -961,7 +1025,69 @@ export async function deactivateChatRoom(groupId: string) {
     .from("trip_groups")
     .update({ is_active: false })
     .eq("id", groupId);
+  if (!error) {
+    await logAdminAction("deactivate_chat_room", "group", groupId);
+  }
   return !error;
+}
+
+export async function deleteChatRoom(roomId: string, roomType: string) {
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
+  if (roomType === "group") {
+    // 1. thread_id 백업
+    const { data: groupData } = await adminSupabase
+      .from("trip_groups")
+      .select("thread_id")
+      .eq("id", roomId)
+      .maybeSingle();
+
+    const threadId = groupData?.thread_id;
+
+    // 2. 여행 그룹 삭제 (ON DELETE CASCADE로 멤버 등 삭제)
+    const { error: groupErr } = await adminSupabase
+      .from("trip_groups")
+      .delete()
+      .eq("id", roomId);
+
+    // 3. 관련 chat_threads 삭제 (연쇄적으로 messages/chat_messages/chat_members 등 삭제)
+    if (threadId) {
+      await adminSupabase
+        .from("chat_threads")
+        .delete()
+        .eq("id", threadId);
+    }
+    if (!groupErr) {
+      await logAdminAction("delete_chat_room", "group", roomId, { roomType });
+    }
+    return !groupErr;
+  } else {
+    // 1:1 채팅방 삭제
+    const { error: threadErr } = await adminSupabase
+      .from("chat_threads")
+      .delete()
+      .eq("id", roomId);
+    if (!threadErr) {
+      await logAdminAction("delete_chat_room", "chat", roomId, { roomType });
+    }
+    return !threadErr;
+  }
+}
+
+export async function deleteAdminMessage(messageId: string) {
+  if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
+  const { error: err1 } = await adminSupabase
+    .from("messages")
+    .delete()
+    .eq("id", messageId);
+  const { error: err2 } = await adminSupabase
+    .from("chat_messages")
+    .delete()
+    .eq("id", messageId);
+  const success = !err1 || !err2;
+  if (success) {
+    await logAdminAction("delete_message", "message", messageId);
+  }
+  return success;
 }
 
 // ─────────────────────────────────────────────────
@@ -971,7 +1097,7 @@ export async function fetchTodayStats() {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return { newUsers: 0, sosCheckins: 0, activeChats: 0, newReports: 0 };
   const today = new Date().toISOString().split("T")[0];
   const [usersRes, checkinsRes, chatsRes, reportsRes] = await Promise.all([
-    completedProfileFilter(adminSupabase.from("profiles").select("id", { count: "exact", head: true })).gte("created_at", today),
+    adminSupabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", today),
     adminSupabase.from("safety_checkins").select("id", { count: "exact", head: true }).eq("is_sos", true).eq("status", "active"),
     adminSupabase.from("trip_groups").select("id", { count: "exact", head: true }).eq("is_active", true),
     adminSupabase.from("reports").select("id", { count: "exact", head: true }).gte("created_at", today),
@@ -1035,7 +1161,6 @@ export async function adminUnbanUser(userId: string) {
   return data === true || data !== false;
 }
 
-/** 신고 처리 (RPC) */
 export async function adminResolveReport(reportId: string, action: string, comment?: string) {
   if (!isSupabaseConfigured || !(await checkAdminRole())) return false;
   const { data, error } = await adminSupabase.rpc("admin_resolve_report", {
@@ -1043,6 +1168,7 @@ export async function adminResolveReport(reportId: string, action: string, comme
     action,
     comment: comment || null,
   });
+  const success = !error && data !== false;
   if (error) {
     // Fallback
     const { error: e2 } = await adminSupabase.from("reports").update({
@@ -1050,9 +1176,16 @@ export async function adminResolveReport(reportId: string, action: string, comme
       admin_comment: comment,
       resolved_at: new Date().toISOString(),
     }).eq("id", reportId);
-    return !e2;
+    if (!e2) {
+      await logAdminAction(`resolve_report_${action}`, "report", reportId, { action, comment });
+      return true;
+    }
+    return false;
   }
-  return data !== false;
+  if (success) {
+    await logAdminAction(`resolve_report_${action}`, "report", reportId, { action, comment });
+  }
+  return success;
 }
 
 /** 신분증 인증 승인 */
@@ -1063,7 +1196,11 @@ export async function adminApproveVerification(verifId: string) {
     console.error("adminApproveVerification error:", error);
     return false;
   }
-  return data !== false;
+  const success = data !== false;
+  if (success) {
+    await logAdminAction("approve_verification", "verification", verifId);
+  }
+  return success;
 }
 
 /** 신분증 인증 거절 */
@@ -1077,7 +1214,11 @@ export async function adminRejectVerification(verifId: string, reason?: string) 
     console.error("adminRejectVerification error:", error);
     return false;
   }
-  return data !== false;
+  const success = data !== false;
+  if (success) {
+    await logAdminAction("reject_verification", "verification", verifId, { reason });
+  }
+  return success;
 }
 
 /** 어드민 뷰: SOS 긴급 체크인 목록 */
