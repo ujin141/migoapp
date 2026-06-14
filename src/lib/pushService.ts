@@ -78,3 +78,23 @@ export async function sendMessagePush(
     },
   });
 }
+
+/**
+ * 운명 알림 발생 시 상대방에게 푸시 발송
+ */
+export async function sendDestinyPush(
+  toUserId: string,
+  currentUserId: string,
+  distance: number,
+  hint: string
+): Promise<void> {
+  sendPushNotification({
+    table: 'notifications',
+    record: {
+      user_id: toUserId,
+      actor_id: currentUserId,
+      type: 'destiny_nearby',
+      target_text: `약 ${distance}m 이내에 운명의 상대가 감지되었습니다: "${hint}"`,
+    },
+  });
+}

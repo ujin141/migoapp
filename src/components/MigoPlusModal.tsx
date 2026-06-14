@@ -1,6 +1,6 @@
 import i18n from "@/i18n";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -63,6 +63,17 @@ const MigoPlusModal = ({ isOpen, onClose, defaultPlan = "plus" }: MigoPlusModalP
   const [showCancelGuard, setShowCancelGuard] = useState(false);
 
   const pricing = getMigoPlusPricing();
+
+  useEffect(() => {
+    if (isOpen) {
+      window.dispatchEvent(new CustomEvent('migo:ad-overlay', { detail: { active: true } }));
+    }
+    return () => {
+      if (isOpen) {
+        window.dispatchEvent(new CustomEvent('migo:ad-overlay', { detail: { active: false } }));
+      }
+    };
+  }, [isOpen]);
 
   // ── 선택한 플랜의 금액 계산  // App Store Connect 등록 상품 기준
   const plusPrices = {

@@ -519,7 +519,13 @@ const AppContent = () => {
       // 1) 사용자가 직접 선택한 언어가 있으면 무조건 우선 적용
       const savedLang = localStorage.getItem('migo-lang');
       if (savedLang) {
-        if (i18n.language !== savedLang) i18n.changeLanguage(savedLang);
+        if (i18n.language !== savedLang) {
+          try {
+            await i18n.changeLanguage(savedLang);
+          } catch (e) {
+            console.warn("App init: changeLanguage failed:", e);
+          }
+        }
         return;
       }
       // 2) 저장된 언어 없으면 디바이스/브라우저 언어로 감지
@@ -534,7 +540,11 @@ const AppContent = () => {
       }
       const supported = ['ko','en','ja','zh','es','fr','de','pt','id','vi','th','ar','hi','ru','tr','it','nl','pl','sv','da','no','fi','cs','ro','hu','el','bg','uk','he','bn','ta','te','kn','ml','gu','mr','pa','fa','ur','sw','zu','ca','hr','sk','sl','lv','lt','et','is'];
       const lang = supported.includes(prefix) ? prefix : 'en';
-      i18n.changeLanguage(lang);
+      try {
+        await i18n.changeLanguage(lang);
+      } catch (e) {
+        console.warn("App init detect: changeLanguage failed:", e);
+      }
     };
     initLanguage();
   }, []);
@@ -587,7 +597,7 @@ const AppContent = () => {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="w-full overflow-y-auto page-transition"
+            className={`w-full page-transition ${["/", "/map", "/chat"].includes(location.pathname) ? "overflow-hidden" : "overflow-y-auto"}`}
             style={{
               position: 'absolute',
               top: 0,

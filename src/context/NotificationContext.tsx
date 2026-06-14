@@ -153,7 +153,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             .then(r => r.error ? { data: [], error: r.error } : r),
           supabase
             .from("in_app_notifications")
-            .select("id, type, title, content, is_read, created_at")
+            .select("id, type, title, content, read, created_at, target_id")
             .eq("user_id", userId)
             .order("created_at", { ascending: false })
             .limit(20)
@@ -182,20 +182,40 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (inAppRes.data && inAppRes.data.length > 0) {
+          const destinyTargetIds = inAppRes.data
+            .filter((n: any) => n.type === 'destiny_nearby' && n.target_id)
+            .map((n: any) => n.target_id);
+
+          let profileMap: Record<string, { name: string; photo_url: string }> = {};
+          if (destinyTargetIds.length > 0) {
+            const { data: profilesData } = await supabase
+              .from("profiles")
+              .select("id, name, photo_url")
+              .in("id", destinyTargetIds);
+            if (profilesData) {
+              profilesData.forEach((p: any) => {
+                profileMap[p.id] = { name: p.name, photo_url: p.photo_url };
+              });
+            }
+          }
+
           combined.push(
-            ...inAppRes.data.map((n: any) => ({
-              id: n.id,
-              type: n.type || "admin",
-              actorId: "",
-              actor: "System",
-              actorPhoto: "",
-              title: n.title,
-              content: n.content,
-              target: n.content || undefined,
-              time: formatTime(n.created_at),
-              read: (n.is_read ?? false) || readIdsRef.current.has(n.id),
-              _createdAt: new Date(n.created_at).getTime()
-            } as Notif & { _createdAt: number }))
+            ...inAppRes.data.map((n: any) => {
+              const profile = n.target_id ? profileMap[n.target_id] : null;
+              return {
+                id: n.id,
+                type: n.type || "admin",
+                actorId: n.target_id || "",
+                actor: profile ? profile.name : "System",
+                actorPhoto: profile ? profile.photo_url : "",
+                title: n.title,
+                content: n.content,
+                target: n.content || undefined,
+                time: formatTime(n.created_at),
+                read: (n.read ?? false) || readIdsRef.current.has(n.id),
+                _createdAt: new Date(n.created_at).getTime()
+              } as Notif & { _createdAt: number };
+            })
           );
         }
 
@@ -278,16 +298,30 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           table: "in_app_notifications",
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
+        async (payload) => {
           if (!isMountedRef.current) return;
           const n = payload.new as any;
+          let actorName = "System";
+          let actorPhoto = "";
+          if (n.type === 'destiny_nearby' && n.target_id) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("name, photo_url")
+              .eq("id", n.target_id)
+              .single();
+            if (profile) {
+              actorName = profile.name;
+              actorPhoto = profile.photo_url;
+            }
+          }
+          if (!isMountedRef.current) return;
           setNotifs((prev) => [
             {
               id: n.id,
               type: n.type || "admin",
-              actorId: "",
-              actor: "System",
-              actorPhoto: "",
+              actorId: n.target_id || "",
+              actor: actorName,
+              actorPhoto: actorPhoto,
               title: n.title,
               content: n.content,
               target: n.message || n.content || undefined,
@@ -415,7 +449,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         supabase.from("notifications").update({ is_read: true }).eq("id", id),
         supabase
           .from("in_app_notifications")
-          .update({ is_read: true })
+          .update({ read: true })
           .eq("id", id),
       ]);
     },
@@ -448,7 +482,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           .eq("user_id", userId),
         supabase
           .from("in_app_notifications")
-          .update({ is_read: true })
+          .update({ read: true })
           .eq("user_id", userId),
       ]);
     },

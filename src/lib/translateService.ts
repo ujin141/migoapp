@@ -145,3 +145,178 @@ export async function detectLanguage(text: string): Promise<SupportedLang> {
 }
 
 export { LANG_NAMES };
+
+// --- Profile Data Translation Mapping (Multilingual compatibility) ---
+
+const NORMALIZE_LANG_MAP: Record<string, string> = {
+  // Korean
+  "한국어": "korean", "영어": "english", "일본어": "japanese", "중국어": "chinese", "스페인어": "spanish",
+  "프랑스어": "french", "독일어": "german", "아랍어": "arabic", "러시아어": "russian", "포르투갈어": "portuguese",
+  "힌디어": "hindi", "베트남어": "vietnamese", "태국어": "thai", "인도네시아어": "indonesian", "이탈리아어": "italian",
+  "터키어": "turkish", "네덜란드어": "dutch", "폴란드어": "polish", "말레이어": "malay", "스웨덴어": "swedish",
+  // English
+  "korean": "korean", "english": "english", "japanese": "japanese", "chinese": "chinese", "spanish": "spanish",
+  "french": "french", "german": "german", "arabic": "arabic", "russian": "russian", "portuguese": "portuguese",
+  "hindi": "hindi", "vietnamese": "vietnamese", "thai": "thai", "indonesian": "indonesian", "italian": "italian",
+  "italiano": "italian", "turkish": "turkish", "dutch": "dutch", "polish": "polish", "malay": "malay", "swedish": "swedish",
+  // Japanese
+  "韓国語": "korean", "英語": "english", "日本語": "japanese", "中国語": "chinese", "スペイン語": "spanish",
+  "フランス語": "french", "ドイツ語": "german", "アラビア語": "arabic", "ロシア語": "russian", "ポルトガル語": "portuguese",
+  "ヒンディー語": "hindi", "ベトナム語": "vietnamese", "タイ語": "thai", "インドネシア語": "indonesian", "イタリア語": "italian",
+  "トルコ語": "turkish", "オランダ語": "dutch", "ポーランド語": "polish", "マレー語": "malay", "スウェーデン語": "swedish",
+  // Chinese
+  "韩语": "korean", "英语": "english", "日语": "japanese", "中文": "chinese", "西班牙语": "spanish",
+  "法语": "french", "德语": "german", "阿拉伯语": "arabic", "俄语": "russian", "葡萄牙语": "portuguese",
+  "印地语": "hindi", "越南语": "vietnamese", "泰语": "thai", "印尼语": "indonesian", "意大利语": "italian",
+  "土耳其语": "turkish", "荷兰语": "dutch", "波兰语": "polish", "马来语": "malay", "瑞典语": "swedish"
+};
+
+const LOCALIZED_LANGS: Record<string, Record<string, string>> = {
+  ko: {
+    korean: "한국어", english: "영어", japanese: "일본어", chinese: "중국어", spanish: "스페인어",
+    french: "프랑스어", german: "독일어", arabic: "아랍어", russian: "러시아어", portuguese: "포르투갈어",
+    hindi: "힌디어", vietnamese: "베트남어", thai: "태국어", indonesian: "인도네시아어", italian: "이탈리아어",
+    turkish: "터키어", dutch: "네덜란드어", polish: "폴란드어", malay: "말레이어", swedish: "스웨덴어"
+  },
+  en: {
+    korean: "Korean", english: "English", japanese: "Japanese", chinese: "Chinese", spanish: "Spanish",
+    french: "French", german: "German", arabic: "Arabic", russian: "Russian", portuguese: "Portuguese",
+    hindi: "Hindi", vietnamese: "Vietnamese", thai: "Thai", indonesian: "Indonesian", italian: "Italian",
+    turkish: "Turkish", dutch: "Dutch", polish: "Polish", malay: "Malay", swedish: "Swedish"
+  },
+  ja: {
+    korean: "韓国語", english: "英語", japanese: "日本語", chinese: "中国語", spanish: "スペイン語",
+    french: "フランス語", german: "ドイツ語", arabic: "アラビア語", russian: "ロシア語", portuguese: "ポルトガル語",
+    hindi: "ヒンディー語", vietnamese: "ベトナム語", thai: "タイ語", indonesian: "インドネシア語", italian: "イタリア語",
+    turkish: "トルコ語", dutch: "オランダ語", polish: "ポーランド語", malay: "マレー語", swedish: "スウェーデン語"
+  },
+  zh: {
+    korean: "韩语", english: "英语", japanese: "日语", chinese: "中文", spanish: "西班牙语",
+    french: "法语", german: "德语", arabic: "阿拉伯语", russian: "俄语", portuguese: "葡萄牙语",
+    hindi: "印地语", vietnamese: "越南语", thai: "泰语", indonesian: "印尼语", italian: "意大利语",
+    turkish: "土耳其语", dutch: "荷兰语", polish: "波兰语", malay: "马来语", swedish: "瑞典语"
+  }
+};
+
+const NORMALIZE_STYLE_MAP: Record<string, string> = {
+  // Korean
+  "배낭여행": "backpacking", "배낭여행 🎒": "backpacking",
+  "럭셔리": "luxury", "럭셔리 ✈️": "luxury",
+  "자연트레킹": "trekking", "자연/트레킹": "trekking", "자연/트레킹 🏔️": "trekking",
+  "맛집탐방": "gourmet", "맛집투어": "gourmet", "맛집탐방 🍜": "gourmet",
+  "문화역사": "culture", "문화/역사": "culture", "문화/역사 🏛️": "culture",
+  "휴양/호캉스": "recreation", "해변/휴양": "recreation", "호캉스": "recreation", "해변/휴양 🏖️": "recreation",
+  "사진촬영": "photography", "사진여행": "photography", "사진촬영 📸": "photography", "사진": "photography",
+  "나이트라이프": "nightlife", "나이트라이프 🌙": "nightlife",
+  "쇼핑": "shopping", "쇼핑 🛍️": "shopping",
+  "요가/힐링": "healing", "힐링/요가": "healing", "힐링/요가 🧘": "healing",
+  "현지체험": "experience", "로컬체험": "experience", "로컬체험 🎭": "experience",
+  "로드트립": "roadtrip", "드라이브": "roadtrip", "드라이브 🚗": "roadtrip",
+  // English
+  "backpacking trip": "backpacking", "backpacking": "backpacking", "backpacking 🎒": "backpacking",
+  "luxury ✈️": "luxury", "luxury": "luxury",
+  "nature trekking": "trekking", "nature/trekking": "trekking", "nature/trekking 🏔️": "trekking",
+  "restaurant tour": "gourmet", "restaurant tour 🍜": "gourmet", "gourmet tour": "gourmet",
+  "cultural history": "culture", "culture/history": "culture", "culture/history 🏛️": "culture",
+  "recreation/hocance": "recreation", "beach/recreational": "recreation", "beach/recreational 🏖️": "recreation", "hocation": "recreation",
+  "photo shoot": "photography", "take a photo": "photography", "take a photo 📸": "photography",
+  "nightlife 🌙": "nightlife",
+  "shopping 🛍️": "shopping",
+  "yoga/healing": "healing", "healing/yoga": "healing", "healing/yoga 🧘": "healing",
+  "local experience": "experience", "local experience 🎭": "experience",
+  "road trip": "roadtrip", "drive": "roadtrip", "drive 🚗": "roadtrip"
+};
+
+const LOCALIZED_STYLES: Record<string, Record<string, string>> = {
+  ko: {
+    backpacking: "배낭여행 🎒", luxury: "럭셔리 ✈️", trekking: "자연/트레킹 🏔️", gourmet: "맛집탐방 🍜",
+    culture: "문화/역사 🏛️", recreation: "해변/휴양 🏖️", photography: "사진촬영 📸", nightlife: "나이트라이프 🌙",
+    shopping: "쇼핑 🛍️", healing: "힐링/요가 🧘", experience: "로컬체험 🎭", roadtrip: "드라이브 🚗"
+  },
+  en: {
+    backpacking: "Backpacking 🎒", luxury: "Luxury ✈️", trekking: "Nature/Trekking 🏔️", gourmet: "Gourmet tour 🍜",
+    culture: "Culture/History 🏛️", recreation: "Beach/Recreational 🏖️", photography: "Photography 📸", nightlife: "Nightlife 🌙",
+    shopping: "Shopping 🛍️", healing: "Healing/Yoga 🧘", experience: "Local experience 🎭", roadtrip: "Drive 🚗"
+  },
+  ja: {
+    backpacking: "バックパック 🎒", luxury: "ラグジュアリー ✈️", trekking: "自然/トレッキング 🏔️", gourmet: "グルメ巡り 🍜",
+    culture: "文化/歴史 🏛️", recreation: "ビーチ/リゾート 🏖️", photography: "写真撮影 📸", nightlife: "ナイトライフ 🌙",
+    shopping: "ショッピング 🛍️", healing: "ヒーリング/ヨガ 🧘", experience: "現地体験 🎭", roadtrip: "ドライブ 🚗"
+  },
+  zh: {
+    backpacking: "背包客 🎒", luxury: "奢华旅行 ✈️", trekking: "徒步/自然 🏔️", gourmet: "美食寻访 🍜",
+    culture: "文化/历史 🏛️", recreation: "海滩/度假 🏖️", photography: "拍照摄影 📸", nightlife: "夜生活 🌙",
+    shopping: "购物 🛍️", healing: "疗愈/瑜伽 🧘", experience: "当地体验 🎭", roadtrip: "自驾 🚗"
+  }
+};
+
+const NORMALIZE_NATION_MAP: Record<string, string> = {
+  // Korea
+  "대한민국": "korea", "대한민국 (🇰🇷)": "korea", "한국": "korea", "한국 (🇰🇷)": "korea", "south korea": "korea", "south korea (🇰🇷)": "korea", "korea": "korea", "韓国（🇰🇷）": "korea", "韩国 (🇨🇳)": "korea", "韩国 (🇰🇷)": "korea", "韩国": "korea",
+  // USA
+  "미국": "usa", "미국 (🇺🇸)": "usa", "usa": "usa", "usa (🇺🇸)": "usa", "united states": "usa", "united states (🇺🇸)": "usa", "米国": "usa",
+  // Japan
+  "일본": "japan", "일본 (🇯🇵)": "japan", "japan": "japan", "japan (🇯🇵)": "japan", "日本": "japan",
+  // China
+  "중국": "china", "중국 (🇨🇳)": "china", "china": "china", "china (🇨🇳)": "china", "中国": "china",
+  // UK
+  "영국": "uk", "영국 (🇬🇧)": "uk", "uk": "uk", "uk (🇬🇧)": "uk", "united kingdom": "uk", "united kingdom (🇬🇧)": "uk",
+  // Australia
+  "호주": "australia", "호주 (🇦🇺)": "australia", "australia": "australia", "australia (🇦🇺)": "australia", "오스트레일리아": "australia", "豪州": "australia",
+  // Canada
+  "캐나다": "canada", "캐나다 (🇨🇦)": "canada", "canada": "canada", "canada (🇨🇦)": "canada"
+};
+
+const LOCALIZED_NATIONS: Record<string, Record<string, string>> = {
+  ko: {
+    korea: "대한민국 (🇰🇷)", usa: "미국 (🇺🇸)", japan: "일본 (🇯🇵)", china: "중국 (🇨🇳)", uk: "영국 (🇬🇧)", australia: "호주 (🇦🇺)", canada: "캐나다 (🇨🇦)"
+  },
+  en: {
+    korea: "South Korea (🇰🇷)", usa: "United States (🇺🇸)", japan: "Japan (🇯🇵)", china: "China (🇨🇳)", uk: "United Kingdom (🇬🇧)", australia: "Australia (🇦🇺)", canada: "Canada (🇨🇦)"
+  },
+  ja: {
+    korea: "韓国 (🇰🇷)", usa: "米国 (🇺🇸)", japan: "日本 (🇯🇵)", china: "中国 (🇨🇳)", uk: "英国 (🇬🇧)", australia: "豪州 (🇦🇺)", canada: "カナダ (🇨🇦)"
+  },
+  zh: {
+    korea: "韩国 (🇰🇷)", usa: "美国 (🇺🇸)", japan: "日本 (🇯🇵)", china: "中国 (🇨🇳)", uk: "英国 (🇬🇧)", australia: "澳大利亚 (🇦🇺)", canada: "加拿大 (🇨🇦)"
+  }
+};
+
+export function translateLanguage(lang: string, locale: string): string {
+  if (!lang) return "";
+  const cleaned = lang.trim();
+  const lower = cleaned.toLowerCase();
+  const key = NORMALIZE_LANG_MAP[cleaned] || NORMALIZE_LANG_MAP[lower];
+  if (key) {
+    const loc = (locale || "en").substring(0, 2).toLowerCase();
+    const localeMap = LOCALIZED_LANGS[loc] || LOCALIZED_LANGS["en"];
+    return localeMap[key] || cleaned;
+  }
+  return cleaned;
+}
+
+export function translateTravelStyle(style: string, locale: string): string {
+  if (!style) return "";
+  const cleaned = style.trim();
+  const lower = cleaned.toLowerCase();
+  const key = NORMALIZE_STYLE_MAP[cleaned] || NORMALIZE_STYLE_MAP[lower];
+  if (key) {
+    const loc = (locale || "en").substring(0, 2).toLowerCase();
+    const localeMap = LOCALIZED_STYLES[loc] || LOCALIZED_STYLES["en"];
+    return localeMap[key] || cleaned;
+  }
+  return cleaned;
+}
+
+export function translateNationality(nation: string, locale: string): string {
+  if (!nation) return "";
+  const cleaned = nation.trim();
+  const lower = cleaned.toLowerCase();
+  const key = NORMALIZE_NATION_MAP[cleaned] || NORMALIZE_NATION_MAP[lower];
+  if (key) {
+    const loc = (locale || "en").substring(0, 2).toLowerCase();
+    const localeMap = LOCALIZED_NATIONS[loc] || LOCALIZED_NATIONS["en"];
+    return localeMap[key] || cleaned;
+  }
+  return cleaned;
+}

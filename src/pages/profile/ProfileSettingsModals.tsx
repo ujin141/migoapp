@@ -465,11 +465,19 @@ export const SettingsModal = ({
                     {LANGUAGES.map(lang => (
                       <button key={lang.code}
                         onClick={async () => {
-                          i18n.changeLanguage(lang.code);
+                          try {
+                            await i18n.changeLanguage(lang.code);
+                          } catch (e) {
+                            console.warn("i18n changeLanguage failed:", e);
+                          }
                           localStorage.setItem('migo-lang', lang.code);
                           setShowLangPicker(false);
                           if (user) {
-                             await supabase.auth.updateUser({ data: { locale: lang.code } });
+                            try {
+                              await supabase.auth.updateUser({ data: { locale: lang.code } });
+                            } catch (err) {
+                              console.warn("Failed to update user locale in Supabase:", err);
+                            }
                           }
                           window.location.reload();
                         }}

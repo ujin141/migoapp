@@ -19,10 +19,12 @@ interface TopHeaderProps {
   showNearby?: boolean;
   /** MatchPage 전용: 쇼핑 버튼 */
   showShop?: boolean;
+  /** 어두운 배경 모드 적용 여부 */
+  dark?: boolean;
 }
 
 export default function TopHeader({
-  className = "flex items-center justify-between px-4 pt-safe pb-2 bg-background overflow-hidden",
+  className,
   activeCheckIn,
   onCheckInClick,
   filterCount = 0,
@@ -31,22 +33,30 @@ export default function TopHeader({
   locationActive,
   showNearby = false,
   showShop = false,
+  dark = false,
 }: TopHeaderProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
 
+  // If className is not provided, dynamically select based on dark prop
+  const headerClass = className || `flex items-center justify-between px-4 pt-safe pb-2 border-b overflow-hidden transition-colors duration-300 relative z-10 ${
+    dark ? 'bg-transparent border-zinc-900/30 text-white' : 'bg-background/85 backdrop-blur-lg border-border/40 text-foreground'
+  }`;
+
   // MapPage에서 locationLabel이 전달되면 위치 버튼을 메인으로 사용
   const leftButton = locationLabel ? (
     <button
       onClick={onCheckInClick}
-      className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl font-bold transition-all active:scale-95 border ${
+      className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl font-bold transition-all active:scale-95 border no-bounce ${
         locationActive
           ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600'
-          : 'bg-muted border-transparent text-muted-foreground'
+          : dark
+            ? 'bg-zinc-900 border-zinc-800 text-zinc-300'
+            : 'bg-muted border-transparent text-muted-foreground'
       }`}
     >
-      <MapPin size={15} className={locationActive ? 'text-emerald-500 shrink-0' : 'text-muted-foreground shrink-0'} />
+      <MapPin size={15} className={locationActive ? 'text-emerald-500 shrink-0' : dark ? 'text-zinc-400 shrink-0' : 'text-muted-foreground shrink-0'} />
       <span className="text-[13px] truncate max-w-[160px]">{locationLabel}</span>
       {locationActive && <span className="w-2 h-2 shrink-0 bg-emerald-500 rounded-full animate-pulse" />}
     </button>
@@ -54,13 +64,15 @@ export default function TopHeader({
     // MatchPage 등 기존 체크인 버튼
     <button
       onClick={onCheckInClick}
-      className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl font-bold transition-all active:scale-95 border ${
+      className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl font-bold transition-all active:scale-95 border no-bounce ${
         activeCheckIn
           ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600'
-          : 'bg-muted border-transparent text-muted-foreground'
+          : dark
+            ? 'bg-zinc-900 border-zinc-800 text-zinc-300'
+            : 'bg-muted border-transparent text-muted-foreground'
       }`}
     >
-      <MapPin size={15} className={activeCheckIn ? 'text-emerald-500 shrink-0' : 'text-muted-foreground shrink-0'} />
+      <MapPin size={15} className={activeCheckIn ? 'text-emerald-500 shrink-0' : dark ? 'text-zinc-400 shrink-0' : 'text-muted-foreground shrink-0'} />
       <span className="text-[13px] truncate max-w-[140px]">
         {activeCheckIn ? activeCheckIn.city : t("auto.ko_0259", "체크인")}
       </span>
@@ -72,7 +84,7 @@ export default function TopHeader({
   );
 
   return (
-    <header className={className}>
+    <header className={headerClass}>
       {leftButton}
 
       {/* 우측: (근처 여행자) + (쇼핑) + 알림 + 필터 */}
@@ -80,7 +92,7 @@ export default function TopHeader({
         {showNearby && (
           <button
             onClick={() => navigate("/nearby")}
-            className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center relative transition-transform active:scale-90"
+            className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center relative transition-transform active:scale-90 no-bounce"
           >
             <Navigation size={15} className="text-emerald-500" />
             {localStorage.getItem('migo_nearby_seen') !== '1' && (
@@ -91,16 +103,18 @@ export default function TopHeader({
         {showShop && (
           <button
             onClick={() => navigate("/shop")}
-            className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center transition-transform active:scale-90"
+            className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center transition-transform active:scale-90 no-bounce"
           >
             <ShoppingBag size={15} className="text-primary" />
           </button>
         )}
         <button
           onClick={() => navigate("/notifications")}
-          className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center relative transition-transform active:scale-90"
+          className={`w-9 h-9 rounded-xl flex items-center justify-center relative transition-transform active:scale-90 border no-bounce ${
+            dark ? 'bg-zinc-900 border-zinc-800 text-zinc-300' : 'bg-muted border-transparent text-muted-foreground'
+          }`}
         >
-          <Bell size={16} className="text-muted-foreground" />
+          <Bell size={16} className={dark ? "text-zinc-400" : "text-muted-foreground"} />
           {unreadCount > 0 && (
             <motion.span
               key={unreadCount}
@@ -114,9 +128,11 @@ export default function TopHeader({
         </button>
         <button
           onClick={onFilterClick}
-          className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center relative transition-transform active:scale-90"
+          className={`w-9 h-9 rounded-xl flex items-center justify-center relative transition-transform active:scale-90 border no-bounce ${
+            dark ? 'bg-zinc-900 border-zinc-800 text-zinc-300' : 'bg-muted border-transparent text-muted-foreground'
+          }`}
         >
-          <SlidersHorizontal size={16} className={filterCount > 0 ? "text-primary" : "text-muted-foreground"} />
+          <SlidersHorizontal size={16} className={filterCount > 0 ? "text-primary" : dark ? "text-zinc-400" : "text-muted-foreground"} />
           {filterCount > 0 && (
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full gradient-primary flex items-center justify-center text-[9px] font-bold text-primary-foreground">
               {filterCount}

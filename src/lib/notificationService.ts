@@ -59,3 +59,15 @@ export function notifyStreakReminder(currentStreak: number) {
     defaultValue: `You're on a {{streak}}-day streak! Check in on Migo today.`
   }));
 }
+
+/** 운명이 근처에 있을 때 로컬 브라우저 푸시 알림 */
+export function notifyDestinyNearby(hint: string, distanceMeter: number) {
+  showLocalNotification(
+    i18n.t("notif.destinyNearbyTitle", "인연이 근처에 있습니다! ✦"),
+    i18n.t("notif.destinyNearbyBody", {
+      distance: distanceMeter,
+      hint,
+      defaultValue: `약 {{distance}}m 거리에 운명의 상대가 감지되었습니다: "{{hint}}"`
+    })
+  );
+}

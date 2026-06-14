@@ -10,8 +10,12 @@ const LanguagePicker = () => {
 
   const current = LANGUAGES.find((l) => l.code === i18n.language) ?? LANGUAGES[0];
 
-  const handleSelect = (code: string) => {
-    i18n.changeLanguage(code);
+  const handleSelect = async (code: string) => {
+    try {
+      await i18n.changeLanguage(code);
+    } catch (e) {
+      console.warn("LanguagePicker: i18n changeLanguage failed:", e);
+    }
     localStorage.setItem("migo-lang", code);
     setOpen(false);
     // BUG-11 fix: setTimeout cleanup 없음 이슈 해결 — 즉시 reload

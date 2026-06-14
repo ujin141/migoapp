@@ -46,7 +46,7 @@ const BottomNav = () => {
   return (
     <nav
       id="migo-bottom-nav"
-      className="fixed left-0 right-0 z-[100] bg-card border-t border-border/60 pb-[env(safe-area-inset-bottom,0px)]"
+      className="fixed left-0 right-0 z-[100] bg-card/85 backdrop-blur-lg border-t border-border/40 pb-[env(safe-area-inset-bottom,0px)]"
       style={{ bottom: navBottom }}
     >
       <div className="flex items-center justify-around px-2" style={{ height: `${NAV_H}px` }}>
@@ -59,7 +59,7 @@ const BottomNav = () => {
             <button
               key={tab.path}
               onClick={() => { triggerHaptic("light"); navigate(tab.path); }}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-0 group relative active:scale-95 transition-all duration-150"
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-0 group relative active:scale-95 transition-all duration-150 no-bounce"
             >
               <div className="relative flex items-center justify-center w-10 h-7">
                 {isActive && (

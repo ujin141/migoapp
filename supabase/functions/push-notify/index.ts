@@ -102,7 +102,8 @@ async function sendFcmV1(
             notification: {
               sound: "default",
               icon: "ic_stat_notification",
-              color: "#10B981"
+              color: "#10B981",
+              channel_id: "migo-notifications"
             },
           },
         },
@@ -196,6 +197,12 @@ function buildMessage(
         body: "누군가 회원님의 프로필을 봤습니다",
         data: { type: "profile_view" },
       };
+    case "destiny_nearby":
+      return {
+        title: "✦ 운명이 가까이 있어요!",
+        body: record.target_text ?? "근처에 회원님과 잘 맞는 인연이 감지되었습니다.",
+        data: { type: "destiny_nearby", actor_id: record.actor_id ?? "" },
+      };
     default:
       return {
         title: "Migo",
@@ -241,8 +248,9 @@ function toPrefKey(notifType: string): string | null {
     case "group_join":  return "group";
     case "system":      return "system";
     case "peak_time":   return "system";
-    // 채팅 메시지는 별도 pref 없음 → 항상 발송
-    case "message":     return null;
+    // 채팅 메시지 및 실시간 운명 알림은 별도 pref 없음 → 항상 발송
+    case "message":        return null;
+    case "destiny_nearby": return null;
     default:            return "system"; // 그 외는 system으로 처리
   }
 }

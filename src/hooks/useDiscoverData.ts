@@ -87,8 +87,9 @@ export function useDiscoverData(user: User) {
       // view_count 추적 — fire-and-forget
       if (data && data.length > 0) {
         supabase.rpc("increment_post_views", { p_ids: data.map((d: any) => d.id) })
-          .then(({ error: rpcErr }) => { if (rpcErr) console.warn('[increment_post_views] error:', rpcErr.message); })
-          .catch(e => console.error('[increment_post_views] catch:', e));
+          .then(({ error: rpcErr }) => {
+            if (rpcErr) console.warn('[increment_post_views] error:', rpcErr.message);
+          });
       }
     } catch (err: any) {
       if (reqId !== fetchPostsCounter.current) return;

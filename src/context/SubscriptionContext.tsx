@@ -55,7 +55,7 @@ interface SubscriptionContextType {
   canAdvancedMapFilters: boolean;// 고급 지도 필터 (Plus+)
   canRemoveAds: boolean;         // 광고 제거 (Plus+)
   canNearbyView: boolean;        // 내 주변 탐색 (Plus+)
-  dailyLikeLimit: number;        // 하루 좋아요 한도 (free=10, plus=∞)
+  dailyLikeLimit: number;        // 하루 좋아요 한도 (free=30, plus=∞)
   // Premium 전용 기능 게이팅
   canJoinPremiumGroups: boolean;
   canPriorityPassport: boolean;
@@ -84,7 +84,7 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   canGlobalMatch: false, canViewLikers: false, canNowFeatured: false,
   canReadReceipts: false, canHideLocation: false, canTravelDNAFull: false,
   canVoiceCall: false, canAdvancedMapFilters: false, canRemoveAds: false, canNearbyView: false,
-  dailyLikeLimit: 10,
+  dailyLikeLimit: 30,
   canJoinPremiumGroups: false,
   canPriorityPassport: false, canUnlimitedAITrip: false, canHighlightReviewBadge: false,
   canPremiumTheme: false, canDedicatedSupport: false,
@@ -144,7 +144,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const maxChatThreads = isPlus ? Infinity : 3;
   const openedThreadCount = openedThreads.size;
   // 무료: 하루 좋아요 10회, Plus 이상: 무제한
-  const dailyLikeLimit = isPlus ? Infinity : 10;
+  const dailyLikeLimit = isPlus ? Infinity : 30;
 
   // BUG-13 fix: openedThreads를 ref로도 관리하여 trackOpenedThread의 불필요한 재생성 방지
   const openedThreadsRef = useRef<Set<string>>(openedThreads);

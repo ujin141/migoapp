@@ -1413,8 +1413,13 @@ const DiscoverPage = () => {
           </button>
         )}
         {activeTab === "community" && user && (
-          <button onClick={() => setShowWriteModal(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-white font-extrabold shadow-sm active:scale-95 transition-all text-[12px] shrink-0">
-            <Pencil size={13} className="text-white" /> {t("auto.ko_0005", "여행글 쓰기")}
+          <button
+            onClick={() => setShowWriteModal(true)}
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white font-extrabold shadow-sm active:scale-95 transition-all text-[12px] shrink-0 w-9 h-9 md:w-auto md:px-3.5 md:py-2"
+            title={t("auto.ko_0005", "여행글 쓰기")}
+          >
+            <Pencil size={14} className="text-white shrink-0" />
+            <span className="hidden md:inline">{t("auto.ko_0005", "여행글 쓰기")}</span>
           </button>
         )}
       </div>

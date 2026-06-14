@@ -43,6 +43,24 @@ export const usePushNotifications = (
           return;
         }
 
+        // Android 8.0+ 대응: 푸시 채널 생성 (배너 노출 및 소리 재생 강제 설정)
+        if (Capacitor.getPlatform() === 'android') {
+          try {
+            await PushNotifications.createChannel({
+              id: 'migo-notifications',
+              name: 'Migo Notifications',
+              description: 'General notifications from Migo',
+              importance: 5, // IMPORTANCE_HIGH (배너 팝업)
+              visibility: 1, // VISIBILITY_PUBLIC
+              sound: 'default',
+              vibration: true,
+            });
+            console.log("[Push] Android 알림 채널 생성 완료");
+          } catch (channelErr) {
+            console.warn("[Push] Android 알림 채널 생성 실패:", channelErr);
+          }
+        }
+
         await PushNotifications.addListener("registration", async (token) => {
           if (isObsolete) return;
           try {

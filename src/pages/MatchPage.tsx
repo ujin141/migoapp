@@ -4,10 +4,12 @@ import { Browser } from "@capacitor/browser"; // w3 Guideline 3.2: ?몄빋 釉�
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Heart, Star, SlidersHorizontal, Check, Bell, Zap, Crown, Lock, Navigation, ShoppingBag, MapPin, Globe } from "lucide-react";
+import { X, Heart, Star, SlidersHorizontal, Check, Bell, Zap, Crown, Lock, Navigation, ShoppingBag, MapPin, Globe, Compass } from "lucide-react";
 import SwipeCard from "@/components/SwipeCard";
 import MatchModal from "@/components/MatchModal";
 import MigoPlusModal from "@/components/MigoPlusModal";
+import DestinyRadar from "@/components/DestinyRadar";
+import DestinyAlertModal from "@/components/DestinyAlertModal";
 import InAppNotifBanner, { InAppNotifData } from "@/components/InAppNotifBanner";
 import siteLogo from "@/assets/site-logo.png";
 import PageGuide from "@/components/PageGuide";
@@ -24,19 +26,21 @@ import CheckInModal from "@/components/CheckInModal";
 import { getMyCheckIn, CheckIn } from "@/lib/checkInService";
 import MatchResultCard from "@/components/MatchResultCard";
 import { recordSwipe, personalize } from "@/lib/personalizeService";
-import { requestNotificationPermission, notifyMatch } from "@/lib/notificationService";
+import { requestNotificationPermission, notifyMatch, notifyDestinyNearby } from "@/lib/notificationService";
 import { MoreHorizontal } from "lucide-react";
 import { MissionModal, LikePopupModal, PassPopupModal, SuperLikeModal, LoginGateModal, FilterModal } from "./match/MatchModals";
 import { useAdMob } from "@/hooks/useAdMob";
 import { triggerHaptic } from "@/lib/haptics";
-import { sendMatchPush, sendLikePush } from "@/lib/pushService";
+import { sendMatchPush, sendLikePush, sendDestinyPush } from "@/lib/pushService";
+import { translateLanguage, translateTravelStyle, translateNationality } from "@/lib/translateService";
 
 const hasProfilePhoto = (profile: any) =>
   !!profile?.photo_url || (Array.isArray(profile?.photo_urls) && profile.photo_urls.length > 0);
 
 const MatchPage = () => {
   const {
-    t
+    t,
+    i18n
   } = useTranslation();
   const navigate = useNavigate();
   const {
@@ -68,6 +72,14 @@ const MatchPage = () => {
   } = useAuth();
   const [showPlusModal, setShowPlusModal] = useState(false);
   const [showLoginGate, setShowLoginGate] = useState(false);
+  const [matchMode, setMatchMode] = useState<'swipe' | 'radar'>('swipe');
+  const [showDestinyAlert, setShowDestinyAlert] = useState(false);
+  const [destinyAlertData, setDestinyAlertData] = useState<{ score: number; distance: number; hint: string; photo?: string }>({
+    score: 96,
+    distance: 3,
+    hint: "",
+    photo: ""
+  });
   const [actionSheetProfile, setActionSheetProfile] = useState<any>(null);
   // ?뺚?GPS 泥댄겕???뺚?
   const [showCheckInModal, setShowCheckInModal] = useState(false);
@@ -162,6 +174,7 @@ const MatchPage = () => {
     setShowLoginGate(true);
     return false;
   }, []);
+
 
   // In-app notification banner
   const [inAppNotif, setInAppNotif] = useState<InAppNotifData | null>(null);
@@ -542,6 +555,60 @@ const MatchPage = () => {
     };
   }, [isPlus, isPremium]);
 
+  // 실시간 실제 유저 거리 감지 및 알림 트리거
+  const notifiedUserIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (matchMode !== 'radar' || !user || profiles.length === 0) return;
+    
+    // 15미터 이내 유저 탐색
+    const nearbyDestiny = profiles.find(p => p.distanceKm !== null && p.distanceKm <= 0.015);
+    
+    if (nearbyDestiny && !notifiedUserIdsRef.current.has(nearbyDestiny.id)) {
+      notifiedUserIdsRef.current.add(nearbyDestiny.id);
+      
+      const distanceMeter = Math.round(nearbyDestiny.distanceKm! * 1000);
+      const langPart = nearbyDestiny.languages && nearbyDestiny.languages.length > 0 
+        ? nearbyDestiny.languages.slice(0, 2).map((l: string) => translateLanguage(l, i18n.language)).join('/') + ' ' + t('radar.speaks', '구사') 
+        : '';
+      const stylePart = nearbyDestiny.travelStyle && nearbyDestiny.travelStyle.length > 0
+        ? nearbyDestiny.travelStyle.slice(0, 2).map((s: string) => translateTravelStyle(s, i18n.language)).join(', ') + ' ' + t('radar.interested', '관심')
+        : t('radar.travelMate', '여행메이트');
+      const mbtiPart = nearbyDestiny.mbti ? `[${nearbyDestiny.mbti}] ` : '';
+      const nationPart = nearbyDestiny.nationality ? translateNationality(nearbyDestiny.nationality, i18n.language) : '';
+      const hint = `${mbtiPart}${nationPart} ${langPart} ${stylePart}`.trim() || t('radar.defaultHint', '여행을 즐기는 메이트');
+      
+      // 알림 실행
+      setDestinyAlertData({
+        score: Math.min(99, nearbyDestiny.matchScore % 100),
+        distance: distanceMeter,
+        hint,
+        photo: nearbyDestiny.photo
+      });
+      setShowDestinyAlert(true);
+      
+      // 로컬 푸시 알림
+      notifyDestinyNearby(hint, distanceMeter);
+      
+      // DB 인앱 알림 기록
+      supabase.from('in_app_notifications').insert({
+        user_id: user.id,
+        type: 'destiny_nearby',
+        title: i18n.t("notif.destinyNearbyTitle", "인연이 근처에 있습니다! ✦"),
+        content: i18n.t("notif.destinyNearbyBody", {
+          distance: distanceMeter,
+          hint,
+          defaultValue: `약 {{distance}}m 거리에 운명의 상대가 감지되었습니다: "${hint}"`
+        }),
+        target_id: nearbyDestiny.id
+      }).then(({ error }) => {
+        if (error) console.error('[MatchPage] auto alert db insert failed:', error);
+      });
+
+      // 상대방에게도 내가 근처에 있음을 푸시 알림으로 전송 (상호 감지)
+      sendDestinyPush(nearbyDestiny.id, user.id, distanceMeter, myProfileData?.bio || "여행 메이트");
+    }
+  }, [profiles, matchMode, user, myProfileData]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchProfile, setMatchProfile] = useState<any | null>(null);
   const [showMatch, setShowMatch] = useState(false);
@@ -560,6 +627,27 @@ const MatchPage = () => {
   // Pass popup (X 踰꾪듉)
   const [showPassPopup, setShowPassPopup] = useState(false);
   const [passPopupProfile, setPassPopupProfile] = useState<any | null>(null);
+
+  const isOverlayOpen =
+    showPlusModal ||
+    showLoginGate ||
+    showDestinyAlert ||
+    showCheckInModal ||
+    showMissionModal ||
+    showRewardedAdOffer ||
+    showBoostAdOffer ||
+    showFilterModal ||
+    showMatch ||
+    showSuperLikeModal ||
+    !!actionSheetProfile;
+
+  useEffect(() => {
+    if (isOverlayOpen) {
+      window.dispatchEvent(new CustomEvent('migo:ad-overlay', { detail: { active: true } }));
+    } else {
+      window.dispatchEvent(new CustomEvent('migo:ad-overlay', { detail: { active: false } }));
+    }
+  }, [isOverlayOpen]);
 
   // ?듯빀 ?꾪꽣 ?곸슜 (useMemo濡?硫붾え?댁젣?댁뀡 ??留?render ?ш퀎??諛⑹?)
   const withAds = useMemo(() => {
@@ -655,7 +743,7 @@ const MatchPage = () => {
     if (!profile?.isAd) {
       setSwipeCount(s => {
         const next = s + 1;
-        if (!isPlus && !isPremium && next % 3 === 0) showInterstitialAfterSwipe();
+        // 광고 트리거 제거 (하트 누를 때만 광고가 뜨도록 변경됨)
         return next;
       });
     }
@@ -765,7 +853,7 @@ const MatchPage = () => {
     if (!isPremium && !profile.isLiker && dailyLikesUsed >= DAILY_LIKE_LIMIT) {
       toast({
         title: t("auto.p525"),
-        description: t("auto.t_0018", `?ㅻ뒛 臾대즺 醫뗭븘??${DAILY_LIKE_LIMIT}媛쒕? 紐⑤몢 ?ъ슜?덉뒿?덈떎.`),
+        description: t("auto.t_0018", { count: DAILY_LIKE_LIMIT, defaultValue: `오늘 무료 좋아요 ${DAILY_LIKE_LIMIT}개를 모두 사용했습니다.` }),
         variant: "destructive"
       });
       setShowPlusModal(true);
@@ -794,10 +882,18 @@ const MatchPage = () => {
     setCurrentIndex(i => i + 1);
     setSwipeCount(s => {
       const next = s + 1;
-      if (!isPlus && !isPremium && next % 3 === 0) showInterstitialAfterSwipe();
+      // 광고 트리거 제거 (하트 누를 때만 광고가 뜨도록 변경됨)
       return next;
     });
-    if (!isPlus && !profile.isLiker) setDailyLikesUsed(n => n + 1);
+    if (!isPlus && !profile.isLiker) {
+      setDailyLikesUsed(n => {
+        const next = n + 1;
+        if (!isPremium && next % 5 === 0) {
+          showInterstitialAfterSwipe();
+        }
+        return next;
+      });
+    }
 
     // DB 저장 + 매칭 확인 (지연 처리로 프레임 드랍 방지)
     runAfterSwipe(() => {
@@ -1011,12 +1107,17 @@ const MatchPage = () => {
       recordAdImpression(topProfile.originalAd.id, user?.id ?? null);
     }
   }, [topProfile, user?.id]);
-  return <div className="flex flex-col h-full bg-background truncate">
+  return <div className={`flex flex-col h-full overflow-hidden transition-colors duration-300 relative ${matchMode === 'radar' ? 'bg-[#030712]' : 'bg-background'}`}>
+
+      {/* Seamless page-level gradient overlay in radar mode */}
+      {matchMode === 'radar' && (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-emerald-950/25 via-zinc-950 to-black pointer-events-none z-0" />
+      )}
 
       {/* ??? In-app notification banner (Like / SuperLike received) ??? */}
       <InAppNotifBanner notif={inAppNotif} onClose={() => setInAppNotif(null)} />
 
-      {/* ??? 醫뗭븘???덊띁?쇱씠???섏떊 諛곕꼫 (Realtime ?ㅼ떆媛? ??? */}
+      {/* ?€?€?€ 醫뗭븘???덊띁?쇱씠???섏떊 諛곕꼫 (Realtime ?ㅼ떆媛? ?€?€?€ */}
       {!inAppNotif && (
         <InAppNotifBanner
           notif={likeBanner ? {
@@ -1030,7 +1131,7 @@ const MatchPage = () => {
         />
       )}
 
-      {/* ??? ?꾨줈??議고쉶 諛곕꼫 (?꾨줈?꾨낫湲고뻽?댁슂) ??? */}
+      {/* ?€?€?€ ?꾨줈??議고쉶 諛곕ıklı (?꾨줈?꾨낫湲고뻽?댁슂) ?€?€?€ */}
       {!inAppNotif && !likeBanner && (
         <InAppNotifBanner
           notif={profileViewBanner ? {
@@ -1043,7 +1144,7 @@ const MatchPage = () => {
         />
       )}
 
-      {/* ??? ?ㅻ뒛??紐⑹쟻(Mission) ?ㅼ젙 紐⑤떖 ??? */}
+      {/* ?€?€?€ ?ㅻ뒛??紐⑹쟻(Mission) ?ㅼ젙 紐⑤떖 ?€?€?€ */}
       <MissionModal
         showMissionModal={showMissionModal}
         setShowMissionModal={setShowMissionModal}
@@ -1061,34 +1162,38 @@ const MatchPage = () => {
         }}
         showNearby
         showShop
+        dark={matchMode === 'radar'}
       />
 
-      {/* ?? FOMO: ?쇱씠釉?留ㅼ묶 移댁슫???? */}
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mx-4 mb-3 flex items-center justify-center"
-      >
-        <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-            {(() => {
-              const cnt = Math.floor(Date.now() / 60000 % 150) + 120;
-              const text = t("hotplace.seekerCount", "吏湲?{{count}}紐낆씠 ?숇컲?먮? 李얘퀬 ?덉뼱??", { count: cnt });
-              const parts = text.split(cnt.toString());
-              return (
-                <>
-                  {parts[0]}
-                  <span className="text-emerald-500 font-black">{cnt}</span>
-                  {parts[1]}
-                </>
-              );
-            })()}
-          </span>
+      {/* Mode Switch (Swipe ↔ Radar) */}
+      <div className="mx-4 mb-2 flex justify-center shrink-0 relative z-10">
+        <div className="bg-zinc-900/80 border border-zinc-800 p-0.5 rounded-xl flex items-center w-full max-w-[200px]">
+          <button
+            onClick={() => { triggerHaptic(); setMatchMode('swipe'); }}
+            className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1.5 ${
+              matchMode === 'swipe'
+                ? 'bg-zinc-800 border border-zinc-700/50 text-white shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <Zap size={11} className={matchMode === 'swipe' ? 'text-primary fill-primary' : ''} />
+            {t("match.modeSwipe", "스와이프")}
+          </button>
+          <button
+            onClick={() => { triggerHaptic(); setMatchMode('radar'); }}
+            className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1.5 ${
+              matchMode === 'radar'
+                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <Compass size={11} className={matchMode === 'radar' ? 'text-emerald-400 animate-pulse' : ''} />
+            {t("match.modeRadar", "레이더")}
+          </button>
         </div>
-      </motion.div>
+      </div>
 
-      {/* ??? 遺?ㅽ듃 ?쒖꽦???뚮옒???④낵 ??? */}
+      {/* ?€?€?€ 遺€?ㅽ듃 ?쒖꽦???뚮옒???④낵 ?€?€?€ */}
       <AnimatePresence>
         {boostJustActivated && (
           <motion.div
@@ -1140,7 +1245,7 @@ const MatchPage = () => {
           className="overflow-hidden"
         >
           <div className="mx-4 mb-1 rounded-xl bg-purple-600 overflow-hidden">
-            {/* ??대㉧ 吏꾪뻾瑜?諛?*/}
+            {/* ?€?대㉧ 吏꾪뻾瑜?諛?*/}
             <motion.div
               className="h-0.5 bg-white/40"
               initial={{ width: "100%" }}
@@ -1173,136 +1278,133 @@ const MatchPage = () => {
         </motion.div>
       )}
 
-
-
-      {/* Card Stack ??遺?ㅻ뒗 湲濡쒖슦 留??놁쓬 */}
-      <div
-        className="flex-1 relative w-full px-3 mx-auto pb-2 truncate"
-        style={{
-          minHeight: 0,
-          maxWidth: "420px",
-        }}
-      >
-        {/* 遺?ㅽ듃 以?湲濡쒖슦 ?④낵 */}
-        {boostActive && (
-          <motion.div
-            className="absolute inset-0 rounded-3xl pointer-events-none z-0"
-            animate={{
-              boxShadow: [
-                "0 0 0px 0px rgba(168,85,247,0)",
-                "0 0 30px 8px rgba(168,85,247,0.35)",
-                "0 0 20px 4px rgba(236,72,153,0.25)",
-                "0 0 30px 8px rgba(168,85,247,0.35)",
-              ],
+      {matchMode === 'swipe' ? (
+        <>
+          {/* Card Stack */}
+          <div
+            className="flex-1 relative w-full px-2 mx-auto pb-4 overflow-hidden"
+            style={{
+              minHeight: 0,
+              maxWidth: "460px",
             }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-          />
-        )}
-        {remaining.length > 0 ? (
-          <AnimatePresence>
-            {remaining.map((profile, i) => <SwipeCard key={profile.id} profile={profile} onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} onChat={() => handleDirectChat(profile)} isTop={i === remaining.length - 1} isSuperLiked={superLikedId === profile.id} onProfileView={sendProfileViewNotif} myProfile={myProfileData} myDailyMission={myDailyMission} onPremiumClick={() => setShowPlusModal(true)} />)}
-          </AnimatePresence>
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1, type: "spring", damping: 25 }}
-            className="flex flex-col items-center justify-center h-full text-center px-8"
           >
-            <div className="relative mb-5">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-                <Globe size={40} strokeWidth={1.8} className="text-primary" />
-              </div>
-              {false && <motion.div
-                animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.8, 0.3] }}
+            {/* 부스트 중 글로우 효과 */}
+            {boostActive && (
+              <motion.div
+                className="absolute inset-0 rounded-3xl pointer-events-none z-0"
+                animate={{
+                  boxShadow: [
+                    "0 0 0px 0px rgba(168,85,247,0)",
+                    "0 0 30px 8px rgba(168,85,247,0.35)",
+                    "0 0 20px 4px rgba(236,72,153,0.25)",
+                    "0 0 30px 8px rgba(168,85,247,0.35)",
+                  ],
+                }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary/30 blur-sm"
-              />}
-              {false && <motion.div
-                animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.6, 0.2] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-primary/40 blur-sm inline-block"
-              />}
-            </div>
-            <h3 className="text-xl font-extrabold text-foreground mb-2 text-center">{t("auto.j502", { defaultValue: "You've seen all travelers!" })}</h3>
-            <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-[240px] text-center whitespace-pre-line">
-                {t("auto.j503", { defaultValue: "New friends nearby\nwill show up soon." })}
-            </p>
-            <motion.button 
-              whileTap={{ scale: 0.96 }}
-              onClick={() => setShowFilterModal(true)} 
-              className="px-6 py-3 rounded-xl bg-primary text-primary-foreground text-[13px] font-extrabold flex items-center gap-2"
-            >
-                <span className="text-lg">Reset</span> {t("auto.j504", { defaultValue: "Reset filters" })}
-            </motion.button>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Action Buttons - inline below card */}
-      {remaining.length > 0 && <div className="relative z-50 pointer-events-auto flex flex-col items-center gap-2 px-4 pt-1 pb-4 shrink-0">
-          {/* Boost row */}
-          {false && <div className="flex justify-center">
-             <motion.button whileTap={{
-          scale: 0.92
-        }} onClick={async () => {
-          if (!isPlus) {
-            // Migo Plus媛 ?꾨땶 寃쎌슦: 愿묎퀬 蹂닿퀬 遺?ㅽ듃 諛쏄린 紐⑤떖 ?쒖떆
-            setShowBoostAdOffer(true);
-            return;
-          }
-          if (boostActive) {
-            toast({
-              title: t("auto.p526"),
-              description: t("auto.t_0020", `遺?ㅽ듃 ${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")} ?⑥쓬`)
-            });
-            return;
-          }
-          await startBoost();
-          setBoostJustActivated(true);
-          setTimeout(() => setBoostJustActivated(false), 1800);
-          toast({
-            title: t("alert.t64Title"),
-            description: t("alert.t64Desc")
-          });
-        }} className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold shadow-lg transition-all ${boostActive ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : isPlus ? "bg-purple-500/10 border border-purple-500/30 text-purple-400" : "bg-muted text-muted-foreground"}`}>
-                <Zap size={13} fill={boostActive ? "white" : "none"} />
-                {boostActive ? t("auto.t_0047", `遺?ㅽ똿 以?${String(Math.floor(boostSecondsLeft / 60)).padStart(2, "0")}:${String(boostSecondsLeft % 60).padStart(2, "0")}`) : isPlus ? t("auto.ko_0263", "遺?ㅽ듃 ?ъ슜") : t("auto.ko_0264", "遺?ㅽ듃 (Plus)")}
-             </motion.button>
-          </div>}
-
-          {/* Core swipe buttons ??prominent X / Star / Heart */}
-          <div className="flex items-center justify-center gap-3">
-            <motion.button
-              whileTap={{ scale: 0.88, rotate: -8 }}
-              onClick={handleSwipeLeft}
-              className="w-12 h-12 rounded-full bg-card shadow-sm border border-rose-400/40 flex items-center justify-center text-rose-500 active:bg-rose-50"
-            >
-              <X size={22} strokeWidth={3} />
-            </motion.button>
-
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={openSuperLikeModal}
-              className={`w-10 h-10 rounded-full shadow-sm border flex items-center justify-center transition-all ${
-                superLikesLeft > 0
-                  ? "bg-card border-blue-400/60 text-blue-500 shadow-[0_4px_18px_rgba(59,130,246,0.2)]"
-                  : "bg-muted border-border opacity-40 text-muted-foreground"
-              }`}
-            >
-              <Star size={17} className={superLikesLeft > 0 ? "fill-blue-500" : ""} />
-            </motion.button>
-
-            <motion.button
-              whileTap={{ scale: 0.88, rotate: 8 }}
-              onClick={handleSwipeRight}
-              className="w-12 h-12 rounded-full bg-card shadow-sm border border-emerald-400/50 flex items-center justify-center text-emerald-500 active:bg-emerald-50"
-            >
-              <Heart size={22} strokeWidth={2.5} className="fill-emerald-500" />
-            </motion.button>
+              />
+            )}
+            {remaining.length > 0 ? (
+              <AnimatePresence>
+                {remaining.map((profile, i) => <SwipeCard key={profile.id} profile={profile} onSwipeLeft={handleSwipeLeft} onSwipeRight={handleSwipeRight} onChat={() => handleDirectChat(profile)} isTop={i === remaining.length - 1} isSuperLiked={superLikedId === profile.id} onProfileView={sendProfileViewNotif} myProfile={myProfileData} myDailyMission={myDailyMission} onPremiumClick={() => setShowPlusModal(true)} />)}
+              </AnimatePresence>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1, type: "spring", damping: 25 }}
+                className="flex flex-col items-center justify-center h-full text-center px-8"
+              >
+                <div className="relative mb-5">
+                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                    <Globe size={40} strokeWidth={1.8} className="text-primary" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-extrabold text-foreground mb-2 text-center">{t("auto.j502", { defaultValue: "You've seen all travelers!" })}</h3>
+                <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-[240px] text-center whitespace-pre-line">
+                    {t("auto.j503", { defaultValue: "New friends nearby\nwill show up soon." })}
+                </p>
+                <motion.button 
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setShowFilterModal(true)} 
+                  className="px-6 py-3 rounded-xl bg-primary text-primary-foreground text-[13px] font-extrabold flex items-center gap-2"
+                >
+                    <span className="text-lg">Reset</span> {t("auto.j504", { defaultValue: "Reset filters" })}
+                </motion.button>
+              </motion.div>
+            )}
           </div>
-      </div>}
 
+          {/* Action Buttons - inline below card */}
+          {remaining.length > 0 && <div className="relative z-50 pointer-events-auto flex flex-col items-center gap-2 px-4 pt-1 pb-4 shrink-0">
+              {/* Core swipe buttons */}
+              <div className="flex items-center justify-center gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.88, rotate: -8 }}
+                  onClick={handleSwipeLeft}
+                  className="w-12 h-12 rounded-full bg-card shadow-sm border border-rose-400/40 flex items-center justify-center text-rose-500 active:bg-rose-50"
+                >
+                  <X size={22} strokeWidth={3} />
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.88 }}
+                  onClick={openSuperLikeModal}
+                  className={`w-10 h-10 rounded-full shadow-sm border flex items-center justify-center transition-all ${
+                    superLikesLeft > 0
+                      ? "bg-card border-blue-400/60 text-blue-500 shadow-[0_4px_18px_rgba(59,130,246,0.2)]"
+                      : "bg-muted border-border opacity-40 text-muted-foreground"
+                  }`}
+                >
+                  <Star size={17} className={superLikesLeft > 0 ? "fill-blue-500" : ""} />
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.88, rotate: 8 }}
+                  onClick={handleSwipeRight}
+                  className="w-12 h-12 rounded-full bg-card shadow-sm border border-emerald-400/50 flex items-center justify-center text-emerald-500 active:bg-emerald-50"
+                >
+                  <Heart size={22} strokeWidth={2.5} className="fill-emerald-500" />
+                </motion.button>
+              </div>
+          </div>}
+        </>
+      ) : (
+        <DestinyRadar
+          isPremiumUser={isPremium}
+          onShowPlusModal={() => setShowPlusModal(true)}
+          profiles={profiles}
+          onChat={handleDirectChat}
+          onTriggerAlert={async (score, distance, hint, actorId) => {
+            const matchedProfile = profiles.find(p => p.id === actorId);
+            setDestinyAlertData({ score, distance, hint, photo: matchedProfile?.photo });
+            setShowDestinyAlert(true);
+            
+            // 브라우저 로컬 알림 발송
+            notifyDestinyNearby(hint, distance);
+
+            // Supabase 인앱 알림 저장
+            if (user?.id) {
+              try {
+                await supabase.from('in_app_notifications').insert({
+                  user_id: user.id,
+                  type: 'destiny_nearby',
+                  title: i18n.t("notif.destinyNearbyTitle", "인연이 근처에 있습니다! ✦"),
+                  content: i18n.t("notif.destinyNearbyBody", {
+                    distance,
+                    hint,
+                    defaultValue: `약 {{distance}}m 거리에 운명의 상대가 감지되었습니다: "${hint}"`
+                  }),
+                  target_id: actorId
+                });
+              } catch (err) {
+                console.error('[MatchPage] Failed to save destiny in_app_notification:', err);
+              }
+            }
+          }}
+          profiles={profiles}
+          onChat={handleDirectChat}
+        />
+      )}
 
 
       {/* ???????????????????????????????????????????????????????????? */}
@@ -1515,6 +1617,19 @@ const MatchPage = () => {
           </div>
         </div>
       )}
+
+      <DestinyAlertModal
+        isOpen={showDestinyAlert}
+        onClose={() => setShowDestinyAlert(false)}
+        onUnlock={() => {
+          setShowDestinyAlert(false);
+          setShowPlusModal(true);
+        }}
+        matchScore={destinyAlertData.score}
+        distanceMeter={destinyAlertData.distance}
+        hintText={destinyAlertData.hint}
+        photoUrl={destinyAlertData.photo}
+      />
 
     </div>;
 };

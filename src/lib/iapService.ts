@@ -135,6 +135,7 @@ export const purchaseSubscription = async (productId: IAPProductId): Promise<Pur
     const transaction = await NativePurchases.purchaseProduct({
       productIdentifier: productId,
       productType: PURCHASE_TYPE.SUBS,
+      planIdentifier: productId, // On Android, planIdentifier (Base Plan ID) is required for subscriptions and is used by the plugin to query/match product details.
     });
     return { success: true, transactionId: String(transaction.transactionId) };
   } catch (e: any) {

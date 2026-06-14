@@ -29,7 +29,7 @@ export type HapticStyle =
  * 햅틱 피드백 트리거
  * @param style - 햅틱 스타일
  */
-export async function triggerHaptic(style: HapticStyle): Promise<void> {
+export async function triggerHaptic(style: HapticStyle = "light"): Promise<void> {
   try {
     const h = await getHaptics();
     if (!h) return;

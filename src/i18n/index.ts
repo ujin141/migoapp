@@ -10,14 +10,17 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 import resourcesToBackend from "i18next-resources-to-backend";
 
+// Statically import major languages to prevent dynamic import fetch/path resolution failures in Capacitor
+import ko from "./locales/ko";
+import en from "./locales/en";
+import ja from "./locales/ja";
+import zh from "./locales/zh";
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .use(
     resourcesToBackend(async (language: string, namespace: string) => {
-      // json 파일을 동적으로 import (vite의 import() 사용 시 빌드타임에서 파일을 자동으로 분할합니다)
-      const res = await import(`./locales/${language}.ts`);
-      
       // Filter, Checkin, Tier locales are locally managed and small
       // We can directly mix them here.
       const FILTER = (FILTER_LOCALES as any)[language] || {};
@@ -26,8 +29,23 @@ i18n
       const GDF = (GDF_LOCALES as any)[language] || {};
       const MAP = (MAP_LOCALES as any)[language] || {};
       const RETENTION = (RETENTION_LOCALES as any)[language] || {};
+
+      let baseLocales = {};
+      if (language === "ko") {
+        baseLocales = ko;
+      } else if (language === "en") {
+        baseLocales = en;
+      } else if (language === "ja") {
+        baseLocales = ja;
+      } else if (language === "zh") {
+        baseLocales = zh;
+      } else {
+        // Fallback to dynamic import for other less common languages
+        const res = await import(`./locales/${language}.ts`);
+        baseLocales = res.default;
+      }
       
-      return { ...res.default, ...FILTER, ...CHECKIN, ...TIER, ...GDF, ...MAP, ...RETENTION };
+      return { ...baseLocales, ...FILTER, ...CHECKIN, ...TIER, ...GDF, ...MAP, ...RETENTION };
     })
   )
   .init({

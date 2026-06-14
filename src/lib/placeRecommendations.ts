@@ -1,4 +1,4 @@
-import i18n from '@/i18n'; // Assuming i18n is exported from here or adjust import
+import i18n from '@/i18n';
 
 export interface PlaceRecommendation {
   id: string;
@@ -20,13 +20,13 @@ export interface Hotplace {
   category: 'city' | 'nature' | 'attraction' | 'club';
 }
 
-export const HOTPLACES: Hotplace[] = [
+const getRawHotplaces = (): Hotplace[] => [
   // 한국 (Korea)
-  { id: "hongdae", name: i18n.t("instant.places.hongdae", "홍대/연남 (Hongdae)"), emoji: "🎵", country: i18n.t("auto.g_0384", "한국"), cities: ["Seoul", i18n.t("auto.g_0385", "서울")], lat: 37.5563, lng: 126.9227, category: 'city' },
-  { id: "gangnam", name: i18n.t("instant.places.gangnam", "강남/신논현 (Gangnam)"), emoji: "✨", country: i18n.t("auto.g_0386", "한국"), cities: ["Seoul", i18n.t("auto.g_0387", "서울")], lat: 37.4979, lng: 127.0276, category: 'city' },
-  { id: "itaewon", name: i18n.t("instant.places.itaewon", "이태원 (Itaewon)"), emoji: "🌍", country: i18n.t("auto.g_0388", "한국"), cities: ["Seoul", i18n.t("auto.g_0389", "서울")], lat: 37.5340, lng: 126.9940, category: 'city' },
-  { id: "busan", name: i18n.t("instant.places.busan", "광안리/해운대 (Busan)"), emoji: "🌊", country: i18n.t("auto.g_0390", "한국"), cities: ["Busan", i18n.t("auto.g_0391", "부산")], lat: 35.1557, lng: 129.1171, category: 'nature' },
-  { id: "jeju", name: i18n.t("instant.places.jeju", "애월/함덕 (Jeju)"), emoji: "🍊", country: i18n.t("auto.g_0392", "한국"), cities: ["Jeju", i18n.t("auto.g_0393", "제주")], lat: 33.4658, lng: 126.3197, category: 'nature' },
+  { id: "hongdae", name: i18n.t("instant.places.hongdae", "홍대/연남"), emoji: "🎵", country: i18n.t("auto.g_0384", "한국"), cities: ["Seoul", i18n.t("auto.g_0385", "서울")], lat: 37.5563, lng: 126.9227, category: 'city' },
+  { id: "gangnam", name: i18n.t("instant.places.gangnam", "강남/신논현"), emoji: "✨", country: i18n.t("auto.g_0386", "한국"), cities: ["Seoul", i18n.t("auto.g_0387", "서울")], lat: 37.4979, lng: 127.0276, category: 'city' },
+  { id: "itaewon", name: i18n.t("instant.places.itaewon", "이태원"), emoji: "🌍", country: i18n.t("auto.g_0388", "한국"), cities: ["Seoul", i18n.t("auto.g_0389", "서울")], lat: 37.5340, lng: 126.9940, category: 'city' },
+  { id: "busan", name: i18n.t("instant.places.busan", "광안리/해운대"), emoji: "🌊", country: i18n.t("auto.g_0390", "한국"), cities: ["Busan", i18n.t("auto.g_0391", "부산")], lat: 35.1557, lng: 129.1171, category: 'nature' },
+  { id: "jeju", name: i18n.t("instant.places.jeju", "애월/함덕"), emoji: "🍊", country: i18n.t("auto.g_0392", "한국"), cities: ["Jeju", i18n.t("auto.g_0393", "제주")], lat: 33.4658, lng: 126.3197, category: 'nature' },
 
   // 일본 (Japan)
   { id: "shibuya", name: i18n.t("instant.places.shibuya", "시부야 (Shibuya)"), emoji: "🗼", country: i18n.t("auto.g_0394", "일본"), cities: ["Tokyo", i18n.t("auto.g_0395", "도쿄"), i18n.t("auto.g_0396", "동경")], lat: 35.6595, lng: 139.7004, category: 'city' },
@@ -48,15 +48,34 @@ export const HOTPLACES: Hotplace[] = [
   { id: "sydney", name: i18n.t("instant.places.sydney", "본다이/오페라 (Sydney)"), emoji: "🦘", country: i18n.t("auto.g_0420", "호주"), cities: ["Sydney", i18n.t("auto.g_0421", "시드니")], lat: -33.8915, lng: 151.2767, category: 'nature' },
   
   // 액티비티/테마파크/클럽 (Theme Parks, Clubs, Attractions)
-  { id: "lotteworld", name: i18n.t("instant.places.lotteworld", "롯데월드/석촌호수 (Lotte World)"), emoji: "🎢", country: i18n.t("auto.g_0422", "한국"), cities: ["Seoul", i18n.t("auto.g_0423", "서울")], lat: 37.5113, lng: 127.0980, category: 'attraction' },
-  { id: "usj", name: i18n.t("instant.places.usj", "유니버셜 스튜디오 (USJ)"), emoji: "🌎", country: i18n.t("auto.g_0424", "일본"), cities: ["Osaka", i18n.t("auto.g_0425", "오사카")], lat: 34.6654, lng: 135.4323, category: 'attraction' },
-  { id: "disneyland", name: i18n.t("instant.places.disneyland", "도쿄 디즈니랜드 (Disneyland)"), emoji: "🎡", country: i18n.t("auto.g_0426", "일본"), cities: ["Tokyo", i18n.t("auto.g_0427", "도쿄")], lat: 35.6329, lng: 139.8804, category: 'attraction' },
-  { id: "gyeongbokgung", name: i18n.t("instant.places.gyeongbokgung", "경복궁/북촌 (Gyeongbokgung)"), emoji: "🏯", country: i18n.t("auto.g_0428", "한국"), cities: ["Seoul", i18n.t("auto.g_0429", "서울")], lat: 37.5796, lng: 126.9770, category: 'attraction' },
-  { id: "itaewon_club", name: i18n.t("instant.places.itaewon_club", "이태원 클럽 (Clubs)"), emoji: "🪩", country: i18n.t("auto.g_0430", "한국"), cities: ["Seoul", i18n.t("auto.g_0431", "서울")], lat: 37.5345, lng: 126.9945, category: 'club' },
-  { id: "shibuya_club", name: i18n.t("instant.places.shibuya_club", "시부야 라운지 (Clubs)"), emoji: "🎧", country: i18n.t("auto.g_0432", "일본"), cities: ["Tokyo", i18n.t("auto.g_0433", "도쿄")], lat: 35.6580, lng: 139.6980, category: 'club' },
+  { id: "lotteworld", name: i18n.t("instant.places.lotteworld", "롯데월드/석촌호수"), emoji: "🎢", country: i18n.t("auto.g_0422", "한국"), cities: ["Seoul", i18n.t("auto.g_0423", "서울")], lat: 37.5113, lng: 127.0980, category: 'attraction' },
+  { id: "usj", name: i18n.t("instant.places.usj", "유니버셜 스튜디오"), emoji: "🌎", country: i18n.t("auto.g_0424", "일본"), cities: ["Osaka", i18n.t("auto.g_0425", "오사카")], lat: 34.6654, lng: 135.4323, category: 'attraction' },
+  { id: "disneyland", name: i18n.t("instant.places.disneyland", "도쿄 디즈니랜드"), emoji: "🎡", country: i18n.t("auto.g_0426", "일본"), cities: ["Tokyo", i18n.t("auto.g_0427", "도쿄")], lat: 35.6329, lng: 139.8804, category: 'attraction' },
+  { id: "gyeongbokgung", name: i18n.t("instant.places.gyeongbokgung", "경복궁/북촌"), emoji: "🏯", country: i18n.t("auto.g_0428", "한국"), cities: ["Seoul", i18n.t("auto.g_0429", "서울")], lat: 37.5796, lng: 126.9770, category: 'attraction' },
+  { id: "itaewon_club", name: i18n.t("instant.places.itaewon_club", "이태원 클럽"), emoji: "🪩", country: i18n.t("auto.g_0430", "한국"), cities: ["Seoul", i18n.t("auto.g_0431", "서울")], lat: 37.5345, lng: 126.9945, category: 'club' },
+  { id: "shibuya_club", name: i18n.t("instant.places.shibuya_club", "시부야 라운지"), emoji: "🎧", country: i18n.t("auto.g_0432", "일본"), cities: ["Tokyo", i18n.t("auto.g_0433", "도쿄")], lat: 35.6580, lng: 139.6980, category: 'club' },
 ];
 
-const RECOMMENDATION_DB: Record<string, PlaceRecommendation[]> = {
+export const HOTPLACES = new Proxy([] as Hotplace[], {
+  get(target, prop, receiver) {
+    const list = getRawHotplaces();
+    const value = Reflect.get(list, prop);
+    if (typeof value === 'function') {
+      return value.bind(list);
+    }
+    return value;
+  },
+  getOwnPropertyDescriptor(target, prop) {
+    const list = getRawHotplaces();
+    return Reflect.getOwnPropertyDescriptor(list, prop);
+  },
+  ownKeys(target) {
+    const list = getRawHotplaces();
+    return Reflect.ownKeys(list);
+  }
+});
+
+const getRawRecommendationDb = (): Record<string, PlaceRecommendation[]> => ({
   hongdae: [
     { id: "h1", name: i18n.t("auto.g_0434", "상상마당 근처 펍"), type: "bar", description: i18n.t("auto.g_0435", "신나는 음악과 다양한 생맥주"), rating: 4.5, distance: "100m" },
     { id: "h2", name: i18n.t("auto.g_0436", "연트럴파크 맛집"), type: "restaurant", description: i18n.t("auto.g_0437", "웨이팅 필수 분위기 좋은 양식당"), rating: 4.8, distance: "250m" },
@@ -154,15 +173,14 @@ const RECOMMENDATION_DB: Record<string, PlaceRecommendation[]> = {
     { id: "sbc1", name: i18n.t("auto.g_0528", "대형 클럽 VIP 테이블"), type: "bar", description: i18n.t("auto.g_0529", "조인해서 같이 신나게 춤추기 좋은 곳"), rating: 4.8, distance: "50m" },
     { id: "sbc2", name: i18n.t("auto.g_0530", "시부야 심야 야키토리"), type: "restaurant", description: i18n.t("auto.g_0531", "아침까지 영업하는 꼬치구이 맛집"), rating: 4.5, distance: "200m" }
   ]
-};
+});
 
-// 기본 반환 템플릿(지정 핫플레이스가 아닐 시)
-const DEFAULT_RECOMMENDATIONS: PlaceRecommendation[] = [
+const getRawDefaultRecommendations = (): PlaceRecommendation[] => [
   { id: "d1", name: i18n.t("auto.g_0532", "분위기 좋은 로컬 펍"), type: "bar", description: i18n.t("auto.g_0533", "시원한 생맥주와 대화하기 좋은 분위기"), rating: 4.5, distance: "100m" },
   { id: "d2", name: i18n.t("auto.g_0534", "인기 플레이스 식당"), type: "restaurant", description: i18n.t("auto.g_0535", "이 근처에서 가장 리뷰가 많은 맛집"), rating: 4.6, distance: "150m" },
   { id: "d3", name: i18n.t("auto.g_0536", "조용한 감성 카페"), type: "cafe", description: i18n.t("auto.g_0537", "부담없이 만나서 대화하기 좋은 곳"), rating: 4.4, distance: "50m" }
 ];
 
 export function getRecommendationsForHotplace(hotplaceId: string): PlaceRecommendation[] {
-  return RECOMMENDATION_DB[hotplaceId] || DEFAULT_RECOMMENDATIONS;
+  return getRawRecommendationDb()[hotplaceId] || getRawDefaultRecommendations();
 }

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Eye, Heart, MessageSquare, Check, UserRound, Star, Lock, ChevronRight, ChevronLeft } from "lucide-react";
+import { Bell, Eye, Heart, MessageSquare, Check, UserRound, Star, Lock, ChevronRight, ChevronLeft, Compass } from "lucide-react";
 import { useNotifications, NotifType, Notif } from "@/context/NotificationContext";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,7 @@ const notifIcon = (type: NotifType) => {
     case "superlike": return { Icon: Star, color: "bg-indigo-500/10 text-indigo-400" };
     case "comment": return { Icon: MessageSquare, color: "bg-primary/10 text-primary" };
     case "match": return { Icon: UserRound, color: "bg-accent/30 text-accent-foreground" };
+    case "destiny_nearby": return { Icon: Compass, color: "bg-emerald-500/10 text-emerald-400" };
     default: return { Icon: Bell, color: "bg-gray-500/10 text-gray-500" };
   }
 };
@@ -137,7 +138,7 @@ const NotificationPage = () => {
                 exit={{ opacity: 0, x: 50 }}
                 onClick={() => {
                   markRead(n.id);
-                  if (["profile_view", "like", "superlike"].includes(n.type)) {
+                  if (["profile_view", "like", "superlike", "destiny_nearby"].includes(n.type)) {
                     if (!isPlus) setShowPlusModal(true);
                     else if (n.actorId) fetchProfile(n.actorId);
                   } else if (n.actorId) {
@@ -150,23 +151,25 @@ const NotificationPage = () => {
               >
                 {/* Actor photo + type icon */}
                 {(() => {
-                  const isRestricted = ["profile_view", "like", "superlike"].includes(n.type) && !isPlus;
+                  const isRestricted = ["profile_view", "like", "superlike", "destiny_nearby"].includes(n.type) && !isPlus;
+                  const isDestinyNearby = n.type === "destiny_nearby";
+                  const shouldBlur = isRestricted || isDestinyNearby;
                   return (
                     <div className="relative shrink-0">
-                      {/* 실제 사진: 비구독자는 blur, 구독자는 선명하게 */}
+                      {/* 실제 사진: 비구독자는 blur, destiny_nearby는 항상 blur, 구독자는 선명하게 */}
                       <div className="w-12 h-12 rounded-2xl overflow-hidden">
                         {n.actorPhoto ? (
                           <img
                             src={n.actorPhoto}
                             alt=""
                             className="w-full h-full object-cover"
-                            style={isRestricted ? { filter: 'blur(10px)', transform: 'scale(1.2)' } : {}}
+                            style={shouldBlur ? { filter: 'blur(10px)', transform: 'scale(1.2)' } : {}}
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                         ) : (
                           <div
                             className="w-full h-full gradient-primary flex items-center justify-center text-primary-foreground text-lg font-extrabold"
-                            style={isRestricted ? { filter: 'blur(8px)' } : {}}
+                            style={shouldBlur ? { filter: 'blur(8px)' } : {}}
                           >
                             {n.actor?.[0] ?? "?"}
                           </div>
@@ -196,7 +199,7 @@ const NotificationPage = () => {
                     </>
                   ) : (
                     <p className="text-sm text-foreground leading-snug">
-                      <span className="font-bold truncate">{["profile_view", "like", "superlike"].includes(n.type) && !isPlus ? t("notif.someone") : n.actor}</span>
+                      <span className="font-bold truncate">{["profile_view", "like", "superlike", "destiny_nearby"].includes(n.type) && !isPlus ? t("notif.someone") : n.actor}</span>
                       {notifMessage(n)}
                     </p>
                   )}
